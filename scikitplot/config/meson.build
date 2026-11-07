@@ -121,9 +121,19 @@ configure_file(
 _citation_file = meson.project_source_root() / 'CITATION.bib'
 _citation_content = fs.read(_citation_file).strip()
 
+# The facts `scikitplot.config.citation("build")` formats its entry from,
+# from the same source as CITATION.bib (one JSON line; the build fails if the
+# tool does).
+_citation_fields = run_command(
+  py,
+  [meson.project_source_root() / 'tools' / 'citation' / 'citation_ref.py', 'fields'],
+  check: true,
+).stdout().strip()
+
 # bib configure_file
 conf_data_bib = configuration_data()
 conf_data_bib.set('CITATION', _citation_content)
+conf_data_bib.set('CITATION_FIELDS', _citation_fields)
 
 # Generate _CITATION.bib for sdist
 configure_file(

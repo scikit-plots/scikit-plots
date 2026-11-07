@@ -54,7 +54,6 @@ from .._utils import atomic_write_text, backend_for, lock_for, read_text
 __all__ = [
     "IndexMetadata",
     "MetaMixin",
-    "MetadataRoutingMixin",
 ]
 
 
@@ -500,53 +499,3 @@ class MetaMixin:
         if not isinstance(obj, Mapping):
             raise TypeError("YAML root must be a mapping")
         return cls.from_metadata(cast(Mapping[str, any], obj), load=load)
-
-
-class MetadataRoutingMixin:
-    """
-    Optional scikit-learn metadata routing integration.
-
-    This mixin is only needed if you integrate the index into scikit-learn
-    pipelines that make use of *metadata routing*.
-
-    Notes
-    -----
-    scikit-learn is imported lazily and only when these methods are called.
-    """
-
-    def get_metadata_routing(self) -> any:
-        """Return a scikit-learn ``MetadataRequest`` describing consumed metadata."""
-        try:
-            from sklearn.utils.metadata_routing import MetadataRequest  # noqa: PLC0415
-        except Exception as e:  # pragma: no cover
-            raise ImportError(
-                "scikit-learn is required for metadata routing. Install `scikit-learn`."
-            ) from e
-
-        # Minimal explicit metadata request: accept no routed metadata by default.
-        try:
-            return MetadataRequest(owner=type(self))
-        except TypeError:  # pragma: no cover
-            try:
-                return MetadataRequest(owner=type(self).__name__)
-            except TypeError:
-                return MetadataRequest()
-
-    @staticmethod
-    def build_metadata_router(*, owner: object) -> any:
-        """Build a scikit-learn ``MetadataRouter`` for a given owner."""
-        try:
-            from sklearn.utils.metadata_routing import MetadataRouter  # noqa: PLC0415
-        except Exception as e:  # pragma: no cover
-            raise ImportError(
-                "scikit-learn is required for metadata routing. Install `scikit-learn`."
-            ) from e
-
-        # MetadataRouter changed signatures across sklearn versions; be permissive.
-        try:
-            return MetadataRouter(owner=owner)
-        except TypeError:  # pragma: no cover
-            try:
-                return MetadataRouter(owner=getattr(owner, "__class__", type(owner)))
-            except TypeError:
-                return MetadataRouter()

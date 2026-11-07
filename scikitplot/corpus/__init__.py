@@ -221,6 +221,7 @@ from . import _execution  # noqa: F401
 from . import _correction  # noqa: F401
 from . import _catalog  # noqa: F401
 from . import _agentic  # noqa: F401
+from . import _routing  # noqa: F401
 from . import _artifact  # noqa: F401
 from . import _filters  # noqa: F401
 from . import _cut  # noqa: F401
@@ -241,6 +242,7 @@ from ._execution import *  # noqa: F403
 from ._correction import *  # noqa: F403
 from ._catalog import *  # noqa: F403
 from ._agentic import *  # noqa: F403
+from ._routing import *  # noqa: F403
 from ._artifact import *  # noqa: F403
 from ._filters import *  # noqa: F403
 from ._cut import *  # noqa: F403
@@ -285,6 +287,7 @@ __all__ += _execution.__all__
 __all__ += _correction.__all__
 __all__ += _catalog.__all__
 __all__ += _agentic.__all__
+__all__ += _routing.__all__
 __all__ += _artifact.__all__
 __all__ += _filters.__all__
 __all__ += _cut.__all__

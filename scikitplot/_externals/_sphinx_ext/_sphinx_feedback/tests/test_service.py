@@ -376,23 +376,38 @@ def test_provider_shorthand_is_validated_not_trusted():
         )
 
 
-def test_unimplemented_provider_fails_at_service_configuration_boundary():
-    raw = json.dumps(
-        [
-            target(
-                provider="huggingface",
-                repo="org/repo",
-                token_env=["FEEDBACK_HF_TOKEN"],
-            )
-        ]
+def test_unsupported_provider_fails_at_service_configuration_boundary_with_its_reason():
+    from _sphinx_ext._sphinx_feedback._service._config import (  # noqa: PLC0415
+        IMPLEMENTED_PROVIDERS,
+        PROVIDERS,
+        UNSUPPORTED_PROVIDER_REASONS,
     )
-    with pytest.raises(FeedbackServiceConfigError, match="not implemented"):
-        load_service_config(
-            {
-                "FEEDBACK_REVIEW_MODE": "provider-pr",
-                "FEEDBACK_STORAGE_TARGETS": raw,
-            }
+
+    assert set(UNSUPPORTED_PROVIDER_REASONS) == PROVIDERS - IMPLEMENTED_PROVIDERS == {"huggingface"}
+    hf = target(provider="huggingface", repo="org/repo", token_env=["FEEDBACK_HF_TOKEN"])
+    as_primary = [hf]
+    as_mirror = [target(), dict(hf, id="hub", role="mirror")]  # a mirror is never dropped silently
+    for targets in (as_primary, as_mirror):
+        env = {"FEEDBACK_REVIEW_MODE": "provider-pr", "FEEDBACK_STORAGE_TARGETS": json.dumps(targets)}
+        with pytest.raises(FeedbackServiceConfigError, match="feedback provider huggingface is not supported") as caught:
+            load_service_config(env)
+        assert "no lookup by feedback ID" in str(caught.value)
+        assert "through the webhook or custom provider" in str(caught.value)
+
+
+def test_provider_without_an_adapter_is_refused_at_dispatch_too(tmp_path):
+    cfg = load_service_config(
+        {"FEEDBACK_REVIEW_MODE": "sqlite", "FEEDBACK_SQLITE_PATH": str(tmp_path / "f.db")}
+    )
+    service = PageFeedbackService(cfg, credential_env={"FEEDBACK_HF_TOKEN": "token"})
+    hf = parse_storage_targets([target(provider="huggingface", token_env=["FEEDBACK_HF_TOKEN"])])[0]
+    item = request()
+    event = build_feedback_event(item)
+    with pytest.raises(FeedbackServiceUnavailable, match="'huggingface' has no adapter") as caught:
+        asyncio.run(
+            service._write_target(hf, request=item, event=event, request_hash=feedback_request_hash(item))
         )
+    assert caught.value.code == "provider_not_implemented"
 
 
 def test_offline_aggregate_deduplicates_exact_event_and_rejects_conflict(tmp_path):

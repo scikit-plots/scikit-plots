@@ -37,6 +37,20 @@ a letter. No entry may look like a value cleanprompt detects (a pattern from
 the core or a built-in pack); otherwise the next encode would hide the
 stand-in itself.
 
+**Words a stand-in must never be.** ``decode`` restores a stand-in wherever
+it appears in the model's reply, so a stand-in that is also an ordinary word
+(``The``, ``Ash``) would rewrite the reply's own words. List the words of
+your domain and language under ``avoid``::
+
+    avoid: [the, ash, data, will, may]
+
+An entry that equals an avoided word is refused when the set loads, and at
+run time no stand-in equal to one is issued, whether it comes from the set,
+from two of its lists combined, or from the built-in names of a kind the set
+does not define. Words are compared the way ``decode`` compares a rewritten
+stand-in: ignoring case, compatibility forms and how a name is separated
+(``Ash-Vale``, ``ash vale`` and ``ASH.VALE`` are one word).
+
 **Developer notes.** The design, the invariants (G1–G6) and the growth plan
 are in ``maintenances/cleanprompt/_maintenance/GENERATOR_DESIGN.md``. In
 short:
@@ -78,6 +92,7 @@ __all__ = [
     "entry_problem",
     "load_surrogate_set",
     "surrogate_set_from_document",
+    "word_key",
 ]
 
 #: Kinds a set may define, and the parts each takes. ``None``: one list.
@@ -98,10 +113,18 @@ MAX_ENTRIES = 256
 #: The longest entry, in characters.
 MAX_ENTRY_CHARS = 64
 
+#: The most words one ``avoid`` list may hold: a domain's stop words, not a
+#: dictionary. Matching is one set lookup per candidate, so the bound is about
+#: keeping a set file reviewable, not about speed.
+MAX_AVOID = 4096
+
 _SET_NAME = re.compile(r"^[a-z][a-z0-9_]{1,31}$")
-_TOP_KEYS = frozenset({"name", "version", "summary", "kinds"})
+_TOP_KEYS = frozenset({"name", "version", "summary", "kinds", "avoid"})
 #: Punctuation a name may contain, besides letters, marks and spaces.
 _NAME_PUNCTUATION = frozenset("'-.\u2019")
+
+#: Runs of name separators, folded to one space by :func:`word_key`.
+_SEPARATORS = re.compile(r"[\s'\-.\u2019]+")
 
 
 #: Code points Unicode declares default-ignorable (DerivedCoreProperties,
@@ -258,6 +281,41 @@ def _is_letter(char: str) -> bool:
     return unicodedata.category(char).startswith("L")
 
 
+def word_key(word: str) -> str:
+    """
+    Return the comparison key of a stand-in or an avoided word.
+
+    Parameters
+    ----------
+    word : str
+        A name, a combined two-part stand-in, or a word from ``avoid``.
+
+    Returns
+    -------
+    str
+        The word in canonical form (NFC, compatibility forms folded), case
+        folded, with every run of separators (spaces, ``' - .`` and the
+        typographic apostrophe) written as one space and none at either end.
+
+    Notes
+    -----
+    **Developer notes.** Two spellings with one key are, to ``decode``, the
+    same stand-in: lenient restoration repairs a rewritten case or separator
+    (``_engine._variant_keys``). The key therefore folds exactly those
+    differences, so an avoided ``ash vale`` also keeps out ``Ash-Vale``. It is
+    deterministic and depends only on :mod:`unicodedata`, never on a locale.
+
+    Examples
+    --------
+    >>> word_key("Ash-Vale") == word_key("ash  vale") == "ash vale"
+    True
+    """
+    from ._canonical import canonical  # ruff: ignore[import-outside-top-level]
+
+    folded = canonical(unicodedata.normalize("NFC", word)).casefold()
+    return _SEPARATORS.sub(" ", folded).strip()
+
+
 @dataclass(frozen=True)
 class SurrogateSet:
     """
@@ -277,6 +335,8 @@ class SurrogateSet:
         ``name@version#digest16`` — what a vault and a plan record.
     source : str, default='<memory>'
         Where it was loaded from. Not part of equality.
+    avoid : frozenset of str, default=frozenset()
+        :func:`word_key` of every word no stand-in may be.
 
     Notes
     -----
@@ -291,6 +351,31 @@ class SurrogateSet:
     pools: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...]
     identity: str
     source: str = field(default="<memory>", compare=False)
+    avoid: frozenset = frozenset()
+
+    def avoids(self, candidate: str) -> bool:
+        """
+        Return whether ``candidate`` is one of the set's avoided words.
+
+        Parameters
+        ----------
+        candidate : str
+            A proposed stand-in, from this set or from the built-in names.
+
+        Returns
+        -------
+        bool
+            ``True`` when its :func:`word_key` is listed under ``avoid``.
+
+        Notes
+        -----
+        **Developer notes.** Called by the core loop
+        (:func:`~scikitplot.cleanprompt._surrogates.surrogate_for`) on every
+        candidate, so the rule holds for two-part names, which are only formed
+        at run time, and for the built-in names of kinds the set leaves out.
+        A provider without this method avoids nothing.
+        """
+        return bool(self.avoid) and word_key(candidate) in self.avoid
 
     def kinds(self) -> tuple[str, ...]:
         """Return the kinds this set defines."""
@@ -411,7 +496,12 @@ def _shown(entry: Any) -> str:
     return f"'{inner}'"
 
 
-def _list(value: Any, path: str, problems: list[str]) -> tuple[str, ...]:
+def _list(
+    value: Any,
+    path: str,
+    problems: list[str],
+    avoid: frozenset = frozenset(),
+) -> tuple[str, ...]:
     """Validate one list of entries, collecting every problem."""
     if not isinstance(value, list) or not value:
         problems.append(f"{path}: must be a non-empty list of names")
@@ -449,9 +539,58 @@ def _list(value: Any, path: str, problems: list[str]) -> tuple[str, ...]:
                 "hide the stand-in itself"
             )
             continue
+        if avoid and word_key(entry) in avoid:
+            problems.append(
+                f"{where}: {_shown(entry)} is listed under avoid; decode would "
+                "rewrite that word wherever the reply uses it"
+            )
+            continue
         seen[key] = entry
         out.append(entry)
     return tuple(out)
+
+
+def _avoid_list(value: Any, problems: list[str]) -> frozenset:
+    """
+    Validate ``avoid`` and return its word keys, collecting every problem.
+
+    Notes
+    -----
+    **Developer notes.** A word is any non-empty string of at most
+    :data:`MAX_ENTRY_CHARS` characters with no invisible character: it names
+    something to keep out, so it need not itself read as a name (``o'``, a
+    word in any script). Two words with one :func:`word_key` are reported, as
+    a repeated entry is, because one of them was probably meant differently.
+    """
+    if value is None:
+        return frozenset()
+    if not isinstance(value, list):
+        problems.append("avoid: must be a list of words")
+        return frozenset()
+    if len(value) > MAX_AVOID:
+        problems.append(f"avoid: holds {len(value)} words, above {MAX_AVOID}")
+        return frozenset()
+    keys: dict[str, str] = {}
+    for index, word in enumerate(value):
+        where = f"avoid[{index}]"
+        if not isinstance(word, str):
+            problems.append(f"{where}: must be a string")
+            continue
+        if any(_ignorable(char) for char in word):
+            problems.append(f"{where}: {_shown(word)} holds an invisible character")
+            continue
+        if len(word) > MAX_ENTRY_CHARS:
+            problems.append(f"{where}: must be at most {MAX_ENTRY_CHARS} characters")
+            continue
+        key = word_key(word)
+        if not key:
+            problems.append(f"{where}: {_shown(word)} must hold a letter")
+            continue
+        if key in keys:
+            problems.append(f"{where}: {_shown(word)} repeats {_shown(keys[key])}")
+            continue
+        keys[key] = word
+    return frozenset(keys)
 
 
 def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
@@ -512,6 +651,7 @@ def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
     summary = document.get("summary")
     if not isinstance(summary, str) or not summary.strip():
         problems.append("summary: must be a non-empty string")
+    avoid = _avoid_list(document.get("avoid"), problems)
     kinds = document.get("kinds")
     pools: list[tuple[str, tuple[tuple[str, ...], ...]]] = []
     if not isinstance(kinds, Mapping) or not kinds:
@@ -535,7 +675,7 @@ def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
             continue
         value = kinds[kind]
         if parts is None:
-            lists = (_list(value, f"kinds.{kind}", problems),)
+            lists = (_list(value, f"kinds.{kind}", problems, avoid),)
         elif not isinstance(value, Mapping):
             problems.append(
                 f"kinds.{kind}: must be a mapping with {' and '.join(parts)}"
@@ -547,7 +687,7 @@ def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
                 for key in sorted(set(value) - set(parts))
             )
             lists = tuple(
-                _list(value.get(part), f"kinds.{kind}.{part}", problems)
+                _list(value.get(part), f"kinds.{kind}.{part}", problems, avoid)
                 for part in parts
             )
         if all(lists):
@@ -560,6 +700,11 @@ def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
         "summary": summary.strip(),
         "kinds": {kind: [list(one) for one in lists] for kind, lists in pools},
     }
+    if avoid:
+        # Avoided words change which stand-ins are issued (the run-time check
+        # also skips built-in names), so they are part of the identity. Only
+        # when present: a set without ``avoid`` keeps the identity it had.
+        content["avoid"] = sorted(avoid)
     digest = hashlib.sha256(
         json.dumps(
             content, sort_keys=True, ensure_ascii=False, separators=(",", ":")
@@ -572,6 +717,7 @@ def surrogate_set_from_document(  # ruff: ignore[too-many-branches]
         pools=tuple(pools),
         identity=f"{name}@{version}#{digest[:16]}",
         source=source,
+        avoid=avoid,
     )
 
 

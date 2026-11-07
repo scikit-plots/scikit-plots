@@ -639,3 +639,25 @@ class TestEncodeObjectReadsTheWholeDocument:
         with pytest.raises(CleanPromptError, match="json"):
             guard.encode_object({"a": "b"})
         assert guard.encode_object("mail ann@example.com") == "mail [EMAIL-1]"
+
+
+class TestReportedValues:
+    """CP-115: a guard never sends a value the report action left in place."""
+
+    def test_refused_unless_allowed(self):
+        from .._exceptions import LeakError
+        from .._plan import FluentCleanPrompt
+
+        builder = FluentCleanPrompt().packs("all").action("MRN", "report")
+        with pytest.raises(LeakError, match="report, not hide, 1 MRN") as caught:
+            builder.guard().outgoing("MRN: 00412345")
+        assert caught.value.kinds == ("MRN",)
+        assert "00412345" not in str(caught.value)
+        assert builder.allow("00412345").guard().outgoing("MRN: 00412345") == "MRN: 00412345"
+
+    def test_block_raises_before_anything_is_returned(self):
+        from .._exceptions import BlockedError
+        from .._plan import FluentCleanPrompt
+
+        with pytest.raises(BlockedError):
+            FluentCleanPrompt().action("EMAIL", "block").guard().outgoing("ada@example.com")

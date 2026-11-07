@@ -1,0 +1,11 @@
+- ``--style surrogate`` can use your own stand-in names: a surrogate set is a
+  YAML or JSON file of ``PERSON``, ``ORG``, ``GPE``, ``LOC`` and ``FAC``
+  pools, validated when it loads (unknown keys, empty or duplicate entries,
+  look-alike or mixed-script entries and anything a structural pattern would
+  detect are refused), selected with ``--surrogates FILE`` on ``redact``,
+  ``encode``, ``roundtrip``, ``batch``, ``ask``, ``mcp`` and ``plan``, with
+  ``FluentCleanPrompt().surrogates(path)`` or in a plan file, and loaded in
+  Python with ``load_surrogate_set``. The set's identity is part of the tag
+  style and of the plan fingerprint, so editing a set makes a saved plan
+  stale; ``EMAIL``, ``PHONE`` and ``URL`` keep their built-in reserved forms,
+  and the default output is unchanged.

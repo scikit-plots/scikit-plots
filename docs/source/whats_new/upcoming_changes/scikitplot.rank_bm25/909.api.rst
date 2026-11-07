@@ -1,0 +1,10 @@
+- ``BM25Okapi.load``, ``BM25L.load`` and ``BM25Plus.load`` now verify what they
+  load before rebuilding the index, and refuse with a ``ValueError`` naming
+  the cause: a generation of another scorer (``load it with BM25Okapi``), one
+  built with an earlier version of the formula or an unknown recipe (rebuild
+  it from the corpus), a parameter that is missing, unknown or outside its
+  domain (a persisted ``b=7`` is no longer scored), or metadata whose recorded
+  ``identity`` does not match the recipe, analyzer and parameters it declares.
+  Loading with the ``BM25`` base class raises ``TypeError``. Generations of
+  schema ``bm25-index/1`` are no longer read: every one was written with a
+  previous recipe version, so rebuild those indexes with this version.

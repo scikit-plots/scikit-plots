@@ -1,0 +1,11 @@
+- The ``_sphinx_jinja_render`` Sphinx extension now fails the build when an
+  ``*.rst.template`` does not render (an undefined variable, a syntax error,
+  an unreadable template or an unwritable output) instead of skipping it
+  silently, which let Sphinx build the ``.rst`` left over from an earlier run.
+  The error names every failing template with its cause and says when an
+  existing output was not regenerated. ``render_rst_templates(...,
+  strict=True)`` now attempts every template before raising one
+  ``RuntimeError`` that lists all failures, and best-effort mode logs each
+  skipped template as a warning. Values are no longer HTML-escaped into the
+  generated reStructuredText (a link with ``&`` came out as ``&amp;``);
+  templates named ``.html``, ``.htm`` or ``.xml`` are still escaped.

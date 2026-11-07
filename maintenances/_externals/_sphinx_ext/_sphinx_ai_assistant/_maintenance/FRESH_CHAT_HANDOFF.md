@@ -89,8 +89,9 @@ foo.py      -> test_foo.py
 __init__.py -> test___init__.py
 ```
 
-Feature splits for one large Python source live under hidden `_cases/<source>/`
-packages and are loaded only by the canonical owner. Do not create new
+Feature splits for one large Python source live under hidden `_cases/<owner>/`
+packages (each a regular package) and are loaded only by the canonical owner
+that declares them. Do not create new
 `test_<module>__feature.py` files. Historical Run numbers belong in test function
 provenance or maintenance history, not canonical filenames.
 

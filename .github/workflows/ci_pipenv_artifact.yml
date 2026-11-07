@@ -73,6 +73,7 @@ on:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
       update_root_pipenv:
         description: "Mirror the canonical version's Pipfile{,.lock} to the root docker/env_pipenv/ store"
         required: false
@@ -94,6 +95,7 @@ on:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
   schedule:
     ## Automatically built and released every night (or at a regular interval, often nightly)
     ## Cron schedule for automated runs
@@ -165,8 +167,8 @@ jobs:
           # This is the SINGLE SOURCE OF TRUTH. Add or remove a version
           # here only — the dropdown above, the docker/env_pipenv/<pyXYZ>
           # directories, and every downstream step derive from this list.
-          # SUPPORTED=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
-          SUPPORTED=(3.10 3.11 3.12 3.13 3.14)
+          # SUPPORTED=(3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15)
+          SUPPORTED=(3.10 3.11 3.12 3.13 3.14 3.15)
 
           # The ONE Python version mirrored to docker/env_pipenv/Pipfile{,.lock}.
           # Single source of truth: defined here and propagated to update-pipenv

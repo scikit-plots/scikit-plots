@@ -175,6 +175,20 @@ def test_fusion_section_names_resolve() -> None:
     assert hasattr(corpus, "fuse_by_rank")
 
 
+def test_routing_section_names_resolve() -> None:
+    """The routing section names public rules, policies and functions."""
+    text = _text("retrieval_and_similarity.rst")
+    for name in ("route", "query_tokens"):
+        assert f":func:`{name}`" in text, name
+        assert hasattr(corpus, name), name
+    for name in ("RoutingPolicy", "RoutingRule"):
+        assert f":class:`{name}`" in text, name
+        assert hasattr(corpus, name), name
+    assert hasattr(corpus, "DEFAULT_ROUTING_POLICY")
+    for shape in corpus.QueryShape:
+        assert f"``{shape.value}``" in text, shape
+
+
 def test_filter_section_names_resolve() -> None:
     """The filtering section names public expressions and functions."""
     text = _text("retrieval_and_similarity.rst")

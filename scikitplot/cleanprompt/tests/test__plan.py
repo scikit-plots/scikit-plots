@@ -15,7 +15,14 @@ import json
 import pytest
 
 from .._exceptions import CleanPromptError
-from .._plan import KEEPABLE, CleanPlan, FluentCleanPrompt
+from .._plan import (
+    KEEPABLE,
+    CleanPlan,
+    FluentCleanPrompt,
+    load_plan,
+    plan_from_dict,
+    save_plan,
+)
 from .._runtime import Cleaner
 
 
@@ -197,3 +204,42 @@ class TestPlanFiles:
             json.dumps({"packs": ["patient"]}), encoding="utf-8"
         )
         assert load_plan(tmp_path / "p.json").packs == ("patient",)
+
+
+class TestActions:
+    """CP-115: actions in a plan, a plan file and the builder."""
+
+    def test_empty_actions_keep_the_fingerprint_and_the_dict(self):
+        assert "actions" not in CleanPlan().as_dict()
+
+    def test_builder_plan_file_and_cleaner(self, tmp_path):
+        from .._runtime import Cleaner
+
+        plan = FluentCleanPrompt().action("EMAIL", "surrogate").action("PHONE", "report").build()
+        assert plan.as_dict()["actions"] == {"EMAIL": "surrogate", "PHONE": "report"}
+        path = tmp_path / "p.json"
+        save_plan(plan, path)
+        assert load_plan(path).actions == plan.actions
+        assert Cleaner(plan).policy.action_for("PHONE").value == "report"
+
+    def test_a_misspelt_kind_is_a_plan_problem(self):
+        problems = FluentCleanPrompt().action("EMIAL", "block").validate()
+        assert problems
+        assert "unknown kind 'EMIAL'" in problems[0]
+
+    def test_a_pack_kind_is_known(self):
+        assert FluentCleanPrompt().packs("all").action("MRN", "report").validate() == []
+
+    def test_the_builder_refuses_bad_values_and_a_second_choice(self):
+        with pytest.raises(CleanPromptError, match="not available"):
+            FluentCleanPrompt().action("CREDIT_CARD", "surrogate")
+        with pytest.raises(CleanPromptError, match="already has action"):
+            FluentCleanPrompt().action("EMAIL", "report").action("EMAIL", "block")
+        replaced = FluentCleanPrompt().action("EMAIL", "report").action(
+            "EMAIL", "block", conflict="replace"
+        )
+        assert replaced.plan().actions == (("EMAIL", "block"),)
+
+    def test_a_malformed_plan_file_entry(self):
+        with pytest.raises(CleanPromptError, match="actions: must be an object"):
+            plan_from_dict({"actions": ["EMAIL"]})

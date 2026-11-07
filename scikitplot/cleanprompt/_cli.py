@@ -94,7 +94,13 @@ from ._detectors import default_registry
 from ._diagnostics import describe_outcome, diagnose, suggest_terms
 from ._documents import detect_format
 from ._engine import Redactor, restore
-from ._engines import DEFAULT_ENGINE, ENGINE_MODES, build_detectors, describe_engines
+from ._engines import (
+    CANONICAL_LABELS,
+    DEFAULT_ENGINE,
+    ENGINE_MODES,
+    build_detectors,
+    describe_engines,
+)
 from ._exceptions import CapabilityError, CleanPromptError, PolicyError
 from ._files import atomic_write, locked
 from ._frontends import build_argparse, load_runner
@@ -106,7 +112,7 @@ from ._languages import (
 from ._logging import configure_logging, get_logger, log_level_from_env
 from ._pattern_risk import PATTERN_RISK_MODES, PatternRiskWarning
 from ._patterns import PATTERNS
-from ._plan import CleanPlan, FluentCleanPrompt
+from ._plan import CleanPlan, FluentCleanPrompt, action_problems
 from ._policy import (
     DEFAULT_POLICY,
     PROFILES,
@@ -355,6 +361,53 @@ OUT = Param(
 )
 
 
+def _action_param() -> Param:
+    """
+    Return the ``--action KIND=ACTION`` option, shared by every command that cleans.
+
+    Notes
+    -----
+    **Developer notes (``CP-115``).** One definition for the detection
+    commands and the file commands alike, so ``inspect`` and ``batch`` read
+    the same option the same way; :func:`_parse_actions` turns its values
+    into a mapping.
+    """
+    return Param(
+        dest="actions",
+        flags=("--action",),
+        multiple=True,
+        metavar="KIND=ACTION",
+        help=(
+            "What to do with one kind once detected: tokenize, surrogate, report "
+            "or block (repeatable). report leaves the value and lists it; block "
+            "refuses the whole text."
+        ),
+    )
+
+
+def _parse_actions(values: Sequence[str] | None) -> dict[str, str]:
+    """
+    Return ``--action`` values as ``{kind: action}``.
+
+    Raises
+    ------
+    CleanPromptError
+        If a value is not ``KIND=ACTION`` or names one kind twice.
+    """
+    actions: dict[str, str] = {}
+    for value in values or ():
+        kind, sep, action = value.partition("=")
+        kind, action = kind.strip(), action.strip()
+        if not sep or not kind or not action:
+            msg = f"--action must be KIND=ACTION, got {value!r}"
+            raise CleanPromptError(msg)
+        if kind in actions:
+            msg = f"--action gives kind {kind!r} twice"
+            raise CleanPromptError(msg)
+        actions[kind] = action
+    return actions
+
+
 def _detection_params() -> tuple[Param, ...]:
     """
     Return the detection options shared by every command that redacts.
@@ -401,6 +454,7 @@ def _detection_params() -> tuple[Param, ...]:
             metavar="TERM",
             help="Surfaces that must never be redacted.",
         ),
+        _action_param(),
         Param(
             dest="word_boundary",
             flags=("--word-boundary",),
@@ -646,6 +700,42 @@ REVEAL = Param(
 )
 
 
+def _apply_pack_params(builder: FluentCleanPrompt, args: Any) -> FluentCleanPrompt:
+    """
+    Return ``builder`` with the options of :func:`_pack_params` applied.
+
+    Parameters
+    ----------
+    builder : FluentCleanPrompt
+        The plan being built.
+    args : argparse.Namespace
+        The parsed command line.
+
+    Returns
+    -------
+    FluentCleanPrompt
+        A builder carrying every pack option the command line set.
+
+    Notes
+    -----
+    **Developer notes.** One place for the options both ``packs`` and the
+    file-reading commands share, so a new pack option cannot reach one and
+    miss the other. ``pattern_timeout`` is tested with ``is not None``: 0 is
+    falsy and must still reach the builder, which refuses it.
+    """
+    if args.pack_files:
+        builder = builder.custom(
+            *args.pack_files, replace_builtins=args.replace_builtins
+        )
+    if args.packs:
+        builder = builder.packs(*args.packs)
+    if getattr(args, "pattern_risk", None):
+        builder = builder.pattern_risk(args.pattern_risk)
+    if getattr(args, "pattern_timeout", None) is not None:
+        builder = builder.pattern_timeout(args.pattern_timeout)
+    return builder
+
+
 def _pack_params() -> tuple[Param, ...]:
     """
     Return the pack selection options shared by ``packs`` and ``batch``.
@@ -691,6 +781,19 @@ def _pack_params() -> tuple[Param, ...]:
                 "it silently) or refuse (stop). Defaults to "
                 "CLEANPROMPT_PATTERN_RISK. A pattern marked 'risk: accepted' "
                 "with a 'risk_reason' in its pack is never warned about."
+            ),
+        ),
+        Param(
+            dest="pattern_timeout",
+            flags=("--pattern-timeout",),
+            type=float,
+            default=None,
+            metavar="SECONDS",
+            help=(
+                "Seconds each document may spend in --pack-file patterns; a "
+                "document that runs past it fails, uncleaned. Needs the regex "
+                "package (pip install regex); built-in patterns are never "
+                "limited. Defaults to CLEANPROMPT_PATTERN_TIMEOUT."
             ),
         ),
     )
@@ -994,7 +1097,21 @@ COMMANDS: tuple[Command, ...] = (
         name="kinds",
         summary="List the built-in detection kinds.",
         handler="_cmd_kinds",
-        params=(FORMAT,),
+        params=(
+            FORMAT,
+            Param(
+                dest="matrix",
+                flags=("--matrix",),
+                kind="flag",
+                default=False,
+                help=(
+                    "Print the coverage matrix: for every kind, which patterns, "
+                    "packs, entity engines and tiers find it, and what the "
+                    "actions do with it."
+                ),
+            ),
+            _action_param(),
+        ),
     ),
     Command(
         name="cli",
@@ -1163,6 +1280,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Restore SOURCE with the vault instead of encoding it.",
             ),
             *_pack_params(),
+            _action_param(),
             Param(
                 dest="file_formats",
                 flags=("--file-format",),
@@ -1272,6 +1390,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="How the prompt is read: text (default), markdown, json, python, ...",
             ),
             *_pack_params(),
+            _action_param(),
             Param(
                 dest="profile",
                 flags=("--profile",),
@@ -1357,6 +1476,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="A folder the tools may read and write under (default: the current folder).",
             ),
             *_pack_params(),
+            _action_param(),
             Param(
                 dest="profile",
                 flags=("--profile",),
@@ -1400,6 +1520,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Verify FILE: valid, and its fingerprint still matches (exit 1 if not).",
             ),
             *_pack_params(),
+            _action_param(),
             Param(
                 dest="file_formats",
                 flags=("--file-format",),
@@ -1596,6 +1717,27 @@ def _load_config(path: str | None) -> dict[str, Any]:
     return section
 
 
+def _actions_from(config: dict[str, Any], args: argparse.Namespace) -> dict[str, str]:
+    """
+    Return the actions a config file and ``--action`` flags set, flags winning.
+
+    Raises
+    ------
+    CleanPromptError
+        If a value is malformed or names a kind the detection commands never
+        produce: they run the core patterns, the entity engines and ``--hide``
+        terms, so an action on any other kind would do nothing.
+    """
+    actions = dict(config.get("actions") or {})
+    actions.update(_parse_actions(getattr(args, "actions", None)))
+    if actions:
+        known = set(PATTERNS) | set(CANONICAL_LABELS) | {"CUSTOM"}
+        problems = action_problems(actions.items(), known)
+        if problems:
+            raise CleanPromptError("; ".join(problems))
+    return actions
+
+
 def _policy_from(args: argparse.Namespace) -> tuple[RedactionPolicy, dict[str, Any]]:
     """
     Assemble the policy from config file, profile and flags.
@@ -1662,6 +1804,10 @@ def _policy_from(args: argparse.Namespace) -> tuple[RedactionPolicy, dict[str, A
             changes.get("tag_style", base.tag_style),
             surrogate_set=load_surrogate_set(surrogates),
         )
+
+    actions = _actions_from(config, args)
+    if actions:
+        changes["actions"] = actions
 
     policy = base.evolve(**changes) if changes else base
 
@@ -3265,6 +3411,30 @@ def _cmd_kinds(
 ) -> int:
     """Run the ``kinds`` subcommand."""
     del stdin, stderr
+    if getattr(args, "matrix", False):
+        from ._catalog import builtin_catalog  # ruff: ignore[import-outside-top-level]
+        from ._diagnostics import (  # ruff: ignore[import-outside-top-level]
+            coverage_matrix,
+        )
+        from ._plan import _known_kinds  # ruff: ignore[import-outside-top-level]
+
+        # The matrix lists pack kinds too, so an action is checked against the
+        # whole catalog, not the detection commands' narrower set.
+        actions = _parse_actions(getattr(args, "actions", None))
+        catalog = builtin_catalog()
+        problems = action_problems(actions.items(), _known_kinds(catalog))
+        if problems:
+            raise CleanPromptError("; ".join(problems))
+        rows = coverage_matrix(DEFAULT_POLICY.evolve(actions=actions), catalog)
+        _emit(
+            {"matrix": [row.as_dict() for row in rows], "status": "ok"},
+            args.fmt,
+            stdout,
+        )
+        return EXIT_OK
+    if getattr(args, "actions", None):
+        msg = "--action applies to 'kinds --matrix' only"
+        raise CleanPromptError(msg)
     data = {
         "kinds": {
             spec.kind: {
@@ -3313,6 +3483,7 @@ def _plan_from(  # ruff: ignore[too-many-branches]
                 ("keep", "--keep"),
                 ("pattern_risk", "--pattern-risk"),
                 ("surrogates", "--surrogates"),
+                ("actions", "--action"),
             )
             if getattr(args, dest, None)
         ]
@@ -3329,6 +3500,9 @@ def _plan_from(  # ruff: ignore[too-many-branches]
         ]
         if getattr(args, "style", "placeholder") != "placeholder":
             chosen.append("--style")
+        if getattr(args, "pattern_timeout", None) is not None:
+            # A number: 0 is falsy, and must still be refused here.
+            chosen.append("--pattern-timeout")
         if chosen:
             msg = "--plan fixes every choice; remove {} or save a new plan".format(
                 ", ".join(chosen),
@@ -3337,15 +3511,9 @@ def _plan_from(  # ruff: ignore[too-many-branches]
         from ._plan import load_plan  # ruff: ignore[import-outside-top-level]
 
         return load_plan(plan_file)
-    builder = FluentCleanPrompt()
-    if args.packs:
-        builder = builder.packs(*args.packs)
+    builder = _apply_pack_params(FluentCleanPrompt(), args)
     if getattr(args, "file_formats", None):
         builder = builder.formats(*args.file_formats)
-    if args.pack_files:
-        builder = builder.custom(
-            *args.pack_files, replace_builtins=args.replace_builtins
-        )
     if getattr(args, "profile", None):
         builder = builder.profile(args.profile)
     if getattr(args, "no_core", False):
@@ -3364,10 +3532,10 @@ def _plan_from(  # ruff: ignore[too-many-branches]
         builder = builder.ner("auto")
     if getattr(args, "no_remember", False):
         builder = builder.remember(False)
-    if getattr(args, "pattern_risk", None):
-        builder = builder.pattern_risk(args.pattern_risk)
     if getattr(args, "surrogates", None):
         builder = builder.surrogates(args.surrogates)
+    for kind, action in _parse_actions(getattr(args, "actions", None)).items():
+        builder = builder.action(kind, action)
     return builder.build()
 
 
@@ -3400,14 +3568,7 @@ def _cmd_packs(
     problems: list[str] = []
     findings: list = []
     try:
-        plan = FluentCleanPrompt()
-        if args.pack_files:
-            plan = plan.custom(*args.pack_files, replace_builtins=args.replace_builtins)
-        if args.packs:
-            plan = plan.packs(*args.packs)
-        if getattr(args, "pattern_risk", None):
-            plan = plan.pattern_risk(args.pattern_risk)
-        built = plan.build()
+        built = _apply_pack_params(FluentCleanPrompt(), args).build()
         catalog = built.catalog()
         selected = catalog.resolve_packs(
             built.packs_selection() if args.packs else "all"
@@ -3582,12 +3743,27 @@ def _cmd_batch(  # ruff: ignore[too-many-branches]
         status: sum(1 for item in items if item.status == status)
         for status in ("encoded", "decoded", "skipped", "refused")
     }
+    reported: dict[str, int] = {}
+    for item in items:
+        for kind, number in item.reported.items():
+            reported[kind] = reported.get(kind, 0) + number
     data = {
         "items": [asdict(item) for item in items],
         **{status: count for status, count in counts.items() if count},
+        **({"reported": dict(sorted(reported.items()))} if reported else {}),
         "vault": _display_path(vault_path),
         "status": "refused" if counts["refused"] else "ok",
     }
+    if reported:
+        # CP-115: the report action writes values in the clear on purpose; it
+        # must never be configured silently.
+        files = sum(1 for item in items if item.reported)
+        detail = ", ".join(f"{n} {kind}" for kind, n in sorted(reported.items()))
+        stderr.write(
+            f"warning: {sum(reported.values())} value(s) left in the clear by the "
+            f"'report' action ({detail}) in {files} file(s); that output is not "
+            "safe to send\n"
+        )
     _emit(data, args.fmt, stdout)
     return EXIT_ERROR if counts["refused"] else EXIT_OK
 

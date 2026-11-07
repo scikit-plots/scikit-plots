@@ -6,8 +6,8 @@ Processes ``.pyx.in`` and ``.pxd.in`` template files using Tempita to
 generate the concrete ``.pyx`` / ``.pxd`` files with all type combinations
 expanded.
 
-Usage
------
+Usage::
+
     # Auto-detect .in files in current directory
     python cython_generate.py
 
@@ -23,24 +23,24 @@ Usage
     # Dry-run (no files written)
     python cython_generate.py --dry-run
 
-Template Engine
----------------
+Template Engine:
+
 Uses ``Cython.Tempita`` (shipped with Cython, no extra dependency).
 Falls back to standalone ``tempita`` package if Cython is unavailable.
 
-Template Files
---------------
+Template Files:
+
 Input  : ``*.in``            e.g. ``annoylib.pxd.in``, ``annoylib.pyx.in``
 Output : strip ``.in`` ext   e.g. ``annoylib.pxd``,    ``annoylib.pyx``
 
-Developer Notes
----------------
+Notes
+-----
 Template syntax uses ``{{py: ... }}`` for configuration blocks and
 ``{{for ...}}`` / ``{{endfor}}`` for code generation loops.  See
 `Cython.Tempita` or the standalone `tempita` documentation.
 
-Security
---------
+Security:
+
 * Only reads ``.in`` files from the specified source directory.
 * No shell execution – Tempita templates are processed in-process.
 * Output is written atomically to the same directory as the template.
@@ -48,8 +48,10 @@ Security
 
 from __future__ import annotations
 
-import sys
+import contextlib
 import os
+import sys
+import tempfile
 from pathlib import Path
 import argparse
 from typing import Dict, List, Optional, Tuple, Any
@@ -200,25 +202,16 @@ def process_template(
         raise ValueError(f"Template validation failed: {error_msg}")
 
     # Substitute
-    try:
-        template = _Template(template_content, name=str(template_path))
-        if debug:
-            print("  Parsed     : ok")
-        generated_content = template.substitute()
-        if debug:
-            print("  Substituted: ok")
-    except Exception as exc:
-        raise RuntimeError(f"Tempita failed for {template_path}: {exc}") from exc
-
-    if not generated_content.strip():
-        raise RuntimeError(f"Template produced empty output for {template_path}")
+    generated_content = _render(template_content, template_path)
+    if debug:
+        print("  Substituted: ok")
 
     generated_lines = generated_content.count("\n")
 
-    # Write output (create parent dirs if needed)
+    # Write output (create parent dirs if needed), atomically.
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(generated_content, encoding="utf-8")
+        _write_atomically(output_path, generated_content)
     except PermissionError as exc:
         raise PermissionError(f"Cannot write output {output_path}: {exc}") from exc
     except OSError as exc:
@@ -232,6 +225,68 @@ def process_template(
         )
 
     return template_lines, generated_lines
+
+
+def _render(template_content: str, template_path: Path) -> str:
+    """
+    Substitute one template's text and return the generated text.
+
+    Parameters
+    ----------
+    template_content : str
+        The template's text.
+    template_path : Path
+        Its path, for messages and Tempita's name.
+
+    Returns
+    -------
+    str
+        The generated text; never blank.
+
+    Raises
+    ------
+    RuntimeError
+        If Tempita fails, or the output is blank.
+    """
+    try:
+        generated = _Template(template_content, name=str(template_path)).substitute()
+    except Exception as exc:
+        raise RuntimeError(f"Tempita failed for {template_path}: {exc}") from exc
+    if not generated.strip():
+        raise RuntimeError(f"Template produced empty output for {template_path}")
+    return generated
+
+
+def _write_atomically(output_path: Path, content: str) -> None:
+    """
+    Write *content* to *output_path* so a reader never sees a partial file.
+
+    Parameters
+    ----------
+    output_path : Path
+        Final path; its directory must exist.
+    content : str
+        Text, written as UTF-8 with the platform's newline translation (as
+        :meth:`pathlib.Path.write_text` does).
+
+    Notes
+    -----
+    The text goes to a temporary file in the same directory, which is then
+    renamed over the target with :func:`os.replace` (atomic on POSIX and on
+    Windows for paths on one volume). On any failure the temporary file is
+    removed and the previous output, if any, is left as it was.
+    """
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{output_path.name}.", suffix=".tmp", dir=str(output_path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        os.replace(tmp_name, str(output_path))
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp_name)
+        raise
 
 
 def find_template_files(directory: Path) -> List[Path]:
@@ -374,83 +429,64 @@ def generate_all(
 
 def validate_generated_files(src_dir: Path, verbose: bool = False) -> bool:
     """
-    Verify that generated files contain no unprocessed template markers.
+    Verify that every generated file is exactly what its template produces.
 
     Parameters
     ----------
     src_dir : Path
-        Directory containing generated ``.pxd`` and ``.pyx`` files.
+        Directory containing the ``.in`` templates and their outputs.
     verbose : bool, default=False
         Print per-file results.
 
     Returns
     -------
     bool
-        ``True`` if all files pass validation.
+        ``True`` if every template's output passes; ``False`` if any fails or
+        no template is found.
 
     Notes
     -----
-    Checks:
+    For each ``X.in`` template in *src_dir*, ``X`` must exist, be valid
+    UTF-8, and equal the template rendered again now -- so the check proves
+    both that templates were expanded and that the outputs are current.
 
-    * File is non-empty.
-    * No ``{{`` or ``}}`` markers remain (all templates expanded).
-    * File is valid UTF-8.
+    **Developer notes.** Earlier versions searched every ``.pyx``/``.pxd``
+    for ``{{`` or ``}}`` and rejected generated sources that legitimately
+    contain doubled braces (CSS and JavaScript in docstrings, ``f"{{"``
+    escapes). Comparing with a fresh rendering has no such false positive and
+    also catches a stale or hand-edited output. Files with no template are
+    not the generator's and are not checked.
     """
     print()
     print("Validating generated files...")
 
-    cython_files = [
-        f
-        for f in sorted(src_dir.glob("*.pxd")) + sorted(src_dir.glob("*.pyx"))
-        if not f.suffix == ".in"
-    ]
-
-    if not cython_files:
-        print(
-            f"  WARNING: No generated .pxd/.pyx files found in {src_dir}",
-            file=sys.stderr,
-        )
+    templates = find_template_files(src_dir)
+    if not templates:
+        print(f"  WARNING: No .in templates found in {src_dir}", file=sys.stderr)
         return False
 
     all_valid = True
-
-    for filepath in cython_files:
+    for template_path in templates:
+        output_path = template_path.parent / template_path.stem
+        problem = None
         try:
-            content = filepath.read_text(encoding="utf-8")
+            expected = _render(template_path.read_text(encoding="utf-8"), template_path)
+            actual = output_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            problem = "not generated (file missing)"
         except UnicodeDecodeError as exc:
-            print(
-                f"  ✗  {filepath.name}: encoding error – {exc}",
-                file=sys.stderr,
-            )
-            all_valid = False
-            continue
-        except OSError as exc:
-            print(
-                f"  ✗  {filepath.name}: read error – {exc}",
-                file=sys.stderr,
-            )
-            all_valid = False
-            continue
-
-        if not content.strip():
-            print(
-                f"  ✗  {filepath.name}: file is empty",
-                file=sys.stderr,
-            )
-            all_valid = False
-        elif "{{" in content or "}}" in content:
-            print(
-                f"  ✗  {filepath.name}: contains unprocessed template markers",
-                file=sys.stderr,
-            )
-            if verbose:
-                for lineno, line in enumerate(content.splitlines(), 1):
-                    if "{{" in line or "}}" in line:
-                        print(f"      line {lineno}: {line}", file=sys.stderr)
-            all_valid = False
+            problem = f"encoding error – {exc}"
+        except (OSError, RuntimeError) as exc:
+            problem = f"{exc}"
         else:
+            if actual != expected:
+                problem = "differs from its template's output (stale or edited)"
+        if problem is None:
             if verbose:
-                print(f"  ✓  {filepath.name}")
+                print(f"  ✓  {output_path.name}")
+        else:
+            print(f"  ✗  {output_path.name}: {problem}", file=sys.stderr)
+            all_valid = False
 
     return all_valid
 

@@ -38,7 +38,6 @@ import pprint
 import fnmatch
 import json
 from pathlib import Path
-from tqdm import tqdm
 
 RAW_SRC_PATH = None
 
@@ -215,7 +214,10 @@ def copy_file(src, dest, overwrite=True, dry_run=False, interactive=False):
             logging.debug(f"Removed: {dest}")
 
     if not dry_run:
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        # A bare file name has no parent to create: os.makedirs("") raises.
+        parent = os.path.dirname(dest)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         shutil.copy2(src, dest)
     logging.info(f"{'[Dry Run] ' if dry_run else ''}Copied file: {src} -> {dest}")
     return True
@@ -270,7 +272,14 @@ def copy_directory(
             logging.debug(f"Cleaned destination: {dest}")
 
     files = collect_files(src, include, exclude)
-    iter_files = tqdm(files, desc=f"Copying from {src}") if progress else files
+    if progress:
+        # Imported only for a progress bar: tqdm is optional, and the module
+        # must import (and copy) without it.
+        from tqdm import tqdm  # noqa: PLC0415
+
+        iter_files = tqdm(files, desc=f"Copying from {src}")
+    else:
+        iter_files = files
 
     for f in iter_files:
         rel_path = os.path.relpath(f, start=src)

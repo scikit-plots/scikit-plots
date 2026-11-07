@@ -1,0 +1,14 @@
+- Building scikit-plots from a checkout owned by another user (conda-forge,
+  Docker, CI caches) no longer writes ``safe.directory`` into your global Git
+  configuration, which also named the wrong directory and so never helped: the
+  version step retries its one ``git log`` with ``git -c
+  safe.directory=<checkout>``, only after Git's "dubious ownership" refusal.
+  The generated Annoy Cython sources now pass ``cython_generate.py
+  --validate``, which compares each output with its template rendered again,
+  and are written atomically. The Meson ``features`` module is reinstalled
+  when its content differs or a stale file remains, not only when the source
+  is newer. A source build with numpy installed outside the checkout no longer
+  fails with ``Include dir ../../venv/... does not exist`` when the build
+  directory is nested (pip's ``build/cp3XY``): the numpy include path is now
+  computed relative to the project root, and is absolute unless numpy lives
+  inside the source tree.

@@ -1,0 +1,12 @@
+- ``scikitplot.cleanprompt``: custom pack patterns can now run under a time
+  limit. With the optional ``regex`` package installed
+  (``pip install "scikit-plots[cleanprompt-timeout]"``), ``--pattern-timeout
+  SECONDS`` (``packs``, ``batch``, ``plan``, ``ask``, ``mcp``),
+  ``pattern_timeout`` in a plan file, ``FluentCleanPrompt().pattern_timeout()``
+  or ``CLEANPROMPT_PATTERN_TIMEOUT`` gives each document one time budget for
+  every custom pattern. A document that runs past it is not cleaned and fails
+  with ``PatternTimeoutError``, naming the pack and kind but never the text;
+  ``batch`` continues with the other files. A limit set without ``regex``, or
+  a pattern ``regex`` cannot compile, is refused before any document is read.
+  Built-in patterns are unchanged, and ``doctor`` reports the new ``timeout``
+  tier.

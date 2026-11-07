@@ -1,13 +1,13 @@
 ---
 title: "Fail closed when Sphinx RST template rendering fails"
-status: open
+status: promoted
 kind: "reliability"
 area: "scikitplot/_externals/_sphinx_ext/_sphinx_jinja_render"
 discovered_during: "source-grounded Sphinx extension user-guide synchronization"
 release_note: "required"
 towncrier_section: "scikitplot._externals"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot._externals/909.fix.rst"
 ---
 
 # Fail closed when Sphinx RST template rendering fails
@@ -95,3 +95,29 @@ contract is implemented.
 
 A user-visible documentation-build reliability fix warrants a Towncrier ``fix``
 fragment under the configured Sphinx-extension owner.
+
+## Resolution (2026-11-04)
+
+`_on_builder_inited` calls `render_rst_templates(..., strict=True)`. Strict
+mode now renders every template first and then raises one `RuntimeError`
+listing each failure (`path: ExcType: message`, plus "its existing output X
+was not regenerated" when an old sibling exists), chained from the first
+error; best-effort mode logs each failure through
+`logging.getLogger(__name__)` instead of dropping it. No output is deleted:
+the build stops, so a stale sibling cannot pass, and pruning would need the
+ownership markers this note mentions.
+
+Evidence: a minimal Sphinx project with `{{ missing_value }}` in
+`index.rst.template` and an old `index.rst` built with exit 0 and served the
+old text on the previous tree; it now exits 2 with the message above. The
+repository's own `docs/source/index.rst.template` renders under strict mode
+with `index_template_kwargs`. Tests: `tests/test__rst_renderer.py` (11) and
+`tests/test__extension.py` (2), new; the submodule had none for either
+module.
+
+Found while fixing it, in the same environment: `autoescape=True` HTML-escaped
+every value into the generated RST (`docs/source/index.rst.template` with a
+`development_link` holding `&` rendered `&amp;`). It is now
+`select_autoescape(("html", "htm", "xml"), default=False)`: on for HTML/XML
+template names, off for `*.rst.template`; two tests pin both sides, and
+restoring `autoescape=True` fails one. Remove this note once the PR merges.

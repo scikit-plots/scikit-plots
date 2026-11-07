@@ -158,3 +158,19 @@ def test_plotting_surface_exposed_and_callable():
     assert exposed, "PlottingMixin exposed no plotting methods"
     for name in exposed:
         assert callable(getattr(idx, name))
+
+
+def test_meta_module_exports_match_stub():
+    """``_meta.__all__`` names only defined objects, and the stub declares the same classes."""
+    import ast  # noqa: PLC0415
+
+    from scikitplot.annoy._mixins import _meta  # noqa: PLC0415
+
+    assert sorted(_meta.__all__) == ["IndexMetadata", "MetaMixin"]
+    for name in _meta.__all__:
+        assert hasattr(_meta, name)
+    stub = Path(_meta.__file__).with_suffix(".pyi").read_text(encoding="utf-8")
+    stub_classes = sorted(
+        node.name for node in ast.parse(stub).body if isinstance(node, ast.ClassDef)
+    )
+    assert stub_classes == sorted(_meta.__all__)

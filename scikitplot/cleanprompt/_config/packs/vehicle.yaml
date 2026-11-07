@@ -1,0 +1,29 @@
+# Vehicles: fleet records, insurance claims, support tickets, service logs.
+#
+# A vehicle identification number identifies a vehicle and, through its
+# registration, its owner. Two patterns, because the check digit is mandatory
+# only in North America (49 CFR 565.15): in prose a VIN is accepted only when
+# its check digit and numeric tail hold, and next to its label any
+# well-formed VIN is accepted, check digit or not.
+name: vehicle
+version: 1
+summary: Vehicle identification numbers and registration plates.
+
+fields:
+  - names: [vin, vin_number, vehicle_id, vehicle_identification_number, chassis_number, chassis_no, frame_number]
+    kind: VIN
+    span: token
+    role: id
+  - names: [plate, license_plate, licence_plate, number_plate, plate_number, registration_number, registration_plate, vehicle_registration]
+    kind: VEHICLE_PLATE
+    span: clause
+    role: id
+
+patterns:
+  - kind: VIN
+    pattern: '(?i)(?:\b(?P<label>VIN|vehicle identification number|chassis(?:\s+(?:number|no\.?))?)\s*[:#]?\s*)?\b(?P<value>[A-HJ-NPR-Z0-9]{17})\b'
+    intent: A vehicle identification number. In running text only one whose North American check digit and numeric tail hold; next to its label any well-formed one, as VINs outside North America are written.
+    priority: 83
+    validate: vin_check
+    examples_yes: ['1M8GDM9AXKP042788', '1HGCM82633A004352', 'jh4ka4650jc000403', 'VIN: WVWZZZ3BZWE689725', 'chassis number WVWZZZ3BZWE689725']
+    examples_no: ['1M8GDM9A1KP042788', '11111111111111111', 'WVWZZZ3BZWE689725', 'VIN: WVWZZZ3BZWE68972', 'VIN: 11111111111111111']

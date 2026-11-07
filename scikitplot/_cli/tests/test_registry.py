@@ -45,7 +45,7 @@ def _cleanprompt_tiers():
 
 
 #: The optional extras the hint promises: ``scikit-plots[cleanprompt-<tier>]``.
-_EXTRAS = frozenset({"ner", "nltk", "web", "crypto"})
+_EXTRAS = frozenset({"ner", "nltk", "web", "crypto", "timeout"})
 
 
 class TestCleanpromptInstallHint:

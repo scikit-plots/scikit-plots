@@ -1,0 +1,25 @@
+# Germany: HR and payroll exports, tax correspondence, KYC files.
+#
+# The tax identification number (Steuerliche Identifikationsnummer, Steuer-ID)
+# is issued to every resident for life and identifies the person. It carries
+# a published structure rule and check digit, so in running text it is
+# accepted only when both hold; an order number or a telephone number of the
+# same length is left alone.
+name: de
+version: 1
+summary: German national identifiers (tax identification number).
+
+fields:
+  - names: [steuer_id, steuerid, steuer_idnr, steueridnr, steueridentifikationsnummer, steuerliche_identifikationsnummer, identifikationsnummer, tax_id_de]
+    kind: TAX_ID_DE
+    span: token
+    role: id
+
+patterns:
+  - kind: TAX_ID_DE
+    pattern: '\b[1-9]\d(?:\d{9}|(?: \d{3}){3})\b'
+    intent: A German tax identification number, written together or in groups of 2-3-3-3, accepted only when its structure rule and check digit hold.
+    priority: 87
+    validate: de_tax_id
+    examples_yes: ['86504957138', '86 504 957 138', '12345678911', '55316429704']
+    examples_no: ['86504957139', '47198320652', '11123456786', '02476291358', '8650495713 8']

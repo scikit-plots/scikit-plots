@@ -131,11 +131,101 @@ def test_default_config_still_uses_rank_fusion():
     assert {h.native_metric for h in hits} == {"reciprocal_rank_fusion"}
 
 
-def test_scoped_index_is_refused():
-    docs = _corpus(random.Random(4))  # noqa: S311
-    index = _index(docs, SecurityFilter(Eq("collection_id", "public")))
-    with pytest.raises(ValueError, match="SecurityFilter scope"):
+def _scoped_fusion(scope, **weights):
+    base = _fusion(**weights)
+    return ProbabilityFusion(policy=base.policy, calibrators=base.calibrators, scope=scope)
+
+
+def test_a_calibrator_fitted_under_the_index_scope_fuses_by_hand():
+    rng = random.Random(4)  # noqa: S311 - a seeded test sample
+    public = SecurityFilter(Eq("collection_id", "public"))
+    for _ in range(10):
+        docs = _corpus(rng)
+        index = _index(docs, public)
+        query = " ".join(rng.sample(_WORDS, 2))
+        qe = np.asarray([rng.random() for _ in range(4)], dtype=np.float32)
+        top_k = rng.randint(1, 6)
+        fusion = _scoped_fusion(public, dense=0.5)
+        fetch_k = min(top_k * 3, len(docs))
+        legs = []
+        for name, mode in (("lexical", "keyword"), ("dense", "semantic")):
+            hits = index.search(
+                query,
+                config=RetrievalConfig(match_mode=mode, top_k=fetch_k, backend="bruteforce"),
+                query_embedding=qe,
+            )
+            legs.append(
+                (name, [(h.doc.doc_id, h.native_score) for h in hits], fusion.calibrators[name])
+            )
+        expected = LogOddsFusion(
+            base_rate=0.2, weights=dict(fusion.policy.weights), top_k=top_k
+        ).fuse(legs)
+        got = index.search(query, config=_config(top_k, fusion), query_embedding=qe)
+        assert [h.doc.doc_id for h in got] == [i.key for i in expected.items]
+        assert [h.score for h in got] == [i.probability for i in expected.items]
+        assert all(h.doc.collection_id == "public" for h in got)
+
+
+def test_an_unscoped_calibrator_is_refused_on_a_scoped_index():
+    public = SecurityFilter(Eq("collection_id", "public"))
+    index = _index(_corpus(random.Random(4)), public)  # noqa: S311
+    with pytest.raises(ValueError, match="fitted under scope unscoped") as info:
         index.search("alpha", config=_config(5, _fusion()), query_embedding=np.ones(4))
+    assert public.digest in str(info.value)
+
+
+def test_a_scoped_calibrator_is_refused_on_an_unscoped_index():
+    public = SecurityFilter(Eq("collection_id", "public"))
+    index = _index(_corpus(random.Random(4)))  # noqa: S311
+    with pytest.raises(ValueError, match="bound to unscoped") as info:
+        index.search(
+            "alpha", config=_config(5, _scoped_fusion(public)), query_embedding=np.ones(4)
+        )
+    assert public.digest in str(info.value)
+
+
+def test_one_label_two_filters_are_two_scopes():
+    public = SecurityFilter(Eq("collection_id", "public"), label="tenant")
+    secret = SecurityFilter(Eq("collection_id", "secret"), label="tenant")
+    index = _index(_corpus(random.Random(4)), secret)  # noqa: S311
+    with pytest.raises(ValueError, match="fitted under scope sha256:") as info:
+        index.search(
+            "alpha", config=_config(5, _scoped_fusion(public)), query_embedding=np.ones(4)
+        )
+    assert public.digest in str(info.value)
+    assert secret.digest in str(info.value)
+
+
+def test_the_label_is_not_part_of_the_scope():
+    fitted = SecurityFilter(Eq("collection_id", "public"), label="fit")
+    bound = SecurityFilter(Eq("collection_id", "public"), label="serve")
+    index = _index(_corpus(random.Random(4)), bound)  # noqa: S311
+    response = index.search(
+        "alpha", config=_config(5, _scoped_fusion(fitted)), query_embedding=np.ones(4)
+    )
+    assert response.status.value == "success"
+
+
+def test_dense_only_fusion_runs_under_any_scope():
+    docs = _corpus(random.Random(6))  # noqa: S311
+    dense_only = ProbabilityFusion(
+        policy=LogOddsFusion(base_rate=0.2, weights={"lexical": 0.0}),
+        calibrators={"dense": _Logistic(5.0, -3.0, 0.25)},
+    )
+    index = _index(docs, SecurityFilter(Eq("collection_id", "public")))
+    response = index.search(
+        "alpha", config=_config(5, dense_only), query_embedding=np.ones(4, dtype=np.float32)
+    )
+    assert response.status.value == "success"
+    assert response
+    assert all(h.doc.collection_id == "public" for h in response)
+    assert {leg.leg.value: leg.status.value for leg in response.legs}["lexical"] == "skipped"
+
+
+def test_scope_must_be_a_security_filter():
+    with pytest.raises(TypeError, match="scope must be a SecurityFilter"):
+        _scoped_fusion("public")
+    assert _fusion().scope_digest is None
 
 
 def test_config_refusals():

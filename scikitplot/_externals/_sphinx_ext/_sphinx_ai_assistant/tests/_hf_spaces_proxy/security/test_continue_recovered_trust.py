@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 from datetime import timedelta
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 
@@ -20,16 +19,10 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-continuity = _load("run157_continuity", SECURITY / "continue_recovered_trust.py")
-run156 = _load("run157_run156_fixture", HERE / "test_maintain_release_trust.py")
+from ...._hf_spaces_proxy.security import continue_recovered_trust as continuity
+from . import test_maintain_release_trust as run156
 run155 = run156.run155
 NOW = run155.NOW
 

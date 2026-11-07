@@ -45,8 +45,7 @@ __version__ = "0.2.6dev"
 __author__ = "Paul Hobson (Herrera Environmental Consultants)"
 __author_email__ = "phobson@herrerainc.com"
 
-from ..._build_utils.gitversion import git_remote_version
-
-# __git_hash__ = git_remote_version(url="https://github.com/scikit-plots/mpl-probscale")[0]
+# The vendored revision, recorded when the copy was taken. It is static data:
+# ``scikitplot._build_utils`` is build-time only and is never imported at run
+# time (update this value when the vendored copy is refreshed).
 __git_hash__ = "be697c65ecaa223032ad2f7364ef350d684f73c0"
-del git_remote_version

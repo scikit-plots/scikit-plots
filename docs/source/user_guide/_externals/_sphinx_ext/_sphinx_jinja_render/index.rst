@@ -42,10 +42,15 @@ derived output::
 Jinja rendering uses ``StrictUndefined`` for a single template, so an undefined
 variable is an error at the rendering layer rather than silently becoming an
 empty string.
+Values are written as given: the output is reStructuredText, so it is not
+HTML-escaped (a link with ``&`` stays ``&``).  Escape a value yourself with
+``{{ value | e }}`` where a template places it inside a ``.. raw:: html`` block.
 
 The public helper ``render_rst_templates`` processes templates in sorted order
 for reproducible output.  Programmatic callers can select recursive discovery
-and strict failure behavior.
+and strict failure behavior: with ``strict=True`` every template is still
+attempted and then one ``RuntimeError`` lists every template that failed, with
+its error; without it, a failing template is skipped and logged as a warning.
 
 REPL URL
 ----------------------------------------------------------------------
@@ -58,8 +63,8 @@ Reliability note
 ----------------------------------------------------------------------
 
 Do not hand-edit a generated ``.rst`` file and assume the edit will survive the
-next build.  The current Sphinx event hook invokes the renderer in its default
-non-strict mode; maintainers should therefore keep clean-build verification in
-the documentation release gate so a previous generated file cannot mask a
-failed template render.  A repository follow-up tracks making this path fail
-closed against stale output.
+next build.  The Sphinx event hook renders strictly (fail closed): if any
+template fails -- an undefined variable, a syntax error, an unreadable template
+or an unwritable output -- the build stops with an error naming each template,
+and says when an existing generated file was not regenerated.  A ``.rst`` left
+over from an earlier build therefore cannot let a broken template pass.

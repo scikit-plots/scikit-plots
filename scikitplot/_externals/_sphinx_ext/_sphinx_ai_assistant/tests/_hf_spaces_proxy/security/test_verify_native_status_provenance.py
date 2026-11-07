@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._platform import RUNS_A_SCRIPT_BY_ITS_FIRST_LINE
+from ..._paths import RUNTIME_ROOT
+from ..._platform import RUNS_A_SCRIPT_BY_ITS_FIRST_LINE
 
 import base64
 from datetime import datetime, timedelta, timezone
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -21,18 +20,11 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    import sys
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
-native = _load("run159_native_status", SECURITY / "verify_native_status_provenance.py")
-run158 = _load("run158_test_helpers_for_run159", HERE / "test_verify_attestation_lifecycle.py")
+from ...._hf_spaces_proxy.security import verify_native_status_provenance as native
+from . import test_verify_attestation_lifecycle as run158
+from . import _stages
 NOW = run158.NOW + timedelta(hours=1)
 
 
@@ -41,7 +33,7 @@ def _canonical(value) -> bytes:
 
 
 def _lifecycle(tmp_path: Path):
-    setup, out, ca, status, sp, sk = run158._initialized(tmp_path)
+    setup, out, ca, status, sp, sk = _stages.shared("run158", run158._initialized, tmp_path)
     return setup, out, ca, status, sp, sk
 
 

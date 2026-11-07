@@ -1,0 +1,9 @@
+- ``scikitplot.cleanprompt``: a policy can now choose what happens to each
+  kind of value once it is detected: ``tokenize`` (a placeholder),
+  ``surrogate`` (an invented stand-in), ``report`` (leave it and list it) or
+  ``block`` (refuse the whole text with ``BlockedError``). Set it with
+  ``--action KIND=ACTION`` on every command that cleans,
+  ``FluentCleanPrompt().action()``, ``RedactionPolicy(actions=...)``, a plan
+  file or a config file. A run that reports values prints an alert, ``doctor``
+  lists reported kinds as blind spots, and the guard and the MCP server refuse
+  to send them. Without actions the output is unchanged.

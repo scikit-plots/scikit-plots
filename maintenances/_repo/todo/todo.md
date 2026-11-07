@@ -182,7 +182,7 @@ the record planes themselves. Completed tasks are archived verbatim under
       skipped and counted, rule `invalid-lines`); XML is read only as UTF-8
       without NUL or entity declarations (Rule 136); malformed Cobertura,
       JUnit, durations and summaries are refused with the file named
-- [x] package benchmarks (added after Allen's second request, 2026-10-23):
+- [x] package benchmarks (added after maintainer's second request, 2026-10-23):
       `benchmarks/` in asv conventions, `.github/scripts/ci_bench.py` (run,
       pair, compare without asv), `make bench*`, tests
 - [x] on-demand workflow `ci_performance.yml`: tests of chosen paths without

@@ -1,0 +1,16 @@
+- ``scikitplot.cleanprompt``: three disguises that sent a value to the model
+  unredacted are closed. First, an invisible character (a zero-width space or
+  joiner, a soft hyphen, a bidirectional control) inside a variable name or a
+  code identifier no longer hides the value it names, as in
+  ``export DB_PASS<ZWSP>WORD=...`` in shell, ``.env``, JavaScript, R, SQL and
+  Python files; the same holds inside a JSON string value, such as an e-mail
+  address. The file's structure and its exact round trip are unchanged.
+  Second, an e-mail address with one non-ASCII letter anywhere in it is no
+  longer missed whole: an accented local part or domain, an address written
+  in another script, or one starting with a look-alike letter from another
+  script. Addresses may hold letters, digits and combining marks of any
+  script, as internationalised addresses and domains allow. Third, a letter
+  or digit of another script that looks like an ASCII one (a Cyrillic ``A``
+  in an AWS access key, a Cyrillic ``a`` in a URL) no longer hides the value
+  or cuts it short: detection reads it as the ASCII character it imitates,
+  from a table generated from the Unicode confusables data.

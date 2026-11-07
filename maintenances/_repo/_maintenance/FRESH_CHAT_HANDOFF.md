@@ -5,6 +5,11 @@ run log, or contributor context should be assumed.
 
 ## Scope first
 
+0. Run `python -B maintenances/_repo/_maintenance/tools/orient.py` for the
+   open ledger, the pull request's fragments and each area's next finding id;
+   the per-chat settings and the delivery process are in
+   `.claude/new-chat-template.md`.
+
 1. Read `maintenances/MAINTAINING.md`.
 2. Restate the requested scope in repository paths.
 3. Do not expand a documentation task into a general code review.

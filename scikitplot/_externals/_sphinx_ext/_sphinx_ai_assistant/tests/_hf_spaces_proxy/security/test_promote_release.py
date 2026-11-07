@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._platform import POSIX_RELEASE_GATE
+from ..._paths import RUNTIME_ROOT
+from ..._platform import POSIX_RELEASE_GATE
 
 from datetime import datetime, timedelta, timezone
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -21,16 +20,10 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-promote = _load("run149_promote", SECURITY / "promote_release.py")
-source_tree = _load("run149_source_tree", SECURITY / "source_tree.py")
+from ...._hf_spaces_proxy.security import promote_release as promote
+from ...._hf_spaces_proxy.security import source_tree
 REVISION = "b" * 40
 NOW = datetime(2026, 9, 5, 3, 45, tzinfo=timezone.utc)
 PREFIX = "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant"

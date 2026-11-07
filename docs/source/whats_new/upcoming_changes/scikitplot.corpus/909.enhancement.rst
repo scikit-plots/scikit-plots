@@ -1,0 +1,10 @@
+- Probability fusion now runs on an index bound to a ``SecurityFilter``. Pass
+  the scope the lexical calibrator was fitted under as
+  ``ProbabilityFusion(scope=...)``; hybrid search fuses only when the index's
+  scope has the same digest, and otherwise refuses with a ``ValueError``
+  naming both digests (a calibrator fitted unscoped is still refused on a
+  scoped index, and the reverse). The new ``SecurityFilter.digest`` is the
+  SHA-256 of the expression's canonical JSON, so two filters with one label
+  are two scopes. A dense-only fusion (lexical weight 0) runs under any
+  scope, because cosine similarity does not depend on it. Rank fusion is
+  unchanged.

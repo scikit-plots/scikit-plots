@@ -20,6 +20,7 @@ __all__ = [
     # "_citation",
     "__bibtex__",
     "__citation__",
+    "citation",
     # "_config",
     "config_context",
     "get_config",

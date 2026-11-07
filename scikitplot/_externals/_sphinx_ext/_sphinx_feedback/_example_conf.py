@@ -253,7 +253,8 @@ feedback_aggregate_file = ""
 #                for GitHub Enterprise; token FEEDBACK_GITHUB_TOKEN), or
 #                FEEDBACK_STORAGE_TARGETS with "gitlab" (gitlab.com or
 #                self-managed via "api_url"; FEEDBACK_GITLAB_TOKEN) or
-#                "bitbucket" (Bitbucket Cloud; FEEDBACK_BITBUCKET_TOKEN)
+#                "bitbucket" (Bitbucket Cloud, or Data Center with "api_url":
+#                "https://<host>[/<context>]/rest/api/1.0"; FEEDBACK_BITBUCKET_TOKEN)
 #   custom       FEEDBACK_WEBHOOK_URL=https://ingest.example/v1/events  (+ signing
 #                secret FEEDBACK_WEBHOOK_TOKEN): Cloudflare Worker + D1 (reference
 #                receiver in _service/receivers/), GitLab/Bitbucket pipelines,

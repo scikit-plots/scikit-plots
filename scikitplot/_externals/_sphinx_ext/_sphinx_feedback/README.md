@@ -246,12 +246,20 @@ FEEDBACK_GITHUB_TOKEN
 → AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR
 ```
 
-GitLab (gitlab.com and self-managed) and Bitbucket Cloud run the same reviewed-change
-engine as GitHub (`_service/_forge.py`): one branch, one immutable event file, one
-review, the branch-scope proof, and reconciliation after a broken connection at every
-step. Hugging Face is understood by the target schema but refused in this release; reach
-it, and Bitbucket Data Center, through the `webhook` or `custom` provider. The service
-never pretends that an unsupported provider is safe or available.
+GitLab (gitlab.com and self-managed) and Bitbucket (Cloud, and Data Center through
+`api_url`) run the same reviewed-change engine as GitHub (`_service/_forge.py`): one
+branch, one immutable event file, one review, the branch-scope proof, and reconciliation
+after a broken connection at every step. The service never pretends that an unsupported
+provider is safe or available.
+
+Hugging Face is understood by the target schema and refused at start, with this reason:
+the Hub numbers pull requests itself (`refs/pr/<n>`), and its API documents listing them by
+author, type and status only (its `search` and `sort` parameters have no documented
+behaviour), so a retried submission cannot find the review it opened and could open a
+second one; nor is there a documented diff format that would show a pull request adds only
+the event file. Those are the reviewed-change guarantees, so there is no native adapter.
+Deliver feedback to the Hub through `webhook` (a receiver that writes there, with its own
+review policy) or `custom`.
 
 Provider topology is deliberately simple: exactly one primary is authoritative; zero
 or more mirrors are durability-only. Mirrors fan out concurrently and are bounded by
@@ -330,10 +338,10 @@ with `FEEDBACK_STORAGE_TARGETS` (a JSON list) or a one-target shorthand.
 | `git` | one commit per event in a local working tree | none | `local` + `FEEDBACK_GIT_REPOSITORY_PATH` (+ `FEEDBACK_GIT_PATH`) |
 | `github` | branch + reviewed pull request on github.com or GitHub Enterprise | HTTPS | `provider-pr` + `FEEDBACK_GITHUB_REPOSITORY` (+ `FEEDBACK_GITHUB_API_URL`) |
 | `gitlab` | branch + merge request on gitlab.com or self-managed GitLab | HTTPS | `provider-pr` + `FEEDBACK_STORAGE_TARGETS` |
-| `bitbucket` | branch + pull request on Bitbucket Cloud | HTTPS | `provider-pr` + `FEEDBACK_STORAGE_TARGETS` |
+| `bitbucket` | branch + pull request on Bitbucket Cloud, or on Bitbucket Data Center (`api_url`) | HTTPS | `provider-pr` + `FEEDBACK_STORAGE_TARGETS` |
 | `webhook` | HMAC-signed POST to any receiver | HTTP(S) | `custom` + `FEEDBACK_WEBHOOK_URL` (+ `FEEDBACK_WEBHOOK_ALLOW_HTTP`) |
 | `custom` | your own Python adapter (`factory: "pkg.mod:make"`) | yours | `custom` + `FEEDBACK_STORAGE_TARGETS` |
-| `huggingface`; Bitbucket Data Center | not implemented | | use `webhook` or `custom` |
+| `huggingface` | not supported: refused at start (reason above) | | use `webhook` or `custom` |
 
 Review modes bind provider families: `sqlite` (all SQLite), `local` (all SQLite or git:
 the service makes no network request), `provider-pr` (primary opens a reviewed
@@ -353,14 +361,22 @@ keys, so a key meant for another provider fails at start instead of being ignore
 ```
 
 Defaults: `api_url` `https://api.github.com` (github), `https://gitlab.com/api/v4`
-(gitlab), `https://api.bitbucket.org/2.0` (bitbucket, the only accepted value); token
+(gitlab), `https://api.bitbucket.org/2.0` (bitbucket: Bitbucket Cloud; a Bitbucket Data
+Center REST root `https://<host>[/<context>]/rest/api/1.0` selects Data Center, and any
+other value is refused); token
 aliases `FEEDBACK_GITHUB_TOKEN` → `GITHUB_TOKEN` → `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`,
 `FEEDBACK_GITLAB_TOKEN` → `GITLAB_TOKEN` (sent as `PRIVATE-TOKEN`),
 `FEEDBACK_BITBUCKET_TOKEN` → `BITBUCKET_TOKEN` (an access token, sent as
-`Authorization: Bearer`); `webhook` secret `FEEDBACK_WEBHOOK_TOKEN`; `paths.feedback`
+`Authorization: Bearer`; on Data Center an HTTP access token, personal, project or
+repository, with write permission); `webhook` secret `FEEDBACK_WEBHOOK_TOKEN`; `paths.feedback`
 `feedback`; base `branch` `main` (never `feedback`). GitLab `repo` may name nested groups
-(`group/subgroup/project`). Review URLs must be on the forge's own host and under the
-configured repository. `git` needs an absolute `repository_path` that is the top of a
+(`group/subgroup/project`); a Bitbucket Data Center `repo` is `<project key>/<repository
+slug>` (personal `~user` repositories are not supported). An intranet server whose
+certificate comes from a private CA is trusted by setting `SSL_CERT_FILE` (or
+`SSL_CERT_DIR`) for the service process, which `httpx` reads by default. It replaces the
+default CA bundle, so it must also hold the CAs of every other host the service reaches
+(a GitHub or webhook target, say); certificate verification is never disabled. Review
+URLs must be on the forge's own host and under the configured repository. `git` needs an absolute `repository_path` that is the top of a
 working tree; commits use the identity `sphinx-feedback <sphinx-feedback@localhost>` and
 leave pushing to you. `custom` options are short non-secret scalars; secrets come from
 `token_env`. The adapter contract is in `_service/_custom.py`.
@@ -438,7 +454,11 @@ python -m scikitplot._externals._sphinx_ext._sphinx_feedback check-provider
 resolves the credential and the base branch and looks up a branch that cannot exist,
 which exercises the calls a submission makes without writing anything; it also checks
 `git` working trees and `sqlite` directories, and skips `webhook`/`custom` (any call would
-deliver). Run it once against a real repository before enabling a forge.
+deliver). For Bitbucket Data Center it also reads the changes of the base head and checks
+that they have the shape the adapter relies on (`path.components`, a change `type`); the
+adapter's call shapes come from Atlassian's REST reference and are tested against a mock
+server only, so this is how they are confirmed on yours. Run it once against a real
+repository before enabling a forge.
 
 `init` prints a `conf.py` block and the service environment, validated with the same
 rules as the build and the service. `aggregate` reads the provider event layout

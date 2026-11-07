@@ -41,14 +41,12 @@ imports `maintenances/` or `plugins/`.
 
 ## Starting a session
 
-1. This file, then the engineering rules'
-   [`SKILL.md`](../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md)
-   and the rule files it names for the work.
-2. The active `todo/todo.md` of the area you work in.
-3. That area's `MAINTAINING.md` and its skill ([`plugins/INDEX.md`](../plugins/INDEX.md)), where present.
-4. Past work on the area: `HISTORY_INDEX.md` lists the archives that name
-   its packages as paths; for a complete search, grep the archives:
-   `grep -rl <name> --include='*.md' maintenances | grep /history/`.
+Follow the one read order in [`MAINTAINING.md`](MAINTAINING.md); it starts
+with this file and the engineering rules. A new chat starts one step earlier,
+at [`.claude/init`](../.claude/init). For past work on an area,
+`HISTORY_INDEX.md` lists the archives that name its packages as paths; for a
+complete search, grep the archives:
+`grep -rl <name> --include='*.md' maintenances | grep /history/`.
 
 ## Writing a record
 

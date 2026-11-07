@@ -72,17 +72,26 @@ def _on_builder_inited(app: Sphinx) -> None:
     app : sphinx.application.Sphinx
         The running Sphinx application instance.
 
+    Raises
+    ------
+    RuntimeError
+        If any template fails to render; Sphinx stops the build with it.
+
     Notes
     -----
     Developer
         ``app.srcdir`` is guaranteed to exist at this event stage.  No
         existence check is needed before calling
         :func:`~._rst_renderer.render_rst_templates`.
+
+        Rendering is strict (fail closed): a generated ``.rst`` is a source of
+        the build, and a template that fails leaves the previous output in
+        place, so a best-effort render would let a build pass on stale text.
     """
     # app.env.url_helper_bootstrap_code = load_bootstrap_code()  # type: ignore[attr-defined]
     src_dir = Path(app.srcdir)
     context = dict(getattr(app.config, "index_template_kwargs", {})) or {}
-    render_rst_templates(src_dir, context=context)
+    render_rst_templates(src_dir, context=context, strict=True)
 
 
 def _on_html_page_context(

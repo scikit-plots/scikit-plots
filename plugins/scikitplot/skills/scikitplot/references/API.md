@@ -6,6 +6,7 @@
 |---|---|---|
 | `LowLevelCallable(function, user_data=None, signature=None)` | class | Low-level callback function. |
 | `annotations` | _Feature |  |
+| `citation(which='all')` | function | Return a BibTeX citation of scikit-plots. |
 | `config_context(*, assume_finite=None, working_memory=None, display=None, array_api_dispatch=None, transform_output=None, ...)` | function | Context manager for global scikit-plots configuration. |
 | `get_config()` | function | Retrieve current values for configuration set by `set_config`. |
 | `get_logger() -> 'Logger'` | function | Return SP (scikitplot) logger instance. |

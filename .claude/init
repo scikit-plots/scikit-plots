@@ -1,8 +1,39 @@
 # Initialization
 
-- plugins/README.md
-- plugins/INDEX.md
-- maintenances/README.md
-- upcoming_changes/README.md
-- docs/source/whats_new/upcoming_changes/README.md
-- AGENTS.md
+Read in this order. Stop at step 3 unless the task needs more.
+
+## 1. Always
+
+- `AGENTS.md` - mandatory AI disclosure and summary style.
+- `.claude/new-chat-template.md` - start here: the FILL IN block (pull
+  request, task, deferred notes, decisions), the standing rules, the
+  records, the checks and the process for one fix.
+
+## 2. Then run
+
+- `python -B maintenances/_repo/_maintenance/tools/orient.py` - the
+  current state from this checkout: open ledger, the pull request's
+  fragments, each area's next finding id and next action. Exit 1 means a
+  record could not be read; say so before anything else.
+
+## 3. By task (read only what the task touches)
+
+Maintenance of a submodule or the repository:
+- `maintenances/MAINTAINING.md` - the one read order for maintenance work
+  (the map, the engineering rules, the fresh-chat handoff, the owning
+  area's records and skill). Follow it; it is not repeated here.
+
+Notes and release notes:
+- `upcoming_changes/README.md` - how a ledger note is written and closed.
+- `docs/source/whats_new/upcoming_changes/README.md` - fragment sections,
+  types and the one-bullet rule.
+
+Skills, agents and plugins:
+- `plugins/INDEX.md` - generated index of skills and agents by package.
+- `plugins/README.md` - how plugins are built and shipped (long; read the
+  part the task needs).
+
+## Delivery
+
+- `python -B maintenances/_repo/_maintenance/tools/deliver.py OLD NEW NAME --out DIR`
+  - patch and drop-in zip, both proved to turn OLD into NEW.

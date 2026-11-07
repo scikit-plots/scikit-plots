@@ -91,3 +91,39 @@ This is a maintainer-documentation synchronization task.
 ## Release-note promotion
 
 No Towncrier fragment is required for correcting internal maintainer guidance.
+
+## Additional evidence (PR 909 review, deferred by the maintainer)
+
+- The whole `docs/source/devel/maintainers/` folder is Astropy's maintainer
+  guide copied as-is: `index.rst` ("Maintaining astropy and affiliated
+  packages"), `maintainer_workflow.rst`, `releasing.rst`, `testhelpers.rst`
+  ("Astropy Testing Tools") and `astropy-package-template.rst`.
+- `maintainers/index.rst` is `:orphan:` and no page links to it, so no
+  navigation reaches these pages; Sphinx still builds and publishes them.
+- Only three of their labels are referenced from other pages:
+  `github-squash-and-merge` (`guide_devel_details.rst`, twice),
+  `pre-commit_bot` (`guide_qu_contribute.rst`, `guide_devel_details.rst`
+  twice) and `benchmarks` (`guide_test.rst`). The other 19 labels have no
+  inbound reference. Removing or replacing the folder must keep those three
+  targets.
+- What the repository actually does with the changelog (verified):
+  `[tool.towncrier]` renders `docs/source/whats_new/v0.5.rst` (single file)
+  from `docs/source/whats_new/upcoming_changes/` with
+  `upcoming_changes/towncrier_template.rst.jinja2`; the fragment README
+  documents the preview `towncrier build --draft --version 0.5.0`; CircleCI's
+  docs job runs `towncrier build --yes` (no `--version`: the version comes
+  from the `scikitplot` package) in its own checkout before `make html`, so
+  the published docs always include unreleased fragments; fragment names are
+  checked by `tools/maint_tools/generate_towncrier_sections.py check` and PRs
+  by `pr_check_changelog.yml`.
+- No verified final-release step (who renders and commits `v0.5.rst`, and
+  when fragments are deleted) is documented anywhere in the repository.
+
+## Related
+
+`upcoming_changes/docs/devel/review-astropy-affiliated-language.md` covers the
+inherited Astropy wording in the other developer guides; review them together.
+
+`upcoming_changes/docs/devel/rewrite-release-guide-from-copied-text.md`
+covers `docs/source/devel/guide_release.rst`, the release guide the
+navigation actually links to.

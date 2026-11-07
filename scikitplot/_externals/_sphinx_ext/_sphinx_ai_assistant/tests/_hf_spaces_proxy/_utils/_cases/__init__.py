@@ -1,1 +1,1 @@
-"""Non-collected test case fragments for one canonical source-module owner."""
+"""Hidden case packages, each loaded by one canonical owner test beside this directory."""

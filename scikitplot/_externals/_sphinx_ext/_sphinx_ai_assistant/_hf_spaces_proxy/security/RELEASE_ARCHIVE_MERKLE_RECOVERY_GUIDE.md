@@ -9,7 +9,7 @@ transition mechanism.
 
 Preservation MUST first run the complete Run 167 verifier against the live predecessor
 roots and release evidence.  Only after that verifier succeeds may
-`preserve_archive_merkle_rebridge_history.py` construct
+`preserve_archive_merkle_rebridge.py` construct
 `release-archive-merkle-recovery-checkpoint.json`.
 
 The checkpoint contains the exact four canonical Run 167 output documents plus a compact

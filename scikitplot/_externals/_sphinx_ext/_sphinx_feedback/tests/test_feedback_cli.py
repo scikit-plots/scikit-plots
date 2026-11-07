@@ -155,3 +155,53 @@ def test_check_provider_runs_read_only_lookups_against_each_forge(tmp_path):
     assert [(r[0], r[1]) for r in results] == [("gl", "ok"), ("bb", "ok"), ("hook", "skip")]
     writes = [c for c in gitlab.calls + bitbucket.calls if c[0] != "GET"]
     assert writes == []
+
+
+def test_check_provider_checks_bitbucket_data_center_read_only():
+    import asyncio  # noqa: PLC0415
+
+    import httpx  # noqa: PLC0415
+
+    from _sphinx_ext._sphinx_feedback._cli import check_targets  # noqa: PLC0415
+    from _sphinx_ext._sphinx_feedback._service._config import load_service_config  # noqa: PLC0415
+
+    from .test_forge_providers import DC_API, BitbucketDataCenterFake, Repo  # noqa: PLC0415
+
+    repo = Repo()
+    repo.commit("main", {"docs/index.md": b"x"})
+    targets = [
+        {"id": "dc", "provider": "bitbucket", "role": "primary",
+         "repo": BitbucketDataCenterFake.project, "api_url": DC_API},
+    ]
+    env = {
+        "FEEDBACK_REVIEW_MODE": "provider-pr",
+        "FEEDBACK_STORAGE_TARGETS": json.dumps(targets),
+        "FEEDBACK_BITBUCKET_TOKEN": "server-only",
+    }
+
+    def check(fake):
+        async def run():
+            async with httpx.AsyncClient(transport=httpx.MockTransport(fake)) as client:
+                return await check_targets(load_service_config(env), env, client=client)
+
+        return asyncio.run(run())
+
+    fake = BitbucketDataCenterFake(repo)
+    [(target_id, status, detail)] = check(fake)
+    assert (target_id, status) == ("dc", "ok")
+    assert "1 change entry of the base head read" in detail
+    assert {method for method, _route in fake.calls} == {"GET"}
+
+    class Unshaped(BitbucketDataCenterFake):
+        def __call__(self, request):
+            response = super().__call__(request)
+            if request.url.path.endswith("/changes"):
+                body = json.loads(response.content)
+                for value in body["values"]:
+                    del value["path"]["components"]
+                return httpx.Response(200, json=body)
+            return response
+
+    [(_id, status, detail)] = check(Unshaped(repo))
+    assert status == "fail"
+    assert detail.startswith("provider_shape_unexpected")

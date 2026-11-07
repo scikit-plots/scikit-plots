@@ -9,15 +9,15 @@ Append the last commit information (hash and date) to the development version st
 This module provides robust, OS-independent Git version extraction with proper
 error handling and fallback mechanisms for conda-forge builds on Linux, macOS, and Windows.
 
-Architecture
-------------
+Architecture:
+
 1. Extract version from __init__.py or pyproject.toml
 2. Query git for commit hash and ISO 8601 timestamp
 3. Generate version.py with safe parsing and fallback defaults
 4. Handle edge cases: no git, no .git, permission errors, encoding issues
 
-Key Features
-------------
+Key Features:
+
 - OS-independent (Linux, macOS, Windows)
 - Robust subprocess handling with proper encoding
 - Graceful degradation when git is unavailable
@@ -25,11 +25,8 @@ Key Features
 - Future-proof template generation
 - Comprehensive error handling
 
-References
-----------
-https://www.gnu.org/software/coreutils/manual/html_node/Options-for-date.html
-https://en.wikipedia.org/wiki/ISO_8601
-
+Notes
+-----
 Example: 2006-08-14T02:34:56-06:00
 
 Complete date : YYYY-MM-DD (2026-01-10)
@@ -59,11 +56,17 @@ date -u +"%Y-%m-%dT%H:%M:%S.%6N%:z"
 Note: The -u option sets the output to UTC time.
 The Z is not preceded by a % (or a colon) - so it is not a format directive; it is a literal 'Z' character.
 This is also fully compliant and works on macOS (BSD) and Linux.
+
+References
+----------
+https://www.gnu.org/software/coreutils/manual/html_node/Options-for-date.html
+https://en.wikipedia.org/wiki/ISO_8601
 """
 
 from __future__ import annotations
 
 import os
+import re
 import sys
 import subprocess
 import contextlib
@@ -204,117 +207,130 @@ def debug_wrapper(func):
 @debug_wrapper
 def add_safe_directory(repo_path: Optional[str] = None) -> Tuple[int, str, str]:
     """
-    Add a Git repository as a safe directory globally.
+    Add a Git repository to the user's persistent ``safe.directory`` list.
 
-    Handles the "dubious ownership" error that occurs in conda-forge builds
-    and Docker containers where the repository owner differs from the user.
+    Runs ``git config --global --add safe.directory <path>``, which changes
+    the user's global Git configuration for every later Git command. It is an
+    explicit maintainer tool; :func:`git_version` never calls it.
 
     Parameters
     ----------
     repo_path : str, optional
-        Path to the Git repository. If None, uses current working directory.
+        Path to the Git repository's top level. If None, uses the current
+        working directory.
 
     Returns
     -------
     int
-        Return code of the git config command (0 if successful)
+        Return code of the git config command: 0 on success, the command's
+        own code on failure, 1 for an invalid path, 127 when ``git`` cannot
+        be run.
     str
-        Standard output from git config
+        Standard output from git config.
     str
-        Standard error from git config
-
-    Raises
-    ------
-    ValueError
-        If the specified path is not a valid directory
+        Standard error from git config, or the error message.
 
     Notes
     -----
-    This function is critical for conda-forge builds where the build environment
-    may have different ownership than the git repository being built.
+    **User notes.** Prefer nothing persistent: :func:`git_version` recovers
+    from Git's "dubious ownership" refusal for its one command, without this
+    function. Use this only to trust a checkout for all later Git commands,
+    and pass the top level Git names in its message (``git status`` prints
+    it), not a subdirectory: Git compares ``safe.directory`` with the
+    repository's top level.
+
+    **Developer notes.** Every failure is a non-zero return code with its
+    message; earlier versions returned 0 and referenced an exception
+    variable outside its ``except`` block.
 
     Examples
     --------
-    >>> add_safe_directory('/path/to/repo')
-    (0, '', '')
-
-    >>> add_safe_directory()  # Use current directory
+    >>> add_safe_directory('/path/to/repo')  # doctest: +SKIP
     (0, '', '')
     """
+    repo_path = os.path.abspath(os.getcwd() if repo_path is None else repo_path)
+    if not os.path.isdir(repo_path):
+        message = f"The path '{repo_path}' is not a valid directory."
+        print(f"ValueError: {message}", file=sys.stderr)
+        return (1, "", message)
+    git_command = [
+        "git",
+        "config",
+        "--global",
+        "--add",
+        "safe.directory",
+        repo_path,
+    ]
+    returncode, stdout_str, stderr_str = _run_git(git_command, cwd=repo_path)
+    if returncode == 0:
+        print(f"Successfully added {repo_path} as a safe directory.", file=sys.stderr)
+    else:
+        print(
+            f"Failed to add {repo_path} as a safe directory: {stderr_str}",
+            file=sys.stderr,
+        )
+    return (returncode, stdout_str, stderr_str)
+
+
+def _run_git(command: list, cwd: str) -> Tuple[int, str, str]:
+    """
+    Run one Git command and return ``(returncode, stdout, stderr)`` as text.
+
+    Parameters
+    ----------
+    command : list of str
+        The command, starting with ``"git"``.
+    cwd : str
+        Working directory.
+
+    Returns
+    -------
+    tuple of (int, str, str)
+        The command's return code and decoded, stripped output. 127 with the
+        error message when the command cannot be started (``git`` missing,
+        ``cwd`` unusable).
+    """
     try:
-        # Use the provided path or default to the current working directory
-        if repo_path is None:
-            repo_path = os.getcwd()
-        # Ensure the path is absolute
-        repo_path = os.path.abspath(repo_path)
-        if not os.path.isdir(repo_path):
-            raise ValueError(f"The path '{repo_path}' is not a valid directory.")
-        # Build the git command
-        git_command = [
-            "git",
-            "config",
-            "--global",
-            "--add",
-            "safe.directory",
-            repo_path,
-        ]
-
-        # Execute command with proper encoding handling
-        def run_command():
-            try:
-                p = subprocess.Popen(
-                    git_command,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    # cwd=os.path.dirname(__file__),
-                    cwd=repo_path,
-                )
-                stdout_bytes, stderr_bytes = p.communicate()
-                # Decode output with UTF-8, handling errors gracefully
-                stdout_str = stdout_bytes.decode("utf-8", errors="replace").strip()
-                stderr_str = stderr_bytes.decode("utf-8", errors="replace").strip()
-                # Log result
-                if p.returncode == 0:
-                    # ⚠️💥 all print() calls used for errors to stderr
-                    print(
-                        f"Successfully added {repo_path} as a safe directory.",
-                        file=sys.stderr,
-                    )
-                else:
-                    print(
-                        f"Failed to add {repo_path} as a safe directory: {stderr_str}",
-                        file=sys.stderr,
-                    )
-                return (
-                    p.returncode,
-                    # Decoded output - CRITICAL FIX: decode bytes to string
-                    stdout_str,
-                    stderr_str,
-                )
-            # subprocess.CalledProcessError
-            except Exception as e:
-                print(
-                    "Error in add_safe_directory: "
-                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}",
-                    file=sys.stderr,
-                )
-                pass
-            return (0, "", str(e))
-
-        return run_command()
-    except ValueError as ve:
-        print(
-            f"ValueError: {ve}",
-            file=sys.stderr,
+        p = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=cwd,
         )
-        # raise
-        return (0, "", str(e))
-    except Exception as e:
-        print(
-            f"An unexpected error occurred: {e}",
-            file=sys.stderr,
-        )
-        return (0, "", str(e))
+        stdout_bytes, stderr_bytes = p.communicate()
+    except OSError as exc:
+        return (127, "", f"cannot run {command[0]!r}: {exc}")
+    return (
+        p.returncode,
+        stdout_bytes.decode("utf-8", errors="replace").strip(),
+        stderr_bytes.decode("utf-8", errors="replace").strip(),
+    )
+
+
+#: Git's refusal for a repository owned by another user (Git >= 2.35.2):
+#: ``fatal: detected dubious ownership in repository at '<top level>'``.
+_DUBIOUS_OWNERSHIP = re.compile(
+    r"detected dubious ownership in repository at '(?P<path>[^'\n]+)'"
+)
+
+
+def _dubious_repository(stderr: str) -> Optional[str]:
+    """
+    Return the repository top level Git refused for dubious ownership, if any.
+
+    Parameters
+    ----------
+    stderr : str
+        Standard error of a failed Git command.
+
+    Returns
+    -------
+    str or None
+        The path Git names in its "dubious ownership" message, or ``None``
+        when the failure is something else.
+    """
+    match = _DUBIOUS_OWNERSHIP.search(stderr)
+    return None if match is None else match.group("path")
 
 
 ######################################################################
@@ -433,6 +449,7 @@ def git_version(
     version: str = "",
     format: str = "%H %aI",
     short: bool = True,
+    cwd: Optional[str] = None,
 ) -> GitVersionInfo:
     """
     Append the last commit information (hash and date) to the development version string.
@@ -455,6 +472,9 @@ def git_version(
     short : bool, optional
         If True, returns only the first 7 characters of the commit hash.
         Defaults to True.
+    cwd : str, optional
+        Directory inside the repository to query. ``None`` (the default) is
+        the directory of this module, inside the scikit-plots checkout.
 
     Returns
     -------
@@ -479,7 +499,13 @@ def git_version(
     Error Handling:
 
     - Returns base version if git is not available
-    - Handles permission errors via add_safe_directory()
+    - Recovers from Git's "dubious ownership" refusal (a checkout owned by
+      another user: conda-forge, Docker, CI caches) by retrying this one
+      command with ``git -c safe.directory=<top level>``, the top level Git
+      itself names in its message. Nothing is written to any Git
+      configuration, and any other failure is not retried. Git releases
+      that ignore a command-line ``safe.directory`` fall back to the base
+      version, and the message names the persistent fix.
     - Decodes subprocess output with proper encoding
     - Validates all parsed data before use
 
@@ -518,48 +544,26 @@ def git_version(
             # "--date=format:%Y-%m-%dT%H:%M:%S.%NZ",
             "--date=iso-strict",  # ISO 8601 strict format
         ]
-        # Get directory for git command execution
-        try:
-            git_dir = os.path.dirname(os.path.abspath(__file__))
-        except NameError:
-            git_dir = os.getcwd()
+        # Directory for the git command: the caller's, or this module's.
+        git_dir = os.path.abspath(cwd) if cwd is not None else _module_dir()
 
-        # Execute command with proper encoding handling process
-        def run_command():
-            try:
-                p = subprocess.Popen(
-                    git_command,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    # cwd=os.path.dirname(__file__),
-                    cwd=git_dir,
+        returncode, raw_output, stderr_str = _run_git(git_command, cwd=git_dir)
+        # A repository owned by another user is refused (return code 128)
+        # with a message naming its top level. Trust that top level for this
+        # one command only; never retry other failures, and never write to
+        # any Git configuration.
+        toplevel = _dubious_repository(stderr_str) if returncode == 128 else None
+        if toplevel is not None:
+            returncode, raw_output, stderr_str = _run_git(
+                ["git", "-c", f"safe.directory={toplevel}", *git_command[1:]],
+                cwd=git_dir,
+            )
+            if returncode != 0 and _dubious_repository(stderr_str) is not None:
+                stderr_str += (
+                    "\n(this Git ignores a command-line safe.directory; to trust "
+                    f"the checkout persistently run: git config --global --add "
+                    f"safe.directory {toplevel})"
                 )
-                # Use communicate() when you only care about the final output.
-                # Use stdout.readline() when you need real-time updates.
-                stdout_bytes, stderr_bytes = p.communicate()
-                return (
-                    p.returncode,
-                    # Decode output - CRITICAL FIX: decode bytes to string
-                    stdout_bytes.decode("utf-8", errors="replace").strip(),
-                    stderr_bytes.decode("utf-8", errors="replace").strip(),
-                )
-            # subprocess.CalledProcessError
-            except Exception as e:
-                print(
-                    "Error in git_version: "
-                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}",
-                    file=sys.stderr,
-                )
-                pass
-            return (0, "", str(e))
-
-        # First attempt
-        returncode, raw_output, stderr_str = run_command()
-        # Handle "dubious ownership" error (common in conda-forge builds) 128
-        if returncode == 128:
-            add_safe_directory(repo_path=git_dir)
-            # Retry once after adding as safe directory
-            returncode, raw_output, stderr_str = run_command()
         # Check if git command succeeded
         if returncode != 0:
             print(
@@ -638,6 +642,14 @@ def git_version(
         )
         pass
     return info  # no prints  # version, git_hash, out
+
+
+def _module_dir() -> str:
+    """Return the directory of this module (the working directory as fallback)."""
+    try:
+        return os.path.dirname(os.path.abspath(__file__))
+    except NameError:  # pragma: no cover - interactive use without __file__
+        return os.getcwd()
 
 
 ######################################################################

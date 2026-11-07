@@ -648,6 +648,50 @@
    "summary": "Drive, bucket, project, tenant and account identifiers, and cloud connection strings.",
    "version": 1
   },
+  "de": {
+   "fields": [
+    {
+     "kind": "TAX_ID_DE",
+     "names": [
+      "steuer_id",
+      "steuerid",
+      "steuer_idnr",
+      "steueridnr",
+      "steueridentifikationsnummer",
+      "steuerliche_identifikationsnummer",
+      "identifikationsnummer",
+      "tax_id_de"
+     ],
+     "role": "id",
+     "span": "token"
+    }
+   ],
+   "name": "de",
+   "patterns": [
+    {
+     "examples_no": [
+      "86504957139",
+      "47198320652",
+      "11123456786",
+      "02476291358",
+      "8650495713 8"
+     ],
+     "examples_yes": [
+      "86504957138",
+      "86 504 957 138",
+      "12345678911",
+      "55316429704"
+     ],
+     "intent": "A German tax identification number, written together or in groups of 2-3-3-3, accepted only when its structure rule and check digit hold.",
+     "kind": "TAX_ID_DE",
+     "pattern": "\\b[1-9]\\d(?:\\d{9}|(?: \\d{3}){3})\\b",
+     "priority": 87,
+     "validate": "de_tax_id"
+    }
+   ],
+   "summary": "German national identifiers (tax identification number).",
+   "version": 1
+  },
   "email": {
    "fields": [
     {
@@ -1497,6 +1541,65 @@
    },
    "name": "sklearn",
    "summary": "scikit-learn column lists in ColumnTransformer and friends, for notebooks and modules.",
+   "version": 1
+  },
+  "vehicle": {
+   "fields": [
+    {
+     "kind": "VIN",
+     "names": [
+      "vin",
+      "vin_number",
+      "vehicle_id",
+      "vehicle_identification_number",
+      "chassis_number",
+      "chassis_no",
+      "frame_number"
+     ],
+     "role": "id",
+     "span": "token"
+    },
+    {
+     "kind": "VEHICLE_PLATE",
+     "names": [
+      "plate",
+      "license_plate",
+      "licence_plate",
+      "number_plate",
+      "plate_number",
+      "registration_number",
+      "registration_plate",
+      "vehicle_registration"
+     ],
+     "role": "id",
+     "span": "clause"
+    }
+   ],
+   "name": "vehicle",
+   "patterns": [
+    {
+     "examples_no": [
+      "1M8GDM9A1KP042788",
+      "11111111111111111",
+      "WVWZZZ3BZWE689725",
+      "VIN: WVWZZZ3BZWE68972",
+      "VIN: 11111111111111111"
+     ],
+     "examples_yes": [
+      "1M8GDM9AXKP042788",
+      "1HGCM82633A004352",
+      "jh4ka4650jc000403",
+      "VIN: WVWZZZ3BZWE689725",
+      "chassis number WVWZZZ3BZWE689725"
+     ],
+     "intent": "A vehicle identification number. In running text only one whose North American check digit and numeric tail hold; next to its label any well-formed one, as VINs outside North America are written.",
+     "kind": "VIN",
+     "pattern": "(?i)(?:\\b(?P<label>VIN|vehicle identification number|chassis(?:\\s+(?:number|no\\.?))?)\\s*[:#]?\\s*)?\\b(?P<value>[A-HJ-NPR-Z0-9]{17})\\b",
+     "priority": 83,
+     "validate": "vin_check"
+    }
+   ],
+   "summary": "Vehicle identification numbers and registration plates.",
    "version": 1
   }
  },

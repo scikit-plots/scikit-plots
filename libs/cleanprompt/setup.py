@@ -41,7 +41,7 @@ HERE = Path(__file__).resolve().parent
 DISTRIBUTION = "scikit-plots-cleanprompt"
 PACKAGE = "scikitplot"
 #: SPDX licence expression covering every file this distribution ships.
-LICENSE = "BSD-3-Clause AND MIT"
+LICENSE = "BSD-3-Clause AND MIT AND Unicode-DFS-2016"
 #: First setuptools major release that understands ``license_expression``
 #: (PEP 639); see ``_license_options``.
 PEP639_SETUPTOOLS_MAJOR = 77

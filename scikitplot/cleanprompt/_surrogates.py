@@ -330,7 +330,9 @@ def surrogate_for(
         Proposes name stand-ins in place of the built-in names
         (:mod:`~scikitplot.cleanprompt._surrogate_sets`). Every rule below
         still applies to what it proposes, and a proposal that is not a
-        well-formed name is skipped.
+        well-formed name is skipped. A candidate the provider ``avoids``
+        (its set's ``avoid`` words) is skipped too, the built-in names
+        included.
 
     Returns
     -------
@@ -395,6 +397,12 @@ def surrogate_for(
             # two-part names it forms and any later provider.
             continue
         if candidate in taken:
+            continue
+        avoids = getattr(provider, "avoids", None)
+        if avoids is not None and avoids(candidate):
+            # The set's ``avoid`` words: a stand-in equal to one would rewrite
+            # that word wherever the reply uses it. Checked here, not only at
+            # load, so it covers combined names and the built-in fallback.
             continue
         if source and candidate in source:
             continue

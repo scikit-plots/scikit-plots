@@ -2017,7 +2017,7 @@ recovery root and permanently revokes replaced key fingerprints. See
 
 ### Run 168 recursive Merkle recovery checkpoint
 
-`security/preserve_archive_merkle_rebridge_history.py` freezes the exact accepted Run 167
+`security/preserve_archive_merkle_rebridge.py` freezes the exact accepted Run 167
 state into a deterministic recovery checkpoint, requires independent immutable copies and
 read-back verification, and supports fail-closed multi-source recovery with explicit
 rollback/fork pins. It does not authorize key rotation or Merkle advancement.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..._paths import RUNTIME_ROOT, TESTS_ROOT
+from ..._paths import RUNTIME_ROOT
 
 from datetime import datetime, timedelta, timezone
 import importlib.util
@@ -27,9 +27,9 @@ def _load(name: str, path: Path):
 
 attest = _load("run148_attestation", CI / "redis_chaos_attestation.py")
 source_tree = _load("run148_source_tree", SECURITY / "source_tree.py")
-run20 = _load(
-    "run148_release_fixture", TESTS_ROOT / "_hf_spaces_proxy" / "security" / "test_verify_release_evidence.py"
-)
+# Imported as a package module: it imports its runtime relatively, so it cannot
+# be loaded by file path.
+from ..security import test_verify_release_evidence as run20  # noqa: E402
 verify = run20.verify_mod
 
 REDIS7 = "redis:7.4.11-bookworm@sha256:71da9275c5f3fcb97d0fa0c8c5b36cc995327265420f17a04bfd544f458059f7"

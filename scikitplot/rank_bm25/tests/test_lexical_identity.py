@@ -133,3 +133,19 @@ def test_a_build_identity_covers_recipe_analyzer_and_parameters():
     assert base != lexical_identity(
         BM25Okapi(CORPUS).recipe, Analyzer(name="other"), {"k1": 1.5, "b": 0.75}
     )
+
+
+# -- a formula change bumps the recipe version ---------------------------------
+
+
+@pytest.mark.parametrize("scorer", [BM25Okapi, BM25L, BM25Plus])
+def test_the_empty_document_fix_is_a_new_recipe_version(scorer):
+    """Scores of empty documents changed (NaN to finite), so builds differ."""
+    recipe = scorer(CORPUS).recipe
+    assert recipe.version == "2"
+    previous = Recipe(name=recipe.name, version="1", notes=recipe.notes)
+    assert previous.identifier not in RECIPES
+    parameters = {"k1": 1.5, "b": 0.75}
+    assert lexical_identity(previous, None, parameters) != lexical_identity(
+        recipe, None, parameters
+    )

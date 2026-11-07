@@ -1362,14 +1362,15 @@ endif
 ######################################################################
 
 # NumPy include directory - needed in all submodules
-# The chdir is needed because within numpy there's an `import signal`
-# statement, and we don't want that to pick up scipy's signal module rather
-# than the stdlib module. The try-except is needed because when things are
-# split across drives on Windows, there is no relative path and an exception
-# gets raised. There may be other such cases, so add a catch-all and switch to
-# an absolute path. Relative paths are needed when for example a virtualenv is
-# placed inside the source tree; Meson rejects absolute paths to places inside
-# the source tree.
+# `include_directories()` reads a relative path against this file's directory,
+# the project root, so the path is computed relative to the root passed as the
+# script's argument -- never to the interpreter's working directory. A
+# relative path is used only when numpy lives inside the source tree (for
+# example a virtualenv in the checkout), because Meson rejects absolute paths
+# into the source tree; anywhere else (including another drive on Windows,
+# where no relative path exists) the absolute path is used. The working
+# directory is removed from `sys.path` before numpy is imported, so a module
+# in it (numpy imports `signal`) cannot shadow the standard library.
 # For cross-compilation it is often not possible to run the Python interpreter
 # in order to retrieve numpy's include directory. It can be specified in the
 # cross file instead:
@@ -1382,22 +1383,26 @@ _np_inc_dir = meson.get_external_property(
   'not-given',
 )
 if _np_inc_dir == 'not-given'
+  # BEGIN numpy-include-dir snippet (tested by
+  # maintenances/_repo/_maintenance/tests/test_meson_numpy_include.py)
   _np_inc_dir = run_command(py,
     ['-c', '''\
 import os
-import numpy as np
+import sys
+root = os.path.realpath(sys.argv[1])
+cwd = os.path.realpath(os.getcwd())
+sys.path[:] = [p for p in sys.path if p and os.path.realpath(p) != cwd]
+import numpy
+include = os.path.realpath(numpy.get_include())
 try:
-  # get relpath path from absolute path
-  os.chdir(os.path.join(".", "tools"))
-  _np_inc_dir = os.path.relpath(np.get_include())
-  if not os.path.exists(_np_inc_dir):
-    raise FileNotFoundError('')  # dont print
-except Exception as e:
-  # use absolute path
-  _np_inc_dir = np.get_include()
-print(_np_inc_dir)''' ],
+  inside = os.path.commonpath([include, root]) == root
+except ValueError:
+  inside = False  # another drive on Windows: no relative path exists
+print(os.path.relpath(include, root) if inside else include)''',
+     meson.project_source_root()],
     check: true,
   ).stdout().strip()
+  # END numpy-include-dir snippet
 
   # We do need an absolute path to feed to `cc.find_library` below
   _np_inc_dir_abs = run_command(py,

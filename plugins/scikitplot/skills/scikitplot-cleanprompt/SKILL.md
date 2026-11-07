@@ -53,8 +53,10 @@ Declared in `scikitplot.cleanprompt.__all__`, in that order.
 | `RegexDetector` | class | Detector backed by one entry of the pattern library. |
 | `default_registry` | function | Build a registry from the pattern library, plus optional literal terms. |
 | `BlindSpot` | class | A category of sensitive information nothing currently detects. |
+| `CoverageRow` | class | What covers one detection kind, and what happens to its values. |
 | `Diagnosis` | class | What a given configuration can and cannot detect. |
 | `Suggestion` | class | A candidate the active detectors did not claim. |
+| `coverage_matrix` | function | Return one row per detection kind, derived from the live registries. |
 | `describe_outcome` | function | Explain a redaction outcome, especially an empty one. |
 | `diagnose` | function | Report what a configuration can and cannot detect. |
 | `suggest_terms` | function | Offer candidate terms the active detectors did not claim. |
@@ -73,10 +75,8 @@ Declared in `scikitplot.cleanprompt.__all__`, in that order.
 | `DEFAULT_LANGUAGE` | str |  |
 | `LANGUAGES` | dict |  |
 | `MODEL_SIZES` | tuple |  |
-| `MULTILINGUAL_MODEL` | str |  |
-| `LanguageSpec` | class | One language spaCy publishes models for. |
 
-72 more names, and signatures: [references/API.md](references/API.md).
+78 more names, and signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.cleanprompt.Session`)
 

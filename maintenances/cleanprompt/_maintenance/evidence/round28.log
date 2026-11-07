@@ -1,0 +1,344 @@
+# Round 28, CP-108: a time limit for custom pack patterns
+# 2026-11-04, frozen copy identical to the work tree; every count below was printed by
+# python -B -m pytest -q -p no:cacheprovider -c /dev/null --rootdir=. --confcutdir=scikitplot/cleanprompt scikitplot/cleanprompt/tests
+# (the stand-in parent: python -B -m pytest -q -p no:cacheprovider scikitplot/cleanprompt/tests)
+
+## package suite, no optional tier (3.13.18, regex absent)
+2954 passed, 102 skipped in 47.12s
+
+## package suite, regex 2026.9.29 on 3.13.18
+2970 passed, 86 skipped in 52.58s
+
+## package suite, regex 2020.1.8 (the floor) on 3.8.20, stand-in parent
+2836 passed, 220 skipped in 53.42s
+
+## the time-limit lane, regex installed (-rs)
+SKIPPED [1] scikitplot/cleanprompt/tests/test__pattern_timeout.py:226: the 'timeout' tier is installed
+SKIPPED [1] scikitplot/cleanprompt/tests/test__pattern_timeout.py:233: the 'timeout' tier is installed
+48 passed, 2 skipped in 3.44s
+
+## maintenance plane and user guide
+99 passed in 115.65s (0:01:55)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-109: invisible characters inside names, 2026-11-04, frozen copy identical to the work tree
+
+## package suite, no optional tier (3.13.18)
+2991 passed, 102 skipped in 45.39s
+
+## package suite, regex installed (3.13)
+3007 passed, 86 skipped in 48.60s
+
+## package suite, CPython 3.8, stand-in parent
+2873 passed, 220 skipped in 51.03s
+
+## the CP-109 lane: salted sweep (7 format characters x every position x 10 samples), JSON, CRLF, structure
+76 passed in 1.38s
+
+## the CP-109 regression class as first written (14 tests), run on the tree before the fix
+9 failed, 5 passed: the shell, javascript, rlang, sql and python sweeps and the four salted-value
+cases failed; env, ini, yaml, json and jsonl names already passed (CP-103 reads whole-string keys)
+
+## mutation check of the new code
+11 of 12 killed; the survivor removes the ASCII fast path of structure_view, which is equivalent (ASCII has no format character)
+
+## maintenance plane and user guide
+99 passed in 115.01s (0:01:55)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-110: e-mail addresses in any script, 2026-11-04, frozen copy identical to the work tree
+
+## package suite, no optional tier (3.13.18)
+3042 passed, 102 skipped in 51.88s
+
+## package suite, regex installed (3.13)
+3058 passed, 86 skipped in 53.54s
+
+## package suite, CPython 3.8, stand-in parent
+2924 passed, 220 skipped in 53.49s
+
+## the CP-110 lane
+292 passed in 12.05s
+the CP-110 class as first written (48 tests) on the tree before the fix: 43 failed, 5 passed (the non-address cases)
+
+## probes
+probe_negative.py:
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+
+## mutation check of the pattern's parts
+4 of 4 killed (marks in the letter class, the look-behind start, script-wide labels, the pipe in atext)
+
+## maintenance plane and user guide
+99 passed in 126.03s (0:02:06)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-111: phone groupings and ranges, 2026-11-04, frozen copy identical to the work tree
+
+## package suite, no optional tier (3.13.18)
+3096 passed, 102 skipped in 48.83s
+
+## package suite, regex installed (3.13)
+3112 passed, 86 skipped in 55.35s
+
+## package suite, CPython 3.8, stand-in parent
+2978 passed, 220 skipped in 54.81s
+
+## the CP-111 lane
+295 passed in 12.01s
+the CP-111 class on the tree before the fix: 32 failed, 22 passed
+
+## probes
+probe_scale.py (with the 2000-row phone check):
+TOTAL FAILURES: 0
+probe_negative.py:
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+
+## mutation check
+5 of 6 killed; the survivor showed the (0) trunk clause duplicated the bracketed-group clause, so it was removed
+
+## maintenance plane and user guide
+99 passed in 127.00s (0:02:06)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-112: label spellings in the source, 2026-11-04, frozen copy identical to the work tree
+
+## package suite, no optional tier (3.13.18)
+3113 passed, 102 skipped in 53.47s
+
+## package suite, regex installed (3.13)
+3129 passed, 86 skipped in 122.35s (0:02:02)
+
+## package suite, CPython 3.8, stand-in parent
+2995 passed, 220 skipped in 55.17s
+
+## the CP-112 lane
+125 passed in 1.12s
+the CP-112 class on the tree before the fix: 7 failed (every round trip), 10 passed
+
+## probes
+probe_negative.py, I1 with the spellings in its cold fragments (the earlier tree: 842 of 3000 failed):
+I1        PASS round trip over 3000 random documents
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+
+## maintenance plane and user guide
+99 passed in 145.93s (0:02:25)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-113: spellings of earlier labels in a session, 2026-11-05, frozen copy identical to the work tree
+
+## package suite, no optional tier (3.13.18)
+3121 passed, 102 skipped in 47.71s
+
+## package suite, regex installed (3.13)
+3137 passed, 86 skipped in 50.08s
+
+## package suite, CPython 3.8, stand-in parent
+3003 passed, 220 skipped in 50.73s
+
+## the CP-113 lane
+25 passed in 0.39s
+the CP-113 class on the tree before the fix: 7 failed, 1 passed (the model-rewrite guard)
+
+## probes
+probe_scale.py (the earlier tree: 120000 rows in 10.1 s):
+120000 rows,  6004486 chars,   7 pieces      PASS 9.86s
+TOTAL FAILURES: 0
+probe_negative.py:
+I1        PASS round trip over 3000 random documents
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+
+## maintenance plane and user guide
+99 passed in 106.15s (0:01:46)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-114: look-alike letters, 2026-11-05, frozen copy identical to the work tree
+table: UTS #39 confusables.txt Version 13.0.0 (sha256 96f2500ec78fd96f11561d4b40237435dfece70303b1db3c0974138a333aa206), generated with unicodedata 15.1.0, 1225 entries; generate_confusables.py --check: current
+
+## package suite, no optional tier (3.13.18)
+3143 passed, 102 skipped in 49.34s
+
+## package suite, regex installed (3.13)
+3159 passed, 86 skipped in 86.35s (0:01:26)
+
+## package suite, CPython 3.8 (unicodedata 12.1.0), stand-in parent
+3025 passed, 220 skipped in 53.77s
+
+## the CP-114 lane
+92 passed in 0.51s
+the CP-114 class on the tree before the fix: 4 failed (AWS key, URL, IPv4, IBAN), 4 passed (the e-mail, already whole since CP-110, and three prose cases)
+random Cyrillic and Greek prose, 3000 texts: 2 changed before and the same 2 after (indices 1767, 2492)
+
+## probes
+probe_negative.py (V28: 1000 values with look-alike letters):
+V25       PASS 1000 salted values: each found and restored exactly
+V28       PASS 1000 values with look-alike letters: each found and restored exactly
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+probe_scale.py:
+120000 rows,  6004486 chars,   7 pieces      PASS 9.37s
+TOTAL FAILURES: 0
+
+## maintenance plane, lib tools and user guide
+802 passed in 118.35s (0:01:58)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-115: per-kind actions, 2026-11-06, frozen copy identical to the work tree
+
+## default output, byte-identical to the earlier tree (1500 random documents, 5 formats, both styles; sha256 of all outputs)
+earlier tree: 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71
+this tree:    16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71
+
+## package suite, no optional tier (3.13.18)
+3184 passed, 102 skipped in 44.23s
+
+## package suite, regex installed (3.13)
+3200 passed, 86 skipped in 48.18s
+
+## package suite, CPython 3.8, stand-in parent
+3066 passed, 220 skipped in 48.84s
+
+## the CP-115 lane
+104 passed, 1 skipped, 886 deselected in 1.57s
+mutation check: 14 mutants; 13 killed, 1 equivalent (ranking tokenize and surrogate apart), whose line was removed
+
+## probes
+probe_negative.py:
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+probe_scale.py:
+120000 rows,  6004486 chars,   7 pieces      PASS 9.13s
+TOTAL FAILURES: 0
+
+## maintenance plane, lib tools and user guide
+802 passed in 130.40s (0:02:10)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-116: the coverage matrix, 2026-11-06, frozen copy identical to the work tree
+generate_coverage_docs.py --check: current
+default output against the earlier tree (1500 random documents): 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71 (earlier tree 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71)
+
+## package suite, no optional tier (3.13.18)
+3190 passed, 102 skipped in 44.97s
+
+## package suite, regex installed (3.13)
+3206 passed, 86 skipped in 48.72s
+
+## package suite, CPython 3.8, stand-in parent
+3072 passed, 220 skipped in 48.60s
+
+## the CP-116 lane
+6 passed, 282 deselected in 0.59s
+drift test, table edited by hand: 1 failed; restored: 2 passed
+
+## probes
+probe_negative.py:
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+
+## maintenance plane, lib tools and user guide
+804 passed in 121.27s (0:02:01)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-117: the vehicle pack, 2026-11-06, frozen copy identical to the work tree
+packs --check: problems: -; coverage table: current
+VIN check digit on random 17-character tokens with a numeric tail: 3.0 percent pass (200000 tokens)
+default output against the earlier tree (1500 random documents): 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71 (earlier 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71)
+
+## package suite, no optional tier (3.13.18)
+3217 passed, 102 skipped in 45.86s
+
+## package suite, regex installed (3.13)
+3233 passed, 86 skipped in 48.47s
+
+## package suite, CPython 3.8, stand-in parent
+3099 passed, 220 skipped in 50.96s
+
+## the CP-117 lane
+27 passed, 392 deselected in 0.39s
+the CP-117 class on the tree before the fix: 12 failed (the vehicle pack does not exist there)
+
+## probes
+probe_scale.py:
+2000 VIN rows: no VIN sent, checked or labelled PASS 0.14s
+2000 VIN rows: every look-alike kept         PASS
+2000 VIN rows restore exactly                PASS
+TOTAL FAILURES: 0
+probe_negative.py:
+TOTAL FAILURES: 0
+probe_fuzz.py:
+documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
+packs gallery example: exit 0
+
+## maintenance plane, lib tools and user guide
+804 passed in 117.87s (0:01:57)
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-118: avoided words in surrogate sets, 2026-11-07, frozen copy identical to the work tree
+
+## reproduction (old tree: no way to refuse; new tree)
+no avoid: rev@1#061814eb9c86cd01 ['The', 'Ash', 'Ash-Vale']
+refused: <memory>: 2 problem(s) in definition
+  - kinds.GPE[0]: 'The' is listed under avoid; decode would rewrite that word wherever the reply uses it
+  - kinds.GPE[1]: 'Ash' is listed under avoid; decode would rewrite that word wherever the reply uses it
+runtime: [None] rev@1#8a6f7274d6d5e8af
+
+## regression tests on the old tree
+test__surrogate_sets.py -k TestAvoid: 19 failed
+mutation (run-time check removed): 3 failed
+
+## package suite
+CPython 3.13, no optional tier: 3236 passed, 102 skipped
+CPython 3.13, regex: 3252 passed, 86 skipped
+CPython 3.8, stand-in parent: 3118 passed, 220 skipped
+default output, 1500 documents: 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71 (unchanged)
+
+## probes
+probe_negative.py: TOTAL FAILURES: 0
+probe_scale.py: TOTAL FAILURES: 0
+probe_fuzz.py: failures: []
+
+## maintenance plane, lib tools and user guide
+804 passed
+maintenance=PASS runtime=PASS release=UNVERIFIED
+
+# CP-119: the de pack (German tax identification number), 2026-11-07, frozen copy identical to the work tree
+
+## validator against the published specification
+doc example check digit: 8 (document gives 8)
+doc example accepted with leading 0: False
+random 11-digit (first 1-9) accepted: 694/200000 = 0.35%
+[('86504957138', True), ('47198320652', False), ('12345678911', True), ('55316429704', True), ('91182745634', True)]
+
+## regression tests on the old tree
+TestDeTaxId and TestCP119: 22 failed
+mutation (structure rule removed): 12 failed (the pack's own examples refuse it); mutation (three-in-a-row rule removed): 12 failed
+
+## package suite
+CPython 3.13, no optional tier: 3263 passed, 102 skipped
+CPython 3.13, regex: 3279 passed, 86 skipped
+CPython 3.8, stand-in parent: 3145 passed, 220 skipped
+default output, 1500 documents: 16db201384b1cc56d5c8c1466398637ead0fd9c9153c8a9c7c5699bf75dd3d71 (unchanged)
+
+## probes
+2000 Steuer-ID rows: no Steuer-ID sent       PASS 0.10s
+2000 Steuer-ID rows: every look-alike kept   PASS
+2000 Steuer-ID rows restore exactly          PASS
+TOTAL FAILURES: 0
+probe_negative.py: TOTAL FAILURES: 0
+probe_fuzz.py: failures: []
+packs gallery example: exit 0
+
+## maintenance plane, lib tools and user guide
+804 passed
+maintenance=PASS runtime=PASS release=UNVERIFIED

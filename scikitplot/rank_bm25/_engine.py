@@ -35,13 +35,13 @@ deliberately not used: it reassociates the sum and drifts in the last bits for
 the recipes whose absent contribution is non-zero (BM25L, BM25+).
 
 *Absent contribution.* For the built-in recipes it does not depend on document
-length, except where the length normalisation denominator is zero -- an empty
-document with ``b == 1``, where the reference produces ``NaN``. Such rows are
-found when the engine is built (the formula is non-finite for them, or differs
-from the generic value) and are re-evaluated with the reference formula per
-query, so their values -- ``NaN`` included -- are reproduced rather than
-silently changed. That behaviour is the reference's; changing it is a separate,
-behavioural decision.
+length: a zero frequency makes the length-dependent part of every formula 0,
+and the recipes define the empty-document case (``b == 1``, where the length
+normaliser is 0) explicitly as that same value. One absent contribution per
+query term therefore serves every row. The engine checks this when it is built
+and refuses to build if any row differs, so a formula change that broke the
+argument fails at once instead of scoring some rows differently from the
+reference.
 
 *Scope.* Only recipes whose ``_term_contribution`` is one of the audited
 built-in implementations use the engine; a subclass that overrides the formula
@@ -293,9 +293,12 @@ class SparseScoreEngine:
         be persisted without its per-document dicts.
     data : numpy.ndarray of float64
         Full recipe contribution of each stored (row, term) pair.
-    irregular_rows : numpy.ndarray of int64
-        Rows whose absent-term contribution is not the generic value (the
-        reference produces ``NaN`` for them); re-evaluated per query.
+
+    Raises
+    ------
+    RuntimeError
+        If the recipe's absent-term contribution depends on document length,
+        which the engine's exactness argument excludes.
 
     Notes
     -----
@@ -342,25 +345,15 @@ class SparseScoreEngine:
         columns = np.repeat(np.arange(len(terms), dtype=np.int64), np.diff(indptr))
         # The recipe's own vectorised method computes every stored value, so a
         # stored contribution is the very value the reference adds.
-        with np.errstate(divide="ignore", invalid="ignore"):
-            data = np.asarray(
-                index._term_contribution(idf[columns], tfs, doc_len[rows]),
-                dtype=np.float64,
-            )
-            probe = np.asarray(
-                index._term_contribution(
-                    1.0,
-                    np.zeros(n_rows, dtype=np.int64),
-                    doc_len,
-                ),
-                dtype=np.float64,
-            )
-            generic = float(index._term_contribution(1.0, 0, index.avgdl))
+        data = np.asarray(
+            index._term_contribution(idf[columns], tfs, doc_len[rows]),
+            dtype=np.float64,
+        )
+        _require_length_independent_absent(index, doc_len)
         self.indptr = indptr
         self.rows = rows
         self.tfs = tfs
         self.data = data
-        self.irregular_rows = _irregular(index, probe, generic)
 
     @classmethod
     def from_arrays(
@@ -395,23 +388,11 @@ class SparseScoreEngine:
             np.arange(len(vocabulary), dtype=np.int64),
             np.diff(engine.indptr),
         )
-        with np.errstate(divide="ignore", invalid="ignore"):
-            engine.data = np.asarray(
-                index._term_contribution(
-                    idf[columns], engine.tfs, doc_len[engine.rows]
-                ),
-                dtype=np.float64,
-            )
-            probe = np.asarray(
-                index._term_contribution(
-                    1.0,
-                    np.zeros(engine.n_rows, dtype=np.int64),
-                    doc_len,
-                ),
-                dtype=np.float64,
-            )
-            generic = float(index._term_contribution(1.0, 0, index.avgdl))
-        engine.irregular_rows = _irregular(index, probe, generic)
+        engine.data = np.asarray(
+            index._term_contribution(idf[columns], engine.tfs, doc_len[engine.rows]),
+            dtype=np.float64,
+        )
+        _require_length_independent_absent(index, doc_len)
         return engine
 
     def doc_freqs(self) -> list[dict[str, int]]:
@@ -427,17 +408,12 @@ class SparseScoreEngine:
     def nbytes(self) -> int:
         """Return the bytes held by the engine's arrays."""
         return int(
-            self.indptr.nbytes
-            + self.rows.nbytes
-            + self.tfs.nbytes
-            + self.data.nbytes
-            + self.irregular_rows.nbytes
+            self.indptr.nbytes + self.rows.nbytes + self.tfs.nbytes + self.data.nbytes
         )
 
     def _absent(self, idf: float) -> float:
-        """Absent-term contribution for a regular row, by the recipe's formula."""
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return float(self._index._term_contribution(idf, 0, self._index.avgdl))
+        """Absent-term contribution of a term, by the recipe's formula."""
+        return float(self._index._term_contribution(idf, 0, self._index.avgdl))
 
     def scores(self, query: list[str], backend: str) -> np.ndarray:
         """
@@ -461,26 +437,9 @@ class SparseScoreEngine:
             [self.vocabulary.get(term, -1) for term in query], dtype=np.int64
         )
         absent = np.array([self._absent(idf) for idf in idfs], dtype=np.float64)
-        scores = accumulate(
+        return accumulate(
             term_ids, absent, self.indptr, self.rows, self.data, self.n_rows, backend
         )
-        if self.irregular_rows.size:
-            self._rescore_irregular(scores, query, idfs)
-        return scores
-
-    def _rescore_irregular(self, scores, query, idfs) -> None:
-        """Overwrite irregular rows with the reference evaluation, in order."""
-        index = self._index
-        positions = self.irregular_rows
-        lengths = np.asarray(index.doc_len, dtype=np.int64)[positions]
-        exact = np.zeros(positions.size)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            for term, idf in zip(query, idfs):
-                frequency = np.array(
-                    [index.doc_freqs[row].get(term) or 0 for row in positions.tolist()]
-                )
-                exact += index._term_contribution(idf, frequency, lengths)
-        scores[positions] = exact
 
     def candidate_mask(self, query: list[str]) -> np.ndarray:
         """Return a boolean mask of documents holding at least one query term."""
@@ -492,10 +451,44 @@ class SparseScoreEngine:
         return mask
 
 
-def _irregular(index: Any, probe: np.ndarray, generic: float) -> np.ndarray:
-    """Rows whose absent-term contribution is not the generic value."""
-    regular = np.isfinite(probe) & (probe == generic)
-    return np.flatnonzero(~regular).astype(np.int64)
+def _require_length_independent_absent(index: Any, doc_len: np.ndarray) -> None:
+    """
+    Refuse a recipe whose absent-term contribution varies with document length.
+
+    Parameters
+    ----------
+    index : BM25
+        The index the engine is built for.
+    doc_len : numpy.ndarray of int64
+        Every document's length, in row order.
+
+    Raises
+    ------
+    RuntimeError
+        If any row's zero-frequency contribution is non-finite or differs from
+        the one :meth:`SparseScoreEngine._absent` uses for every row.
+
+    Notes
+    -----
+    **Developer.** The engine adds one absent contribution per query term to
+    every row that lacks the term; that is exact only if the value is the same
+    for every length. Probing with ``idf = 1.0`` is sufficient: each built-in
+    formula is ``idf`` times a length term, so a length dependence shows at
+    any non-zero ``idf``. The check is one vectorised evaluation per build.
+    """
+    probe = np.asarray(
+        index._term_contribution(1.0, np.zeros(doc_len.size, dtype=np.int64), doc_len),
+        dtype=np.float64,
+    )
+    generic = float(index._term_contribution(1.0, 0, index.avgdl))
+    irregular = np.flatnonzero(~(np.isfinite(probe) & (probe == generic)))
+    if irregular.size:
+        raise RuntimeError(
+            f"recipe {index.RECIPE_ID!r}: the absent-term contribution of "
+            f"{irregular.size} row(s) (first: row {int(irregular[0])}) differs "
+            f"from {generic!r}; the precomputed engine requires it to be the "
+            "same for every document length."
+        )
 
 
 def top_positions(

@@ -33,7 +33,7 @@ def _release_tests():
         "test_govern_archive_merkle_log_authority.py",
         "test_continue_archive_merkle_authority.py",
         "test_rebridge_archive_merkle_authority.py",
-        "test_preserve_archive_merkle_rebridge_history.py",
+        "test_preserve_archive_merkle_rebridge.py",
     )
     for name in names:
         yield security_tests / name

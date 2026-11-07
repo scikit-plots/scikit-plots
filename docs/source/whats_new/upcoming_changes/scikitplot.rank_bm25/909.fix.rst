@@ -1,0 +1,9 @@
+- ``BM25Okapi``, ``BM25L`` and ``BM25Plus`` no longer score an empty document
+  ``NaN`` (with a ``RuntimeWarning``) when ``b=1``. An empty document holds no
+  query term, so it now scores the recipe's absent-term value for every ``b``
+  in ``[0, 1]``: ``0`` for ``BM25Okapi`` and the ``delta`` lower bound for
+  ``BM25L`` and ``BM25Plus``, the same as a non-empty document lacking every
+  query term. Scores of non-empty documents are unchanged bit for bit. The
+  recipes are now ``okapi-epsilon-floor/2``, ``bm25l-delta/2`` and
+  ``bm25plus-delta/2``, so ``identity`` tells indexes built before and after
+  the change apart.

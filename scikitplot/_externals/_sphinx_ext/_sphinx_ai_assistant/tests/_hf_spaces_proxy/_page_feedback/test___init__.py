@@ -23,6 +23,7 @@ EXPECTED_VENDORED = {
     "_network.py",
     "_service/__init__.py",
     "_service/_bitbucket.py",
+    "_service/_bitbucket_dc.py",
     "_service/_config.py",
     "_service/_core.py",
     "_service/_custom.py",

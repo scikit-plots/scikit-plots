@@ -66,8 +66,10 @@ spaces and joiners, the word joiner, the byte-order mark, the soft hyphen,
 bidirectional controls, tag characters) is removed and every other non-ASCII
 character is folded to its single-character compatibility form (full-width
 letters and digits, mathematical letters, Unicode spaces, dashes and
-apostrophes). ASCII is read exactly as written, so line breaks stay line
-breaks.
+apostrophes). A letter or digit of another script that looks like one ASCII
+letter or digit (Cyrillic or Greek letters that look Latin) is then folded to
+it, from a table generated from the Unicode confusables data. ASCII is read
+exactly as written, so line breaks stay line breaks.
 
 Spans found in the view are mapped back onto the original text before they
 join the others. The text itself is never changed: the vault keeps the value
@@ -80,6 +82,14 @@ engines read the original only, and so do the detectors a structured format
 builds from a document's layout (fields, regions, JSON tokens), because their
 positions were computed from the original. Field *names* are read through the
 same view, so a header written ``n<ZWSP>ame`` still names the ``name`` field.
+
+Formats whose names are found inside a line (variable names, code identifiers)
+are split a second time over a stricter view that only removes format
+characters and folds nothing, so it has exactly the original's commas, quotes
+and line breaks. Each field found there is mapped back onto the original, so
+``export DB_PASS<ZWSP>WORD=...`` names ``DB_PASSWORD``. The positions still
+come from the original. JSON string values are scanned through the full view
+and then kept inside their quotes.
 
 2. Resolve
 ----------
@@ -132,6 +142,14 @@ alone. Every repair is reported. ``decode --exact`` on the command line, or
 restoration that resolves nothing while the vault is not empty says so rather
 than reporting a quiet zero.
 
+A spelling of that kind can also be in your own text before it is cleaned:
+``[email_1]`` written in a note, say. Encoding then issues no value under the
+label it would be read as, so the spelling has nothing to resolve to and
+comes back exactly as you wrote it. In a session, a spelling typed in a later
+message that matches a label issued earlier is hidden as a value of its own,
+so it too comes back as written, and a model's rewrite of the earlier label
+is still repaired.
+
 Placeholders or surrogates
 --------------------------
 
@@ -174,6 +192,7 @@ set** is a small file with your own lists:
      PERSON: {first: [Aino, Eero, Liv], last: [Halvorsen, Lindgren, Virtanen]}
      ORG:    {first: [Fjord, Norrsken], second: [Data, Logistik]}
      GPE:    [Granvik, Solberga]
+   avoid: [data, will, may]     # optional: words no stand-in may be
 
 .. code-block:: bash
 
@@ -201,10 +220,18 @@ set** is a small file with your own lists:
   pattern would detect, since the next encode would hide the stand-in
   itself. Combined names (``Aino Halvorsen``) are checked again when they
   are issued.
-* **Choose names that are not ordinary words.** ``decode`` restores a
-  stand-in wherever it appears in the reply. An entry such as ``The`` or
+* **Keep ordinary words out with** ``avoid``. ``decode`` restores a
+  stand-in wherever it appears in the reply, so an entry such as ``The`` or
   ``Ash`` would turn every ``The`` in the model's answer into your value.
-  The built-in names are chosen to be unusual for this reason.
+  List the words of your language and domain under ``avoid``: an entry
+  equal to one is refused when the set loads, and no stand-in equal to one
+  is issued at run time, including a combined name (``Liv Holt``) and the
+  built-in names of a kind the set leaves out. Words are compared as
+  ``decode`` compares a rewritten stand-in, ignoring case, full-width and
+  other compatibility forms, and separators (``Ash-Vale`` and ``ash vale``
+  are one word). Nothing is avoided unless you list it: CleanPrompt ships
+  no word list, because which words are ordinary depends on your language.
+  ``avoid`` holds at most 4096 words and is part of the set's identity.
 * Every rule above still applies: no stand-in already in the text, none
   issued twice, none containing a value the conversation holds. When a set
   runs out of names, the remaining values get placeholders.
@@ -215,6 +242,67 @@ set** is a small file with your own lists:
   continue an existing vault with ``--vault-mode append`` (``encode``'s
   default), pass the same ``--style`` and set again: appending with another
   style or set is refused, so one vault never mixes two kinds of stand-in.
+
+.. _cleanprompt-actions:
+
+One action per kind
+^^^^^^^^^^^^^^^^^^^
+
+The style applies to every kind. An **action** overrides it for one kind:
+
+``tokenize``
+    a placeholder (``[EMAIL-1]``), whatever the style;
+``surrogate``
+    an invented stand-in, whatever the style; only for the kinds listed above;
+``report``
+    leave the value where it is and list it: for detections you want to see
+    before deciding, such as a noisy pattern. The text is **not** safe to
+    send: a run prints an ``ALERT``, ``doctor`` lists the kind as a blind spot,
+    and :class:`Guard` and the MCP server refuse to send it unless you
+    ``allow`` the value;
+``block``
+    refuse the whole text. Nothing is returned, the error names kinds and
+    counts but no value, and ``batch`` reports that file as refused and goes
+    on with the others.
+
+.. prompt:: bash $
+
+   python -m scikitplot.cleanprompt redact --action EMAIL=surrogate --action CREDIT_CARD=block
+   python -m scikitplot.cleanprompt batch notes/ --out safe/ --action PHONE=report
+
+In Python, ``FluentCleanPrompt().action("EMAIL", "surrogate")``, or
+``RedactionPolicy(actions={"EMAIL": "surrogate"})``; in a plan file,
+``"actions": {"EMAIL": "surrogate"}``; in a config file, an ``actions`` table.
+A kind without an action follows the style, so a policy without actions
+behaves exactly as before. A misspelt kind is refused, never ignored.
+
+When detections of different kinds overlap and merge into one value, the
+strictest wins: ``block``, then hiding (``tokenize`` or ``surrogate``), then
+``report``. Between the two hiding actions the merged value's own kind
+decides, as the style does.
+
+.. _cleanprompt-coverage:
+
+Coverage
+--------
+
+Which surface finds each kind of value, generated from the library's own
+registries, so it cannot drift from what the code does. *Default* means the
+kind is found without choosing a pack or narrowing the kinds: a core pattern
+that runs by default, or an entity label the engines report by default (the
+engines themselves need the ``ner`` or ``nltk`` tier). A pack's patterns and
+fields run when the pack is selected (``--pack``, or ``auto`` for the
+formats that ask for it). *Stand-in* means ``--style surrogate`` and the
+``surrogate`` action can replace it with an invented value; every other kind
+gets a placeholder.
+
+For your own plan, with its actions applied, run:
+
+.. prompt:: bash $
+
+   python -m scikitplot.cleanprompt kinds --matrix --action PHONE=report --format json
+
+.. include:: coverage_matrix.inc
 
 The guarantees, in plain words
 ------------------------------

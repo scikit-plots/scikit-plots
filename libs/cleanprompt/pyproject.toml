@@ -71,6 +71,7 @@ cleanprompt = [
   "cryptography",
   "nltk",
   "spacy",
+  "regex",
 ]
 cleanprompt-ner = [
   "spacy",
@@ -83,6 +84,9 @@ cleanprompt-web = [
 ]
 cleanprompt-crypto = [
   "cryptography",
+]
+cleanprompt-timeout = [
+  "regex",
 ]
 corpus = [
   "scikit-plots-corpus>=0.5.dev0",

@@ -148,6 +148,18 @@ TIERS: dict[str, _TierSpec] = {
         # smaller claim than the one this row used to make.
         purpose="the Fernet vault cipher (--cipher fernet); encryption itself needs no tier",
     ),
+    "timeout": _TierSpec(
+        distribution="regex",
+        # 2020.1.8 is the oldest release this was checked with: its
+        # ``timeout=`` on ``search``, ``match`` and ``finditer`` raises
+        # ``TimeoutError`` (Python 3.8). No upper bound: regex is versioned
+        # by release date, so a bound at a "major" would say nothing about
+        # compatibility.
+        minimum=(2020, 1),
+        below=None,
+        extra="cleanprompt",
+        purpose="a time limit on custom pack patterns (--pattern-timeout)",
+    ),
 }
 
 
@@ -372,7 +384,7 @@ def capabilities() -> dict[str, CapabilityReport]:
     Examples
     --------
     >>> sorted(capabilities())
-    ['crypto', 'ner', 'nltk', 'web']
+    ['crypto', 'ner', 'nltk', 'timeout', 'web']
     """
     return {name: probe(name) for name in TIERS}
 

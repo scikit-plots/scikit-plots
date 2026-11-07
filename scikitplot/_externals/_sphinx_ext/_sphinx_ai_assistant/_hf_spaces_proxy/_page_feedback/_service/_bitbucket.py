@@ -1,10 +1,11 @@
 """
 Bitbucket Cloud provider: one reviewed pull request per feedback event.
 
-``https://api.bitbucket.org/2.0`` only; Bitbucket Data Center has a different
-REST API and is reached through the webhook provider. The state machine and
-every reconciliation step are the shared ones in :mod:`._forge`; this module
-maps them onto the Bitbucket Cloud REST API 2.0.
+``https://api.bitbucket.org/2.0``. A ``bitbucket`` target whose ``api_url`` is
+a Bitbucket Data Center REST root runs :mod:`._bitbucket_dc` instead
+(:func:`bitbucket_ops` chooses; the two products have different REST APIs).
+The state machine and every reconciliation step are the shared ones in
+:mod:`._forge`; this module maps them onto the Bitbucket Cloud REST API 2.0.
 
 Notes
 -----
@@ -46,7 +47,8 @@ from typing import Any
 from urllib.parse import quote
 
 from .. import __version__
-from ._config import BITBUCKET_CLOUD_API_URL, StorageTarget
+from ._bitbucket_dc import BitbucketDataCenterOps
+from ._config import BITBUCKET_CLOUD_API_URL, StorageTarget, bitbucket_flavor
 from ._forge import (
     Comparison,
     ForgeOps,
@@ -261,6 +263,30 @@ class BitbucketOps(ForgeOps):
         return self._review_url(self._html_link(payload))
 
 
+def bitbucket_ops(*, client, target: StorageTarget, token: str) -> ForgeOps:
+    """
+    Return the operations for *target*'s Bitbucket product.
+
+    Parameters
+    ----------
+    client : httpx.AsyncClient
+        Shared transport.
+    target : StorageTarget
+        A ``bitbucket`` target; its ``api_url`` names the product.
+    token : str
+        Access token.
+
+    Returns
+    -------
+    ForgeOps
+        :class:`BitbucketOps` (Cloud) or
+        :class:`._bitbucket_dc.BitbucketDataCenterOps` (Data Center).
+    """
+    if bitbucket_flavor(target.api_url or BITBUCKET_CLOUD_API_URL) == "cloud":
+        return BitbucketOps(client=client, target=target, token=token)
+    return BitbucketDataCenterOps(client=client, target=target, token=token)
+
+
 async def submit_bitbucket_review(
     *,
     client,
@@ -270,12 +296,13 @@ async def submit_bitbucket_review(
     request_hash: str,
 ) -> dict[str, Any]:
     """Idempotently ensure branch, immutable event and pull request exist."""
+    ops = bitbucket_ops(client=client, target=target, token=token)
     if not token:
         raise ProviderWriteError(
-            "credential_missing", "Bitbucket feedback credential is not configured"
+            "credential_missing", f"{ops.label} feedback credential is not configured"
         )
     return await submit_forge_review(
-        BitbucketOps(client=client, target=target, token=token),
+        ops,
         base_branch=target.branch,
         feedback_path=target.feedback_path,
         expose_links=target.expose_links,
@@ -284,4 +311,4 @@ async def submit_bitbucket_review(
     )
 
 
-__all__ = ["BitbucketOps", "submit_bitbucket_review"]
+__all__ = ["BitbucketOps", "bitbucket_ops", "submit_bitbucket_review"]

@@ -58,8 +58,10 @@ if TYPE_CHECKING:  # pragma: no cover - static analysis only
 
 __all__ = [
     "BlindSpot",
+    "CoverageRow",
     "Diagnosis",
     "Suggestion",
+    "coverage_matrix",
     "describe_outcome",
     "diagnose",
     "suggest_terms",
@@ -304,6 +306,27 @@ def diagnose(
                     severity="medium",
                 )
             )
+
+    reported = sorted(
+        kind for kind, action in active_policy.actions if action.value == "report"
+    )
+    if reported:
+        # CP-115: a configured action that sends values in the clear must
+        # never pass as a quiet setting.
+        spots.append(
+            BlindSpot(
+                category=_REPORTED_CATEGORY,
+                reason=(
+                    "the action for {} is 'report': values of these kinds are "
+                    "detected and listed but left in the text".format(
+                        ", ".join(reported)
+                    )
+                ),
+                remedy="set another action for them (--action KIND=tokenize)",
+                examples=tuple(reported)[:4],
+                severity="high",
+            )
+        )
 
     missing = set(PATTERNS) - set(active)
     if missing:
@@ -606,6 +629,10 @@ def _join(items: list[str]) -> str:
     return "{} and {}".format(", ".join(items[:-1]), items[-1])
 
 
+#: Category of the blind spot that lists kinds whose action is ``report``.
+_REPORTED_CATEGORY = "Kinds reported, not hidden"
+
+
 def describe_outcome(
     result: RedactionResult,
     diagnosis: Diagnosis,
@@ -637,7 +664,13 @@ def describe_outcome(
     because the user reads that as "this text is safe to send".
     """
     actions: list[str] = []
-    high = [spot for spot in diagnosis.blind_spots if spot.severity == "high"]
+    # What is not *looking*; the reported kinds are found, and their own
+    # headline below says where they went.
+    high = [
+        spot
+        for spot in diagnosis.blind_spots
+        if spot.severity == "high" and spot.category != _REPORTED_CATEGORY
+    ]
 
     if result.stats.entries == 0:
         if high:
@@ -677,11 +710,193 @@ def describe_outcome(
             f"Review {len(suggestions)} suggested term(s) and hide any that matter."
         )
 
+    reported: dict[str, int] = {}
+    for span in result.reported:
+        reported[span.kind] = reported.get(span.kind, 0) + 1
+    if reported:
+        # CP-115: values left in the clear by configuration. The alert level is
+        # the one that never renders as "safe to send".
+        level = "alert"
+        counts = ", ".join(
+            f"{count} {kind}" for kind, count in sorted(reported.items())
+        )
+        headline = (
+            f"{sum(reported.values())} value(s) left in the text by the 'report' "
+            f"action ({counts}); this text is NOT safe to send. {headline}"
+        )
+        actions.insert(
+            0,
+            "set another --action for those kinds, or --allow the values you mean to send",
+        )
+
     return {
         "level": level,
         "headline": headline,
         "detail": detail,
         "actions": actions,
         "entries": result.stats.entries,
+        "reported": dict(sorted(reported.items())),
         "suggestions": [item.as_dict() for item in suggestions],
     }
+
+
+@dataclass(frozen=True)
+class CoverageRow:
+    """
+    What covers one detection kind, and what happens to its values.
+
+    Parameters
+    ----------
+    kind : str
+        The detection kind.
+    pattern : bool
+        A core structural pattern finds it.
+    validated : bool
+        A pattern that finds it, core or pack, has a validator (a checksum or
+        a structural rule).
+    default_on : bool
+        That pattern runs unless ``kinds`` narrows the selection.
+    pack_patterns : tuple of str
+        Packs whose patterns find it.
+    pack_fields : tuple of str
+        Packs whose field rules name it (a column, key or header).
+    entity : bool
+        An entity engine can report it.
+    entity_default : bool
+        Entity engines report it unless their labels are narrowed.
+    entity_tiers : tuple of str
+        Optional tiers that provide the entity engines; empty when ``entity``
+        is ``False``.
+    runtime : bool
+        The runtime issues it itself (``--hide`` terms, artefact paths and
+        columns).
+    surrogate : bool
+        A surrogate stand-in exists for it (the safety floor).
+    action : str
+        What the policy does with it: ``tokenize``, ``surrogate``, ``report``
+        or ``block``.
+    reversible : bool
+        Decoding restores its values: the action replaces them with a stand-in
+        the vault holds.
+    """
+
+    kind: str
+    pattern: bool
+    validated: bool
+    default_on: bool
+    pack_patterns: tuple[str, ...]
+    pack_fields: tuple[str, ...]
+    entity: bool
+    entity_default: bool
+    entity_tiers: tuple[str, ...]
+    runtime: bool
+    surrogate: bool
+    action: str
+    reversible: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the row as JSON-safe data."""
+        return {
+            "kind": self.kind,
+            "pattern": self.pattern,
+            "validated": self.validated,
+            "default_on": self.default_on,
+            "pack_patterns": list(self.pack_patterns),
+            "pack_fields": list(self.pack_fields),
+            "entity": self.entity,
+            "entity_default": self.entity_default,
+            "entity_tiers": list(self.entity_tiers),
+            "runtime": self.runtime,
+            "surrogate": self.surrogate,
+            "action": self.action,
+            "reversible": self.reversible,
+        }
+
+
+#: The optional tiers that provide entity engines.
+_ENTITY_TIERS = ("ner", "nltk")
+
+
+def coverage_matrix(
+    policy: RedactionPolicy | None = None, catalog: Any | None = None
+) -> tuple[CoverageRow, ...]:
+    """
+    Return one row per detection kind, derived from the live registries.
+
+    Parameters
+    ----------
+    policy : RedactionPolicy, optional
+        Decides each kind's action. Defaults to
+        :data:`~scikitplot.cleanprompt._policy.DEFAULT_POLICY`.
+    catalog : Catalog, optional
+        Supplies the packs. Defaults to the built-in catalog.
+
+    Returns
+    -------
+    tuple of CoverageRow
+        Sorted by kind.
+
+    Notes
+    -----
+    **User notes.** ``kinds --matrix`` prints this, and the user guide's
+    coverage table is generated from it, so neither can drift from what the
+    library really does. It says which surfaces *can* find a kind; whether
+    they run depends on the packs, kinds and engines a plan selects.
+
+    **Developer notes (``CP-116``).** Every column is read from a registry:
+    :data:`~._patterns.PATTERNS`, the catalog's packs,
+    :data:`~._engines.CANONICAL_LABELS` and
+    :data:`~._engines.DEFAULT_ENTITY_LABELS`, the plan's runtime kinds,
+    :data:`~._surrogates.SURROGATE_KINDS` and the policy's actions. No
+    optional engine is imported. Columns the registries do not record (a
+    locale per kind, a semantic risk) are not invented here.
+    """
+    from ._catalog import builtin_catalog  # ruff: ignore[import-outside-top-level]
+    from ._engine import (  # ruff: ignore[import-outside-top-level]
+        _default_action,
+    )
+    from ._engines import (  # ruff: ignore[import-outside-top-level]
+        CANONICAL_LABELS,
+        DEFAULT_ENTITY_LABELS,
+    )
+    from ._plan import _RUNTIME_KINDS  # ruff: ignore[import-outside-top-level]
+    from ._surrogates import SURROGATE_KINDS  # ruff: ignore[import-outside-top-level]
+
+    active = policy if policy is not None else DEFAULT_POLICY
+    packs = (catalog if catalog is not None else builtin_catalog()).packs
+    by_pattern: dict[str, set[str]] = {}
+    by_field: dict[str, set[str]] = {}
+    validated = {kind for kind, spec in PATTERNS.items() if spec.validate is not None}
+    for name, pack in packs.items():
+        for spec in pack.patterns:
+            by_pattern.setdefault(spec.kind, set()).add(name)
+            if spec.validate is not None:
+                validated.add(spec.kind)
+        for spec in pack.fields:
+            by_field.setdefault(spec.kind, set()).add(name)
+    kinds = (
+        set(PATTERNS) | set(by_pattern) | set(by_field) | set(CANONICAL_LABELS)
+    ) | set(_RUNTIME_KINDS)
+    rows = []
+    for kind in sorted(kinds):
+        core = PATTERNS.get(kind)
+        entity = kind in CANONICAL_LABELS
+        action = active.action_for(kind) or _default_action(kind, active)
+        rows.append(
+            CoverageRow(
+                kind=kind,
+                pattern=core is not None,
+                validated=kind in validated,
+                default_on=core is not None and core.enabled_by_default,
+                pack_patterns=tuple(sorted(by_pattern.get(kind, ()))),
+                pack_fields=tuple(sorted(by_field.get(kind, ()))),
+                entity=entity,
+                entity_default=kind in DEFAULT_ENTITY_LABELS,
+                entity_tiers=_ENTITY_TIERS if entity else (),
+                runtime=kind in _RUNTIME_KINDS,
+                surrogate=kind in SURROGATE_KINDS,
+                action=action.value,
+                reversible=action.value in ("tokenize", "surrogate"),
+            )
+        )
+    return tuple(rows)

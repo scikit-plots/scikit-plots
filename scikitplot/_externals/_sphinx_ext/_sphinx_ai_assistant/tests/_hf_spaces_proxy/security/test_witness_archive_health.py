@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 # This fixture intentionally contains compact cryptographic test vectors and
 # long, explicit verifier calls; keep flake8 focused on production code.
@@ -21,12 +21,10 @@ HERE=Path(__file__).resolve().parent
 ROOT=RUNTIME_ROOT
 SECURITY=ROOT/"_hf_spaces_proxy"/"security"
 
-def _load(name,path):
-    spec=importlib.util.spec_from_file_location(name,path); assert spec and spec.loader
-    mod=importlib.util.module_from_spec(spec); sys.modules[name]=mod; spec.loader.exec_module(mod); return mod
 
-witness=_load("run162_archive_witness",SECURITY/"witness_archive_health.py")
-r161t=_load("run161_helpers_for_run162",HERE/"test_audit_archive_retention.py")
+from ...._hf_spaces_proxy.security import witness_archive_health as witness
+from . import test_audit_archive_retention as r161t
+from . import _stages
 NOW=r161t.NOW
 
 def _canonical(v): return (json.dumps(v,sort_keys=True,separators=(",",":"))+"\n").encode()
@@ -52,7 +50,7 @@ def _threshold_root(tmp_path, *, recovery=False, duplicate_operator=False):
     return doc,path,witness._sha_bytes(_canonical(doc)),privs
 
 def _run161(tmp_path):
-    setup,run160_out,root_doc,root_path,root_pin,root_privs,members,privmap,out,result=r161t._audit(tmp_path)
+    setup,run160_out,root_doc,root_path,root_pin,root_privs,members,privmap,out,result=_stages.shared("run161", r161t._audit, tmp_path)
     return {"setup":setup,"run160":run160_out,"root_doc":root_doc,"root_path":root_path,"root_pin":root_pin,"root_privs":root_privs,"members":members,"privmap":privmap,"out":out,"result":result}
 
 class WitnessAdapter:

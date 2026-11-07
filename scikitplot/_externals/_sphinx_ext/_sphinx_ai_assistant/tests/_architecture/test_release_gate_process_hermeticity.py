@@ -18,12 +18,11 @@ SEC = ROOT / "_hf_spaces_proxy" / "security"
 
 
 def _load_run149():
-    path = TESTS_ROOT / "_hf_spaces_proxy" / "security" / "test_promote_release.py"
-    spec = importlib.util.spec_from_file_location("run149_fixture_for_run170", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    # The Run 149 test module, imported as a package module: it imports its
+    # runtime relatively, so it cannot be loaded by file path (no package).
+    from .._hf_spaces_proxy.security import test_promote_release
+
+    return test_promote_release
 
 
 def _hostile_git_environment(monkeypatch, tmp_path: Path) -> None:

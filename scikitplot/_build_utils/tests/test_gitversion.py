@@ -6,9 +6,13 @@ correctly and prevents the IndexError that broke Windows/macOS builds.
 """
 
 import os
+import shutil
+import stat
 import sys
 import subprocess
 import tempfile
+
+import pytest
 
 
 # Add parent directory to path for imports
@@ -16,7 +20,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the fixed gitversion module
 # Note: In actual testing, import from the installed location
-from ..gitversion import git_version, GitVersionInfo, generate_version_template
+from .. import gitversion
+from ..gitversion import (
+    GitVersionInfo,
+    add_safe_directory,
+    generate_version_template,
+    git_version,
+)
 
 
 ######################################################################
@@ -247,32 +257,16 @@ def test_template_runtime_parsing_eliminated():
 ######################################################################
 
 
-def test_conda_forge_build_simulation():
-    """Simulate conda-forge build environment"""
-    # Scenario: Permission error (code 128), then retry succeeds
-
-    # First call: Permission error
-    first_process = MockGitProcess(
-        stderr=b"fatal: detected dubious ownership in repository",
-        returncode=128
-    )
-
-    # Second call: Success after add_safe_directory
-    second_process = MockGitProcess(
-        stdout=b"abc1234567890def 2026-02-17T05:48:32+00:00",
-        returncode=0
-    )
-
-    # Verify retry logic would work
-    if first_process.returncode == 128:
-        # add_safe_directory would be called here
-        # Then retry with second_process
-        stdout, stderr = second_process.communicate()
-        output = stdout.decode("utf-8", errors="replace").strip()
-        assert "abc1234" in output
-        assert "2026-02-17" in output
-
-    print("✅ Test passed: Conda-forge permission handling")
+def test_conda_forge_build_simulation(tmp_path, monkeypatch):
+    """A checkout owned by another user is read once, with nothing persisted."""
+    git, log = _fake_git(tmp_path, top="/srv/build/scikit-plots")
+    monkeypatch.setenv("PATH", f"{git.parent}{os.pathsep}{os.environ.get('PATH', '')}")
+    info = git_version("0.4.0.dev0", cwd=str(tmp_path))
+    assert info.full_version == "0.4.0.dev0+git.20260217.abc1234"
+    calls = log.read_text(encoding="utf-8").splitlines()
+    assert len(calls) == TWO_CALLS
+    assert calls[1].startswith("-c safe.directory=/srv/build/scikit-plots log ")
+    assert not any("config" in call for call in calls)
 
 
 def test_pypi_tarball_simulation():
@@ -514,3 +508,145 @@ if __name__ == "__main__":
     print("=" * 70)
     print("All Tests Passed! ✅")
     print("=" * 70)
+
+
+######################################################################
+## Production-API tests: real git, a stand-in git, and no git
+######################################################################
+
+_POSIX_ONLY = pytest.mark.skipif(os.name == "nt", reason="the stand-in git is a sh script")
+#: Return codes add_safe_directory and the stand-in git report.
+INVALID_PATH, NO_GIT, GIT_REFUSED = 1, 127, 128
+#: A refused first call, then the retry.
+TWO_CALLS = 2
+
+
+def _fake_git(tmp_path, *, top, trusts_command_line=True, failure=None):
+    """Install a stand-in ``git`` that refuses for dubious ownership.
+
+    It answers ``git log`` with a fixed hash and date only when it was given
+    ``-c safe.directory=<top>`` (and ``trusts_command_line``); otherwise it
+    fails like Git does for a repository owned by another user. ``failure``
+    replaces that refusal with another error message. Every call's
+    arguments are appended to the returned log file.
+    """
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    log = tmp_path / "git-calls.log"
+    refusal = failure or (
+        f"fatal: detected dubious ownership in repository at '{top}'"
+    )
+    trusted = "yes" if trusts_command_line else "no"
+    script = bindir / "git"
+    script.write_text(
+        "#!/bin/sh\n"
+        f'echo "$*" >> "{log}"\n'
+        f'if [ "{trusted}" = yes ] && [ "$1" = "-c" ] && [ "$2" = "safe.directory={top}" ]; then\n'
+        '  printf "abc1234567890def 2026-02-17T05:48:32+00:00"\n'
+        "  exit 0\n"
+        "fi\n"
+        f'echo "{refusal}" >&2\n'
+        "exit 128\n",
+        encoding="utf-8",
+    )
+    script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return script, log
+
+
+def _with_path(monkeypatch, directory):
+    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ.get('PATH', '')}")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_git_version_reads_a_real_repository(tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    env = dict(os.environ, GIT_AUTHOR_DATE="2026-02-17T05:48:32+00:00",
+               GIT_COMMITTER_DATE="2026-02-17T05:48:32+00:00")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, env=env)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "commit", "-q", "--allow-empty", "-m", "x"],
+        cwd=tmp_path, check=True, env=env,
+    )
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True,
+                          capture_output=True, text=True).stdout.strip()
+    (tmp_path / "sub").mkdir()
+    info = git_version("1.0.0.dev0", cwd=str(tmp_path / "sub"))
+    assert info.git_hash == head
+    assert info.git_date_iso == "2026-02-17"
+    assert info.full_version == f"1.0.0.dev0+git.20260217.{head[:7]}"
+
+
+def test_outside_a_repository_the_base_version_is_kept(tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+    info = git_version("1.0.0", cwd=str(tmp_path))
+    assert info.full_version == "1.0.0"
+    assert info.git_hash == ""
+
+
+def test_without_git_the_base_version_is_kept(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    info = git_version("1.0.0", cwd=str(tmp_path))
+    assert info.full_version == "1.0.0"
+
+
+@_POSIX_ONLY
+def test_other_failures_are_not_retried(tmp_path, monkeypatch):
+    git, log = _fake_git(tmp_path, top="/x", failure="fatal: bad revision 'HEAD'")
+    _with_path(monkeypatch, git.parent)
+    assert git_version("1.0.0", cwd=str(tmp_path)).full_version == "1.0.0"
+    assert len(log.read_text(encoding="utf-8").splitlines()) == 1
+
+
+@_POSIX_ONLY
+def test_a_git_that_ignores_the_command_line_trust_names_the_fix(
+    tmp_path, monkeypatch, capsys
+):
+    git, log = _fake_git(tmp_path, top="/srv/x", trusts_command_line=False)
+    _with_path(monkeypatch, git.parent)
+    assert git_version("1.0.0", cwd=str(tmp_path)).full_version == "1.0.0"
+    assert len(log.read_text(encoding="utf-8").splitlines()) == TWO_CALLS
+    assert "git config --global --add safe.directory /srv/x" in capsys.readouterr().err
+
+
+@_POSIX_ONLY
+def test_git_version_never_changes_git_configuration(tmp_path, monkeypatch):
+    def forbidden(*args, **kwargs):  # pragma: no cover - must not run
+        raise AssertionError("git_version must not call add_safe_directory")
+
+    monkeypatch.setattr(gitversion, "add_safe_directory", forbidden)
+    git, log = _fake_git(tmp_path, top="/srv/y")
+    _with_path(monkeypatch, git.parent)
+    assert "+git." in git_version("1.0.0.dev0", cwd=str(tmp_path)).full_version
+    assert "config" not in log.read_text(encoding="utf-8")
+
+
+def test_add_safe_directory_reports_an_invalid_path(tmp_path):
+    code, out, err = add_safe_directory(str(tmp_path / "missing"))
+    assert code == INVALID_PATH
+    assert out == ""
+    assert "not a valid directory" in err
+
+
+def test_add_safe_directory_reports_a_missing_git(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    code, _out, err = add_safe_directory(str(tmp_path))
+    assert code == NO_GIT
+    assert "cannot run 'git'" in err
+
+
+@_POSIX_ONLY
+def test_add_safe_directory_passes_through_git_failure(tmp_path, monkeypatch):
+    git, _log = _fake_git(tmp_path, top="/z", failure="error: could not lock config file")
+    _with_path(monkeypatch, git.parent)
+    code, _out, err = add_safe_directory(str(tmp_path))
+    assert code == GIT_REFUSED
+    assert "could not lock config file" in err
+
+
+def test_generate_version_template_without_git_data_is_importable():
+    source = generate_version_template(GitVersionInfo("1.0.0"))
+    namespace = {}
+    exec(compile(source, "version.py", "exec"), namespace)  # noqa: S102
+    assert namespace["full_version"] == "1.0.0"

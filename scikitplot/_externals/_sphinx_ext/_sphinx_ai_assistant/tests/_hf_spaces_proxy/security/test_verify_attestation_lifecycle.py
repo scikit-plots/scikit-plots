@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 from datetime import timedelta
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 
@@ -19,18 +18,11 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    import sys
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
-lifecycle = _load("run158_lifecycle", SECURITY / "verify_attestation_lifecycle.py")
-run157 = _load("run157_test_helpers_for_run158", HERE / "test_continue_recovered_trust.py")
+from ...._hf_spaces_proxy.security import verify_attestation_lifecycle as lifecycle
+from . import test_continue_recovered_trust as run157
+from . import _stages
 run155 = run157.run155
 continuity = run157.continuity
 NOW = run157.NOW
@@ -100,7 +92,7 @@ def _profiled_attestations(tmp_path: Path, root_envelope: dict, context_id: str,
 
 
 def _profiled_continuity(tmp_path: Path, *, claim_mutator=None):
-    seed = run157._recovered_setup(tmp_path / "seed")
+    seed = _stages.shared("run157", run157._recovered_setup, tmp_path / "seed")
     seed_bundle = json.loads((seed["activated"] / "release-root-continuity-bundle.json").read_text(encoding="utf-8"))
     sealed = tmp_path / "sealed"; recovery = tmp_path / "recovery"
     continuity._write_docs(sealed, seed_bundle["baseSeal"])

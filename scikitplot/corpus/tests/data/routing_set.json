@@ -1,0 +1,673 @@
+{
+ "description": "Labelled routing set for scikitplot.corpus.route with DEFAULT_ROUTING_POLICY: query, index capabilities, expected shapes (rule order), legs and unavailable legs.",
+ "cases": [
+  {
+   "query": "quantum entanglement",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "chunk spans and offsets",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "what is BM25",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "explain the retrieval envelope",
+   "has_dense": false,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [],
+   "legs": [
+    "lexical"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "graph traversal over entities",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": false,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "\"exact phrase not found\"",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [],
+   "unavailable": []
+  },
+  {
+   "query": "relationship between chunking and recall",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "which author whose paper cites BM25",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "BM25 versus dense retrieval",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "compare okapi and bm25l",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": [
+    "graph"
+   ]
+  },
+  {
+   "query": "what do these two models have in common",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "path from the query node to the answer",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "how many documents mention spans",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "total number of chunks",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "average chunk length",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "list all chunkers",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "count of indexed files",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": [
+    "metadata"
+   ]
+  },
+  {
+   "query": "most common error code",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "chunkers that do not keep spans",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "retrieval without a dense index",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "every backend except numba",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "why isn't the cache invalidated",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "why isn\u2019t the cache invalidated",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "errors other than timeouts",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "Cannot load the index",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "negation"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "changes since version 0.4",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "papers published in 2021",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "latest release notes",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "when was the schema changed",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "events before the migration",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": false,
+   "shapes": [
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": [
+    "metadata"
+   ]
+  },
+  {
+   "query": "port 8080 configuration",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "subsections of the retrieval chapter",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "which section contains the cut policy",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "parent of this chunk",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": [
+    "graph"
+   ]
+  },
+  {
+   "query": "is fusion part of the retrieval plan",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "top level modules",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "how many sections are not about fusion",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "aggregation",
+    "negation",
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "relationship between releases since 2020",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [
+    "multi_hop",
+    "temporal"
+   ],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph",
+    "metadata"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "count chapters without examples",
+   "has_dense": true,
+   "has_graph": false,
+   "has_metadata": false,
+   "shapes": [
+    "aggregation",
+    "negation",
+    "hierarchy"
+   ],
+   "legs": [
+    "lexical",
+    "dense"
+   ],
+   "unavailable": [
+    "metadata",
+    "graph"
+   ]
+  },
+  {
+   "query": "notebook execution",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "knot theory",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "countryside data",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "aftermath of the outage",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  },
+  {
+   "query": "sectional sofa",
+   "has_dense": true,
+   "has_graph": true,
+   "has_metadata": true,
+   "shapes": [],
+   "legs": [
+    "lexical",
+    "dense",
+    "graph"
+   ],
+   "unavailable": []
+  }
+ ]
+}

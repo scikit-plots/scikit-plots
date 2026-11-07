@@ -703,3 +703,51 @@ the source that the stale tests had stopped reaching.
   default list is one constant, `_PAGE_FEEDBACK_DEFAULT_SITE_IDS`.
 - Mirror follows `_sphinx_feedback` 0.9.0 (`_forge.py`, `_gitlab.py`,
   `_bitbucket.py`).
+
+## 2026-11-04 — page feedback mirror follows `_sphinx_feedback` 0.10.0 (PR 909)
+
+- `_utils/sync_page_feedback_runtime.py` copies the new
+  `_service/_bitbucket_dc.py` (Bitbucket Data Center pull requests);
+  `EXPECTED_VENDORED` lists it. `_forge.py` (multipart file writes),
+  `_config.py` (which Bitbucket product an `api_url` names) and
+  `_bitbucket.py` (dispatch by product) follow the source. A `huggingface`
+  page-feedback target is still refused at start, now with the reason
+  (`_config.UNSUPPORTED_PROVIDER_REASONS`: the Hub cannot find a pull request
+  again by feedback ID); `_core.py`'s dispatch guard says the provider has no
+  adapter. The Dockerfile copies `_page_feedback/` whole, so the image needs
+  no change; the proxy's defaults are unchanged.
+- Result: 2830 passed, 2 skipped, 0 failed, identical before and after the
+  change (CPython 3.13 with the locked proxy package versions; the lock's
+  hashes are for the 3.11 image's wheels, so the versions were installed
+  without them).
+
+## 2026-11-04 — every test path fits a Windows checkout (PR 909)
+
+- `tools/maint_tools/check_path_lengths.py check`: 0 failing, 0 known, 0 stale
+  against the 131-character budget, so `path_length_baseline.txt` is gone. Its
+  58 entries were 57 test paths here and one corpus gallery image.
+- Node harnesses no longer repeat the owner their directory names:
+  `tests/_static/ai_assistant/test_ai_assistant__<contract>.*` ->
+  `test_<contract>.*` (162 Node harnesses, 2 Python adapters) and
+  `tests/_static/isolation/test_ai_assistant_isolation__<contract>.mjs` ->
+  `test_<contract>.mjs` (3). `_mutants.py`, the ownership map (`nodeRule`,
+  `pythonMoves`), the dev skill and the lessons follow; dated run records and
+  checkpoints keep the names they ran with.
+- The Run 168 tool is `security/preserve_archive_merkle_rebridge.py` (was
+  `preserve_archive_merkle_rebridge_history.py`); its test follows, and the
+  proxy README, `SECURITY_RELEASE_GATES.md` and the recovery guide name the new
+  command.
+- Case packages are named after their owner module without the leading
+  underscore, or its trailing words where the full name would pass the budget:
+  `_provider_artifact_lifecycle` -> `lifecycle`, `_contribution_ledger` ->
+  `ledger`, `root_init` -> `init`, and `_example_conf`, `_dataset_schema`,
+  `_share_contract`, `_storage`, `_zip_workspace` lose the underscore. Every
+  package keeps its `__init__.py`, which now names its owner. The layout rule
+  reads each owner's `export_case_tests` call: exactly one owner per package,
+  every public fragment listed (a fragment can no longer drop out of
+  collection unnoticed), the name derived from the owner's; seven mutations of
+  the rule are each caught. The ownership map's `caseFragments` is generated
+  from those calls (it had missed two `app` fragments).
+- Result: 2830 passed, 2 skipped, 0 failed, the same totals as before; all
+  2832 collected test ids match one to one once the renames are applied
+  (CPython 3.13, the proxy's locked package versions).

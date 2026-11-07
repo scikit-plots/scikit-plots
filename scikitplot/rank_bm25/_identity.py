@@ -236,7 +236,7 @@ RECIPES: dict[str, Recipe] = {
     for recipe in (
         Recipe(
             name="okapi-epsilon-floor",
-            version="1",
+            version="2",
             notes=(
                 "Okapi BM25 with the idf floored at epsilon * average_idf, so a "
                 "term appearing in most documents cannot contribute a negative "
@@ -245,7 +245,7 @@ RECIPES: dict[str, Recipe] = {
         ),
         Recipe(
             name="bm25l-delta",
-            version="1",
+            version="2",
             notes=(
                 "BM25L: a delta is added to the normalised term frequency, which "
                 "lifts long documents relative to Okapi."
@@ -253,7 +253,7 @@ RECIPES: dict[str, Recipe] = {
         ),
         Recipe(
             name="bm25plus-delta",
-            version="1",
+            version="2",
             notes=(
                 "BM25+: a delta is added to the whole term contribution, so a "
                 "document containing the term always outscores one that does not."

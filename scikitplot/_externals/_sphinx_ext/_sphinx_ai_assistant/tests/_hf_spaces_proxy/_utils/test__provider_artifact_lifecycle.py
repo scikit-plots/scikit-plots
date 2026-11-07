@@ -508,5 +508,5 @@ def test_one_provider_lifecycle_cannot_ambiguously_correlate_to_two_paths(monkey
 # Large-contract case fragments are collected only through this canonical owner.
 from ..._case_loader import export_case_tests as _export_case_tests
 
-_export_case_tests(globals(), package=__package__, case_package='_cases._provider_artifact_lifecycle', cases=('redis_chaos', 'shared'))
+_export_case_tests(globals(), package=__package__, case_package='_cases.lifecycle', cases=('redis_chaos', 'shared'))
 del _export_case_tests

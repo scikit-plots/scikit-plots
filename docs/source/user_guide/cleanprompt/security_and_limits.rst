@@ -48,20 +48,34 @@ statistical: an engine can miss a name.
 **Disguises other than compatibility forms.** The detection view finds values
 written with invisible format characters, full-width or other single-character
 compatibility forms, Unicode spaces and dashes, and field names written that
-way in CSV/TSV headers, JSON keys and email headers. It does not yet cover an
-invisible character inside a shell or ``.env`` variable name or a code
-identifier, or inside a JSON string value; it does not fold look-alike letters
-from another script (a Cyrillic letter that looks Latin is a different
-string), a value broken up with ordinary spaces, or a value reworded.
+way in CSV/TSV headers, JSON keys and email headers. An invisible character
+inside a variable name or a code identifier (shell, ``.env``, YAML, INI,
+JavaScript, R, SQL, Python) or inside a JSON string value is read through the
+view too. Full-width letters inside a code identifier are not folded, because
+folding could also turn a full-width comma or quote into structure. A letter
+or digit of another script that looks like one ASCII letter or digit (a
+Cyrillic ``U+0430`` for ``a``) is read as that character, from a table generated
+from the Unicode confusables data. A digit is read so only where its shape
+and its value agree, so a number written in Bengali or Devanagari digits is
+not misread. Look-alikes that need more than one character (``rn`` for
+``m``), look-alike punctuation, a value broken up with ordinary spaces, and a
+value reworded are not covered.
 
 **Address shapes outside the patterns' intent.** Each structural pattern
 states what it accepts. The ``EMAIL`` pattern follows the RFC 5322 dot-atom
-local part with an ASCII domain, and it is bounded by word boundaries. An
-address with a non-ASCII letter in it — ``josé@example.com``, an
-internationalised domain such as ``exämple.com``, or a look-alike letter from
-another script at its start — is therefore not recognised **at all**, not
-partly. Hide such addresses with ``hide`` or a custom pattern until the
-library covers them; this gap is tracked for a future release.
+local part and a label-based domain, with letters, digits and combining marks
+of any script, as internationalised addresses (RFC 6531) and domains allow:
+``josé@example.com``, ``ada@exämple.com`` and addresses written entirely
+in another script are found. A look-alike letter of another script at the
+start is taken as part of the address, so it cannot hide the rest. In text
+written without spaces (Chinese, Japanese, Thai), nothing marks where an
+address ends, so its placeholder can also cover the words written against it.
+An address in quoted-string form (``"a b"@example.com``) or with an IP literal
+for a domain is not recognised. ``PHONE`` takes a number from its ``+`` or
+first digit to its last group and any extension, in common national
+groupings. Year ranges (``2019-2024``) and dates written as day, month and
+year are left as they are; two groups of four digits (``1234-5678``) are
+hidden, because many local numbers are written that way.
 
 **Meaning carried by what remains.** Redaction removes values; it does not
 anonymise. The surrounding text, the placeholders' categories and the
@@ -78,6 +92,11 @@ extract, not whether it is obeyed.
 Things you are trusted with
 ---------------------------
 
+**The** ``report`` **action.** It leaves values in the text on purpose. A run
+says so with an ``ALERT`` and ``doctor`` lists the kinds, and the guard and the
+MCP server refuse to send such text, but an output written by ``batch`` or
+``redact`` holds the values (:ref:`cleanprompt-actions`).
+
 **The vault.** It holds the removed values. On the command line its default
 location is outside the working directory, created ``0700``/``0600`` on POSIX
 systems. Encrypt it (``--encrypt``) when the values must not rest in clear
@@ -92,8 +111,11 @@ it as you would a password.
 prove it finishes quickly, and a pattern with nested repetition can
 backtrack catastrophically. Such shapes are reported when a pack loads (a
 warning by default; ``--pattern-risk refuse`` makes it a gate), but the check
-cannot prove a pattern fast. Load pack files only from people you would
-accept code from (:ref:`cleanprompt-pack-trust`).
+cannot prove a pattern fast. ``--pattern-timeout`` bounds the run time of
+custom patterns when the optional ``regex`` package is installed; a document
+that runs past it fails uncleaned (:ref:`cleanprompt-pattern-timeout`). Without
+it, nothing interrupts a slow pattern. Load pack files only from people you
+would accept code from (:ref:`cleanprompt-pack-trust`).
 
 **Surrogate sets.** A custom set changes only which invented *names* are
 used. It cannot give a surrogate to a credential or identifier, and it cannot

@@ -103,9 +103,17 @@ leg -- as ``RetrievalConfig(match_mode="hybrid", probability_fusion=...)``:
 * Leg weights come from the policy; a leg runs only if its weight is above 0
   and then needs a calibrator. ``hybrid_alpha`` must stay at its default,
   because its meaning (a rank-fusion weight) does not carry over.
-* Under a :class:`SecurityFilter` scope probability fusion is refused: BM25
-  statistics are computed inside the scope, so a calibrator fitted on unscoped
-  scores would give wrong probabilities. Scoped indexes use rank fusion.
+* Under a :class:`SecurityFilter` scope, BM25 statistics (document count,
+  document frequencies, average length) are computed over the documents the
+  scope admits, so the same document scores differently than unscoped. Fit
+  the lexical calibrator on the scoped index's scores and pass its scope:
+  ``ProbabilityFusion(policy=..., calibrators=..., scope=security_filter)``.
+  Hybrid search then fuses only on an index bound to a scope with the same
+  ``SecurityFilter.digest`` (SHA-256 of the expression's canonical JSON; the
+  label does not count). Any other scope, or none, is refused, and the error
+  names both digests. A calibrator fitted unscoped (``scope=None``) is refused
+  on a scoped index, and the reverse. Cosine similarity does not depend on the
+  scope, so a dense-only fusion (lexical weight 0) runs under any scope.
 
 Cutting a ranked list
 ---------------------
@@ -378,6 +386,46 @@ recover. ``CharBudgetCompressor(1500)`` kept on average 1492 characters; the
 context held the sentence for 0.94 of the queries, against 0.95 whose ten hits
 held it: a budget drops the evidence that ranks too low to fit. No stage is a
 default.
+
+Routing by query shape
+----------------------
+
+:func:`route` chooses the evidence paths of a query by rule, never by a model.
+A plain query gets lexical and dense (and graph, when the index has one). A
+query whose words show a *shape* also gets the paths that shape needs, when
+the index has them; :data:`DEFAULT_ROUTING_POLICY` knows five, in English:
+
+=================  ===============================  ==============
+Shape              Typical words                    Adds
+=================  ===============================  ==============
+``multi_hop``      relationship between, whose      graph
+``aggregation``    how many, total, average         metadata
+``negation``       not, without, except             metadata
+``temporal``       before, since, latest, a year    metadata
+``hierarchy``      parent, section, part of         graph
+=================  ===============================  ==============
+
+.. code-block:: python
+
+   from scikitplot.corpus import route
+
+   plan = route("how many sections are not about fusion", has_metadata=True)
+   plan.shapes        # ('aggregation', 'negation', 'hierarchy')
+   plan.legs          # lexical, dense, metadata
+   plan.unavailable   # graph: the index has no graph view
+
+A :class:`RoutingPolicy` is an ordered set of :class:`RoutingRule` objects:
+a shape name, the legs it needs, whole-word ``phrases`` and an optional
+``matcher(tokens) -> bool`` for what phrases cannot say (the default temporal
+rule reads four-digit years this way). Build one for another language or a
+domain vocabulary, extend the default with
+:meth:`RoutingPolicy.with_rules`, and pass it as ``route(query,
+policy=...)``; ``RoutingPolicy()`` detects nothing. Rules match lowercase
+whole words (:func:`query_tokens`), never caller-supplied regular
+expressions, so routing is linear in the query's length and a pure function
+of it. A quoted phrase still routes lexical only. The labelled routing set
+``scikitplot/corpus/tests/data/routing_set.json`` pins the default policy's
+behaviour, near misses (``notebook``, ``knot``, ``sectional``) included.
 
 Corrective retrieval
 --------------------

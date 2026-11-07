@@ -1,32 +1,27 @@
 {
   "schema_version": 2,
   "subsystem": "scikitplot._build_utils",
-  "updated_at": "2026-10-09",
+  "updated_at": "2026-11-04",
   "maintenance_status": "PASS",
-  "runtime_status": "FAIL",
-  "integration_status": "UNAVAILABLE",
+  "runtime_status": "PASS",
+  "integration_status": "PARTIAL",
   "release_status": "BLOCKED",
   "runtime_integrity": {
     "baseline_sha256": "fc6019dd5e0b847ab39ce803871b9661aadddc13c476c3ce432bb31ceee184c7",
-    "expected_tracked_files": 25,
+    "expected_tracked_files": 31,
     "runtime_modified_by_campaign": true
   },
   "test_evidence": {
-    "focused_suite": "25 passed",
+    "focused_suite": "80 passed",
     "active_tempita_annoy_probe": "PASS (annoylib.pxd.in rendered to 1513 lines)",
     "src_template_probe": "PASS",
-    "cython_generate_validate": "FAIL (false-positive doubled-brace markers)",
-    "meson_live": "UNAVAILABLE (mesonbuild not installed)",
-    "maintenance_contract": "22 passed",
+    "cython_generate_validate": "PASS (annoylib.pyx.in and annoylib.pxd.in regenerated and compared exactly)",
+    "meson_live": "PARTIAL (install_meson_features.py live on meson 1.12.1: install, up-to-date, drift and stale-file repair; no full meson build)",
+    "maintenance_contract": "29 passed",
     "cythoner_real_annoy": "PASS (69,869-line C++ generated from package-shaped Annoy pyx)",
     "api_reference_generator": "PASS (10 isolated helper tests; docs sync static test passed; installed-package lane unavailable in this environment)"
   },
   "next_actions": [
-    "Repair Cython generation validation and make the documented atomic-output guarantee real (or remove the guarantee explicitly)",
-    "Fix gitversion error handling and safe.directory scope/side effects",
-    "Make Meson feature installation freshness content-aware and stale-file aware",
-    "Fix bare-filename copy_file destination handling",
-    "Replace simulated gitversion tests with production-API tests",
-    "Run live Meson feature import/build verification on supported Meson versions/platforms"
+    "Run a full meson build of the package on the supported Meson versions and platforms (integration lane)"
   ]
 }

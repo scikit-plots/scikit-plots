@@ -21,6 +21,7 @@ TOP_LEVEL_FILES = ("__init__.py", "_contracts.py", "_network.py")
 SERVICE_FILES = (
     "__init__.py",
     "_bitbucket.py",
+    "_bitbucket_dc.py",
     "_config.py",
     "_core.py",
     "_custom.py",

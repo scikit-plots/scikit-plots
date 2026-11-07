@@ -189,3 +189,15 @@ class TestDoctests:
         from ._isolated import assert_doctests_pass
 
         assert_doctests_pass("_code")
+
+
+class TestFormatCharacters:
+    """CP-109: a format character in an identifier no longer costs the schema."""
+
+    def test_the_fragment_is_read_without_it(self):
+        found = discover([("f", 'A\u200bPI_KEY = "x"\nX = df[["mrn"]]\n')])
+        assert "mrn" in found.columns
+        assert found.unparsed == ()
+
+    def test_a_fragment_broken_otherwise_is_still_reported(self):
+        assert discover([("f", "A\u200bPI = (\n")]).unparsed == ("f",)

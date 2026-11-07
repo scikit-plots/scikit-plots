@@ -706,3 +706,103 @@ class TestDetectionView:
                 elif restore(result.text, result.vault).text != text:
                     failures.append((spec.kind, example, "restore"))
         assert not failures, failures
+
+
+class TestActions:
+    """CP-115: each action, the strictest-wins merge, and the defaults."""
+
+    _TEXT = "mail ada@example.com, card 4242 4242 4242 4242, call +1 555 010 4477"
+
+    @staticmethod
+    def _redactor(actions, style="placeholder"):
+        from .._policy import DEFAULT_POLICY, TagStyle
+
+        policy = DEFAULT_POLICY.evolve(actions=actions, tag_style=TagStyle(style=style))
+        return Redactor(policy=policy)
+
+    def test_tokenize_and_surrogate_override_the_style(self):
+        result = self._redactor({"EMAIL": "surrogate"}).redact(self._TEXT)
+        assert "@example.invalid" in result.text
+        assert "[CREDIT_CARD-1]" in result.text
+        assert restore(result.text, result.vault).text == self._TEXT
+        result = self._redactor({"EMAIL": "tokenize"}, "surrogate").redact(self._TEXT)
+        assert "[EMAIL-1]" in result.text
+
+    def test_report_leaves_the_value_and_lists_it(self):
+        result = self._redactor({"PHONE": "report"}).redact(self._TEXT)
+        assert "+1 555 010 4477" in result.text
+        assert [(span.kind, span.text) for span in result.reported] == [
+            ("PHONE", "+1 555 010 4477")
+        ]
+        assert "PHONE" not in result.vault.export().__repr__()
+        assert restore(result.text, result.vault).text == self._TEXT
+
+    def test_block_refuses_the_whole_text_and_names_no_value(self):
+        from .._exceptions import BlockedError
+
+        with pytest.raises(BlockedError) as caught:
+            self._redactor({"CREDIT_CARD": "block"}).redact(self._TEXT + " 4111 1111 1111 1111")
+        assert caught.value.kinds == {"CREDIT_CARD": 2}
+        assert "4242" not in str(caught.value)
+
+    @pytest.mark.parametrize(
+        ("actions", "outcome"),
+        [
+            ({"CUSTOM": "report"}, "tokenize"),
+            ({"EMAIL": "report"}, "tokenize"),
+            ({"EMAIL": "report", "CUSTOM": "report"}, "report"),
+            ({"CUSTOM": "block"}, "block"),
+            ({"EMAIL": "surrogate", "CUSTOM": "report"}, "surrogate"),
+            ({"EMAIL": "surrogate", "CUSTOM": "tokenize"}, "surrogate"),
+            ({"EMAIL": "report", "CUSTOM": "tokenize"}, "tokenize"),
+        ],
+    )
+    def test_a_merged_value_takes_the_strictest_action(self, actions, outcome):
+        from .._exceptions import BlockedError
+
+        redactor = self._redactor(actions)
+        text = "write ada@example.com"
+        if outcome == "block":
+            with pytest.raises(BlockedError):
+                redactor.redact(text, extra_terms=["ada@ex"])
+            return
+        result = redactor.redact(text, extra_terms=["ada@ex"])
+        expected = {
+            "tokenize": "write [EMAIL-1]",
+            "report": text,
+            "surrogate": "write marion.holt@example.invalid",
+        }[outcome]
+        assert result.text == expected
+
+    def test_a_reported_winner_merged_with_a_hidden_member_gets_a_placeholder(self):
+        # The URL contains the address; the URL wins the merge. Its own action
+        # is report, the member's is surrogate: the value is hidden, and the
+        # form is a placeholder, not a stand-in chosen by the member.
+        redactor = self._redactor({"URL": "report", "EMAIL": "surrogate"})
+        result = redactor.redact("see https://example.com/ada@example.com now")
+        assert result.text == "see [URL-1] now"
+        assert result.reported == ()
+
+    @pytest.mark.parametrize("style", ["placeholder", "surrogate"])
+    def test_setting_the_default_action_explicitly_changes_nothing(self, style):
+        import random
+
+        from .._surrogates import SURROGATE_KINDS
+
+        kinds = ("EMAIL", "PHONE", "URL", "CREDIT_CARD", "IPV4", "IBAN", "CUSTOM")
+        explicit = {
+            kind: "surrogate" if style == "surrogate" and kind in SURROGATE_KINDS else "tokenize"
+            for kind in kinds
+        }
+        rng = random.Random(115)
+        parts = [
+            "ada@example.com", "+1 555 010 4477", "https://example.com/a", "4242 4242 4242 4242",
+            "192.168.1.10", "GB82 WEST 1234 5698 7654 32", "secret-term", "note", "\n",
+        ]
+        plain, configured = self._redactor({}, style), self._redactor(explicit, style)
+        for _ in range(300):
+            text = " ".join(rng.choice(parts) for _ in range(rng.randint(0, 12)))
+            terms = ["secret-term"]
+            assert configured.redact(text, extra_terms=terms).text == plain.redact(
+                text, extra_terms=terms
+            ).text

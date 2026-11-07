@@ -1,13 +1,13 @@
 ---
 title: "The numpy include directory is computed relative to tools/ and used relative to the project root"
-status: open
+status: promoted
 kind: "build"
 area: "build/meson (meson.build)"
 discovered_during: "TP-1, building an editable install outside a top-level checkout, 2026-10-23"
 release_note: "not-required"
 towncrier_section: "unknown"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/build-packaging/909.fix.rst"
 ---
 
 # The numpy include directory is computed relative to tools/ and used relative to the project root
@@ -98,3 +98,22 @@ None (build internals).
 ## Release-note promotion
 
 Not required: no user-visible change in the installed package.
+
+## Resolution (2026-11-04)
+
+The snippet (between `# BEGIN/END numpy-include-dir snippet` in `meson.build`)
+receives `meson.project_source_root()` as its argument, removes the working
+directory from `sys.path` before importing numpy (the reason the old code
+changed directory), and prints `os.path.relpath(include, root)` only when the
+real include path is inside the real root, the absolute path otherwise
+(including another drive on Windows).
+
+Live, Meson 1.12.1, numpy outside the tree, build directory `build/cp312`:
+the old snippet fails with `Include dir ../../../../../venv/... does not
+exist`; the new one configures and compiles a file including
+`numpy/_numpyconfig.h`. A build directory directly below the root (`build`)
+had hidden the bug, being as deep as `tools/`. A virtualenv inside the tree
+gives `.venv/lib/...`; an absolute path there is refused by Meson ("Tried to
+form an absolute path to a dir in the source tree"). Tests:
+`maintenances/_repo/_maintenance/tests/test_meson_numpy_include.py` (5; the
+old snippet fails all five). Remove this note once the PR merges.

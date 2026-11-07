@@ -335,6 +335,17 @@ User Guide
 
             ./_ipymagic/index.rst
 
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
+        **scikit-learn metadata routing**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Metadata routing <./metadata_routing.rst>
+
 
 .. _under-development:
 

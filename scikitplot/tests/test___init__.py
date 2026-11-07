@@ -564,7 +564,7 @@ def _make_site(tmp_path, *, full=False, fake_numpy=False, parts=(), api=None):
         (package / "api").mkdir()
         (package / "api" / "__init__.py").write_text(
             "import _a_dependency_that_is_not_installed\n" if api == "broken"
-            else "def plot_something(): return 'plotted'\n",
+            else "__all__ = ['plot_roc']\ndef plot_roc(): return 'plotted'\n",
             encoding="utf-8",
         )
     if fake_numpy:
@@ -671,18 +671,46 @@ class TestPartialDistribution:
         site = _make_site(tmp_path, api="ok")
         data, _ = _import_root(
             site, versions=_CORE_ONLY,
-            probe=["'plot_something' in scikitplot._api_names()",
-                   "'plot_something' in dir(scikitplot)"],
+            probe=["'plot_roc' in scikitplot._api_names()",
+                   "'plot_roc' in dir(scikitplot)",
+                   "scikitplot.plot_roc()"],
         )
-        assert data["probe"]["'plot_something' in scikitplot._api_names()"] == ["ok", "True"]
-        assert data["probe"]["'plot_something' in dir(scikitplot)"] == ["ok", "True"]
+        assert data["probe"]["'plot_roc' in scikitplot._api_names()"] == ["ok", "True"]
+        assert data["probe"]["'plot_roc' in dir(scikitplot)"] == ["ok", "True"]
+        assert data["probe"]["scikitplot.plot_roc()"] == ["ok", "'plotted'"]
 
-    def test_a_broken_api_package_is_not_mistaken_for_an_absent_one(self, tmp_path):
-        """Only the absence of ``scikitplot.api`` itself reads as "no re-exports"."""
+    def test_unknown_names_and_listing_never_import_the_api(self, tmp_path):
+        """pytest's hook probes and ``dir`` must not pull in the plotting API."""
+        site = _make_site(tmp_path, api="ok")
+        probes = [
+            "scikitplot.setup_module",
+            "scikitplot.pytest_plugins",
+            "scikitplot.not_a_name",
+            "len(dir(scikitplot)) > 0",
+            "'scikitplot.api' in __import__('sys').modules",
+        ]
+        data, _ = _import_root(site, versions=_CORE_ONLY, probe=probes)
+        for name in probes[:3]:
+            assert data["probe"][name][0] == "AttributeError", name
+        assert data["probe"]["len(dir(scikitplot)) > 0"] == ["ok", "True"]
+        assert data["probe"][probes[-1]] == ["ok", "False"]
+
+    def test_a_broken_api_package_fails_when_one_of_its_names_is_used(self, tmp_path):
+        """A broken ``scikitplot.api`` is not absent, and unrelated names never see it."""
         site = _make_site(tmp_path, api="broken")
-        data, _ = _import_root(site, versions=_CORE_ONLY, probe=["scikitplot._api_names()"])
-        kind, message = data["probe"]["scikitplot._api_names()"]
-        assert kind == "ModuleNotFoundError"
+        data, _ = _import_root(
+            site, versions=_CORE_ONLY,
+            probe=["scikitplot._api_names() == scikitplot._API_EXPORTS",
+                   "scikitplot.setup_module",
+                   "scikitplot.plot_roc"],
+        )
+        probe = data["probe"]
+        assert probe["scikitplot._api_names() == scikitplot._API_EXPORTS"] == ["ok", "True"]
+        kind, message = probe["scikitplot.setup_module"]
+        assert kind == "AttributeError"
+        assert "_a_dependency_that_is_not_installed" not in message
+        kind, message = probe["scikitplot.plot_roc"]
+        assert kind == "AttributeError"
         assert "_a_dependency_that_is_not_installed" in message
 
     def test_installed_part_resolves_as_an_attribute(self, tmp_path):
@@ -815,6 +843,25 @@ class TestPublicSurfaceForPartialSupport:
         monkeypatch.setattr(sp, "_api_names", fail_api_discovery)
         module = sp.__getattr__("levenshtein")
         assert module.__name__ == "scikitplot.levenshtein"
+
+    def test_api_exports_are_the_api_packages_all(self):
+        """``_API_EXPORTS`` is a checked copy of ``scikitplot.api.__all__``."""
+        import ast  # noqa: PLC0415
+        from pathlib import Path  # noqa: PLC0415
+
+        source = Path(sp.__file__).parent / "api" / "__init__.py"
+        if not source.is_file():  # pragma: no cover - partial distribution
+            pytest.skip("scikitplot.api is not part of this distribution")
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        declared = next(
+            ast.literal_eval(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(getattr(t, "id", None) == "__all__" for t in node.targets)
+        )
+        assert frozenset(declared) == sp._API_EXPORTS, (
+            "update scikitplot._API_EXPORTS to scikitplot.api.__all__"
+        )
 
     def test_distribution_map_is_a_declared_module(self):
         assert "_distributions" in sp._submodules

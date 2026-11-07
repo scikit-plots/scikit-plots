@@ -1,13 +1,13 @@
 ---
 title: "scikitplot.__bibtex__ cites every version, never the installed build"
-status: open
+status: promoted
 kind: "other"
 area: "scikitplot/config"
 discovered_during: "PR 891, citation files"
 release_note: "required"
 towncrier_section: "scikitplot.config"
 towncrier_type: "enhancement"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.config/909.enhancement.rst"
 ---
 
 # scikitplot.__bibtex__ cites every version, never the installed build
@@ -73,3 +73,16 @@ tree of `git_revision`; a test builds it for a dev and a release version.
 ## Release-note promotion
 
 Required (`scikitplot.config`, enhancement).
+
+## Resolution (PR 909)
+
+`scikitplot.config.citation(which="all"|"build")`. `config/meson.build` runs
+`tools/citation/citation_ref.py fields` and substitutes its JSON
+(`PROJECT` fields and `VERSION_DOIS`) into `_citation.py`; the build facts come
+from `scikitplot.version`, imported only for `"build"`. `__bibtex__` is
+unchanged. `scikitplot/config/tests/test__citation.py` renders the template
+as Meson does and compares the entry with the tool's for seven builds (every
+version kind, a release with and without a DOI, two builds without git);
+six mutations of the template are each caught. A live Meson configure of the
+real template and tool produced a module whose entry equals the tool's, for a
+build without git and one with git.

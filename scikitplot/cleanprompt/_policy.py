@@ -35,6 +35,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Iterable
@@ -42,9 +43,11 @@ from typing import Any, Iterable
 from ._exceptions import PolicyError
 
 __all__ = [
+    "ACTIONS",
     "DEFAULT_LIMITS",
     "DEFAULT_POLICY",
     "DEFAULT_TAG_STYLE",
+    "Action",
     "Limits",
     "OverlapStrategy",
     "RedactionPolicy",
@@ -86,6 +89,110 @@ class OverlapStrategy(str, Enum):
     LONGEST_WINS = "LONGEST_WINS"
     PRIORITY_WINS = "PRIORITY_WINS"
     STRICT = "STRICT"
+
+
+class Action(str, Enum):
+    """
+    What happens to a value of one kind once it is detected.
+
+    Attributes
+    ----------
+    TOKENIZE : str
+        Replace it with a placeholder label (``[EMAIL-1]``), whatever the
+        global style.
+    SURROGATE : str
+        Replace it with an invented stand-in of the same kind, whatever the
+        global style. Only kinds the surrogate generator covers
+        (:data:`~._surrogates.SURROGATE_KINDS`) accept it.
+    REPORT : str
+        Leave it in the text and list it in the result's ``reported``. A
+        :class:`~._guard.Guard` still refuses to send it.
+    BLOCK : str
+        Refuse the whole text: :class:`~._exceptions.BlockedError` is raised
+        before anything is returned, naming kinds and counts, never values.
+
+    Notes
+    -----
+    **User notes.** A kind with no action follows the global style, exactly as
+    before: placeholders, or surrogates for the kinds that have them under
+    ``style='surrogate'``. Keeping a value as it is already has a name,
+    :attr:`RedactionPolicy.allow`.
+
+    **Developer notes.** When detections of different kinds overlap and merge,
+    the merged value takes the strictest class among them: ``BLOCK``, then
+    hiding (``TOKENIZE`` or ``SURROGATE``), then ``REPORT``. Merging can make
+    the outcome stricter, never more lenient. Between the two hiding actions
+    the merged value's own kind decides the form, exactly as the global style
+    does, so writing a kind's default action explicitly changes nothing
+    (``CP-115``).
+    """
+
+    TOKENIZE = "tokenize"
+    SURROGATE = "surrogate"
+    REPORT = "report"
+    BLOCK = "block"
+
+
+#: Every action, from the strictest to the most lenient.
+ACTIONS: tuple[Action, ...] = (
+    Action.BLOCK,
+    Action.TOKENIZE,
+    Action.SURROGATE,
+    Action.REPORT,
+)
+
+
+def _normalise_actions(value: Any) -> tuple[tuple[str, Action], ...]:
+    """
+    Return ``value`` as sorted ``(kind, Action)`` pairs, refusing anything invalid.
+
+    Parameters
+    ----------
+    value : mapping or iterable of pairs
+        Kind to action, the action an :class:`Action` or its value.
+
+    Returns
+    -------
+    tuple of (str, Action)
+        Sorted by kind.
+
+    Raises
+    ------
+    PolicyError
+        For a non-string or empty kind, a kind given twice, an unknown action,
+        or ``surrogate`` for a kind the generator has no stand-ins for.
+    """
+    from ._surrogates import SURROGATE_KINDS  # ruff: ignore[import-outside-top-level]
+
+    if isinstance(value, (str, bytes)):
+        raise PolicyError("actions must map kinds to actions, not be a string")
+    pairs = value.items() if isinstance(value, Mapping) else value
+    result: dict[str, Action] = {}
+    for pair in pairs:
+        if not isinstance(pair, tuple) or len(pair) != 2:  # noqa: PLR2004 - a pair
+            raise PolicyError(
+                f"actions entries must be (kind, action) pairs, got {pair!r}"
+            )
+        kind, action = pair
+        if not isinstance(kind, str) or not kind:
+            raise PolicyError(f"action kinds must be non-empty strings, got {kind!r}")
+        if kind in result:
+            raise PolicyError(f"action for kind {kind!r} given twice")
+        try:
+            chosen = Action(action)
+        except ValueError:
+            known = ", ".join(a.value for a in ACTIONS)
+            raise PolicyError(
+                f"unknown action {action!r} for kind {kind!r}; choose from {known}"
+            ) from None
+        if chosen is Action.SURROGATE and kind not in SURROGATE_KINDS:
+            msg = (
+                f"action 'surrogate' is not available for kind {kind!r}: stand-ins "
+                f"exist only for {', '.join(SURROGATE_KINDS)}; use 'tokenize'"
+            )
+            raise PolicyError(msg)
+        result[kind] = chosen
+    return tuple(sorted(result.items()))
 
 
 @dataclass(frozen=True)
@@ -590,12 +697,16 @@ class RedactionPolicy:
     preserve_placeholders : bool, default=True
         Whether text already matching the placeholder grammar is protected from
         re-detection, making redaction idempotent.
+    actions : tuple of (str, Action), default=()
+        What to do with each kind (:class:`Action`); a mapping is accepted and
+        normalised to sorted pairs. A kind not listed follows ``tag_style``.
 
     Raises
     ------
     PolicyError
-        If ``kinds`` is empty, contains a non-string or a duplicate, or if
-        ``min_confidence`` is outside ``[0.0, 1.0]``.
+        If ``kinds`` is empty, contains a non-string or a duplicate, if
+        ``min_confidence`` is outside ``[0.0, 1.0]``, or if ``actions`` names
+        an unknown action or asks for a surrogate the generator cannot make.
 
     Notes
     -----
@@ -630,8 +741,13 @@ class RedactionPolicy:
     case_insensitive: bool = False
     min_confidence: float = 0.0
     preserve_placeholders: bool = True
+    actions: tuple[tuple[str, Action], ...] = ()
 
     def __post_init__(self) -> None:
+        # Always stored: Action is a str enum, so a tuple of plain strings
+        # compares equal to its normalised form and a comparison would keep
+        # the strings.
+        object.__setattr__(self, "actions", _normalise_actions(self.actions))
         if self.kinds is not None:
             if not isinstance(self.kinds, tuple):
                 raise PolicyError(
@@ -780,7 +896,37 @@ class RedactionPolicy:
             "case_insensitive": self.case_insensitive,
             "min_confidence": self.min_confidence,
             "preserve_placeholders": self.preserve_placeholders,
+            # Only when set, so every policy without actions keeps the
+            # fingerprint its vaults were written under.
+            **(
+                {"actions": {kind: action.value for kind, action in self.actions}}
+                if self.actions
+                else {}
+            ),
         }
+
+    def action_for(self, kind: str) -> Action | None:
+        """
+        Return the action set for ``kind``, or ``None`` when it follows the style.
+
+        Parameters
+        ----------
+        kind : str
+            A detection kind.
+
+        Returns
+        -------
+        Action or None
+            The configured action.
+
+        Examples
+        --------
+        >>> DEFAULT_POLICY.evolve(actions={"EMAIL": "report"}).action_for("EMAIL")
+        <Action.REPORT: 'report'>
+        >>> DEFAULT_POLICY.action_for("EMAIL") is None
+        True
+        """
+        return dict(self.actions).get(kind)
 
     @property
     def fingerprint(self) -> str:

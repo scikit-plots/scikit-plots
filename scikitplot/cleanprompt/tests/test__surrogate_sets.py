@@ -519,3 +519,76 @@ def test_dataclass_is_frozen():
     assert isinstance(names, SurrogateSet)
     with pytest.raises(AttributeError):
         names.name = "other"
+
+
+# ---------------------------------------------------------------------------
+# avoided words: a stand-in that is an ordinary word rewrites the reply
+# ---------------------------------------------------------------------------
+
+
+class TestAvoid:
+    """``avoid`` keeps ordinary words out of every stand-in, at load and at run time."""
+
+    def test_the_review_reproduction_is_refused_at_load(self):
+        problems = _problems(_set(kinds={"GPE": ["The", "Ash", "Ash-Vale"]}, avoid=["the", "ASH"]))
+        assert "kinds.GPE[0]: 'The' is listed under avoid" in problems
+        assert "kinds.GPE[1]: 'Ash' is listed under avoid" in problems
+        assert "Ash-Vale" not in problems
+
+    def test_without_avoid_the_same_entries_load(self):
+        names = surrogate_set_from_document(_set(kinds={"GPE": ["The", "Ash"]}))
+        assert names.avoid == frozenset()
+        assert not names.avoids("The")
+
+    @pytest.mark.parametrize("written", ["ash vale", "ASH-VALE", "Ash.Vale", " ash  vale ", "\uff21sh Vale"])
+    def test_words_compare_like_lenient_restoration(self, written):
+        problems = _problems(_set(kinds={"GPE": ["Ash-Vale", "Granvik"]}, avoid=[written]))
+        assert "'Ash-Vale' is listed under avoid" in problems
+
+    def test_a_combined_name_is_avoided_at_run_time(self):
+        names = surrogate_set_from_document(_set(avoid=["Aino Halvorsen"]))
+        assert surrogate_for("PERSON", 1, provider=names) == "Eero Virtanen"
+
+    def test_built_in_names_of_unlisted_kinds_are_avoided_too(self):
+        plain = surrogate_for("LOC", 1)
+        names = surrogate_set_from_document(_set(avoid=[plain]))
+        assert surrogate_for("LOC", 1, provider=names) not in (None, plain)
+
+    def test_every_candidate_avoided_falls_back_to_a_placeholder(self):
+        names = surrogate_set_from_document(
+            _set(kinds={"PERSON": {"first": ["Liv"], "last": ["Holt"]}}, avoid=["liv holt"])
+        )
+        assert surrogate_for("PERSON", 1, provider=names) is None
+
+    @pytest.mark.parametrize(
+        ("avoid", "message"),
+        [
+            ("the", "avoid: must be a list of words"),
+            ([3], "avoid[0]: must be a string"),
+            (["- -"], "avoid[0]: '- -' must hold a letter"),
+            (["a\u200bb"], "avoid[0]: 'a\\u200bb' holds an invisible character"),
+            (["x" * 65], "avoid[0]: must be at most 64 characters"),
+            (["Ash", "ash"], "avoid[1]: 'ash' repeats 'Ash'"),
+        ],
+    )
+    def test_invalid_avoid_lists_are_refused(self, avoid, message):
+        assert message in _problems(_set(avoid=avoid))
+
+    def test_avoid_length_is_bounded(self):
+        from .._surrogate_sets import MAX_AVOID  # noqa: PLC0415
+
+        assert f"above {MAX_AVOID}" in _problems(_set(avoid=[f"w{n}" for n in range(MAX_AVOID + 1)]))
+
+    def test_avoid_is_part_of_the_identity_only_when_present(self):
+        plain = surrogate_set_from_document(_SET).identity
+        assert surrogate_set_from_document(_set(avoid=[])).identity == plain
+        one = surrogate_set_from_document(_set(avoid=["the"])).identity
+        assert one != plain
+        # Order and spelling of equivalent words do not change it.
+        assert surrogate_set_from_document(_set(avoid=["THE", "ash"])).identity == (
+            surrogate_set_from_document(_set(avoid=["Ash", "the"])).identity
+        )
+
+    def test_avoid_loads_from_a_file(self, tmp_path):
+        names = load_surrogate_set(_write(tmp_path, document=_set(avoid=["the"])))
+        assert names.avoids("The")

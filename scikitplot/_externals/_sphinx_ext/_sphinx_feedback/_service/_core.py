@@ -176,7 +176,7 @@ class PageFeedbackService:
             )
         raise FeedbackServiceUnavailable(
             "provider_not_implemented",
-            f"Feedback provider {target.provider!r} is modeled but not implemented in this release",
+            f"Feedback provider {target.provider!r} has no adapter",
         )
 
     def validate_request(

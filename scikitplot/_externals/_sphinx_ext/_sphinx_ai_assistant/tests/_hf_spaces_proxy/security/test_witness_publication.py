@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 from datetime import datetime, timedelta, timezone
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 
@@ -15,15 +14,9 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-witness = _load("run152_witness", SECURITY / "witness_publication.py")
+from ...._hf_spaces_proxy.security import witness_publication as witness
 NOW = datetime(2026, 9, 5, 5, 30, tzinfo=timezone.utc)
 LOG_ID = "sigstore/rekor-production"
 SUBMITTER = "ci/transparency-submitter"

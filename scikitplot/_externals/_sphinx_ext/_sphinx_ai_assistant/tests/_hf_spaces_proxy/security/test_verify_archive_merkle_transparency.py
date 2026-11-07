@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 import base64
 import hashlib
 import json
@@ -14,10 +14,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 TESTS = Path(__file__).resolve().parent
 SEC = RUNTIME_ROOT / '_hf_spaces_proxy' / 'security'
-sys.path.insert(0, str(TESTS))
-sys.path.insert(0, str(SEC))
-import test_anchor_archive_health as t163  # type: ignore[import-not-found]
-import verify_archive_merkle_transparency as merkle  # type: ignore[import-not-found]
+from . import test_anchor_archive_health as t163
+from ...._hf_spaces_proxy.security import verify_archive_merkle_transparency as merkle
+from . import _stages
 
 NOW = t163.NOW
 
@@ -200,9 +199,11 @@ class GossipAdapter:
             self.mut(signed)
         return {'signed': signed, 'signature': _sig(self.priv, signed)}
 
-def _fixture(tmp, now=NOW):
+def _fixture(tmp, now=NOW, *, private=False):
+    # private=True: a copy of the Run 163 stage under tmp, for a test that writes into it.
+    take = _stages.private if private else _stages.shared
     r, wr, wrp, wrpin, wpriv, wout, plan, pp, cpriv, opriv, aout, _ = (
-        t163._anchored(tmp / 'pred')
+        take("run163", t163._anchored, tmp / "pred")
     )
     root, rp, rpin, root_privs, lpriv, gpriv = _root(tmp)
     logs = {}
@@ -595,7 +596,8 @@ def test_run164_same_run163_epoch_cannot_be_anchored_twice(tmp_path):
         )
 
 def test_run164_authority_input_drift_detected(tmp_path):
-    f = _fixture(tmp_path)
+    # Writes into the Run 163 anchor plan, so it takes its own copy of that stage.
+    f = _fixture(tmp_path, private=True)
     lid = 'merkle-log-1'
     target = f['pp']
     base = f['adapters'][0][1]

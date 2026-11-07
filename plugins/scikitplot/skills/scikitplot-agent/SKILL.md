@@ -75,7 +75,7 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `Step` | class | One completed step: a decision and what came of it. |
 | `StepOutcome` | enum | What one step came to. |
 
-8 more names, and signatures: [references/API.md](references/API.md).
+19 more names, and signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.agent.MemoryArtifactStore`)
 

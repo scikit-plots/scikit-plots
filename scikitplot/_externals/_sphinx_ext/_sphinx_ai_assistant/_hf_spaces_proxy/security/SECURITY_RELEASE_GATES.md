@@ -690,7 +690,7 @@ Require an exact latest-checkpoint handoff for every post-Run-166 authority chan
 ## Run 168 — recursive Merkle authority recovery durability gate
 
 A production Run 167 recursive Merkle-authority checkpoint SHOULD be passed through
-`security/preserve_archive_merkle_rebridge_history.py` before the intermediate authority
+`security/preserve_archive_merkle_rebridge.py` before the intermediate authority
 services are considered recoverable from cold storage. Preservation MUST first pass the
 full Run 167 verifier, then create one deterministic checkpoint containing the exact Run
 167 outputs, active authority, permanent revocations, last RFC6962 checkpoints, and both

@@ -69,6 +69,8 @@ import math
 import numbers
 from typing import Any, Iterable, Mapping
 
+from ._filters import SecurityFilter
+
 __all__ = [
     "PROBABILITY_FUSION_LEGS",
     "LogOddsContribution",
@@ -438,12 +440,18 @@ class ProbabilityFusion:
         (BM25 scores) and ``"dense"`` (cosine similarity). Each must be fitted
         on the scores that leg produces for the hybrid candidate pool:
         ``3 * top_k`` hits per leg.
+    scope : SecurityFilter or None, default=None
+        The scope the lexical calibrator was fitted under, or None for an
+        unscoped index. When the lexical leg runs, hybrid search fuses only
+        on an index bound to a scope with the same
+        :attr:`SecurityFilter.digest` (None: an index with no scope).
 
     Raises
     ------
     TypeError
         If ``policy`` is not a :class:`LogOddsFusion`, ``calibrators`` is not
-        a mapping, or a calibrator lacks the contract.
+        a mapping, a calibrator lacks the contract, or ``scope`` is not a
+        :class:`SecurityFilter` or None.
     ValueError
         For an unknown leg name, a running leg without a calibrator, an
         unfitted calibrator, or no running leg.
@@ -453,10 +461,22 @@ class ProbabilityFusion:
     **User.** Pass it as ``RetrievalConfig(match_mode="hybrid",
     probability_fusion=...)``; hits then carry ``score`` = the fused
     probability of relevance and ``native_metric="logodds_probability"``.
+
+    BM25 document count, document frequencies and average length are computed
+    over the documents a scope admits, so the same document scores
+    differently under another scope. For a scoped index, fit the lexical
+    calibrator on that index's scores and pass its ``SecurityFilter`` as
+    ``scope``; any other scope, or none, is refused with both digests named.
+    Cosine similarity does not depend on the scope, so a dense-only fusion
+    (lexical weight 0) runs under any scope.
+
+    **Developer.** The scope is matched by digest, never by label: two
+    filters with one label are two scopes.
     """
 
     policy: LogOddsFusion
     calibrators: Mapping[str, Any]
+    scope: SecurityFilter | None = None
 
     def __post_init__(self) -> None:
         """Validate the policy, the leg names and every running leg's calibrator."""
@@ -482,7 +502,43 @@ class ProbabilityFusion:
                     f"leg {leg!r} has weight {self.policy.weight(leg)} but no calibrator"
                 )
             _require_calibrator(self.calibrators[leg], leg)
+        if self.scope is not None and not isinstance(self.scope, SecurityFilter):
+            raise TypeError(
+                f"scope must be a SecurityFilter or None, got {type(self.scope).__name__}"
+            )
         object.__setattr__(self, "calibrators", dict(self.calibrators))
+
+    @property
+    def scope_digest(self) -> str | None:
+        """The digest of :attr:`scope`, or None when fitted unscoped (str or None)."""
+        return None if self.scope is None else self.scope.digest
+
+    def require_scope(self, scope: SecurityFilter | None) -> None:
+        """
+        Refuse an index scope the lexical calibrator was not fitted under.
+
+        Parameters
+        ----------
+        scope : SecurityFilter or None
+            The scope the index is bound to; None for an unscoped index.
+
+        Raises
+        ------
+        ValueError
+            If the lexical leg runs and the digests differ, naming both.
+        """
+        if not self.runs("lexical"):
+            return  # cosine similarity does not depend on the scope
+        index = None if scope is None else scope.digest
+        fitted = self.scope_digest
+        if fitted != index:
+            raise ValueError(
+                "probability fusion: the lexical calibrator was fitted under scope "
+                f"{fitted or 'unscoped'}, but this index is bound to "
+                f"{index or 'unscoped'}. BM25 statistics depend on the scope: fit "
+                "the calibrator on this index's scores and pass its SecurityFilter "
+                "as ProbabilityFusion(scope=...), or use rank fusion."
+            )
 
     def runs(self, leg: str) -> bool:
         """Whether the leg named ``leg`` is retrieved and fused."""

@@ -215,6 +215,28 @@ class TestFilteredRanking:
 
 
 class TestSecurityFilter:
+    def test_the_digest_is_the_sha256_of_the_canonical_json(self):
+        import hashlib  # noqa: PLC0415
+        import json  # noqa: PLC0415
+
+        scope = SecurityFilter(
+            And(Eq("language", "de"), In("collection_id", ["a", "b"]))
+        )
+        text = json.dumps(
+            filter_to_dict(scope.expression), sort_keys=True, separators=(",", ":")
+        )
+        assert scope.digest == "sha256:" + hashlib.sha256(text.encode()).hexdigest()
+
+    def test_the_digest_depends_on_the_expression_only(self):
+        a = SecurityFilter(Eq("language", "de"), label="a")
+        assert a.digest == SecurityFilter(Eq("language", "de"), label="b").digest
+        assert a.digest != SecurityFilter(Eq("language", "en"), label="a").digest
+        assert a.digest != SecurityFilter(NotEq("language", "de")).digest
+        assert (
+            SecurityFilter(In("language", ["de", "en"])).digest
+            != SecurityFilter(In("language", ["en", "de"])).digest
+        )  # written order counts: another order is another scope
+
     def test_a_query_cannot_widen_the_scope(self):
         docs = _corpus(random.Random(5))  # noqa: S311 - a seeded test sample
         scope = SecurityFilter(Eq("language", "de"))

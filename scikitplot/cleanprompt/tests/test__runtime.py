@@ -156,18 +156,15 @@ class TestInvisibleCharactersKeepStructure:
                 return text[: index + 1] + "\u200b" + text[index + 1 :]
         return "\u200b" + text
 
-    #: Where the salt lands on a name the format's own splitter tokenises
-    #: with an identifier class, or on a structural key, the equivalence does
-    #: not hold yet. Each is a known, recorded limit — never a silent skip:
-    #: - ``notebook``: the salt lands in the ``cells`` key; the document is no
-    #:   longer a notebook and is refused (fails closed), asserted below;
-    #: - ``python``, ``rlang``: the salt lands inside an identifier; the code
-    #:   splitter does not read names through the view yet
-    #:   (upcoming_changes/scikitplot/cleanprompt/
-    #:   invisible-characters-in-keyvalue-and-code-names.md).
-    NOT_YET = {"notebook", "python", "rlang"}
+    #: Where the salt lands on a structural key the equivalence cannot hold,
+    #: by design, and the test below asserts what happens instead:
+    #: ``notebook`` -- the salt lands in the ``cells`` key, the document is no
+    #: longer a notebook and is refused (fails closed). Salt inside a *name*
+    #: (``python``, ``rlang``: an identifier) is read through the structure
+    #: view since ``CP-109`` and is covered here like every other format.
+    STRUCTURAL_KEY = {"notebook"}
 
-    @pytest.mark.parametrize("name", sorted(set(SAMPLES) - NOT_YET))
+    @pytest.mark.parametrize("name", sorted(set(SAMPLES) - STRUCTURAL_KEY))
     @pytest.mark.parametrize("packs", [("auto",), ("all",)])
     def test_structure_is_unchanged_and_the_round_trip_exact(self, name, packs):
         plain = SAMPLES[name]

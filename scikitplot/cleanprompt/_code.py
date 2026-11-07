@@ -57,6 +57,8 @@ import ast
 from dataclasses import dataclass, field
 from typing import Iterable
 
+from ._canonical import structure_view
+
 __all__ = [
     "COLUMN_KEYWORDS",
     "COLUMN_METHODS",
@@ -457,6 +459,23 @@ class _Walker(ast.NodeVisitor):
         return None
 
 
+def _parse(source: str) -> ast.AST | None:
+    """Return the tree of ``source``, or of it without format characters, or ``None``."""
+    tree = _try_parse(source)
+    if tree is not None:
+        return tree
+    view = structure_view(source)
+    return None if view is None else _try_parse(view.text)
+
+
+def _try_parse(source: str) -> ast.AST | None:
+    """Return the tree of ``source``, or ``None`` if it does not parse."""
+    try:
+        return ast.parse(source)
+    except (SyntaxError, ValueError, MemoryError, RecursionError):
+        return None
+
+
 def discover(
     sources: Iterable[tuple[str, str]],
     vocabulary: object | None = None,
@@ -492,6 +511,13 @@ def discover(
     single ``!pip install`` line would otherwise discard the schema of the
     whole document.
 
+    A fragment that does not parse is tried once more without its format
+    characters (:func:`~._canonical.structure_view`): Python rejects a
+    zero-width space inside an identifier, so ``A\u200bPI_KEY = ...`` used to
+    cost the whole file its schema (``CP-109``). Only names come out of a
+    walk, never offsets, so nothing needs mapping back. A fragment that fails
+    both ways is reported in ``unparsed`` as before.
+
     Examples
     --------
     >>> found = discover([("cell 1", "x = df['region_code']")])
@@ -521,9 +547,8 @@ def discover(
     for label, source in sources:
         if not isinstance(source, str) or not source.strip():
             continue
-        try:
-            tree = ast.parse(source)
-        except (SyntaxError, ValueError, MemoryError, RecursionError):
+        tree = _parse(source)
+        if tree is None:
             # Not exceptional in a notebook: magics, shell escapes and
             # half-written cells all land here. Named rather than swallowed.
             result = result.merge(Discovery(unparsed=(str(label),)))

@@ -29,6 +29,8 @@ import pathlib
 import shutil
 import uuid
 from multiprocessing import Pool
+from types import MappingProxyType
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -313,7 +315,7 @@ _INDEX_NAME = "index.json"
 _INDEX_SCHEMA = "bm25-index/2"
 #: Schemas :meth:`BM25.load` reads; ``/1`` kept every document's term counts
 #: in the JSON, ``/2`` keeps them, and the precomputed contributions, as arrays.
-_READABLE_SCHEMAS = ("bm25-index/1", "bm25-index/2")
+_READABLE_SCHEMAS = ("bm25-index/2",)
 #: Persisted postings. The contributions are not among them: they are the
 #: recipe's formula of these, recomputed exactly at load.
 _ARRAYS = ("indptr", "rows", "tfs")
@@ -325,7 +327,10 @@ class BM25:
     #: The scoring formula this class implements. Subclasses override it; the
     #: class name is not the recipe, because "BM25Okapi" implies a standard the
     #: implementation makes specific choices within.
-    RECIPE_ID: str = "okapi-epsilon-floor/1"
+    RECIPE_ID: str = "okapi-epsilon-floor/2"
+    #: Each scoring parameter's documented domain (keyword arguments of
+    #: ``_check_parameter``), checked when an index is built and when it loads.
+    _PARAMETER_DOMAINS: Mapping[str, Mapping[str, Any]] = MappingProxyType({})
 
     @property
     def doc_freqs(self):
@@ -888,6 +893,74 @@ class BM25:
         """
         raise NotImplementedError
 
+    def _length_norm(self, length):
+        """
+        Return the length normaliser ``1 - b + b * length / avgdl``, never 0.
+
+        Parameters
+        ----------
+        length : int or numpy.ndarray
+            The document length(s), in tokens.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Shaped like ``length``; ``1.0`` where the normaliser is 0.
+
+        Notes
+        -----
+        **User.** An empty document scores the recipe's absent-term value for
+        every query term (0 for Okapi, the delta lower bound for BM25L and
+        BM25+), finite and without a warning, for every ``b`` in ``[0, 1]``.
+
+        **Developer.** The normaliser is 0 only when ``b == 1`` and
+        ``length == 0``: ``1 - b`` and ``b * length / avgdl`` are both
+        non-negative, and a positive length cannot underflow the quotient
+        because ``avgdl`` is at most the longest document. A document of length
+        0 holds no term, so every frequency is 0 and the frequency-bearing part
+        of each recipe is 0 for *any* positive normaliser; 1.0 is used, which
+        turns the former ``0 / 0`` into ``0 / k1`` (or ``0 / 1``). Every other
+        normaliser is returned unchanged -- the same expression tree the
+        recipes evaluated inline before -- so the score of a non-empty document
+        does not change by a bit.
+        """
+        norm = 1 - self.b + self.b * length / self.avgdl
+        if isinstance(norm, np.ndarray):
+            return np.where(norm == 0, 1.0, norm)
+        return norm if norm != 0 else 1.0
+
+    def _set_parameters(self, values):
+        """
+        Validate and set every scoring parameter of this recipe.
+
+        Parameters
+        ----------
+        values : mapping of str to number
+            Exactly the names of ``_PARAMETER_DOMAINS``.
+
+        Raises
+        ------
+        ValueError
+            If a name is missing or unknown, or a value is outside its domain.
+        TypeError
+            If a value is not a real number.
+
+        Notes
+        -----
+        **Developer.** The one place parameter domains are applied, so an index
+        built by a constructor and one reloaded from disk are held to the same
+        rules (a persisted ``b=7`` is refused at load, not scored).
+        """
+        domains = type(self)._PARAMETER_DOMAINS
+        if not isinstance(values, dict) or set(values) != set(domains):
+            got = sorted(values) if isinstance(values, dict) else type(values).__name__
+            raise ValueError(
+                f"{type(self).__name__} parameters must be exactly "
+                f"{sorted(domains)}, got {got}."
+            )
+        for name in domains:
+            setattr(self, name, _check_parameter(name, values[name], **domains[name]))
+
     # -- persistence -------------------------------------------------------
 
     def _state(self):
@@ -1045,10 +1118,34 @@ class BM25:
 
         Raises
         ------
+        TypeError
+            If called on :class:`BM25` itself, which has no formula.
         ValueError
-            If the root has no readable pointer, or the state is not from this
-            recipe. A root with no pointer is refused rather than guessed at.
+            If the root has no readable pointer (a root with no pointer is
+            refused rather than guessed at); the generation was written under
+            another schema; its recipe is not this class's recipe (another
+            scorer, or an earlier version of this one's formula); a parameter
+            is missing, unknown or outside its domain; or the recorded
+            ``identity`` does not match the recipe, analyzer and parameters
+            the generation declares.
+
+        Notes
+        -----
+        **User.** Load with the class that built the index. An index written by
+        an earlier version of the formula (an earlier recipe version) is
+        refused, not rescored with the current one: rebuild it from the corpus.
+
+        **Developer.** Every check runs before the engine is rebuilt, so a
+        wrong artifact fails here with a message naming the cause, never later
+        inside the formula. ``identity`` is recomputed from what the generation
+        declares and must equal the recorded value, so edited metadata is
+        refused; the arrays are covered separately by their SHA-256 digests.
         """
+        if cls._term_contribution is BM25._term_contribution:
+            raise TypeError(
+                "BM25.load: load an index with the scorer class that built it "
+                "(BM25Okapi, BM25L or BM25Plus); BM25 has no scoring formula."
+            )
         root = pathlib.Path(os.fspath(directory))
         if not (root / _INDEX_NAME).is_file():
             pointer = root / _POINTER_NAME
@@ -1066,7 +1163,20 @@ class BM25:
         if schema not in _READABLE_SCHEMAS:
             raise ValueError(
                 f"index at {root} was written under schema {schema!r}; this "
-                f"version reads {_READABLE_SCHEMAS}."
+                f"version reads {_READABLE_SCHEMAS}. Rebuild the index from its "
+                "corpus with this version."
+            )
+        recipe = state.get("recipe")
+        if recipe != cls.RECIPE_ID:
+            owner = _scorer_for_recipe(recipe)
+            hint = (
+                f"load it with {owner}"
+                if owner is not None
+                else "rebuild it from its corpus with this version"
+            )
+            raise ValueError(
+                f"index at {root} was built with recipe {recipe!r}, and "
+                f"{cls.__name__} scores with {cls.RECIPE_ID!r}; {hint}."
             )
         obj = cls.__new__(cls)
         obj.corpus_size = int(state["corpus_size"])
@@ -1074,34 +1184,26 @@ class BM25:
         obj.doc_len = list(state["doc_len"])
         obj.idf = dict(state["idf"])
         obj._engine_cache = None
-        persisted = None
-        if schema == "bm25-index/1":
-            obj.doc_freqs = [dict(f) for f in state["doc_freqs"]]
-            terms = [t for frequencies in obj.doc_freqs for t in frequencies]
-        else:
-            terms = list(state["vocabulary"])
-            obj.doc_freqs = None  # rebuilt from the arrays only when needed
+        terms = list(state["vocabulary"])
+        obj.doc_freqs = None  # rebuilt from the arrays only when needed
         for term in terms:
             if not isinstance(term, str):
                 raise ValueError(  # ruff: ignore[type-check-without-type-error]
                     f"persisted term {term!r} is not a string; the index "
                     "was written by an incompatible writer."
                 )
-        if schema != "bm25-index/1":
-            arrays = {
-                name: _load_array(root, name, state["arrays"][name], mmap_mode)
-                for name in _ARRAYS
-            }
-            if set(terms) != set(obj.idf) or len(terms) != len(obj.idf):
-                raise ValueError(f"index at {root}: vocabulary and idf disagree.")
-            persisted = (terms, arrays)
+        arrays = {
+            name: _load_array(root, name, state["arrays"][name], mmap_mode)
+            for name in _ARRAYS
+        }
+        if set(terms) != set(obj.idf) or len(terms) != len(obj.idf):
+            raise ValueError(f"index at {root}: vocabulary and idf disagree.")
         obj.tokenizer = None
         obj._postings_cache = None
         obj._backend = "auto"
         if state.get("average_idf") is not None:
             obj.average_idf = state["average_idf"]
-        for name, value in state["parameters"].items():
-            setattr(obj, name, value)
+        obj._set_parameters(state["parameters"])
         declared = state.get("analyzer")
         obj._analyzer = (
             None
@@ -1112,12 +1214,16 @@ class BM25:
         obj._doc_ids = None if ids is None else tuple(ids)
         if obj.tokenizer is None and obj._analyzer is not None:
             obj.tokenizer = obj._analyzer.tokenize
-        if persisted is not None:
-            # Last: the recipe's parameters must be set before its formula runs.
-            terms, arrays = persisted
-            obj._engine_cache = SparseScoreEngine.from_arrays(
-                obj, terms, arrays["indptr"], arrays["rows"], arrays["tfs"]
+        if state.get("identity") != obj.identity:
+            raise ValueError(
+                f"index at {root}: its recorded identity does not match the "
+                "recipe, analyzer and parameters it declares; the metadata was "
+                "edited or written by an incompatible writer."
             )
+        # Last: the recipe's parameters must be set before its formula runs.
+        obj._engine_cache = SparseScoreEngine.from_arrays(
+            obj, terms, arrays["indptr"], arrays["rows"], arrays["tfs"]
+        )
         return obj
 
     def get_top_n(self, query, documents, n=5):
@@ -1140,12 +1246,20 @@ class BM25Okapi(BM25):
     Efficient and Effective Search Engine".
     """
 
+    _PARAMETER_DOMAINS = MappingProxyType(
+        {
+            "k1": {"minimum": 0, "exclusive_minimum": True},
+            "b": {"minimum": 0, "maximum": 1},
+            "epsilon": {"minimum": 0},
+        }
+    )
+
     def _term_contribution(self, idf, frequency, length):
         """Okapi contribution; the expression tree of the historic dense formula."""
         return idf * (
             frequency
             * (self.k1 + 1)
-            / (frequency + self.k1 * (1 - self.b + self.b * length / self.avgdl))
+            / (frequency + self.k1 * self._length_norm(length))
         )
 
     def __init__(  # ruff: ignore[too-many-positional-arguments]
@@ -1159,9 +1273,7 @@ class BM25Okapi(BM25):
         workers=None,
         backend="auto",
     ):
-        self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
-        self.b = _check_parameter("b", b, minimum=0, maximum=1)
-        self.epsilon = _check_parameter("epsilon", epsilon, minimum=0)
+        self._set_parameters({"k1": k1, "b": b, "epsilon": epsilon})
         super().__init__(
             corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
         )
@@ -1191,11 +1303,19 @@ class BM25Okapi(BM25):
 
 
 class BM25L(BM25):
-    RECIPE_ID: str = "bm25l-delta/1"
+    RECIPE_ID: str = "bm25l-delta/2"
+
+    _PARAMETER_DOMAINS = MappingProxyType(
+        {
+            "k1": {"minimum": 0, "exclusive_minimum": True},
+            "b": {"minimum": 0, "maximum": 1},
+            "delta": {"minimum": 0},
+        }
+    )
 
     def _term_contribution(self, idf, frequency, length):
         """BM25L contribution; positive even where ``frequency`` is 0."""
-        ctd = frequency / (1 - self.b + self.b * length / self.avgdl)
+        ctd = frequency / self._length_norm(length)
         return idf * (self.k1 + 1) * (ctd + self.delta) / (self.k1 + ctd + self.delta)
 
     def __init__(  # ruff: ignore[too-many-positional-arguments]
@@ -1210,9 +1330,7 @@ class BM25L(BM25):
         backend="auto",
     ):
         # Algorithm specific parameters
-        self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
-        self.b = _check_parameter("b", b, minimum=0, maximum=1)
-        self.delta = _check_parameter("delta", delta, minimum=0)
+        self._set_parameters({"k1": k1, "b": b, "delta": delta})
         super().__init__(
             corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
         )
@@ -1224,14 +1342,22 @@ class BM25L(BM25):
 
 
 class BM25Plus(BM25):
-    RECIPE_ID: str = "bm25plus-delta/1"
+    RECIPE_ID: str = "bm25plus-delta/2"
+
+    _PARAMETER_DOMAINS = MappingProxyType(
+        {
+            "k1": {"minimum": 0, "exclusive_minimum": True},
+            "b": {"minimum": 0, "maximum": 1},
+            "delta": {"minimum": 0},
+        }
+    )
 
     def _term_contribution(self, idf, frequency, length):
         """BM25+ contribution; ``idf * delta`` even where ``frequency`` is 0."""
         return idf * (
             self.delta
             + (frequency * (self.k1 + 1))
-            / (self.k1 * (1 - self.b + self.b * length / self.avgdl) + frequency)
+            / (self.k1 * self._length_norm(length) + frequency)
         )
 
     def __init__(  # ruff: ignore[too-many-positional-arguments]
@@ -1246,9 +1372,7 @@ class BM25Plus(BM25):
         backend="auto",
     ):
         # Algorithm specific parameters
-        self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
-        self.b = _check_parameter("b", b, minimum=0, maximum=1)
-        self.delta = _check_parameter("delta", delta, minimum=0)
+        self._set_parameters({"k1": k1, "b": b, "delta": delta})
         super().__init__(
             corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
         )
@@ -1257,6 +1381,14 @@ class BM25Plus(BM25):
         for word, freq in nd.items():
             idf = math.log(self.corpus_size + 1) - math.log(freq)
             self.idf[word] = idf
+
+
+def _scorer_for_recipe(recipe):
+    """Return the name of the built-in scorer class of ``recipe``, or ``None``."""
+    for scorer in (BM25Okapi, BM25L, BM25Plus):
+        if recipe == scorer.RECIPE_ID:
+            return scorer.__name__
+    return None
 
 
 #: Formulas whose engine evaluation is covered by the equivalence tests.

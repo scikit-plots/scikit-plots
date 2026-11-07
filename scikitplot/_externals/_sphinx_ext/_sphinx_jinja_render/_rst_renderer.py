@@ -36,13 +36,16 @@ User
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from ._constants import FILE_ENCODING, RST_SUFFIX, TEMPLATE_SUFFIX
 from ._validators import validate_directory
+
+logger = logging.getLogger(__name__)
 
 
 def _render_one(
@@ -84,6 +87,13 @@ def _render_one(
         values in rendered RST produce confusing Sphinx warnings that are
         hard to trace back to a missing template variable.  Fail fast
         with a clear error instead.
+
+        Autoescaping follows the template's name (``select_autoescape``):
+        on for ``.html``/``.htm``/``.xml``, off for ``*.rst.template``, whose
+        output is reStructuredText, where HTML escaping would corrupt a value
+        holding ``&`` or ``<`` (a URL with a query string, for example). A
+        template that places a value inside a ``.. raw:: html`` block must
+        escape it there (``|e``).
     """
     if not isinstance(template_path, Path):
         raise TypeError(
@@ -99,7 +109,14 @@ def _render_one(
         loader=FileSystemLoader(str(template_path.parent)),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
-        autoescape=True,
+        # Escape only templates whose names say HTML or XML. ``*.rst.template``
+        # renders reStructuredText, where HTML-escaping would turn a value's
+        # "&" or "<" into "&amp;"/"&lt;" in the generated source.
+        autoescape=select_autoescape(
+            enabled_extensions=("html", "htm", "xml"),
+            default_for_string=True,
+            default=False,
+        ),
         extensions=["jinja2.ext.i18n"],
     )
     # t = jinja2.Template(f.read())  # Use jinja2.Template to create the template
@@ -110,9 +127,7 @@ def _render_one(
     rendered: str = template.render(**context)
 
     # Replace ".rst.template" with ".rst" to get the output path.
-    output_path: Path = template_path.with_name(
-        template_path.name[: -len(TEMPLATE_SUFFIX)] + RST_SUFFIX
-    )
+    output_path: Path = _output_for(template_path)
     output_path.write_text(rendered, encoding=encoding)
     return output_path
 
@@ -144,8 +159,9 @@ def render_rst_templates(
     recursive : bool, default=False
         Whether to search recursively.
     strict : bool, default=False
-        If True, fail on first error.
-        If False, skip failing templates.
+        If True, every template is still attempted, and then one
+        ``RuntimeError`` names every template that failed. If False, a failing
+        template is skipped and logged as a warning.
 
     Returns
     -------
@@ -161,10 +177,11 @@ def render_rst_templates(
         If *src_dir* does not exist.
     NotADirectoryError
         If *src_dir* exists but is not a directory.
-    jinja2.UndefinedError
-        If any template references a variable absent from *context*.
     RuntimeError
-        If strict=True and rendering fails.
+        If ``strict=True`` and any template failed (an undefined variable, a
+        syntax error, an unreadable template or an unwritable output). The
+        message lists every failing template with its error; the first
+        failure is chained as ``__cause__``.
 
     See Also
     --------
@@ -174,7 +191,12 @@ def render_rst_templates(
     -----
     Developer
         Templates are processed in sorted order for deterministic output
-        and reproducible builds.
+        and reproducible builds. A failed template leaves its previous
+        ``.rst`` output untouched (rendering happens before the write), so
+        that file is stale; strict mode exists so a build cannot go on with
+        it. Every template is attempted before raising, so one failure does
+        not leave the later templates stale too, and all causes are reported
+        at once. Best-effort mode logs each failure rather than dropping it.
 
     User
         Do not hand-edit the generated ``.rst`` files — they are
@@ -211,9 +233,34 @@ def render_rst_templates(
         try:
             out = _render_one(tmpl, resolved_context, encoding=encoding)
             output_paths.append(out)
-        except Exception as exc:  # ruff: ignore[try-except-in-loop]
-            if strict:
-                raise RuntimeError(f"Failed rendering template: {tmpl}") from exc
+        except Exception as exc:  # ruff: ignore[try-except-in-loop, blind-except]
+            # Any failure of one template (Jinja, I/O, encoding) is recorded
+            # with its cause; nothing is swallowed.
             errors.append((tmpl, exc))
 
+    if errors:
+        lines = [
+            f"{tmpl}: {type(exc).__name__}: {exc}"
+            + (
+                f" (its existing output {_output_for(tmpl).name} was not regenerated)"
+                if _output_for(tmpl).exists()
+                else ""
+            )
+            for tmpl, exc in errors
+        ]
+        if strict:
+            raise RuntimeError(
+                f"{len(errors)} of {len(template_files)} RST template(s) failed "
+                "to render:\n  " + "\n  ".join(lines)
+            ) from errors[0][1]
+        for line in lines:
+            logger.warning("RST template skipped: %s", line)
+
     return output_paths
+
+
+def _output_for(template_path: Path) -> Path:
+    """Return the ``.rst`` path a ``.rst.template`` renders to."""
+    return template_path.with_name(
+        template_path.name[: -len(TEMPLATE_SUFFIX)] + RST_SUFFIX
+    )

@@ -103,7 +103,11 @@ What ``encode`` can be told
     :ref:`cleanprompt-entity-detection`.
 ``policy=`` / ``registry=``
     A full :class:`RedactionPolicy` or :class:`DetectorRegistry`, for the
-    cases the keywords do not cover.
+    cases the keywords do not cover. ``RedactionPolicy(actions={"EMAIL":
+    "surrogate", "CREDIT_CARD": "block"})`` chooses what happens to each kind
+    (:ref:`cleanprompt-actions`); a value whose action is ``report`` stays in
+    the text and is listed in ``reported``, and ``block`` raises
+    :class:`BlockedError`.
 
 Profiles
 ^^^^^^^^

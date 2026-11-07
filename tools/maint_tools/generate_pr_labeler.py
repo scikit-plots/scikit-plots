@@ -11,7 +11,9 @@ and ``issue_labeler.yml``):
     the Towncrier sections (``[tool.scikitplot.maintenance.towncrier]``), so a
     new package gets its label the moment it gets its release-note section.
     Module labels also fire for the module's satellites (maintenance plane,
-    user guide, gallery, follow-up ledger, release-note fragments); library
+    user guide, gallery, follow-up ledger, release-note fragments), plus any
+    literal globs ``labeler.satellite_paths`` lists for an owner whose folders
+    do not follow its path (each must match a file); library
     labels (``libs/<dist>``) fire for the library directory *and* for every
     path the distribution ships (``scikitplot/_distributions.py``).
 ``.github/labeler-issue.yml`` (generated)
@@ -70,10 +72,8 @@ try:  # Python >= 3.11
 except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.8-3.10
     try:
         import tomli as tomllib  # type: ignore[no-redef]
-    except ModuleNotFoundError as exc:  # pragma: no cover - environment dependent
-        raise SystemExit(
-            "Python < 3.11 requires 'tomli' to run the labeler maintenance helper."
-        ) from exc
+    except ModuleNotFoundError:  # pragma: no cover - environment dependent
+        tomllib = None  # refused where pyproject.toml is read, never at import
 
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 POLICY_TABLE = ("tool", "scikitplot", "maintenance", "labeler")
@@ -227,6 +227,7 @@ class Policy:
     rollup_owner_roots: Tuple[str, ...]
     satellites: Mapping[str, Tuple[str, ...]]
     label_aliases: Mapping[str, str]
+    satellite_paths: Mapping[str, Tuple[str, ...]]
     max_label_length: int
     manual_labels: Tuple[str, ...]
     title_prefixes: Tuple[TitlePrefix, ...]
@@ -258,6 +259,38 @@ def _string(table: Mapping[str, object], key: str) -> str:
     if not isinstance(value, str) or not value:
         raise LabelerError(f"[{'.'.join(POLICY_TABLE)}].{key} must be a non-empty string")
     return value
+
+
+def _satellite_paths(table: Mapping[str, object]) -> Dict[str, Tuple[str, ...]]:
+    """Read ``labeler.satellite_paths``: owner path -> literal globs.
+
+    Raises
+    ------
+    LabelerError
+        If the table is not a mapping of non-empty arrays of distinct
+        strings, or a glob uses a ``{placeholder}``.
+    """
+    paths_raw = table.get("satellite_paths", {})
+    if not isinstance(paths_raw, Mapping):
+        raise LabelerError("labeler.satellite_paths must map owner paths to arrays of globs")
+    satellite_paths: Dict[str, Tuple[str, ...]] = {}
+    for owner, globs in paths_raw.items():
+        if (
+            not isinstance(globs, list)
+            or not globs
+            or not all(isinstance(g, str) and g for g in globs)
+            or len(set(globs)) != len(globs)
+        ):
+            raise LabelerError(
+                f"labeler.satellite_paths.{owner} must be a non-empty array of distinct globs"
+            )
+        placeholders = sorted({p for g in globs for p in re.findall(r"\{(\w+)\}", g)})
+        if placeholders:
+            raise LabelerError(
+                f"labeler.satellite_paths.{owner} takes literal globs, not placeholders {placeholders}"
+            )
+        satellite_paths[owner] = tuple(globs)
+    return satellite_paths
 
 
 def load_policy(data: Mapping[str, object]) -> Policy:
@@ -295,6 +328,7 @@ def load_policy(data: Mapping[str, object]) -> Policy:
                     f"satellite {template!r} uses unknown placeholder(s) {sorted(unknown)}"
                 )
         satellites[root] = tuple(templates)
+    satellite_paths = _satellite_paths(table)
     aliases = table.get("label_aliases", {})
     if not isinstance(aliases, Mapping) or not all(
         isinstance(k, str) and isinstance(v, str) and v for k, v in aliases.items()
@@ -339,6 +373,7 @@ def load_policy(data: Mapping[str, object]) -> Policy:
         rollup_owner_roots=_strings(table, "rollup_owner_roots"),
         satellites=satellites,
         label_aliases=dict(aliases),
+        satellite_paths=satellite_paths,
         max_label_length=max_length,
         manual_labels=_strings(table, "manual_labels"),
         title_prefixes=tuple(prefixes),
@@ -347,6 +382,10 @@ def load_policy(data: Mapping[str, object]) -> Policy:
 
 
 def _load_pyproject(repo_root: Path) -> Mapping[str, object]:
+    if tomllib is None:  # pragma: no cover - Python 3.8-3.10 without tomli
+        raise LabelerError(
+            "Python < 3.11 requires 'tomli' to read pyproject.toml: pip install tomli"
+        )
     with (repo_root / "pyproject.toml").open("rb") as handle:
         return tomllib.load(handle)
 
@@ -458,6 +497,23 @@ def _distribution_paths(repo_root: Path) -> Dict[str, Tuple[str, ...]]:
     return result
 
 
+def _explicit_globs(owner: str, policy: Policy, files: Sequence[str]) -> Tuple[str, ...]:
+    """Return *owner*'s ``satellite_paths`` globs, each checked against *files*.
+
+    Raises
+    ------
+    LabelerError
+        If a glob matches no repository file: an explicit path is a promise,
+        so a stale one is reported rather than dropped like a template's.
+    """
+    globs = policy.satellite_paths.get(owner, ())
+    for glob in globs:
+        matcher = compile_glob(glob)
+        if not any(matcher(path) for path in files):
+            raise LabelerError(f"satellite_paths.{owner}: {glob!r} matches no repository file")
+    return globs
+
+
 def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, files: Sequence[str]) -> List[ModuleRule]:
     """
     Derive every generated module/library label from policy and tree.
@@ -482,7 +538,9 @@ def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, fi
     ------
     LabelerError
         If an owner root is unknown, a label is too long or duplicated, an
-        alias names no owner, or a ``libs`` directory has no distribution.
+        alias or a ``satellite_paths`` entry names no owner, an explicit
+        satellite path matches no file, or a ``libs`` directory has no
+        distribution.
     """
     towncrier = _load_module("_towncrier_sections_for_labeler", TOWNCRIER_SCRIPT)
     try:
@@ -497,6 +555,9 @@ def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, fi
     stale_aliases = sorted(set(policy.label_aliases) - owner_paths)
     if stale_aliases:
         raise LabelerError("label_aliases name no owner: " + ", ".join(stale_aliases))
+    stale_paths = sorted(set(policy.satellite_paths) - owner_paths)
+    if stale_paths:
+        raise LabelerError("satellite_paths name no owner: " + ", ".join(stale_paths))
     for root in policy.rollup_owner_roots:
         rules.append(ModuleRule(label=root, owner=root, globs=(f"{root}/**/*",), origins=("tree",)))
     for section in sorted(owners, key=lambda s: s.path):
@@ -516,6 +577,12 @@ def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, fi
                     matcher = compile_glob(glob)
                     if any(matcher(path) for path in files):
                         globs.append((glob, "satellite"))
+            present = {g for g, _ in globs}
+            globs += [
+                (glob, "explicit")
+                for glob in _explicit_globs(owner, policy, files)
+                if glob not in present
+            ]
             if root == "libs" and rel != "_tools":
                 if rel not in distributions:
                     raise LabelerError(f"libs/{rel} has no entry in {DISTRIBUTIONS_FILE}")

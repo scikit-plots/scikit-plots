@@ -135,29 +135,85 @@ def test_python_module_tests_have_exact_canonical_owner_names() -> None:
     )
 
 
+_CASE_LOADERS = {"export_case_tests", "_export_case_tests"}
+
+
+def _declared_case_packages(directory: Path) -> dict[str, list[tuple[str, tuple[str, ...]]]]:
+    """
+    Return the case packages the owner tests in *directory* declare.
+
+    Parameters
+    ----------
+    directory : Path
+        A test directory that holds a ``_cases`` root.
+
+    Returns
+    -------
+    dict
+        ``{"_cases.<package>": [(owner file name, cases), ...]}``, read from each
+        owner's ``export_case_tests(..., case_package=..., cases=...)`` call.
+    """
+    found: dict[str, list[tuple[str, tuple[str, ...]]]] = defaultdict(list)
+    for owner in sorted(directory.glob("test_*.py")):
+        tree = ast.parse(owner.read_text(encoding="utf-8"), filename=str(owner))
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and getattr(node.func, "id", "") in _CASE_LOADERS):
+                continue
+            keywords = {keyword.arg: keyword.value for keyword in node.keywords}
+            package = ast.literal_eval(keywords["case_package"])
+            cases = tuple(ast.literal_eval(keywords["cases"]))
+            found[package].append((owner.name, cases))
+    return found
+
+
+def _owner_subject(owner: str) -> str:
+    """``test__storage.py`` -> ``storage``; ``test___init__.py`` -> ``init``."""
+    return owner[len("test_") : -len(".py")].strip("_")
+
+
 def test_large_contract_case_fragments_are_hidden_and_have_one_canonical_owner() -> None:
+    """
+    Every case package is a regular package that exactly one owner declares.
+
+    Notes
+    -----
+    The owner beside the ``_cases`` root names the package in its
+    ``export_case_tests`` call, which is the link this test checks, so the
+    package name is free to be short: the owner module's name without its
+    leading underscore, or its trailing words (``_provider_artifact_lifecycle``
+    -> ``lifecycle``), which keeps every fragment inside the Windows checkout
+    path budget (``tools/maint_tools/check_path_lengths.py``). Every public
+    fragment must be listed in ``cases``, so a fragment cannot be left out of
+    collection silently; a private helper (``_name.py``) is imported by the
+    fragments and is not listed.
+    """
     bad: list[str] = []
-    for case_root in TESTS_ROOT.rglob("_cases"):
+    for case_root in sorted(TESTS_ROOT.rglob("_cases")):
         if not case_root.is_dir():
             continue
-        for source_cases in sorted(p for p in case_root.iterdir() if p.is_dir()):
-            fragments = sorted(
-                p for p in source_cases.glob("*.py") if p.name != "__init__.py"
-            )
-            if not fragments:
-                continue
+        declared = _declared_case_packages(case_root.parent)
+        packages = sorted(p for p in case_root.iterdir() if p.is_dir() and p.name != "__pycache__")
+        for package in packages:
+            rel = package.relative_to(TESTS_ROOT)
+            if not (package / "__init__.py").is_file():
+                bad.append(f"{rel} has no __init__.py")
+            fragments = sorted(p for p in package.glob("*.py") if p.name != "__init__.py")
             if any(p.name.startswith("test_") for p in fragments):
-                bad.append(f"directly collectable case fragment under {source_cases.relative_to(TESTS_ROOT)}")
-            source_stem = source_cases.name
-            canonical = case_root.parent / (
-                "test___init__.py" if source_stem == "root_init" else f"test_{source_stem}.py"
-            )
-            if source_stem == "root_init":
-                canonical = TESTS_ROOT / "test___init__.py"
-            if not canonical.is_file():
-                bad.append(
-                    f"{source_cases.relative_to(TESTS_ROOT)} -> missing {canonical.relative_to(TESTS_ROOT)}"
-                )
+                bad.append(f"directly collectable case fragment under {rel}")
+            owners = declared.get(f"_cases.{package.name}", [])
+            if len(owners) != 1:
+                bad.append(f"{rel} is declared by {len(owners)} owners, not exactly one")
+                continue
+            owner, cases = owners[0]
+            subject = _owner_subject(owner).split("_")
+            if package.name not in {"_".join(subject[i:]) for i in range(len(subject))}:
+                bad.append(f"{rel} is not named after its owner {owner}")
+            public = sorted(p.stem for p in fragments if not p.stem.startswith("_"))
+            if sorted(cases) != public:
+                bad.append(f"{owner} lists cases {sorted(cases)}, {rel} holds {public}")
+        names = {f"_cases.{p.name}" for p in packages}
+        for package in sorted(set(declared) - names):
+            bad.append(f"{case_root.relative_to(TESTS_ROOT)} has no {package.split('.', 1)[1]} for {declared[package][0][0]}")
     assert bad == [], "invalid hidden case-fragment ownership: " + "; ".join(bad)
 
 
@@ -180,8 +236,10 @@ def test_recorded_python_migration_targets_exist_and_old_flat_files_are_gone() -
 #: Directories whose test modules are also loaded by file path, as fixtures of
 #: one another (``spec_from_file_location``). A module loaded that way has no
 #: parent package, so a relative import cannot resolve there; these import the
-#: stack by its canonical installed name instead.
-_PATH_LOADED_TEST_DIRS = ("_hf_spaces_proxy/security",)
+#: stack by its canonical installed name instead. ``_hf_spaces_proxy/security``
+#: left this list in PR 909: its modules import one another relatively, so each
+#: runs once per process (see ``_hf_spaces_proxy/security/_stages.py``).
+_PATH_LOADED_TEST_DIRS: tuple = ()
 
 #: Test modules that also run as scripts (``python <file> ...``), for the same
 #: reason: a script has no parent package.

@@ -9,7 +9,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Only imports when type checking
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     # Heavy import, only for type checking
@@ -26,3 +26,7 @@ def _get_bibtex(
 
 __bibtex__: Final[LiteralString]
 __citation__: Final[LiteralString]
+
+CITATION_FIELDS = Final[LiteralString]
+
+def citation(which: Literal["all", "build"] = "all") -> str: ...

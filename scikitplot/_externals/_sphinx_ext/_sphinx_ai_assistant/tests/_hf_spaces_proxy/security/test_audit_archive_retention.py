@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 from datetime import timedelta
-import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -17,12 +16,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
-def _load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path); assert spec and spec.loader
-    mod = importlib.util.module_from_spec(spec); sys.modules[name] = mod; spec.loader.exec_module(mod); return mod
 
-health = _load("run161_archive_health", SECURITY / "audit_archive_retention.py")
-run160_tests = _load("run160_helpers_for_run161", HERE / "test_archive_native_status_evidence.py")
+from ...._hf_spaces_proxy.security import audit_archive_retention as health
+from . import test_archive_native_status_evidence as run160_tests
+from . import _stages
 NOW = run160_tests.NOW
 
 def _canonical(v): return (json.dumps(v, sort_keys=True, separators=(",", ":")) + "\n").encode()
@@ -69,8 +66,10 @@ def _root(tmp_path, *, selected=None, duplicate_operator=False):
     path = _write(tmp_path / "retention-root.json", doc)
     return doc, path, health._sha_bytes(_canonical(doc)), privs
 
-def _run160(tmp_path):
-    setup, _, out, _, _ = run160_tests._preserved(tmp_path / "run160")
+def _run160(tmp_path, *, private=False):
+    # private=True: a copy of the Run 160 stage under tmp_path, for a test that writes into it.
+    take = _stages.private if private else _stages.shared
+    setup, _, out, _, _ = take("run160", run160_tests._preserved, tmp_path / "run160")
     receipt = json.loads(
         (out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")
     )
@@ -299,8 +298,8 @@ class Auditor:
             },
         }
 
-def _setup(tmp_path):
-    setup, run160_out, receipt, _ = _run160(tmp_path)
+def _setup(tmp_path, *, private_run160=False):
+    setup, run160_out, receipt, _ = _run160(tmp_path, private=private_run160)
     root_doc, root_path, root_pin, root_privs = _root(tmp_path)
     members = []
     privmap = {}
@@ -947,6 +946,9 @@ def test_run161_outputs_contain_no_private_keys_or_local_paths(tmp_path):
     *_, out, _ = _audit(tmp_path)
     text = "\n".join(p.read_text(encoding="utf-8") for p in out.iterdir()).lower()
     assert "privatekey" not in text and "private key" not in text and str(tmp_path).lower() not in text
+    # The Run 160 inputs live in a shared stage directory, not under tmp_path.
+    for root in _stages.stage_roots():
+        assert str(root).lower() not in text
 
 def test_run161_output_is_create_only(tmp_path):
     setup, run160_out, _, root_path, root_pin, _, _, _, out, _ = _audit(tmp_path)
@@ -1169,7 +1171,10 @@ def test_run161_membership_signature_order_is_canonical(tmp_path):
         )
 
 def test_run161_detects_input_directory_drift_during_external_call(tmp_path):
-    setup, run160_out, _, _, root_path, root_pin, _, _, _, mp, targets = _setup(tmp_path)
+    # Writes into the Run 160 directory, so it takes its own copy of it.
+    setup, run160_out, _, _, root_path, root_pin, _, _, _, mp, targets = _setup(
+        tmp_path, private_run160=True
+    )
     original = targets[0][1]
 
     class MutatingProvider:

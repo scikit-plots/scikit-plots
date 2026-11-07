@@ -1,0 +1,9 @@
+- Looking up a name ``scikitplot`` does not have (as pytest and other tools do
+  for optional hooks) and ``dir(scikitplot)`` no longer import the plotting
+  API (``scikitplot.api``, with scikit-learn, SciPy and the vendored seaborn),
+  and a failed import of it is no longer repeated by every such lookup: the
+  re-exported names are now a fixed list, checked against
+  ``scikitplot.api.__all__`` by the test suite. ``scikitplot.plot_roc`` and
+  the other plotting functions resolve as before; a broken ``scikitplot.api``
+  now fails when one of its names is used, with the import error as the cause,
+  and ``dir(scikitplot)`` works even then.

@@ -15,7 +15,7 @@ import random
 
 import pytest
 
-from .._canonical import canonical, value_pattern
+from .._canonical import canonical, structure_view, value_pattern
 from .._surrogates import surrogate_for
 
 
@@ -125,7 +125,18 @@ class TestDetectionView:
     def test_text_the_view_would_not_change_has_no_view(self):
         from .._canonical import detection_view
 
-        assert detection_view("café, naïve, 東京, Ελλάδα") is None
+        assert detection_view("caf\u00e9, na\u00efve, \u6771\u4eac") is None
+
+    def test_look_alike_letters_fold_letter_for_letter(self):
+        # CP-114: Greek and Cyrillic letters that look like ASCII ones fold in
+        # the view; the others stay, and the length never changes.
+        from .._canonical import detection_view
+
+        text = "\u0395\u03bb\u03bb\u03ac\u03b4\u03b1, \u0410KIA"
+        view = detection_view(text)
+        assert view.text == "E\u03bb\u03bb\u03ac\u03b4a, AKIA"
+        assert len(view.text) == len(text)
+        assert view.shifts == ()
 
     def test_format_characters_are_removed(self):
         from .._canonical import detection_view
@@ -200,3 +211,27 @@ class TestDetectionView:
         for index in range(0, len(view.text), 97):
             view.source_index(index)
         assert time.perf_counter() - started < 2.0
+
+
+class TestStructureView:
+    """CP-109: the view splitters read has the original's structure exactly."""
+
+    def test_ascii_and_text_without_format_characters_have_none(self):
+        assert structure_view("a=b") is None
+        assert structure_view("caf\u00e9 \uff41") is None
+
+    @pytest.mark.parametrize("char", ["\uff0c", "\uff02", "\uff1d", "\u3000", "\u2028"])
+    def test_nothing_is_folded_into_structure(self, char):
+        # detection_view folds these to , " = space or a line break; a
+        # splitter reading that would find a column, a quote or a line the
+        # original does not have.
+        text = f"a{char}b\u200bc"
+        view = structure_view(text)
+        assert view.text == f"a{char}bc"
+
+    def test_offsets_map_back(self):
+        text = "\u200bAB\u200c\u200dC\u2060D\u00ad"
+        view = structure_view(text)
+        assert view.text == "ABCD"
+        assert [view.source_index(i) for i in range(4)] == [1, 2, 5, 7]
+        assert text[slice(*view.source_span(0, 4))] == "AB\u200c\u200dC\u2060D"

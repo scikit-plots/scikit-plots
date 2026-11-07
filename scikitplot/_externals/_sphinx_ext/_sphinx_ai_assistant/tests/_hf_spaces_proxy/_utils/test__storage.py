@@ -3,10 +3,10 @@
 """
 Canonical tests for the corresponding runtime module.
 
-Feature-sized cases live under '_cases._storage' and are not collected directly.
+Feature-sized cases live under '_cases.storage' and are not collected directly.
 """
 # Large-contract case fragments are collected only through this canonical owner.
 from ..._case_loader import export_case_tests as _export_case_tests
 
-_export_case_tests(globals(), package=__package__, case_package='_cases._storage', cases=('multisource', 'provider_review', 'response_boundaries'))
+_export_case_tests(globals(), package=__package__, case_package='_cases.storage', cases=('multisource', 'provider_review', 'response_boundaries'))
 del _export_case_tests

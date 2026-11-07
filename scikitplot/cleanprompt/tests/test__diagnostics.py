@@ -66,7 +66,7 @@ class TestDiagnose:
         assert diagnose(DEFAULT_POLICY, registry).active_kinds == ("EMAIL", "URL")
 
     def test_every_tier_is_reported(self):
-        assert set(diagnose().tiers) == {"ner", "nltk", "web", "crypto"}
+        assert set(diagnose().tiers) == {"ner", "nltk", "web", "crypto", "timeout"}
 
     def test_tier_reports_carry_a_status_and_a_hint(self):
         for tier in diagnose().tiers.values():
@@ -371,3 +371,88 @@ class TestEntityRemedyFollowsWhatIsInstalled:
     @pytest.mark.parametrize("present", [(), ("ner",), ("nltk",), ("ner", "nltk")])
     def test_every_answer_names_the_switch(self, monkeypatch, present, model):
         assert "--ner" in self._installed(monkeypatch, *present, model=model)
+
+
+class TestReportedKinds:
+    """CP-115: the report action is never a quiet setting."""
+
+    def test_doctor_lists_reported_kinds_as_high(self):
+        from .._policy import DEFAULT_POLICY
+
+        spots = diagnose(DEFAULT_POLICY.evolve(actions={"PHONE": "report"})).blind_spots
+        (spot,) = [s for s in spots if "reported" in s.category]
+        assert spot.severity == "high"
+        assert "PHONE" in spot.reason
+
+    def test_an_outcome_with_reported_values_is_an_alert(self):
+        from .. import Redactor
+        from .._policy import DEFAULT_POLICY
+
+        policy = DEFAULT_POLICY.evolve(actions={"PHONE": "report"})
+        result = Redactor(policy=policy).redact("call +1 555 010 4477 or ada@example.com")
+        outcome = describe_outcome(result, diagnose(policy))
+        assert outcome["level"] == "alert"
+        assert outcome["reported"] == {"PHONE": 1}
+        assert "NOT safe to send" in outcome["headline"]
+        assert "reported" not in outcome["detail"]
+
+
+class TestCoverageMatrix:
+    """CP-116: the coverage matrix is the registries, read back."""
+
+    def test_every_kind_once_sorted_and_found_by_something(self):
+        from .._diagnostics import coverage_matrix
+
+        rows = coverage_matrix()
+        kinds = [row.kind for row in rows]
+        assert kinds == sorted(set(kinds))
+        for row in rows:
+            assert row.pattern or row.pack_patterns or row.pack_fields or row.entity or row.runtime
+
+    def test_columns_equal_the_registries(self):
+        from .._catalog import builtin_catalog
+        from .._diagnostics import coverage_matrix
+        from .._engines import CANONICAL_LABELS, DEFAULT_ENTITY_LABELS
+        from .._patterns import PATTERNS
+        from .._surrogates import SURROGATE_KINDS
+
+        rows = {row.kind: row for row in coverage_matrix()}
+        assert {k for k, r in rows.items() if r.pattern} == set(PATTERNS)
+        assert {k for k, r in rows.items() if r.entity} == set(CANONICAL_LABELS)
+        assert {k for k, r in rows.items() if r.entity_default} == set(DEFAULT_ENTITY_LABELS)
+        assert {k for k, r in rows.items() if r.surrogate} == set(SURROGATE_KINDS)
+        for name, pack in builtin_catalog().packs.items():
+            for spec in pack.fields:
+                assert name in rows[spec.kind].pack_fields
+            for spec in pack.patterns:
+                assert name in rows[spec.kind].pack_patterns
+                if spec.validate is not None:
+                    assert rows[spec.kind].validated
+        assert rows["PERSON"].entity_tiers == ("ner", "nltk")
+        assert rows["EMAIL"].entity_tiers == ()
+
+    def test_the_action_column_reads_the_policy(self):
+        from .._diagnostics import coverage_matrix
+        from .._policy import DEFAULT_POLICY, TagStyle
+
+        rows = {r.kind: r for r in coverage_matrix(DEFAULT_POLICY.evolve(actions={"PHONE": "report"}))}
+        assert (rows["PHONE"].action, rows["PHONE"].reversible) == ("report", False)
+        assert (rows["EMAIL"].action, rows["EMAIL"].reversible) == ("tokenize", True)
+        styled = DEFAULT_POLICY.evolve(tag_style=TagStyle(style="surrogate"))
+        rows = {r.kind: r for r in coverage_matrix(styled)}
+        assert rows["EMAIL"].action == "surrogate"
+        assert rows["CREDIT_CARD"].action == "tokenize"
+
+    def test_a_custom_pack_appears(self, tmp_path):
+        from .._custom import load_custom
+        from .._diagnostics import coverage_matrix
+
+        path = tmp_path / "hr.json"
+        path.write_text(
+            '{"name": "hr", "version": 1, "summary": "s", "patterns": [{"kind": "EMPLOYEE",'
+            ' "pattern": "EMP-\\\\d{6}", "intent": "i", "examples_yes": ["EMP-004121"]}]}',
+            encoding="utf-8",
+        )
+        catalog = load_custom([str(path)])
+        rows = {r.kind: r for r in coverage_matrix(catalog=catalog)}
+        assert rows["EMPLOYEE"].pack_patterns == ("hr",)

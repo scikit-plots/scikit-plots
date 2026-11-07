@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 import copy
 import json
 import shutil
-import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -16,14 +15,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 TESTS = Path(__file__).resolve().parent
 SEC = RUNTIME_ROOT / "_hf_spaces_proxy" / "security"
-sys.path.insert(0, str(TESTS)); sys.path.insert(0, str(SEC))
-import test_verify_archive_merkle_transparency as t164
-import test_govern_archive_merkle_log_authority as t165
-import test_continue_archive_merkle_authority as t166
-import continue_archive_merkle_authority as cont
-import govern_archive_merkle_log_authority as auth
-import rebridge_archive_merkle_authority as rb
-import verify_archive_merkle_transparency as merkle
+from . import test_verify_archive_merkle_transparency as t164
+from . import test_govern_archive_merkle_log_authority as t165
+from . import test_continue_archive_merkle_authority as t166
+from ...._hf_spaces_proxy.security import continue_archive_merkle_authority as cont
+from ...._hf_spaces_proxy.security import govern_archive_merkle_log_authority as auth
+from ...._hf_spaces_proxy.security import rebridge_archive_merkle_authority as rb
+from ...._hf_spaces_proxy.security import verify_archive_merkle_transparency as merkle
+from . import _stages
 
 NOW = t164.NOW
 T2 = NOW + timedelta(minutes=5)
@@ -46,10 +45,9 @@ def _write(path, obj):
     return path
 
 
-@pytest.fixture(scope="module")
-def base(tmp_path_factory):
-    tmp = tmp_path_factory.mktemp("run167-base")
-    f = t164._fixture(tmp / "pred")
+def _build_base(tmp):
+    """Build the Run 164-166 state every Run 167 test starts from (shared, see ``_stages``)."""
+    f = _stages.shared("run164-fixture", t164._fixture, tmp / "pred")
     run164 = tmp / "run164"
     merkle.anchor_merkle_transparency(**t164._kwargs(f, run164), adapters=f["adapters"])
     gov, gp, gpin, gpriv = t165._control_root(tmp, name="gov")
@@ -67,6 +65,11 @@ def base(tmp_path_factory):
     run161c, wout3, aout3 = t166._advance_run163(f, tmp / "advance3", seq=3, run161_prev=run161b, wout_prev=wout2, aout_prev=aout2, now=T3)
     b.update(run166=run166, leaves=leaves, run161c=run161c, wout3=wout3, aout3=aout3)
     return b
+
+
+@pytest.fixture(scope="module")
+def base(tmp_path_factory):
+    return _stages.shared("run167-base", _build_base, tmp_path_factory.mktemp("run167-base"))
 
 
 def _kwargs(base, out, *, run161=None, wout=None, aout=None, now=T3, historical=None):

@@ -1,0 +1,9 @@
+- New :func:`scikitplot.config.citation` returns a BibTeX entry.
+  ``citation("all")`` (the default) is :data:`scikitplot.__bibtex__`, which
+  cites every version. ``citation("build")`` cites the installed build: its
+  version and kind, the build version with its commit, and the URL of that
+  exact source tree, so a notebook can record exactly what it ran. A build
+  made without git has no year or month and cites the repository. A release
+  gets its own Zenodo DOI only when the DOI was known at build time. The entry
+  is the same one ``tools/citation/citation_ref.py`` writes for that version,
+  commit and date; nothing is read from the network.

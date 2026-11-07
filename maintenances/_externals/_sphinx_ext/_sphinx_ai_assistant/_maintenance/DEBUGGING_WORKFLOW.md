@@ -94,7 +94,8 @@ prevention rule, and how to verify the prevention rule.
 
 Before creating or moving a Python test, resolve its runtime owner. Use exactly
 `test_<module>.py` (`test___init__.py` for `__init__.py`). If that canonical file
-is too large, add a non-collected fragment under `_cases/<module>/` and load it
-through `_case_loader.py`; do not create another collected owner. Integration
+is too large, add a non-collected fragment under `_cases/<owner>/` (the module's
+name without its leading underscore, or its trailing words), list it in the
+owner's `export_case_tests` call and load it through `_case_loader.py`; do not create another collected owner. Integration
 and architecture tests must remain explicit cross-module planes. After any move,
 run collection first so stale imports/paths fail before behavioral debugging.

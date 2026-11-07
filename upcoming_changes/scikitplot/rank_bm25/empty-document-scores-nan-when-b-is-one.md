@@ -1,13 +1,13 @@
 ---
 title: "Empty documents score NaN when b == 1"
-status: open
+status: promoted
 kind: "bug"
 area: "scikitplot/rank_bm25"
 discovered_during: "precomputed scoring engine equivalence work (PR 906)"
 release_note: "required"
 towncrier_section: "scikitplot.rank_bm25"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/909.fix.rst"
 ---
 
 # Empty documents score NaN when b == 1

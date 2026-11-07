@@ -1,0 +1,5 @@
+- ``scikitplot.cleanprompt``: values written with invisible format characters
+  (zero-width spaces and joiners, bidirectional controls, soft hyphens),
+  full-width or other compatibility forms, or Unicode spaces and dashes inside
+  them are now detected and restored exactly as written; previously they were
+  sent unredacted.

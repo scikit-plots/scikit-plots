@@ -124,7 +124,9 @@ source/path/__init__.py -> tests/path/test___init__.py
 ```
 
 There is one collected Python owner per source module. Large contracts may use
-non-collected `_cases/<source>/` fragments loaded by `tests/_case_loader.py`; do
+non-collected `_cases/<owner>/` fragments (the owner module's name without its
+leading underscore, or its trailing words), each listed in the owner's
+`export_case_tests` call and loaded by `tests/_case_loader.py`; do
 not create `test_<module>__feature.py` siblings. `_integration/`, `_architecture/`,
 and `_static/ai_assistant/` are explicit exceptions for cross-module or non-Python
 contracts. After any test move, run collection before behavior tests and search
@@ -133,7 +135,7 @@ for stale direct filename references.
 ### Browser harness ownership
 
 Node harnesses live in `tests/_static/ai_assistant/` as
-`test_ai_assistant__<contract>.mjs` -- one file per behavioural contract rather
+`test_<contract>.mjs` -- one file per behavioural contract rather
 than per source file, because the shipped JavaScript is a single bundle with no
 module boundary to mirror. `tests/_architecture/test_js_harnesses.py` discovers
 them by glob and requires a non-vacuous summary line, so a new harness becomes a

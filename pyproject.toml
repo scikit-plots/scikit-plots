@@ -568,6 +568,7 @@ cleanprompt = [
   ## Download best-matching version of specific model for your spaCy installation
   # python -m spacy download en_core_web_sm
   "spacy",                                  # https://github.com/explosion/spaCy#-download-model-packages advanced Natural Language Processing
+  "regex",                                  # https://github.com/mrabarnett/mrab-regex  a time limit on custom pack patterns
 ]
 
 ## cleanprompt optional tiers, one extra per tier.
@@ -587,6 +588,9 @@ cleanprompt-web = [
 ]
 cleanprompt-crypto = [
   "cryptography",                           # the Fernet vault cipher (--cipher fernet)
+]
+cleanprompt-timeout = [
+  "regex",                                  # a time limit on custom pack patterns (--pattern-timeout)
 ]
 
 ## scikitplot._env (`scikitplot env`): the core is standard library only.
@@ -648,7 +652,8 @@ corpus = [
 ## final, so there is no installable wheel on the 3.15 pre-release yet. Raise or
 ## remove the marker once a Numba release supports 3.15 and CI passes.
 rank-bm25 = [
-  'numba>=0.57.0; python_version < "3.15"',
+  # 'numba>=0.57.0; python_version < "3.15"',
+  'numba; python_version < "3.15"',
 ]
 
 ## mlflow submodule dep
@@ -1818,6 +1823,13 @@ libs = [
   "upcoming_changes/libs/{rel}/**/*",
   "docs/source/whats_new/upcoming_changes/{section}/**/*",
 ]
+
+# Extra literal globs for one owner, where its folders do not follow {rel}:
+# the galleries of the private _env and _ipymagic modules use their public
+# names (chosen in PR 891). Each glob must match a file; a stale entry fails.
+[tool.scikitplot.maintenance.labeler.satellite_paths]
+"scikitplot._env" = ["galleries/examples/env/**/*"]
+"scikitplot._ipymagic" = ["galleries/examples/ipymagic/**/*"]
 
 # Owners whose "<root>/<path>" label would exceed max_label_length.
 [tool.scikitplot.maintenance.labeler.label_aliases]
