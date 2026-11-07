@@ -1,5 +1,13 @@
 """
 Tests for ``_rst_renderer``: rendering, and how failures are reported.
+
+Notes
+-----
+**Developer notes.** Log records are read through the ``captured_logger``
+fixture (:mod:`scikitplot.logging._capture`), not ``caplog.at_level``: the
+``"scikitplot"`` logger does not propagate, and pytest before 9.1 (the
+release Python 3.9 resolves to) attaches ``caplog`` to the root logger only,
+so ``caplog.at_level`` saw no record there and passed vacuously elsewhere.
 """
 
 from __future__ import annotations
@@ -8,6 +16,7 @@ import logging
 
 import pytest
 
+from .. import _rst_renderer
 from .._rst_renderer import render_rst_templates
 
 GOOD = "Hello {{ name }}!\n"
@@ -102,10 +111,10 @@ class TestStrict:
 
 
 class TestBestEffort:
-    def test_a_failure_is_skipped_and_logged(self, tmp_path, caplog):
+    def test_a_failure_is_skipped_and_logged(self, tmp_path, caplog, captured_logger):
         _write(tmp_path, "a", UNDEFINED)
         _write(tmp_path, "b", GOOD)
-        with caplog.at_level(logging.WARNING):
+        with captured_logger(logging.WARNING, _rst_renderer.logger):
             outputs = render_rst_templates(tmp_path, context={"name": "x"})
         assert outputs == [tmp_path / "b.rst"]
         warnings = [r.getMessage() for r in caplog.records]
@@ -113,8 +122,8 @@ class TestBestEffort:
         assert "a.rst.template" in warnings[0]
         assert "UndefinedError" in warnings[0]
 
-    def test_no_failure_logs_nothing(self, tmp_path, caplog):
+    def test_no_failure_logs_nothing(self, tmp_path, caplog, captured_logger):
         _write(tmp_path, "a", GOOD)
-        with caplog.at_level(logging.WARNING):
+        with captured_logger(logging.WARNING, _rst_renderer.logger):
             render_rst_templates(tmp_path, context={"name": "x"})
         assert caplog.records == []

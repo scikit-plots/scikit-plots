@@ -552,17 +552,17 @@ def git_version(
         # with a message naming its top level. Trust that top level for this
         # one command only; never retry other failures, and never write to
         # any Git configuration.
-        trusted = _dubious_repository(stderr_str) if returncode == 128 else None
-        if trusted is not None:
+        toplevel = _dubious_repository(stderr_str) if returncode == 128 else None
+        if toplevel is not None:
             returncode, raw_output, stderr_str = _run_git(
-                ["git", "-c", f"safe.directory={trusted}", *git_command[1:]],
+                ["git", "-c", f"safe.directory={toplevel}", *git_command[1:]],
                 cwd=git_dir,
             )
             if returncode != 0 and _dubious_repository(stderr_str) is not None:
                 stderr_str += (
                     "\n(this Git ignores a command-line safe.directory; to trust "
                     f"the checkout persistently run: git config --global --add "
-                    f"safe.directory {trusted})"
+                    f"safe.directory {toplevel})"
                 )
         # Check if git command succeeded
         if returncode != 0:

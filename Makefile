@@ -776,7 +776,6 @@ dev: clean
 
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
 	@# python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
-
 	@# find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
 ## If using bash/zsh and want cleaner syntax (|& = stdout + stderr)

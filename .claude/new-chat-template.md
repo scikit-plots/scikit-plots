@@ -127,6 +127,13 @@ one line.
   - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`
     and `python -m scikitplot.cleanprompt packs --check` (after
     `packs --compile` when a pack changed)
+  - the published plugin (`scikit-plots/skills`; every push to `main`
+    publishes `plugins/scikitplot/`):
+    `python tools/maint_tools/generate_usage_skills.py check` (needs the
+    package installed with its optional dependencies; `sync` when stale) and
+    `python tools/maint_tools/build_skills_repo.py build --out DIR --unversioned`
+    (its validation must pass; compare DIR with a clone of
+    `scikit-plots/skills` to list what the merge will publish)
 - Default output unchanged (cleanprompt):
   `python -B maintenances/cleanprompt/_maintenance/tools/output_digest.py --check`.
   Record a new baseline (`--record`) only for a deliberate change in default
@@ -166,3 +173,8 @@ Run every gate in section 5, list the fragments for the PR number, list the
 findings closed and the notes still open (deferred or waiting on me), name any
 pre-existing gate failure and any suite that could not run here, and draft
 the pull-request title and description ending with the AI-assistance line.
+The description has an "Effect on scikit-plots/skills" section: what the
+merge publishes there (from the build comparison in section 5), whether the
+usage skills were regenerated, and any open directory finding
+(`upcoming_changes/tools/maint_tools/claude-directory-refused-skills-build.md`
+while it is open).

@@ -11,6 +11,7 @@ real chain stages of the other test modules are never touched.
 from __future__ import annotations
 
 import os
+import stat
 from pathlib import Path
 from typing import NamedTuple
 
@@ -114,10 +115,10 @@ def test_any_change_to_a_stage_is_detected_and_names_the_test(
     elif change == "remove":
         doc.unlink()
     elif change == "mode":
-        private_mode = 0o600
-        os.chmod(
-            doc, private_mode if (doc.stat().st_mode & 0o777) != private_mode else 0o644
-        )
+        # Flip the owner-write bit: the one permission change every platform
+        # honours. On Windows ``os.chmod`` maps only that bit (to read-only),
+        # so 0o600 and 0o644 both left a writable file at 0o666, unchanged.
+        os.chmod(doc, stat.S_IMODE(doc.stat().st_mode) ^ stat.S_IWUSR)
     else:
         try:
             (value["dir"] / "link").symlink_to(doc)
