@@ -198,7 +198,10 @@ jobs:
         #   - skill, command, agent and output-style frontmatter keeps only
         #     `name` and `description`, the keys known to be accepted; an
         #     agent's `skills:` preload becomes one line in its body naming
-        #     the skill to load, so the agent still starts from it.
+        #     the skill to load, so the agent still starts from it;
+        #   - no text names a package manager's configuration file, changes
+        #     its configuration or sets an index or registry
+        #     (LAUNCHER_REGISTRY_REDIRECT).
         # Deterministic: the same tree in gives the same tree out.
         env:
           TREE: ${{ runner.temp }}/tree
@@ -218,6 +221,17 @@ jobs:
           PM_CONFIG = {".npmrc", ".yarnrc", ".yarnrc.yml", "bunfig.toml",
                        "pip.conf", "pip.ini", "uv.toml", "pnpm-workspace.yaml",
                        ".pypirc", ".condarc", "poetry.toml"}
+          # Text the directory reads as redirecting a package source
+          # (LAUNCHER_REGISTRY_REDIRECT): changing a package manager's
+          # configuration, an index or registry option, or naming one of its
+          # configuration files (config.json included) or VIRTUAL_ENV.
+          PM_TEXT = re.compile(
+              r"(?i)\b(?:npm|pnpm|yarn|bun|pip|uv|conda) config (?:set|edit)\b"
+              r"|--(?:extra-)?index-url\b|--registry\b|--trusted-host\b"
+              r"|\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|VIRTUAL_ENV)\b"
+              r"|(?<![\w.-])(?:config\.json|\.npmrc|\.yarnrc(?:\.yml)?|bunfig\.toml|pip\.(?:conf|ini)"
+              r"|uv\.toml|pnpm-workspace\.yaml|\.condarc|\.pypirc|poetry\.toml)\b"
+          )
           KEY = re.compile(r"([A-Za-z0-9_-]+):(.*)")
           ITEM = re.compile(r"\s+-\s+(\S.*)")
           problems = []
@@ -292,9 +306,14 @@ jobs:
               if b"\x00" in data:
                   problems.append(f"{rel}: holds a NUL byte")
               try:
-                  data.decode("utf-8")
+                  text = data.decode("utf-8")
               except UnicodeDecodeError:
                   problems.append(f"{rel}: not UTF-8 text")
+                  continue
+              if not rel.startswith("LICENSE"):
+                  for found in PM_TEXT.finditer(text):
+                      line = text.count("\n", 0, found.start()) + 1
+                      problems.append(f"{rel}:{line}: package-source text {found.group(0)!r}")
 
           for problem in problems:
               print(f"::error::{problem}")

@@ -60,8 +60,6 @@ All names with signatures: [references/API.md](references/API.md).
 >>> rng = default_rng(42)
 >>> data = rng.random(1000)
 
-Context manager
-
 >>> with default_rng(42) as rng:
 ...     data = rng.random(1000)
 >>>

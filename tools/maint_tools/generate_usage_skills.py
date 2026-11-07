@@ -84,6 +84,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import doctest
 import enum
 import importlib
 import importlib.util
@@ -93,6 +94,7 @@ import os
 import pathlib
 import re
 import sys
+import textwrap
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -787,16 +789,65 @@ def _signature(name: str, obj: object) -> str:
     return f"`{name}{text}`".replace("|", "\\|")
 
 
+_DOCTEST = doctest.DocTestParser()
+
+
 def _examples(doc: str) -> str:
-    """Return the doctest lines of a numpydoc ``Examples`` section, or ``""``."""
+    """
+    Return the executed doctest examples of a numpydoc ``Examples`` section.
+
+    Parameters
+    ----------
+    doc : str
+        A docstring, possibly empty.
+
+    Returns
+    -------
+    str
+        The section's examples as a ``pycon`` transcript, or ``""`` when the
+        docstring has no ``Examples`` section or every example in it is
+        skipped.
+
+    Notes
+    -----
+    **Developer notes.** The section is read with :class:`doctest.DocTestParser`,
+    the parser the test suite runs, so the skill shows exactly the examples a
+    doctest run executes and checks. An example marked ``# doctest: +SKIP``
+    never runs: its call and its output are unverified, and it is where a
+    docstring keeps live network sources, files the reader does not have and
+    optional backends. Prose between examples is commentary for the rendered
+    documentation, not transcript, and is not copied into the code block.
+    A ``>>>`` comment line is transcript and is kept; reST markup such as a
+    ``.. plot::`` directive is not. Lines that were separated in the docstring
+    stay separated by one blank line, and the block is dedented.
+    """
     doc = inspect.cleandoc(doc or "")
     parts = _SECTION.split(doc)
     # parts: [before, title1, body1, title2, body2, ...]
     for index in range(1, len(parts) - 1, 2):
-        if parts[index].strip() == "Examples":
-            lines = [l for l in parts[index + 1].strip("\n").splitlines()]
-            if any(l.lstrip().startswith(">>>") for l in lines):
-                return "\n".join(lines).strip()
+        if parts[index].strip() != "Examples":
+            continue
+        body = parts[index + 1].split("\n")
+        role: Dict[int, bool] = {}  # line -> True kept example, False skipped
+        for example in _DOCTEST.get_examples(parts[index + 1]):
+            size = example.source.count("\n") + example.want.count("\n")
+            for line in range(example.lineno, example.lineno + size):
+                role[line] = not example.options.get(doctest.SKIP, False)
+        if True not in role.values():
+            continue
+        kept: List[str] = []
+        gap = False
+        for number, text in enumerate(body):
+            # A ">>>" line outside any example is a comment or a bare prompt.
+            keep = role.get(number, text.lstrip().startswith(">>>"))
+            if keep:
+                if gap and kept:
+                    kept.append("")
+                kept.append(text.rstrip())
+                gap = False
+            else:
+                gap = True
+        return textwrap.dedent("\n".join(kept))
     return ""
 
 

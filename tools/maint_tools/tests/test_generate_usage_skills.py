@@ -39,6 +39,27 @@ class TextTests(unittest.TestCase):
         self.assertEqual(MODULE._examples(doc), ">>> 1 + 1\n2")
         self.assertEqual(MODULE._examples("Summary only."), "")
 
+    def test_skipped_examples_and_prose_are_not_copied(self):
+        """Only what a doctest run executes is shown (the corpus skill shipped
+        skipped network calls and prose inside its ``pycon`` block)."""
+        doc = (
+            "Summary.\n\nExamples\n--------\nDirect use:\n\n>>> a = 1\n>>> a\n1\n\n"
+            "Network:\n\n>>> fetch(\"https://example.invalid/\")  # doctest: +SKIP\n"
+            ">>> with c:\n...     run(\"./data/\")  # doctest: +SKIP\n>>> a + 1\n2\n"
+        )
+        self.assertEqual(MODULE._examples(doc), ">>> a = 1\n>>> a\n1\n\n>>> a + 1\n2")
+
+    def test_comments_stay_and_a_directive_goes(self):
+        doc = (
+            "Summary.\n\nExamples\n--------\n.. plot::\n   :include-source:\n\n"
+            "   >>> # Load the data\n   >>>\n   >>> x = 1\n   >>> x\n   1\n"
+        )
+        self.assertEqual(MODULE._examples(doc), ">>> # Load the data\n>>>\n>>> x = 1\n>>> x\n1")
+
+    def test_a_section_of_skipped_examples_gives_nothing(self):
+        doc = "Summary.\n\nExamples\n--------\n>>> f()  # doctest: +SKIP\n"
+        self.assertEqual(MODULE._examples(doc), "")
+
 
 class StableSignatureTests(unittest.TestCase):
     def test_a_set_default_is_sorted_and_an_address_dropped(self):

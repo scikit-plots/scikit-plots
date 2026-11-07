@@ -81,8 +81,6 @@ Declared in `scikitplot.mlflow.__all__`, in that order.
 ## Example (from the docstring of `scikitplot.mlflow`)
 
 ```pycon
-Quiskstart Template: Beginner workflow demo
-
 >>> import os
 >>> import scikitplot as sp
 >>>
@@ -99,8 +97,6 @@ Quiskstart Template: Beginner workflow demo
 ...     fmt="toml",
 ...     overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
 ... )
-
-CLI
 
 >>> # Walk upward from `start` until a directory containing any marker is found.
 >>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
