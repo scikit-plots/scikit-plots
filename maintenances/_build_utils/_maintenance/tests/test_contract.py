@@ -13,8 +13,32 @@ def clone(tmp_path):
 
 def write_json(p,obj): p.write_text(json.dumps(obj,indent=2)+'\n',encoding='utf-8')
 
-def test_baseline_reports_maintenance_pass_runtime_fail():
-    out=C.check(SOURCE); assert out['maintenance_status']=='PASS'; assert out['runtime_status']=='FAIL'; assert out['release_status']=='BLOCKED'; assert len(out['runtime_errors'])>=6
+def test_baseline_reports_every_status_pass():
+    """The seven owned findings are repaired and the inventory is blessed."""
+    out=C.check(SOURCE); assert out['maintenance_status']=='PASS'; assert out['runtime_status']=='PASS', out['runtime_errors']; assert out['release_status']=='PASS'
+
+
+# Each owned defect, put back into a clone, is reported again by its check.
+REGRESSIONS = [
+    ('cython_generate.py', '            if actual != expected:', '            elif "{{" in content or "}}" in content:\n                pass\n            if actual != expected:', 'cython_validation', 'doubled-brace'),
+    ('cython_generate.py', 'os.replace(tmp_name, str(output_path))', 'output_path.write_text(content)', 'cython_validation', 'atomic'),
+    ('gitversion.py', '    except OSError as exc:\n        return (127, "", f"cannot run {command[0]!r}: {exc}")', '    except OSError as exc:\n        print(exc)\n        return (0, "", str(exc))', 'git_error_contract', 'UnboundLocalError'),
+    ('gitversion.py', '    except OSError as exc:\n        return (127, "", f"cannot run {command[0]!r}: {exc}")', '    except OSError as exc:\n        pass\n    return (1, "", str(exc))', 'git_error_contract', 'UnboundLocalError'),
+    ('gitversion.py', '        trusted = _dubious_repository(stderr_str) if returncode == 128 else None', '        trusted = None\n        if returncode == 128:\n            add_safe_directory(repo_path=git_dir)', 'git_safe_directory', '--global'),
+    ('install_meson_features.py', 'not filecmp.cmp(source[rel], installed[rel], shallow=False)', 'os.path.getmtime(source[rel]) > os.path.getmtime(installed[rel])', 'meson_freshness', 'mtimes'),
+    ('copyfiles.py', '        parent = os.path.dirname(dest)\n        if parent:\n            os.makedirs(parent, exist_ok=True)', '        os.makedirs(os.path.dirname(dest), exist_ok=True)', 'copy_semantics', 'bare destination'),
+]
+
+
+@pytest.mark.parametrize(('rel','old','new','check','needle'), REGRESSIONS, ids=[f'{r[3]}-{i}' for i, r in enumerate(REGRESSIONS)])
+def test_a_reintroduced_defect_is_reported(tmp_path, rel, old, new, check, needle):
+    r=clone(tmp_path); p=r/'scikitplot/_build_utils'/rel; s=p.read_text(encoding='utf-8')
+    assert s.count(old)==1, f'the repaired form changed in {rel}; update this regression'
+    p.write_text(s.replace(old,new),encoding='utf-8')
+    if needle=='mtimes':  # the defect also dropped content comparison
+        p.write_text(p.read_text(encoding='utf-8').replace('import filecmp\n','',1),encoding='utf-8')
+    errs=getattr(C,check)(r,json.loads((r/'maintenances/_build_utils/MAINTENANCE.json').read_text()))
+    assert any(needle in e for e in errs), errs
 
 def test_checker_runs_from_foreign_cwd(tmp_path):
     r=subprocess.run([sys.executable,str(CHECK),'--json'],cwd=tmp_path,text=True,capture_output=True); assert r.returncode==0; o=json.loads(r.stdout); assert o['maintenance_status']=='PASS'

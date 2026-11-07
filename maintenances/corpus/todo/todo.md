@@ -368,3 +368,18 @@ everywhere, with opt-in UUIDv7).
   legs, each 5170 passed and the same 14 DNS failures as 3b.
 - Lessons: Rule 127 extended (the check before every call includes a
   component's helper calls).
+
+### PR 907: routing extension (query shapes)
+- [x] `RoutingRule`, `RoutingPolicy`, `QueryShape`, `DEFAULT_ROUTING_POLICY`,
+  `query_tokens` (`_routing.py`); `route(..., has_metadata=, policy=)` and
+  `RoutePlan.shapes`/`unavailable` (`_agentic.py`). Design reviewed
+  2026-11-03: additive (a plain query routes exactly as before), rules as
+  data (custom policies, other languages, `matcher` callables), no model.
+- Shapes map to legs we have: `multi_hop`, `hierarchy` -> graph;
+  `aggregation`, `negation`, `temporal` -> metadata. A leg is added only
+  when the index has it; a missing one is reported in `unavailable`.
+- Whole-word matching only (no caller regex): linear in the query length,
+  checked with a 20 000-word query.
+- Acceptance: the labelled routing set (`tests/data/routing_set.json`, 45
+  queries: every shape, combinations, unavailable legs, near misses such as
+  `notebook`, `knot`, `sectional`) passes; 73 tests in `test__routing.py`.

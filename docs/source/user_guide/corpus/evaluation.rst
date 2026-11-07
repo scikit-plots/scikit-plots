@@ -229,7 +229,8 @@ scikit-learn scorers
 :func:`make_corpus_scorer` mirrors :func:`sklearn.metrics.make_scorer`
 (``score_func``, ``greater_is_better``, ``**kwargs``), and
 :func:`get_corpus_scorer` mirrors :func:`sklearn.metrics.get_scorer` with names
-such as ``"ndcg@10"``. Both add two ways to get predictions:
+such as ``"ndcg@10"``. Both add two ways to get predictions (for ``sample_weight`` and metadata
+routing, see :ref:`metadata_routing`):
 
 * ``response_method="predict"``: ``estimator.predict(X)`` returns one ranking
   (or answer) per query. From scikit-learn 1.4, a scikit-learn estimator

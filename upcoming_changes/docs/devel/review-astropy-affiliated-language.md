@@ -1,3 +1,15 @@
+---
+title: "Review inherited Astropy-affiliated wording in developer documentation"
+status: open
+kind: "docs-contract"
+area: "docs/source/devel"
+discovered_during: "affiliated-index (partial distributions) documentation task"
+release_note: "not-required"
+towncrier_section: "documentation"
+towncrier_type: "other"
+towncrier_fragment: ""
+---
+
 # Review inherited Astropy-affiliated wording in developer documentation
 
 ## Finding
@@ -26,3 +38,9 @@ For each statement, classify it as Scikit-Plots policy, useful upstream guidance
 that should be attributed, or stale inherited text that should be removed.
 Synchronize the resulting terminology with the partial-distribution model in
 `docs/source/affiliated/index.rst`.
+
+## Related
+
+`upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md` covers the
+same inherited text in `docs/source/devel/maintainers/` (changelog and release
+steps); review the two together so the terminology agrees.

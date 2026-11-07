@@ -72,6 +72,7 @@ async def _bounded_json(  # ruff: ignore[too-many-branches]
     params: Any = None,
     content: bytes | None = None,
     data: dict[str, str] | None = None,
+    files: dict[str, tuple[str, bytes, str]] | None = None,
     raw: bool = False,
     label: str = "GitHub",
 ) -> tuple[int, Any]:
@@ -93,7 +94,11 @@ async def _bounded_json(  # ruff: ignore[too-many-branches]
     content : bytes, optional
         Exact body bytes (the webhook adapter signs these).
     data : dict, optional
-        Form fields (``application/x-www-form-urlencoded``).
+        Form fields (``application/x-www-form-urlencoded``, or the text parts
+        of a multipart body when *files* is given).
+    files : dict, optional
+        Multipart file parts ``{field: (filename, bytes, content type)}``
+        (``multipart/form-data``, encoded by the client).
     raw : bool, default False
         Return the body bytes instead of parsed JSON.
     label : str, default "GitHub"
@@ -116,9 +121,14 @@ async def _bounded_json(  # ruff: ignore[too-many-branches]
             method,
             url,
             headers=headers,
-            json=json_body if content is None and data is None else None,
+            json=(
+                json_body
+                if content is None and data is None and files is None
+                else None
+            ),
             content=content,
             data=data,
+            files=files,
             params=params,
             timeout=_REQUEST_TIMEOUT_SECONDS,
         )

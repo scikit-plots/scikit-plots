@@ -248,3 +248,46 @@ def _root():
     import pathlib
 
     return pathlib.Path(__file__).resolve().parents[3]
+
+
+class TestActions:
+    """CP-115: the per-kind action layer of the policy."""
+
+    def test_default_policy_has_none_and_keeps_its_fingerprint(self):
+        assert DEFAULT_POLICY.actions == ()
+        assert "actions" not in DEFAULT_POLICY.as_dict()
+
+    def test_a_mapping_is_normalised_to_sorted_pairs(self):
+        from .._policy import Action
+
+        policy = DEFAULT_POLICY.evolve(actions={"PHONE": "report", "EMAIL": "surrogate"})
+        assert policy.actions == (("EMAIL", Action.SURROGATE), ("PHONE", Action.REPORT))
+        assert all(isinstance(action, Action) for _, action in policy.actions)
+
+    def test_actions_join_the_fingerprint(self):
+        a = DEFAULT_POLICY.evolve(actions={"EMAIL": "report"})
+        b = DEFAULT_POLICY.evolve(actions={"EMAIL": "block"})
+        assert len({DEFAULT_POLICY.fingerprint, a.fingerprint, b.fingerprint}) == 3
+        assert a.fingerprint == DEFAULT_POLICY.evolve(actions=[("EMAIL", "report")]).fingerprint
+
+    @pytest.mark.parametrize(
+        ("actions", "message"),
+        [
+            ({"CREDIT_CARD": "surrogate"}, "not available for kind 'CREDIT_CARD'"),
+            ({"EMAIL": "redact"}, "unknown action 'redact'"),
+            ("EMAIL", "not be a string"),
+            ([("EMAIL",)], "pairs"),
+            ([("EMAIL", "report"), ("EMAIL", "block")], "given twice"),
+            ({"": "report"}, "non-empty strings"),
+        ],
+    )
+    def test_invalid_actions_are_refused(self, actions, message):
+        with pytest.raises(PolicyError, match=message):
+            DEFAULT_POLICY.evolve(actions=actions)
+
+    def test_action_for(self):
+        from .._policy import Action
+
+        policy = DEFAULT_POLICY.evolve(actions={"EMAIL": "block"})
+        assert policy.action_for("EMAIL") is Action.BLOCK
+        assert policy.action_for("PHONE") is None

@@ -16,11 +16,12 @@ pip install scikit-plots-cleanprompt
 
 Optional extras:
 
-- `pip install "scikit-plots-cleanprompt[cleanprompt]"`: `lxml`, `flask`, `cryptography`, `nltk`, `spacy`
+- `pip install "scikit-plots-cleanprompt[cleanprompt]"`: `lxml`, `flask`, `cryptography`, `nltk`, `spacy`, `regex`
 - `pip install "scikit-plots-cleanprompt[cleanprompt-ner]"`: `spacy`
 - `pip install "scikit-plots-cleanprompt[cleanprompt-nltk]"`: `nltk`
 - `pip install "scikit-plots-cleanprompt[cleanprompt-web]"`: `flask`
 - `pip install "scikit-plots-cleanprompt[cleanprompt-crypto]"`: `cryptography`
+- `pip install "scikit-plots-cleanprompt[cleanprompt-timeout]"`: `regex`
 - `pip install "scikit-plots-cleanprompt[corpus]"`: `scikit-plots-corpus>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_cleanprompt` installs it too.

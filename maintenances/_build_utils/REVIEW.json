@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "subsystem": "scikitplot._build_utils",
-  "reviewed_at": "2026-09-12",
+  "reviewed_at": "2026-11-04",
   "maintenance_status": "PASS",
-  "runtime_status": "FAIL",
-  "integration_status": "UNAVAILABLE",
+  "runtime_status": "PASS",
+  "integration_status": "PARTIAL",
   "release_status": "BLOCKED",
   "checks": [
     "runtime_presence",
@@ -26,44 +26,51 @@
     {
       "id": "BLD-CYG-001",
       "severity": "high",
-      "status": "open",
-      "summary": "cython_generate --validate rejects the repository's generated Annoy Cython source because legitimate doubled braces in CSS/JavaScript are mistaken for unprocessed Tempita markers."
+      "status": "closed",
+      "summary": "cython_generate --validate rejects the repository's generated Annoy Cython source because legitimate doubled braces in CSS/JavaScript are mistaken for unprocessed Tempita markers.",
+      "resolution": "validate_generated_files compares each X with its X.in rendered again; no brace search, so CSS/JS doubled braces pass and stale or edited outputs fail."
     },
     {
       "id": "BLD-CYG-002",
       "severity": "medium",
-      "status": "open",
-      "summary": "cython_generate documents atomic output, but process_template writes the final file directly with Path.write_text rather than staging and replacing it."
+      "status": "closed",
+      "summary": "cython_generate documents atomic output, but process_template writes the final file directly with Path.write_text rather than staging and replacing it.",
+      "resolution": "process_template writes through _write_atomically (temporary file in the same directory, then os.replace); a failed write keeps the previous output and leaves no temporary."
     },
     {
       "id": "BLD-GIT-001",
       "severity": "high",
-      "status": "open",
-      "summary": "gitversion.add_safe_directory error paths reference exception variable e after its except scope (and from a ValueError handler that binds ve), causing UnboundLocalError instead of the documented fallback result."
+      "status": "closed",
+      "summary": "gitversion.add_safe_directory error paths reference exception variable e after its except scope (and from a ValueError handler that binds ve), causing UnboundLocalError instead of the documented fallback result.",
+      "resolution": "add_safe_directory and the shared _run_git return non-zero codes with messages on every failure (1 invalid path, 127 git not runnable, git's own code); no exception name is read outside its handler."
     },
     {
       "id": "BLD-GIT-002",
       "severity": "high",
-      "status": "open",
-      "summary": "git_version retries any git return code 128 by globally adding the _build_utils subdirectory as safe.directory; this is persistent user Git configuration and is not the repository root."
+      "status": "closed",
+      "summary": "git_version retries any git return code 128 by globally adding the _build_utils subdirectory as safe.directory; this is persistent user Git configuration and is not the repository root.",
+      "resolution": "git_version no longer calls add_safe_directory: on return code 128 with Git's 'dubious ownership' message it retries once with git -c safe.directory=<top level Git names>; nothing is written to any Git configuration, other failures are not retried."
     },
     {
       "id": "BLD-MESON-001",
       "severity": "high",
-      "status": "open",
-      "summary": "install_meson_features._needs_update relies on source-vs-destination mtimes and source names only, so content drift with newer destination timestamps and stale destination-only files can be accepted as up to date."
+      "status": "closed",
+      "summary": "install_meson_features._needs_update relies on source-vs-destination mtimes and source names only, so content drift with newer destination timestamps and stale destination-only files can be accepted as up to date.",
+      "resolution": "_needs_update compares the file sets and bytes (filecmp, shallow=False) of source and destination, recursively, ignoring bytecode; copytree no longer copies __pycache__. Verified live with meson 1.12.1."
     },
     {
       "id": "BLD-COPY-001",
       "severity": "medium",
-      "status": "open",
-      "summary": "copy_file fails for an ordinary destination filename in the current directory because os.path.dirname(dest) is empty and os.makedirs(\"\") raises FileNotFoundError."
+      "status": "closed",
+      "summary": "copy_file fails for an ordinary destination filename in the current directory because os.path.dirname(dest) is empty and os.makedirs(\"\") raises FileNotFoundError.",
+      "resolution": "copy_file creates the parent directory only when dest has one; tqdm is imported only for progress=True, so the module imports without it."
     },
     {
       "id": "BLD-TEST-001",
       "severity": "medium",
-      "status": "open",
-      "summary": "test_gitversion imports the production git-version APIs but never calls them; its green tests mostly re-simulate expected behavior and therefore miss the real error-path defects."
+      "status": "closed",
+      "summary": "test_gitversion imports the production git-version APIs but never calls them; its green tests mostly re-simulate expected behavior and therefore miss the real error-path defects.",
+      "resolution": "test_gitversion calls git_version on a real repository, a stand-in git (dubious ownership, other failures, a Git ignoring command-line trust), no git, and add_safe_directory's error paths; test_cython_generate, test_install_meson_features and test_copyfiles are new."
     }
   ]
 }

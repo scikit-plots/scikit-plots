@@ -129,30 +129,77 @@ def cython_validation(root,m):
         e.append('cython_generate documentation promises atomic output but generator writes directly without atomic replacement')
     return e
 
+def _function(tree,name):
+    for n in ast.walk(tree):
+        if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name: return n
+    return None
+
+
+def _handler_names_used_outside(fn):
+    """Names bound by ``except ... as name`` and read outside that handler."""
+    bound={}; inside=set()
+    for h in ast.walk(fn):
+        if isinstance(h,ast.ExceptHandler) and h.name:
+            bound.setdefault(h.name,[]).append(h)
+            inside.update(id(n) for b in h.body for n in ast.walk(b))
+    return sorted({n.id for n in ast.walk(fn) if isinstance(n,ast.Name) and isinstance(n.ctx,ast.Load) and n.id in bound and id(n) not in inside})
+
+def _success_from_handler(fn):
+    """True when an except handler returns a tuple whose first item is 0."""
+    for h in ast.walk(fn):
+        if isinstance(h,ast.ExceptHandler):
+            for r in (n for b in h.body for n in ast.walk(b)):
+                if isinstance(r,ast.Return) and isinstance(r.value,ast.Tuple) and r.value.elts and isinstance(r.value.elts[0],ast.Constant) and r.value.elts[0].value==0: return True
+    return False
+
 def git_error_contract(root,m):
+    """add_safe_directory's error paths: no exception name read out of scope, no failure reported as 0."""
     p=root/m['runtime_root']/'gitversion.py'
     if not p.is_file(): return []
-    src=p.read_text(encoding='utf-8'); start=src.find('def add_safe_directory'); end=src.find('## Version Extraction',start); seg=src[start:end if end!=-1 else None]
+    try: tree=parse(p)
+    except ContractError as x: return [str(x)]
     e=[]
-    if 'except ValueError as ve:' in seg and 'return (0, "", str(e))' in seg: e.append('add_safe_directory ValueError/error fallback references e outside its exception scope and can raise UnboundLocalError')
+    for name in ('add_safe_directory','_run_git'):
+        fn=_function(tree,name)
+        if fn is None: continue
+        if _handler_names_used_outside(fn) or _success_from_handler(fn):
+            e.append('add_safe_directory ValueError/error fallback references e outside its exception scope and can raise UnboundLocalError'); break
     return e
 
 def git_safe_directory(root,m):
+    """The automatic recovery in git_version must not touch persistent Git config.
+
+    ``add_safe_directory`` may exist as an explicit maintainer tool (it is a
+    required symbol); what must not happen is git_version calling it or any
+    ``--global`` config write, a retry on a return code alone, or trusting a
+    path other than the top level Git reports.
+    """
     p=root/m['runtime_root']/'gitversion.py'
     if not p.is_file(): return []
-    src=p.read_text(encoding='utf-8'); e=[]
-    if '"--global"' in src and '"safe.directory"' in src: e.append('git safe-directory recovery mutates persistent --global Git configuration')
+    try: tree=parse(p)
+    except ContractError as x: return [str(x)]
+    fn=_function(tree,'git_version'); e=[]
+    if fn is None: return ['gitversion.py defines no git_version']
+    calls={(c.func.id if isinstance(c.func,ast.Name) else c.func.attr) for c in ast.walk(fn) if isinstance(c,ast.Call) and isinstance(c.func,(ast.Name,ast.Attribute))}
+    consts={c.value for c in ast.walk(fn) if isinstance(c,ast.Constant) and isinstance(c.value,str)}
+    if 'add_safe_directory' in calls or '--global' in consts: e.append('git safe-directory recovery mutates persistent --global Git configuration')
+    src=p.read_text(encoding='utf-8')
     if 'add_safe_directory(repo_path=git_dir)' in src: e.append('git_version marks the _build_utils working subdirectory safe instead of resolving the Git repository top level')
-    if 'if returncode == 128:' in src and 'dubious ownership' not in src[src.find('if returncode == 128:'):src.find('if returncode == 128:')+350].lower(): e.append('git_version triggers safe-directory mutation for every return code 128 rather than a verified dubious-ownership diagnostic')
+    if 'dubious ownership' not in src.lower() or '_dubious_repository' not in calls: e.append('git_version triggers safe-directory mutation for every return code 128 rather than a verified dubious-ownership diagnostic')
     return e
 
 def meson_freshness(root,m):
+    """_needs_update compares content (no mtimes) and the destination's own file set."""
     p=root/m['runtime_root']/'install_meson_features.py'
     if not p.is_file(): return []
-    src=p.read_text(encoding='utf-8'); start=src.find('def _needs_update'); end=src.find('\ndef main',start); seg=src[start:end]
+    try: tree=parse(p)
+    except ContractError as x: return [str(x)]
+    fn=_function(tree,'_needs_update')
+    if fn is None: return ['install_meson_features.py defines no _needs_update']
+    calls={(c.func.id if isinstance(c.func,ast.Name) else c.func.attr) for c in ast.walk(fn) if isinstance(c,ast.Call) and isinstance(c.func,(ast.Name,ast.Attribute))}
     e=[]
-    if 'getmtime' in seg and 'hashlib' not in seg and 'filecmp' not in seg: e.append('_needs_update uses mtimes rather than content identity, so a newer but different destination can be accepted')
-    if 'os.listdir(dst_dir)' not in seg and 'set(' not in seg: e.append('_needs_update does not detect destination-only stale files removed from the source feature package')
+    if 'getmtime' in calls or not calls & {'cmp','sha256','file_digest'}: e.append('_needs_update uses mtimes rather than content identity, so a newer but different destination can be accepted')
+    if 'set' not in calls: e.append('_needs_update does not detect destination-only stale files removed from the source feature package')
     return e
 
 def copy_semantics(root,m):

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 from datetime import datetime, timezone
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 
@@ -15,16 +14,10 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-gov = _load("run154_governance", SECURITY / "govern_release_history.py")
-run153 = _load("run154_run153_fixture", HERE / "test_preserve_release_history.py")
+from ...._hf_spaces_proxy.security import govern_release_history as gov
+from . import test_preserve_release_history as run153
 NOW = datetime(2026, 9, 5, 9, 0, tzinfo=timezone.utc)
 GOVERNANCE_ID = "scikit-plots/release-governance"
 POLICY_AUTHORITIES = [

@@ -4,6 +4,18 @@ Historical A00-A21 campaign material and the previously-live maintenance files
 are retained under `history/`. They may explain why code exists, but they do not
 establish current build/test status.
 
+## 2026-11-06 — unused metadata-routing mixin removed
+
+- `_mixins/_meta.py` defined `MetadataRoutingMixin` (`get_metadata_routing`,
+  `build_metadata_router`), used and exported nowhere, whose fallbacks built an
+  owner-less scikit-learn `MetadataRequest` or `MetadataRouter` on `TypeError`
+  instead of failing. Removed with its stub entry (pre-1.0, never reachable
+  from the public API, so no release note). `test_mixins.py` now checks that
+  `_meta.__all__` names only defined objects and matches the stub's classes.
+- `check_trackers.py` was already `maintenance=FAIL` before this change
+  (stale runtime fingerprints and inventory in `EVIDENCE.json` and
+  `TRACKER.json`); not refreshed here.
+
 ## 2026-09-28 — verified through the MCP hybrid round (observation)
 
 - With the supplied `scikitplot/externals` build and a scratch root shim for

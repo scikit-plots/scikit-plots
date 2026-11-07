@@ -15,12 +15,13 @@ record says what its values are in its *keys*, and a pattern cannot read a key:
 
 Packs close that gap. A **pack** is a validated YAML definition of what to hide
 in one domain — ``personal``, ``addressbook``, ``patient``, ``finance``,
-``secrets``, ``records``, ``email``, ``cloud``, and ``pandas``/``numpy``/
-``sklearn`` for code. A **format** says how a kind of file is read — CSV by its
-header, JSON by its keys, ``.env`` by ``KEY=value``, a Word file by extracting
-its text — and which packs suit it. :class:`FluentCleanPrompt` combines them
-into one immutable plan, and :class:`Cleaner` applies the plan to text, files,
-folders and zip archives under one shared vault.
+``secrets``, ``records``, ``email``, ``cloud``, ``vehicle``, ``de``, and
+``pandas``/``numpy``/``sklearn`` for code. A **format** says how a kind of
+file is read — CSV by its header, JSON by its keys, ``.env`` by
+``KEY=value``, a Word file by extracting its text — and which packs suit it.
+:class:`FluentCleanPrompt` combines them into one immutable plan, and
+:class:`Cleaner` applies the plan to text, files, folders and zip archives
+under one shared vault.
 
 Every value in this example is reserved and cannot reach anybody.
 """
@@ -98,6 +99,23 @@ numeric = numbers.encode_text('{"mrn": 20417, "visits": 3}', "json")
 show("a hidden number", numeric.text)
 json.loads(numeric.text)
 assert numbers.decode(numeric.text) == '{"mrn": 20417, "visits": 3}'
+
+# %%
+# A pack can also hold a checked pattern. ``vehicle`` finds a vehicle
+# identification number in prose only when its check digit holds, so a
+# seventeen-character product code is left alone, and next to its label it
+# accepts one written without a check digit.
+
+vehicles = FluentCleanPrompt().packs("vehicle").materialize()
+ticket = (
+    "VIN 1M8GDM9AXKP042788 rattles; the loan car is VIN: WVWZZZ3BZWE689725. "
+    "Part ABCDEFGHJK1234567 is on order."
+)
+cleaned = vehicles.encode_text(ticket)
+show("a support ticket", cleaned.text)
+assert "1M8GDM9AXKP042788" not in cleaned.text
+assert "ABCDEFGHJK1234567" in cleaned.text
+assert vehicles.decode(cleaned.text) == ticket
 
 # %%
 # 2. What is available

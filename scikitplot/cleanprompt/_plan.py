@@ -66,11 +66,14 @@ from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 from typing import Any
 
+from ._capabilities import require
 from ._catalog import ALL, AUTO, NONE, Catalog, builtin_catalog, canonical
-from ._engines import ENGINE_MODES
-from ._exceptions import CleanPromptError
+from ._engines import CANONICAL_LABELS, ENGINE_MODES
+from ._exceptions import CapabilityError, CleanPromptError, PatternError, PolicyError
 from ._pattern_risk import PATTERN_RISK_MODES, pack_findings, resolve_pattern_risk
-from ._policy import PROFILES
+from ._pattern_timeout import bounded_compile, check_seconds, resolve_pattern_timeout
+from ._patterns import PATTERNS
+from ._policy import PROFILES, _normalise_actions
 from ._schema import ROLES
 from ._surrogates import STYLES
 
@@ -137,6 +140,16 @@ class CleanPlan:
         ``None`` (default) defers to ``CLEANPROMPT_PATTERN_RISK``, else
         ``'warn'``. Pin ``'refuse'`` in a team plan file to make the check a
         gate.
+    pattern_timeout : float or None
+        Seconds each document may spend in the patterns of custom packs
+        (:mod:`~scikitplot.cleanprompt._pattern_timeout`). ``None`` (default)
+        defers to ``CLEANPROMPT_PATTERN_TIMEOUT``, else no limit. Needs the
+        ``timeout`` tier (the ``regex`` package) when the plan has custom
+        packs.
+    actions : tuple of (str, str)
+        What happens to each kind once detected: ``tokenize``, ``surrogate``,
+        ``report`` or ``block`` (:class:`~._policy.Action`). A kind not listed
+        follows ``style``. Empty (default) changes nothing.
     surrogates : str or None
         Path of a custom surrogate set
         (:mod:`~scikitplot.cleanprompt._surrogate_sets`) whose names replace
@@ -150,8 +163,9 @@ class CleanPlan:
     its canonical form does not depend on iteration order: every collection is
     sorted when it enters, by :class:`FluentCleanPrompt`.
 
-    ``pattern_risk`` and ``surrogates`` are left out of :meth:`as_dict` while
-    they are ``None``, so every plan saved before the fields existed keeps its
+    ``pattern_risk``, ``pattern_timeout`` and ``surrogates`` are left out of
+    :meth:`as_dict` while they are ``None``, and ``actions`` while it is
+    empty, so every plan saved before the fields existed keeps its
     fingerprint (``I12``): adding a setting must not invalidate approved plan
     files.
     """
@@ -172,6 +186,8 @@ class CleanPlan:
     allow: tuple[str, ...] = ()
     remember: bool = True
     pattern_risk: str | None = None
+    pattern_timeout: float | None = None
+    actions: tuple[tuple[str, str], ...] = ()
     surrogates: str | None = None
     configured: tuple[str, ...] = field(default=(), compare=False)
 
@@ -183,8 +199,8 @@ class CleanPlan:
         -------
         dict
             JSON-safe. ``configured`` is left out: it records how the plan was
-            built, not what it means. ``pattern_risk`` and ``surrogates`` are
-            left out while they are ``None``.
+            built, not what it means. ``pattern_risk``, ``pattern_timeout``
+            and ``surrogates`` are left out while they are ``None``.
         """
         out = {}
         for item in fields(self):
@@ -193,6 +209,10 @@ class CleanPlan:
             if item.name in _OMITTED_WHEN_NONE and getattr(self, item.name) is None:
                 continue
             value = getattr(self, item.name)
+            if item.name == "actions":
+                if value:
+                    out["actions"] = dict(value)
+                continue
             out[item.name] = (
                 [list(pair) for pair in value]
                 if item.name == "roles"
@@ -290,6 +310,24 @@ class CleanPlan:
         """
         return resolve_pattern_risk(self.pattern_risk)
 
+    def pattern_timeout_seconds(self) -> float | None:
+        """
+        Return the custom-pattern time limit in force for this plan.
+
+        Returns
+        -------
+        float or None
+            ``pattern_timeout`` when set, else ``CLEANPROMPT_PATTERN_TIMEOUT``,
+            else ``None`` (no limit).
+
+        Raises
+        ------
+        ValueError
+            If the limit, set or from the environment, is not a positive
+            number of seconds.
+        """
+        return resolve_pattern_timeout(self.pattern_timeout)
+
     def validate(self) -> list[str]:  # ruff: ignore[too-many-branches]
         """
         Return every problem with this plan, without raising.
@@ -336,10 +374,20 @@ class CleanPlan:
             problems.append(f"pattern_risk: {exc}")
             mode = None
         try:
+            seconds = self.pattern_timeout_seconds()
+        except ValueError as exc:
+            problems.append(f"pattern_timeout: {exc}")
+            seconds = None
+        try:
             catalog = self.catalog()
         except CleanPromptError as exc:
             problems.append(f"custom: {exc}")
             return problems
+        if seconds is not None and self.custom:
+            problems.extend(
+                f"pattern_timeout: {line}" for line in _unbounded(catalog, self.custom)
+            )
+        problems.extend(action_problems(self.actions, _known_kinds(catalog)))
         if mode == "refuse" and self.custom:
             from ._pattern_risk import (  # ruff: ignore[import-outside-top-level]
                 refusal_lines,
@@ -403,7 +451,103 @@ _TUPLE_FIELDS = ("packs", "formats", "custom", "keep", "hide", "allow")
 _TEXT_FIELDS = ("conflict", "style", "ner", "language")
 _OPTIONAL_TEXT_FIELDS = ("profile", "pattern_risk", "surrogates")
 #: Fields :meth:`CleanPlan.as_dict` leaves out while ``None`` (``I12``).
-_OMITTED_WHEN_NONE = ("pattern_risk", "surrogates")
+_OMITTED_WHEN_NONE = ("pattern_risk", "pattern_timeout", "surrogates")
+
+
+#: Kinds the runtime issues outside patterns, packs and entity engines.
+_RUNTIME_KINDS = frozenset({"CUSTOM", "PATH", "COLUMN", "FIGURE", "OUTPUT"})
+
+
+def _known_kinds(catalog: Catalog) -> frozenset[str]:
+    """
+    Return every kind a cleaner built from ``catalog`` can produce.
+
+    The core patterns, every pack's patterns and fields (selected or not), the
+    entity engines' labels and the runtime's own kinds.
+    """
+    known = set(PATTERNS) | set(CANONICAL_LABELS) | _RUNTIME_KINDS
+    for pack in catalog.packs.values():
+        known.update(spec.kind for spec in pack.patterns)
+        known.update(spec.kind for spec in pack.fields)
+    return frozenset(known)
+
+
+def action_problems(
+    actions: Iterable[tuple[str, str]], known: Iterable[str]
+) -> list[str]:
+    """
+    Return why ``actions`` cannot be used where only ``known`` kinds occur.
+
+    Parameters
+    ----------
+    actions : iterable of (str, str)
+        Kind and action pairs.
+    known : iterable of str
+        Every kind the caller can produce.
+
+    Returns
+    -------
+    list of str
+        One line per problem; empty when the actions are usable.
+
+    Notes
+    -----
+    **Developer notes (``CP-115``).** An action on a misspelt kind would do
+    nothing, and ``EMIAL=block`` must not pass as a block that is in force,
+    so every kind is checked against what the caller can actually produce.
+    """
+    actions = tuple(actions)
+    if not actions:
+        return []
+    try:
+        _normalise_actions(actions)
+    except PolicyError as exc:
+        return [f"actions: {exc}"]
+    known = set(known)
+    return [
+        f"actions: unknown kind {kind!r}; known kinds are {', '.join(sorted(known))}"
+        for kind, _ in actions
+        if kind not in known
+    ]
+
+
+def _unbounded(catalog: Catalog, custom: tuple[str, ...]) -> list[str]:
+    """
+    Return why the custom patterns of ``catalog`` cannot run time-limited.
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The plan's catalog.
+    custom : tuple of str
+        The custom files, which name the custom packs' sources.
+
+    Returns
+    -------
+    list of str
+        Empty when the ``timeout`` tier is usable and the time-limited engine
+        compiles every custom pattern.
+    """
+    try:
+        require("timeout")
+    except CapabilityError as exc:
+        return [f"{exc} (custom packs: {', '.join(custom)})"]
+    found = (
+        _bounded_problem(spec, pack.name)
+        for pack in catalog.packs.values()
+        if pack.source != "<builtin>"
+        for spec in pack.patterns
+    )
+    return [problem for problem in found if problem is not None]
+
+
+def _bounded_problem(spec: Any, pack: str) -> str | None:
+    """Return why one custom pattern cannot run time-limited, or ``None``."""
+    try:
+        bounded_compile(spec, pack)
+    except PatternError as exc:
+        return str(exc)
+    return None
 
 
 def plan_from_dict(  # ruff: ignore[too-many-branches]
@@ -469,6 +613,21 @@ def plan_from_dict(  # ruff: ignore[too-many-branches]
                 problems.append(f"{key}: must be a string or null")
             else:
                 values[key] = document[key]
+    if "actions" in document:
+        raw = document["actions"]
+        if not isinstance(raw, Mapping) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in raw.items()
+        ):
+            problems.append("actions: must be an object of kind to action")
+        else:
+            values["actions"] = tuple(sorted(raw.items()))
+    if "pattern_timeout" in document:
+        raw = document["pattern_timeout"]
+        try:
+            values["pattern_timeout"] = None if raw is None else check_seconds(raw)
+        except ValueError as exc:
+            problems.append(f"pattern_timeout: {exc}; or null")
     if values.get("pattern_risk") not in (None, *PATTERN_RISK_MODES):
         problems.append(
             f"pattern_risk: {values['pattern_risk']!r} is not one of "
@@ -850,6 +1009,92 @@ class FluentCleanPrompt:
             msg = f"pattern_risk must be one of {', '.join(PATTERN_RISK_MODES)}, got {mode!r}"
             raise CleanPromptError(msg)
         return self._with("pattern_risk", mode, conflict)
+
+    def action(
+        self, kind: str, action: str, conflict: str = "error"
+    ) -> FluentCleanPrompt:
+        """
+        Choose what happens to one kind once detected.
+
+        Parameters
+        ----------
+        kind : str
+            A detection kind, e.g. ``"EMAIL"``.
+        action : {'tokenize', 'surrogate', 'report', 'block'}
+            See :class:`~scikitplot.cleanprompt._policy.Action`.
+        conflict : {'error', 'replace'}, default='error'
+            What to do if ``kind`` already has an action.
+
+        Returns
+        -------
+        FluentCleanPrompt
+            A new builder; other kinds keep their actions.
+
+        Raises
+        ------
+        CleanPromptError
+            If the action is unknown or not available for ``kind``, or
+            ``kind`` already has one and ``conflict`` is ``'error'``.
+
+        Examples
+        --------
+        >>> plan = FluentCleanPrompt().action("EMAIL", "surrogate").plan()
+        >>> plan.actions
+        (('EMAIL', 'surrogate'),)
+        """
+        if conflict not in ("error", "replace"):
+            msg = f"conflict must be 'error' or 'replace', got {conflict!r}"
+            raise CleanPromptError(msg)
+        current = dict(self._plan.actions)
+        if kind in current and conflict == "error":
+            msg = (
+                f"kind {kind!r} already has action {current[kind]!r}; pass "
+                "conflict='replace'"
+            )
+            raise CleanPromptError(msg)
+        try:
+            ((_, chosen),) = _normalise_actions([(kind, action)])
+        except PolicyError as exc:
+            raise CleanPromptError(str(exc)) from None
+        current[kind] = chosen.value
+        plan = self._plan
+        configured = tuple(sorted(set(plan.configured) | {"actions"}))
+        return FluentCleanPrompt(
+            replace(plan, actions=tuple(sorted(current.items())), configured=configured)
+        )
+
+    def pattern_timeout(
+        self, seconds: float, conflict: str = "error"
+    ) -> FluentCleanPrompt:
+        """
+        Limit the time each document may spend in the patterns of custom packs.
+
+        Parameters
+        ----------
+        seconds : float
+            The per-document budget. A document that runs past it is not
+            cleaned and raises
+            :class:`~scikitplot.cleanprompt._exceptions.PatternTimeoutError`.
+        conflict : {'error', 'replace'}, default='error'
+            What to do if a limit was already chosen.
+
+        Returns
+        -------
+        FluentCleanPrompt
+            A new builder. With custom packs, :meth:`validate` requires the
+            ``timeout`` tier (``pip install regex``) and checks that it
+            compiles every custom pattern.
+
+        Raises
+        ------
+        CleanPromptError
+            If ``seconds`` is not a positive number.
+        """
+        try:
+            value = check_seconds(seconds)
+        except ValueError as exc:
+            raise CleanPromptError(str(exc)) from None
+        return self._with("pattern_timeout", value, conflict)
 
     # -- terminal operations ---------------------------------------------
 

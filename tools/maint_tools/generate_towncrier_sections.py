@@ -33,11 +33,8 @@ try:  # Python >= 3.11
 except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.8-3.10
     try:
         import tomli as tomllib  # type: ignore[no-redef]
-    except ModuleNotFoundError as exc:  # pragma: no cover - environment dependent
-        raise SystemExit(
-            "Python < 3.11 requires 'tomli' to run the Towncrier maintenance helper. "
-            "Install the repository's development/legacy dependencies first."
-        ) from exc
+    except ModuleNotFoundError:  # pragma: no cover - environment dependent
+        tomllib = None  # refused where pyproject.toml is read, never at import
 
 
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -189,6 +186,11 @@ def _resolve_repo_root(path: Path) -> Path:
 
 
 def _load_pyproject(path: Path) -> Mapping[str, object]:
+    if tomllib is None:  # pragma: no cover - Python 3.8-3.10 without tomli
+        raise SystemExit(
+            "Python < 3.11 requires 'tomli' to run the Towncrier maintenance helper. "
+            "Install the repository's development/legacy dependencies first."
+        )
     with path.open("rb") as handle:
         return tomllib.load(handle)
 

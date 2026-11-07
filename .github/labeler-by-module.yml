@@ -30,7 +30,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "libs/_tools/**/*"
-    - "upcoming_changes/libs/_tools/**/*"
     - "docs/source/whats_new/upcoming_changes/libs._tools/**/*"
 
 "libs/annoy":
@@ -145,7 +144,6 @@
     - "maintenances/_cli/**/*"
     - "plugins/scikitplot-dev/skills/scikitplot-cli-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-cli-dev.md"
-    - "upcoming_changes/scikitplot/_cli/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._cli/**/*"
 
 "scikitplot/_compat":
@@ -181,6 +179,7 @@
     - "plugins/scikitplot-dev/agents/scikitplot-env-dev.md"
     - "docs/source/user_guide/_env/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._env/**/*"
+    - "galleries/examples/env/**/*"
 
 "scikitplot/_externals":
 - changed-files:
@@ -218,7 +217,6 @@
     - "plugins/scikitplot-dev/skills/scikitplot-sphinx-ai-assistant-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-sphinx-ai-assistant-dev.md"
     - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
-    - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_ai_assistant/**/*"
 
 "scikitplot/_sphinx_ext/_sphinx_ai_learn":
@@ -296,6 +294,7 @@
     - "plugins/scikitplot-dev/agents/scikitplot-ipymagic-dev.md"
     - "docs/source/user_guide/_ipymagic/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._ipymagic/**/*"
+    - "galleries/examples/ipymagic/**/*"
 
 "scikitplot/_lib":
 - changed-files:
@@ -320,7 +319,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
-    - "upcoming_changes/scikitplot/_utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._utils/**/*"
 
 "scikitplot/agent":
@@ -494,7 +492,6 @@
   - any-glob-to-any-file:
     - "scikitplot/externals/**/*"
     - "docs/source/user_guide/externals/**/*"
-    - "upcoming_changes/scikitplot/externals/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.externals/**/*"
 
 "scikitplot/externals/_packaging":
@@ -514,7 +511,6 @@
   - any-glob-to-any-file:
     - "scikitplot/externals/_probscale/**/*"
     - "docs/source/user_guide/externals/_probscale/**/*"
-    - "upcoming_changes/scikitplot/externals/_probscale/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.externals._probscale/**/*"
 
 "scikitplot/externals/_scipy":

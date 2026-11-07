@@ -19,8 +19,10 @@ from .._network import is_loopback_host, is_private_host
 #:
 #: * local (no network): ``sqlite`` database file, ``git`` working tree commit;
 #: * reviewed hosting (pull/merge request): ``github`` (github.com or GitHub
-#:   Enterprise via ``api_url``); ``gitlab``, ``bitbucket`` and ``huggingface``
-#:   are modelled for forward compatibility and refused until implemented;
+#:   Enterprise via ``api_url``), ``gitlab`` (gitlab.com or self-managed),
+#:   ``bitbucket`` (Bitbucket Cloud, or Data Center via ``api_url``);
+#:   ``huggingface`` is modelled only so that naming it fails at start with
+#:   its reason (:data:`UNSUPPORTED_PROVIDER_REASONS`); it has no adapter;
 #: * external: ``webhook`` (HMAC-signed POST to any receiver, for example a
 #:   Cloudflare Worker or an intranet service) and ``custom`` (an operator's
 #:   own Python adapter named by ``factory``).
@@ -28,15 +30,34 @@ LOCAL_PROVIDERS = frozenset({"sqlite", "git"})
 REVIEW_PROVIDERS = frozenset({"github", "huggingface", "gitlab", "bitbucket"})
 EXTERNAL_PROVIDERS = frozenset({"webhook", "custom"})
 PROVIDERS = LOCAL_PROVIDERS | REVIEW_PROVIDERS | EXTERNAL_PROVIDERS
-IMPLEMENTED_PROVIDERS = frozenset(
-    {"sqlite", "git", "github", "gitlab", "bitbucket", "webhook", "custom"}
+#: Why a modelled provider has no adapter; a configuration naming one fails
+#: at start with this text. Hugging Face: pull requests are numbered by the
+#: Hub (``refs/pr/<n>``) and its API documents listing them by author, type and
+#: status only (``search`` and ``sort`` have no documented behaviour), so a
+#: retried submission cannot find the review it opened; nor does it document a
+#: diff format that would show a pull request adds only the event file. The
+#: reviewed-change guarantees (replay, no second review, scope proof) cannot be
+#: kept.
+UNSUPPORTED_PROVIDER_REASONS = MappingProxyType(
+    {
+        "huggingface": (
+            "Hub pull requests are numbered by the Hub and its API has no lookup "
+            "by feedback ID (it documents listing only by author, type and "
+            "status), so a retry could open a second review; deliver feedback "
+            "to the Hub through the webhook or custom provider"
+        ),
+    }
 )
+IMPLEMENTED_PROVIDERS = PROVIDERS - frozenset(UNSUPPORTED_PROVIDER_REASONS)
 DEFAULT_FEEDBACK_STORAGE_TARGETS: tuple = ()
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
 DEFAULT_GITLAB_API_URL = "https://gitlab.com/api/v4"
-#: Bitbucket Cloud only. Bitbucket Data Center has a different REST API
-#: (``/rest/api/1.0``); reach it through the webhook provider.
+#: Bitbucket Cloud's API; the ``bitbucket`` default.
 BITBUCKET_CLOUD_API_URL = "https://api.bitbucket.org/2.0"
+#: A Bitbucket Data Center ``api_url`` is its REST root, ending in this path:
+#: ``https://bitbucket.corp.example[/<context path>]/rest/api/1.0``.
+BITBUCKET_DATA_CENTER_API_SUFFIX = "/rest/api/1.0"
+_BITBUCKET_CLOUD_HOSTS = frozenset({"bitbucket.org", "api.bitbucket.org"})
 #: ``api_url`` default per forge provider.
 DEFAULT_API_URLS = {
     "github": DEFAULT_GITHUB_API_URL,
@@ -600,6 +621,50 @@ def _options(value: Any) -> Mapping[str, Any]:
     return MappingProxyType(dict(value))
 
 
+def bitbucket_flavor(api_url: str) -> str:
+    """
+    Return which Bitbucket API *api_url* names: ``"cloud"`` or ``"data-center"``.
+
+    Parameters
+    ----------
+    api_url : str
+        A validated ``bitbucket`` ``api_url`` (no trailing slash).
+
+    Returns
+    -------
+    str
+        ``"cloud"`` for exactly :data:`BITBUCKET_CLOUD_API_URL`;
+        ``"data-center"`` for a REST root ending in
+        :data:`BITBUCKET_DATA_CENTER_API_SUFFIX` on a host other than
+        Bitbucket Cloud's (HTTPS; plain HTTP only for a loopback test
+        server, as :func:`_https_url` already enforces).
+
+    Raises
+    ------
+    FeedbackServiceConfigError
+        For any other URL, so a typo never selects the wrong API.
+
+    Notes
+    -----
+    The two products have different REST APIs; the URL names which one the
+    operator runs, and nothing else is inferred from it.
+    """
+    if api_url == BITBUCKET_CLOUD_API_URL:
+        return "cloud"
+    parsed = urlsplit(api_url)
+    host = (parsed.hostname or "").lower()
+    if (
+        parsed.scheme in {"https", "http"}
+        and host not in _BITBUCKET_CLOUD_HOSTS
+        and parsed.path.endswith(BITBUCKET_DATA_CENTER_API_SUFFIX)
+    ):
+        return "data-center"
+    raise FeedbackServiceConfigError(
+        "bitbucket api_url must be https://api.bitbucket.org/2.0 (Bitbucket Cloud) or "
+        "a Bitbucket Data Center REST root, https://<host>[/<context>]/rest/api/1.0"
+    )
+
+
 def _provider_extras(  # ruff: ignore[too-many-branches]
     raw: dict[str, Any], provider: str
 ) -> dict[str, Any]:
@@ -617,11 +682,8 @@ def _provider_extras(  # ruff: ignore[too-many-branches]
         extras["api_url"] = _https_url(
             api_url, name=f"{provider} api_url", allow_private_http=False
         )
-        if provider == "bitbucket" and extras["api_url"] != BITBUCKET_CLOUD_API_URL:
-            raise FeedbackServiceConfigError(
-                "bitbucket api_url must be https://api.bitbucket.org/2.0: Bitbucket "
-                "Data Center has a different API; use the webhook provider for it"
-            )
+        if provider == "bitbucket":
+            bitbucket_flavor(extras["api_url"])  # refuses anything else
     elif provider == "webhook":
         url = _target_string(raw, "url", allow_empty=False)
         allow_http = raw.get("allow_http", False)
@@ -1050,8 +1112,11 @@ def load_service_config(
         )
         if unavailable:
             raise FeedbackServiceConfigError(
-                "configured feedback provider adapter(s) are not implemented in this release: "
-                + ", ".join(unavailable)
+                "; ".join(
+                    f"feedback provider {name} is not supported: "
+                    + UNSUPPORTED_PROVIDER_REASONS[name]
+                    for name in unavailable
+                )
             )
     return FeedbackServiceConfig(
         review_mode=mode,

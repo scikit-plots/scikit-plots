@@ -1,13 +1,13 @@
 ---
 title: "Probability fusion under a SecurityFilter scope"
-status: open
+status: promoted
 kind: "api"
 area: "scikitplot/corpus"
 discovered_during: "opt-in probability fusion for hybrid search (PR 906)"
 release_note: "required"
 towncrier_section: "scikitplot.corpus"
-towncrier_type: "feature"
-towncrier_fragment: ""
+towncrier_type: "enhancement"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.corpus/907.enhancement.rst"
 ---
 
 # Probability fusion under a SecurityFilter scope
@@ -72,4 +72,19 @@ Corpus retrieval guide, "Probability fusion".
 
 ## Release-note promotion
 
-Required: `scikitplot.corpus`, `feature`.
+Required: `scikitplot.corpus`, `enhancement` (it extends the PR 906 feature).
+
+## Resolution (PR 907)
+
+`SecurityFilter.digest` (SHA-256 of the canonical JSON of `filter_to_dict`;
+the label is excluded) and `ProbabilityFusion(scope=SecurityFilter | None)`.
+`_search_hybrid_with_legs` calls `ProbabilityFusion.require_scope(index
+scope)`: when the lexical leg runs, the digests must be equal (None matches
+only an unscoped index), else `ValueError` naming both; dense-only fusion is
+exempt. The scope is a `SecurityFilter` object, never a typed string.
+Evidence: on a seeded corpus, all 12 documents both runs return change BM25
+score under the scope and all 16 keep their cosine score. Tests: hand-fused
+equivalence under a matching scope (10 seeded cases), the three refusals,
+the label-is-not-scope case, dense-only under a scope, and the digest's
+definition; five mutations of the logic are each caught. The corpus suite has
+the same failures as before plus 8 new passing tests.

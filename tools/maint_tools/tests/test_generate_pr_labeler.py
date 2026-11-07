@@ -385,6 +385,41 @@ class ModuleRuleTests(unittest.TestCase):
         with self.assertRaises(MODULE.LabelerError):
             self.rules(data)
 
+    def test_explicit_satellite_paths_label_the_public_named_galleries(self):
+        rules = {rule.owner: rule for rule in self.rules(self.data)}
+        for owner, glob in (
+            ("scikitplot._env", "galleries/examples/env/**/*"),
+            ("scikitplot._ipymagic", "galleries/examples/ipymagic/**/*"),
+        ):
+            rule = rules[owner]
+            self.assertIn(glob, rule.globs)
+            self.assertEqual(rule.origins[rule.globs.index(glob)], "explicit")
+        # The public-named folder is not given to an unrelated owner.
+        for owner, rule in rules.items():
+            if owner != "scikitplot._env":
+                self.assertNotIn("galleries/examples/env/**/*", rule.globs, owner)
+
+    def test_a_stale_satellite_path_owner_is_an_error(self):
+        data = copy.deepcopy(self.data)
+        _labeler_table(data)["satellite_paths"]["scikitplot.does_not_exist"] = ["x/**/*"]
+        with self.assertRaises(MODULE.LabelerError):
+            self.rules(data)
+
+    def test_a_satellite_path_matching_no_file_is_an_error(self):
+        data = copy.deepcopy(self.data)
+        _labeler_table(data)["satellite_paths"]["scikitplot._env"] = ["galleries/examples/gone/**/*"]
+        with self.assertRaisesRegex(MODULE.LabelerError, "matches no repository file"):
+            self.rules(data)
+
+    def test_satellite_paths_take_literal_globs_only(self):
+        data = copy.deepcopy(self.data)
+        _labeler_table(data)["satellite_paths"]["scikitplot._env"] = ["galleries/{rel}/**/*"]
+        with self.assertRaisesRegex(MODULE.LabelerError, "placeholders"):
+            MODULE.load_policy(data)
+        _labeler_table(data)["satellite_paths"]["scikitplot._env"] = []
+        with self.assertRaisesRegex(MODULE.LabelerError, "non-empty"):
+            MODULE.load_policy(data)
+
     def test_long_label_without_alias_is_an_error(self):
         data = copy.deepcopy(self.data)
         _labeler_table(data)["label_aliases"] = {}

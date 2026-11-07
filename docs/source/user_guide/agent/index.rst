@@ -294,6 +294,62 @@ to the parent's audit trail under a run id derived from the call, and the parent
 records a ``subrun`` event linking the two. A delegate is not idempotent: a
 parent stopped during a sub-run marks that step ``interrupted``.
 
+Workflow graphs
+---------------
+
+When the order of the steps is known, a :class:`WorkflowGraph` writes it down
+instead of a planner: :class:`Task` nodes call one tool, :class:`FanOut` nodes
+call several, :class:`Finish` nodes answer, and :class:`Edge` objects choose
+the next node, optionally on a condition. Results are folded into named
+channels by reducers (``replace``, ``append``, ``extend``, ``add``,
+``merge`` or a function). The graph compiles into an ordinary planner, so
+every call still passes the five gates and is audited. A straight line is a
+:meth:`WorkflowGraph.sequence`:
+
+.. code-block:: python
+
+   from scikitplot.agent import Branch, Edge, FanOut, Finish, Task, WorkflowGraph
+
+   flow = WorkflowGraph.sequence(
+       FanOut(
+           "read_both",
+           [
+               Branch("spans", lookup, {"topic": "spans"}),
+               Branch("ids", lookup, {"topic": "ids"}),
+           ],
+           mode="concurrent",
+           into="pages",
+       ),
+       Finish("answer", answer=lambda view: view.channels["pages"]["spans"]),
+       channels={"pages": "replace"},
+   )
+   agent = Agent(flow.tools(), flow.planner(), policy=Policy(granted_scopes={"docs:read"}))
+   state = agent.run("read two pages at once")
+   assert state.answer == "A chunk's text is a slice of its source."
+   assert flow.replay(state).finished
+
+A ``"concurrent"`` fan-out is one step whose tool runs every branch at the
+same time; the gates judge it as its branches together (strongest effect,
+union of scopes, sum of costs), its result is ``{branch: result}`` in
+declared order, and if a branch raises the whole step fails. An
+``"ordered"`` fan-out is one audited step per branch, each gated on its own,
+so a denied branch leaves the others' results.
+
+Loops are allowed only through a node with ``max_visits``; when the bound is
+reached the run continues at the node's ``on_exhausted`` node, and a
+:class:`Finish` whose answer the ``done`` criterion rejects continues at its
+``on_rejected`` node. The graph is checked when it is built: every node
+reachable from the start, a :class:`Finish` reachable from every node, no
+cycle through unbounded nodes only, and no ``on_exhausted`` node that leads
+back to its node. So every graph that can be built terminates.
+
+The planner keeps no state of its own: at each decision it replays the
+recorded steps through the graph, checking each against what the graph would
+have done, so a resumed run continues where it stopped and a state that this
+graph did not produce is refused with :class:`WorkflowError`.
+:meth:`WorkflowGraph.replay` returns that position (node, channels, visit
+counts) and :meth:`WorkflowView.digest` its digest.
+
 Evaluating runs
 ---------------
 

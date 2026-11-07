@@ -35,11 +35,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
 
+from ._confusables import CONFUSABLES
+
 __all__ = [
     "DetectionView",
     "canonical",
     "detection_view",
     "normal_form",
+    "structure_view",
     "value_pattern",
 ]
 
@@ -211,17 +214,27 @@ def _view_tables() -> tuple[dict[int, str | None], re.Pattern]:
       :func:`canonical` uses: compatibility forms that are one character
       (full-width, mathematical letters), Unicode whitespace, apostrophes and
       dashes. ASCII is left exactly as it is, so a line break stays a line
-      break and code stays code.
+      break and code stays code;
+    - a letter or digit of another script that looks like one ASCII letter or
+      digit (Cyrillic ``\u0430`` for ``a``, Greek ``\u039f`` for ``O``) is
+      folded to it, from the generated UTS #39 table
+      (:data:`~._confusables.CONFUSABLES`, ``CP-114``). Compatibility folding
+      comes first and the look-alike table is applied to its result, so a
+      mathematical Greek capital nu folds to Greek nu and then to ``N``. Only
+      letters and digits are folded, never into punctuation, so the view
+      gains no structure.
 
     The translation deletes or replaces one character with one character, so
     the only offset change is a deletion, which :class:`DetectionView` maps
     back.
     """
     table: dict[int, str | None] = {
-        point: char
+        point: CONFUSABLES.get(ord(char), char) if len(char) == 1 else char
         for point, char in _canonical_table().items()
         if point >= _FIRST_NON_ASCII
     }
+    for point, char in CONFUSABLES.items():
+        table.setdefault(point, char)
     deleted = []
     for block in _FORMAT_PLANES:
         for point in block:
@@ -360,3 +373,58 @@ def detection_view(text: str) -> DetectionView | None:
         for position, match in enumerate(deleted.finditer(text))
     )
     return DetectionView(folded, shifts)
+
+
+def structure_view(text: str) -> DetectionView | None:
+    r"""
+    Return the text with its format characters removed, or ``None`` if none.
+
+    Parameters
+    ----------
+    text : str
+        The original text.
+
+    Returns
+    -------
+    DetectionView or None
+        The text without format characters (category ``Cf``), and the way
+        back; ``None`` when it has none, always for ASCII.
+
+    Notes
+    -----
+    **User notes.** Nothing to configure. A field or variable name with an
+    invisible character inside it (``DB_PASS\u200bWORD=...``) names its field
+    as if it were written plainly.
+
+    **Developer notes: why not :func:`detection_view`.** Splitters read this
+    view to find *where* fields are, so it must have exactly the original's
+    structure. Deleting a format character cannot create a separator, a quote
+    or a line break. Folding can: :func:`detection_view` turns a full-width
+    comma, quote or equals sign into its ASCII form, which would add a CSV
+    column, end a JSON string or split an assignment in the view only, and
+    every boundary mapped back from it would be wrong. Nothing is folded here,
+    so every structural character of the view is one of the original's, in
+    the same order (``CP-109``).
+
+    Examples
+    --------
+    >>> structure_view("DB_PASSWORD=x") is None
+    True
+    >>> view = structure_view("DB_PASS\u200bWORD=x")
+    >>> view.text
+    'DB_PASSWORD=x'
+    >>> view.source_span(12, 13)
+    (13, 14)
+    >>> structure_view("a\uff0cb") is None  # a full-width comma is not removed
+    True
+    """
+    if text.isascii():
+        return None
+    deleted = _view_tables()[1]
+    shifts = tuple(
+        match.start() - position
+        for position, match in enumerate(deleted.finditer(text))
+    )
+    if not shifts:
+        return None
+    return DetectionView(deleted.sub("", text), shifts)

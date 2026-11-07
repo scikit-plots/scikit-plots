@@ -1,0 +1,12 @@
+- Page feedback can open a reviewed pull request on Bitbucket Data Center. A
+  ``bitbucket`` storage target whose ``api_url`` is a Data Center REST root,
+  ``https://<host>[/<context path>]/rest/api/1.0``, runs the same reviewed-change
+  engine as GitHub, GitLab and Bitbucket Cloud: a deterministic branch, one
+  immutable event file, one pull request, and every broken-pipe step reconciled
+  from what the server reports. ``repo`` is ``<project key>/<repository slug>``
+  and the credential is an HTTP access token (``Authorization: Bearer``).
+  Paged, capped or unexpected answers fail closed, and review URLs must be on
+  the server's host under the configured repository. ``check-provider`` also
+  reads, without writing, the changes of the base head and confirms their
+  shape. A server whose certificate comes from a private CA is trusted through
+  ``SSL_CERT_FILE``; verification is never disabled.

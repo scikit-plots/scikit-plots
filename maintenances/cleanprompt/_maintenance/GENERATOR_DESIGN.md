@@ -47,8 +47,9 @@ values the conversation holds.
 invariant and cannot be: `decode` restores a stand-in wherever it appears in
 the model's reply, so a stand-in that is also an ordinary word (`The`, `Ash`)
 rewrites the reply's own words. The built-in names are chosen to be unusual;
-a set's author has to do the same. No word list is shipped to enforce it,
-because any list would be a guess about someone else's language.
+a set's author has to do the same, and states which words are ordinary in
+the set's `avoid` list (section 5). No word list is shipped, because any list
+would be a guess about someone else's language.
 
 - **G1 Deterministic.** The same text, policy and set always give the same
   stand-ins. No clock, no randomness, no environment lookups.
@@ -152,6 +153,7 @@ kinds:
   GPE:    [Granvik, Solberga]
   LOC:    [the Tunturi Fells]
   FAC:    [Granvik Station]
+avoid: [data, will, may]
 ```
 
 - `PERSON` and `ORG` take two lists, which are combined so that consecutive
@@ -162,6 +164,15 @@ kinds:
 - Validation collects every problem in one pass, as packs do: unknown keys,
   empty or duplicate entries (compared in canonical form), entries that break
   rule 3 or 4, and lists over 256 entries.
+- `avoid` (optional, at most 4096 words) lists words no stand-in may be.
+  Words and stand-ins are compared by `word_key`: NFC, compatibility forms
+  folded, case folded, separator runs as one space, which is exactly what
+  lenient restoration treats as the same stand-in. An entry equal to an
+  avoided word is refused at load; `surrogate_for` asks the provider's
+  `avoids` on every candidate, so combined two-part names and the built-in
+  names of kinds the set leaves out are covered too. A provider without
+  `avoids` avoids nothing. The words enter the identity digest only when
+  present, so a set without them keeps its identity.
 - It is selected with `TagStyle(style="surrogate", surrogate_set=...)`,
   `FluentCleanPrompt().style("surrogate").surrogates("nordic.yaml")`, or
   `--style surrogate --surrogates nordic.yaml`. `--surrogates` without
@@ -217,9 +228,9 @@ fits its text. Planned refinements, each optional:
 
 ## 8. Per-kind actions
 
-`per-kind-action-policy.md` plans a choice per kind: `placeholder`,
-`surrogate`, `mask` or `drop`. It fits this design without changes. The
-action decides *whether* the generator is asked. The floor (rule 1) still
+Shipped as `CP-115` (`DESIGN.md` D-28.8) with the actions `tokenize`,
+`surrogate`, `report` and `block`. It fits this design without changes: the
+action decides *whether* the generator is asked, and the floor (rule 1) still
 decides whether a surrogate is *allowed*. A per-kind `surrogate` request for
 `CREDIT_CARD` is refused when the policy is built, never ignored at run time.
 

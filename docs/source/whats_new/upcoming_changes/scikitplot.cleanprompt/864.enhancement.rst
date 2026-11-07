@@ -1,0 +1,3 @@
+- The CleanPrompt user guide is now several task-oriented pages, including
+  entity-engine readiness, web and container deployment, and an explicit list
+  of what is and is not protected.

@@ -578,14 +578,16 @@ PACKAGES: tuple[Package, ...] = (
     ),
     Package(
         distribution="scikit-plots-cleanprompt",
-        # scikitplot/cleanprompt ships LICENSE_cleanprompt (MIT).
-        license="BSD-3-Clause AND MIT",
+        # scikitplot/cleanprompt ships LICENSE_cleanprompt (MIT), and its
+        # look-alike table (_confusables.py) is Unicode data (LICENSE_unicode).
+        license="BSD-3-Clause AND MIT AND Unicode-DFS-2016",
         extras=(
             "cleanprompt",
             "cleanprompt-ner",
             "cleanprompt-nltk",
             "cleanprompt-web",
             "cleanprompt-crypto",
+            "cleanprompt-timeout",
         ),
         siblings=(("corpus", ("scikit-plots-corpus",)),),
         keywords=("scikit-plots", "pii", "redaction", "prompt", "llm", "privacy"),

@@ -1424,13 +1424,10 @@ class RetrievalIndex:
         """
         fetch_k = min(cfg.top_k * 3, max(len(self._documents), 1))
         probability = cfg.probability_fusion
-        if probability is not None and scope is not None:
-            raise ValueError(
-                "probability fusion is refused under a SecurityFilter scope: BM25 "
-                "statistics are computed inside the scope, so a calibrator fitted "
-                "on unscoped scores would return wrong probabilities. Use rank "
-                "fusion for scoped indexes."
-            )
+        if probability is not None:
+            # BM25 statistics are computed inside the scope: the lexical
+            # calibrator must have been fitted under this index's scope.
+            probability.require_scope(self._security_filter)
         run_lexical = (
             cfg.hybrid_alpha < 1.0
             if probability is None

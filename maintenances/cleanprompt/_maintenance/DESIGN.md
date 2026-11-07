@@ -688,6 +688,7 @@ cleanprompt-ner    spacy>=3.4,<5
 cleanprompt-nltk   nltk>=3.6,<4
 cleanprompt-web    flask>=2.2,<4
 cleanprompt-crypto cryptography>=41       (the Fernet cipher only, since CP-040; no ceiling, CP-092)
+cleanprompt-timeout regex>=2020.1         (custom pattern time limit, D-28.1; no ceiling)
 ```
 
 Upper bounds exist because each has a history of breaking changes at the major
@@ -706,6 +707,12 @@ The same policy keeps code that runs without warnings working for two further
 majors and announces a removal with `CryptographyDeprecationWarning`, which the
 project's test configuration turns into a failure. The floor and the newest
 release are both run: 41.0.0 and 50.0.2 this round.
+
+`regex` has a floor and no ceiling for a related reason: it is versioned by
+release date (`2026.9.29`), so a bound at a "major" is a bound at a year and
+says nothing about compatibility. The floor, 2020.1.8, is the oldest release
+the `timeout=` contract was checked with (on CPython 3.8); the newest checked
+is 2026.9.29.
 
 A dependency that is installed and refused must not pass unnoticed:
 `test__capabilities.TestInstalledTiers` fails in that state, and every skip
@@ -1912,3 +1919,217 @@ earlier text could not be decoded as written. The command line now compares
 the vault's recorded grammar with the run's before seeding and refuses,
 naming the recorded style and set. A vault that records no grammar is not
 checked.
+
+### D-28.1 — a time limit for custom patterns, never a silent one (`CP-108`)
+
+`CP-104` reports risky shapes; nothing bounded a run. `re` has no time limit,
+so with a limit set (`--pattern-timeout`, plan `pattern_timeout`,
+`FluentCleanPrompt.pattern_timeout`, `CLEANPROMPT_PATTERN_TIMEOUT`) every
+custom pattern is compiled again on `regex` (`V0`, `re` syntax) and scanned
+with `timeout=` (`_pattern_timeout.py`). Decisions:
+
+- **Custom packs only.** Built-in patterns keep `re`; their behaviour is
+  pinned by tests, and they are reviewed code.
+- **One budget per document**, held in a `ContextVar` set around each
+  document by the cleaner; the outermost block wins, so a chunked file or an
+  extracted artifact keeps one budget, and threads and requests each have
+  their own.
+- **Fail closed, whole document.** Running past the limit raises
+  `PatternTimeoutError` (a `DetectorError`) naming pack, kind and seconds; the
+  document is not cleaned, so no half-redacted text exists. The built-in
+  `TimeoutError` (an `OSError`) is converted at once and the chain dropped,
+  so it cannot pass for an unreadable file nor carry text into a traceback.
+- **Refused, never dropped.** A limit with custom packs and no `regex`, or a
+  pattern `regex` will not compile, fails plan validation before any input is
+  read. Flags are mapped by name: `re.ASCII` (256) is `regex.V1`.
+- **No limit, no check.** Without custom packs a limit bounds nothing and is
+  not checked, so a machine-wide variable does not break built-in-only runs.
+
+### D-28.2 — names read through a view that cannot create structure (`CP-109`)
+
+`CP-103` read whole-string keys through the detection view. Names found
+*inside* a line were still cut at the format character by the splitter itself
+(identifier classes, `ast`), and the JSON token wrapper was kept off the view
+(`CP-102`) without reading it on its own. Decisions:
+
+- **A second, stricter view for splitting.** `structure_view` removes format
+  characters and folds nothing. Folding can create structure: a full-width
+  comma, quote or equals sign becomes ASCII in `detection_view`, so a
+  splitter reading it would find a column, close a string or split an
+  assignment that the original does not have. Deleting a format character
+  cannot create any of those.
+- **The original decides boundaries; the view may only name and add.** The
+  splitter runs on the original, then on the view. A view region at the same
+  span renames the original's region (the original read may have cut the
+  name: `a<ZWSP>pi_key` read as `pi_key`). A view region overlapping another
+  span is dropped. A disjoint one is added. Splitters yield disjoint scalar
+  regions, so the merge checks two neighbours by bisection.
+- **Document-bound wrappers read the view themselves.** `_TokenBound` scans
+  `detection_view` with each detector that declares `reads_view`, maps the
+  spans back, and only then clips to the original tokens. The engine still
+  never hands it the view, so nothing is mapped twice.
+- **Code discovery returns names, not offsets.** A fragment `ast` rejects is
+  parsed once more without format characters; nothing needs mapping back.
+- **Not folded:** full-width letters inside an identifier, for the same
+  structural reason (recorded in `REVIEW.json`).
+
+### D-28.3 — e-mail addresses in any script (`CP-110`)
+
+`EMAIL` was ASCII-only and began at `\b`, so one non-ASCII letter suppressed
+the whole match. Decisions:
+
+- **Letters of any script, marks included.** `\w` has no combining marks,
+  and Devanagari, Thai and Hebrew words, or a decomposed accent, need them; a
+  match that stopped at the first mark would leave part of an address in the
+  clear. The mark class is built once at import from `unicodedata` (planes
+  below `U+20000` and the variation-selector supplement hold every mark), so
+  it follows the running Python as `\w` does.
+- **A start that cannot be hidden.** The look-behind rejects only local-part
+  characters. A Cyrillic letter in front is a letter, so it belongs to the
+  address and is hidden with it.
+- **Unchanged:** no label admits a pipe (`CP-005`), labels keep the RFC 1035
+  shape and length bound, and the pattern-risk check reports nothing on it.
+- **Accepted cost:** text without spaces gives an address no end, so the
+  placeholder may cover adjacent words; that direction hides more, never
+  less.
+
+### D-28.4 — phone numbers whole, years and dates left (`CP-111`)
+
+- **Long groups only behind a strong signal.** Groups of up to eight digits,
+  and a one-digit area code, are accepted only after a `+` country code or a
+  trunk `0`. Without either, groups stay two to four digits, so prose such as
+  `in 2019 12345 people` is not taken for a number.
+- **The extension belongs to the number.** `ext. 123` and `x12` are matched
+  with it, so a placeholder never sits beside part of a value.
+- **Years and dates are rejected by the validator, not the expression.** A
+  year range (two years from 1800 to 2199) and a numeric date with one
+  separator throughout and valid day and month values are not numbers. The
+  validator sees the view text, so an en dash range is rejected as well.
+- **Kept on purpose:** `1234-5678` is still hidden. Many local numbers are
+  written that way, and hiding a page range costs less than sending a number.
+
+### D-28.5 — reserve the label a source spelling would be read as (`CP-112`)
+
+Encoding reserved exact placeholders; restoration repairs rewritten
+spellings. The two grammars now agree within a call: every lenient match in
+the source reserves its normalised label, so no value is issued it and its
+restoration resolves nothing. The range is not reserved, because a lenient
+shape can contain a value and detection must still see it. This is local to
+one call and needs no vault change; the session case (a spelling matching a
+label issued in an earlier turn) needs the vault to record source spellings
+and is a separate note.
+
+### D-28.6 — hide a spelling of an earlier label as a value (`CP-113`)
+
+A session's later turn can hold a spelling of a label an earlier turn issued.
+Recording source spellings in the vault would change its format, and a model
+reply that repeats the spelling would still be ambiguous. Instead the encoder
+asks restoration what it would repair in the new source, given the held
+labels, and hides each such spelling as a value of the held label's kind. The
+spelling gets a fresh label and comes back exactly; the model never sees it,
+so the same spelling in its reply can only be a rewrite and is repaired. A
+pre-check keeps the cost at one grammar scan when nothing matches.
+
+### D-28.7 — look-alike letters folded in the view, from Unicode data (`CP-114`)
+
+- **A generated table, committed.** `_confusables.py` is produced from UTS
+  #39 `confusables.txt` by `tools/generate_confusables.py`, which records the
+  data's version and date; `--check` reports a stale table. Base tier only,
+  no download at run time. Regenerate with:
+  `python maintenances/cleanprompt/_maintenance/tools/generate_confusables.py PATH/confusables.txt`.
+- **The ASCII character imitated, not the skeleton prototype.** UTS #39
+  prototypes ignore case (`I`, `l`, `1` share `l`), so the generator picks
+  the member of each prototype's ASCII class with the source's case; a
+  digit maps only to the digit of its own value. Ambiguous characters are
+  left out rather than guessed.
+- **Letters and digits only, one to one.** No symbol is folded into a
+  letter, and no entry changes length, so the view's offset map and
+  structure are unchanged and the source is never rewritten.
+- **Compatibility first, then look-alike.** A mathematical Greek letter folds
+  to Greek, then to ASCII; without the chain, 98 of 1000 salted values in
+  the probe were still sent.
+- **No new false positives measured:** 3000 random Cyrillic and Greek texts
+  change in exactly the same 2 places before and after.
+
+### D-28.8 — one action per kind, defaults untouched (`CP-115`)
+
+- **An override, not a second style.** `RedactionPolicy.actions` maps kinds
+  to `tokenize`, `surrogate`, `report` or `block`; a kind not listed follows
+  `TagStyle.style`. Empty actions are left out of `as_dict`, so every policy
+  and plan fingerprint written before them still matches.
+- **Decided after resolution.** `_apply_actions` sees the merged spans and the
+  detections inside each. The strictest *class* wins: block, hide, report.
+  `tokenize` and `surrogate` both hide completely, so they are one class and
+  the resolved kind's own action picks the form; ranking them (as first
+  proposed) made an explicitly written default differ from no action, found
+  by the equivalence test.
+- **Block before output; report never quiet.** `BlockedError` is raised
+  before the rewrite, naming kinds and counts. `report` leaves the value and
+  records it; every path to a model refuses it, runs print an `ALERT`, and
+  `doctor` lists the kind as a high blind spot.
+- **Misspellings refused.** A plan checks action kinds against everything its
+  catalog can produce; the detection commands against core patterns, entity
+  labels and `CUSTOM`.
+
+### D-28.9 — one coverage matrix, read from the registries (`CP-116`)
+
+- **Derived, never listed.** `coverage_matrix` reads every column from a
+  registry: core patterns and their validators, every pack's patterns and
+  fields, the entity labels and their defaults, the runtime kinds, the
+  surrogate floor and the policy's actions. Columns no registry records (a
+  locale, a semantic risk) are left out rather than written by hand.
+- **One source, three readers.** `kinds --matrix` prints it, and the user
+  guide's table is generated from it by `tools/generate_coverage_docs.py`
+  into `coverage_matrix.inc`; a maintenance test fails when that copy is
+  stale. The `.inc` suffix keeps the file out of Sphinx's documents and the
+  guide's page check.
+- **No engine import.** Entity coverage comes from label tables, so the
+  matrix costs nothing on a base install.
+
+### D-28.10 — a checked VIN in prose, any VIN by its label (`CP-117`)
+
+- **One kind, one pattern.** A pack defines each kind once, so `VIN` is one
+  pattern with an optional `label` group; `vin_check` relaxes to shape when
+  the label is present. The rules are 49 CFR 565.15's: Table III values,
+  Table IV weights, the check digit in position 9 (`X` for 10), and a numeric
+  tail in positions 14 to 17.
+- **Precision before recall in prose.** Without a label a VIN must pass the
+  check digit, so a 17-character part number is left; with a label a
+  European VIN, which has no check digit, is still hidden.
+- **Opt-in.** `vehicle` is not in any format's `auto` list, so no default
+  output changes; `--pack vehicle` or `all` selects it.
+- **Plates as fields only.** A plate's shape is national and ambiguous in
+  prose; the pack names plate columns and keys instead.
+
+### D-28.11 — ordinary words are the set author's to name (`CP-118`)
+
+- **The author's list, not a shipped one.** Which words are ordinary depends
+  on the language and the domain, so a set states them under `avoid`; nothing
+  is avoided unless listed. Chosen by the maintainer over reporting
+  ambiguity on decode and over a length or case rule, which would refuse
+  real names.
+- **One comparison, the restorer's.** `word_key` folds exactly what lenient
+  restoration treats as the same stand-in (case, compatibility forms,
+  separators), so an avoided word cannot come back through a rewritten
+  spelling.
+- **Checked twice, like the floor.** At load, an entry equal to an avoided
+  word is refused with the reason; at run time `surrogate_for` asks the
+  provider's `avoids`, which covers two-part names formed only then and the
+  built-in names of kinds the set leaves out. The method is optional on a
+  provider, which keeps slice B's protocol open.
+- **Identity only when present.** The words change which stand-ins are
+  issued, so they are in the digest; a set without them keeps its identity.
+
+### D-28.12 — one jurisdiction, its published check (`CP-119`)
+
+- **The specification, not a sample.** `de_tax_id` implements the tax
+  administration's published check rules (structure rule and ISO 7064
+  MOD 11,10), cited in the validator's notes; the published test number is
+  in the tests.
+- **Prose only because the check is precise.** 0.35 percent of random
+  eleven-digit runs pass, so no label is required; the grouped form
+  (2-3-3-3) is accepted because the number is printed so.
+- **Opt-in.** `de` is in no format's `auto` list, so no default output
+  changes.
+- **No duplicate pack.** The UK National Insurance number was already in
+  `personal`; a `uk` pack would only repeat it.

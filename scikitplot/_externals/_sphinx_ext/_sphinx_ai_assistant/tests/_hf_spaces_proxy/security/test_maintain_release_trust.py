@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 from datetime import datetime, timedelta, timezone
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 
@@ -18,16 +17,10 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-trust = _load("run156_trust", SECURITY / "maintain_release_trust.py")
-run155 = _load("run156_run155_fixture", HERE / "test_seal_release_governance.py")
+from ...._hf_spaces_proxy.security import maintain_release_trust as trust
+from . import test_seal_release_governance as run155
 NOW = run155.NOW
 
 SNAPSHOT_MEMBERS = [

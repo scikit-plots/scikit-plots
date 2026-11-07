@@ -1,0 +1,18 @@
+- ``scikitplot.cleanprompt``: ``kinds --matrix`` prints the coverage matrix.
+  For every detection kind it shows which core patterns, packs, entity
+  engines and tiers find it, whether a validator checks it, whether a
+  stand-in exists, and what the policy's actions do with it
+  (``--action KIND=ACTION`` to see your own). The user guide's new coverage
+  table is generated from the same data. A new ``vehicle`` pack
+  (``--pack vehicle``) finds vehicle identification numbers: in running text
+  only when the North American check digit holds, and next to a ``VIN`` or
+  ``chassis number`` label in any well-formed spelling, plus licence-plate
+  fields. A surrogate set can list ordinary words under ``avoid``
+  (``avoid: [the, ash]``): an entry equal to one is refused when the set
+  loads, and no stand-in equal to one is issued, combined names and the
+  built-in names included, so ``decode`` can no longer rewrite those words
+  in the model's reply. Words compare ignoring case, compatibility forms and
+  separators. A new ``de`` pack (``--pack de``) finds the German tax
+  identification number (Steuer-ID), written together or in groups, only
+  when its published structure rule and check digit hold, and in fields
+  such as ``steuer_id``.

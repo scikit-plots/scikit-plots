@@ -19,7 +19,7 @@ def _text() -> str:
 
 def test_every_example_runs_in_order() -> None:
     blocks = BLOCK.findall(_text())
-    assert len(blocks) == 6  # noqa: PLR2004
+    assert len(blocks) == 7  # noqa: PLR2004
     namespace: dict = {}
     for block in blocks:
         source = "\n".join(line[3:] for line in block.splitlines())
@@ -39,7 +39,14 @@ def test_named_codes_and_statuses_exist() -> None:
     fields = set().union(
         *(
             cls.__dataclass_fields__
-            for cls in (agent.RunState, agent.Limits, agent.Policy)
+            for cls in (
+                agent.RunState,
+                agent.Limits,
+                agent.Policy,
+                agent.Task,
+                agent.FanOut,
+                agent.Finish,
+            )
         )
     )
     named = set(re.findall(r"``([a-z_]+)``", text))

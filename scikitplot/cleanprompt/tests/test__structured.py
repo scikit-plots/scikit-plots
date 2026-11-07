@@ -19,17 +19,20 @@ import json
 import pytest
 
 from .. import DEFAULT_POLICY
+from .._canonical import structure_view
+from .._exceptions import CleanPromptError
 from .._packs import FieldSpec
 from .._structured import (
     SPLITTERS,
     FieldDetector,
+    FieldRegion,
     _delimited_cells,
+    _with_view_regions,
     field_regions,
     json_tokens,
     match_field,
     record_starts,
 )
-from .._exceptions import CleanPromptError
 
 _CSV_CASES = [
     "a,b\n1,2\n",
@@ -356,3 +359,55 @@ class TestProseInsideJsonStrings:
                 not in json.loads(safe if fmt == "json" else safe.strip()).__repr__()
             )
             assert cleaner.decode(safe) == text
+
+
+class TestNamesThroughTheView:
+    """CP-109: a format character inside a name no longer hides its field."""
+
+    @pytest.mark.parametrize(
+        ("splitter", "text", "field", "value"),
+        [
+            ("script", "export DB_PASS\u200bWORD=hunter2\n", "DB_PASSWORD", "hunter2"),
+            ("script", 'const pass\u200dword = "s3cr3t";\n', "password", "s3cr3t"),
+            ("script", 'a\u200bpi_key <- "s3cr3t"\n', "api_key", "s3cr3t"),
+            ("python", 'API_\u200bKEY = "s3cr3t"\n', "API_KEY", "s3cr3t"),
+            ("keyvalue", "pass\u200bword: s3cr3t\n", "password", "s3cr3t"),
+        ],
+    )
+    def test_the_name_and_the_value(self, splitter, text, field, value):
+        found = [
+            (r.field, text[r.start : r.end]) for r in field_regions(text, splitter)
+        ]
+        assert (field, value) in found
+
+    def test_a_salted_value_keeps_its_characters(self):
+        text = "export DB_PASS\u200bWORD=hunter2\u200bhunter2\n"
+        (region,) = field_regions(text, "script")
+        assert text[region.start : region.end] == "hunter2\u200bhunter2"
+
+    def test_the_original_decides_boundaries(self):
+        view = structure_view("ab\u200bcdef")
+        original = [FieldRegion(0, 4, "k", "string")]
+        seen = [
+            FieldRegion(1, 5, "other", "string"),  # overlaps another span: dropped
+            FieldRegion(0, 3, "k2", "string"),  # same span as the original: renamed
+        ]
+        # view (0, 3) is "abc", which is original (0, 4): the same value.
+        merged = _with_view_regions(original, view, seen)
+        assert merged == [FieldRegion(0, 4, "k2", "string")]
+
+    def test_a_new_region_is_added(self):
+        view = structure_view("ab\u200bcdef")
+        merged = _with_view_regions([], view, [FieldRegion(3, 5, "k", "string")])
+        assert merged == [FieldRegion(4, 6, "k", "string")]
+
+    def test_a_full_width_comma_adds_no_column(self):
+        def read(text):
+            return [
+                (r.field, text[r.start : r.end].replace("\u200b", ""))
+                for r in field_regions(text, "delimited")
+            ]
+
+        plain = "name\uff0cx,phone\nAnn,1\n"
+        assert read(plain.replace("Ann", "A\u200bnn")) == read(plain)
+        assert [field for field, _ in read(plain)] == ["name\uff0cx", "phone"]

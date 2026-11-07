@@ -108,7 +108,7 @@ if TYPE_CHECKING:
 
 from ._api import Handle, _synchronized
 from ._artifacts import PATH_PATTERN, encode_artifact, path_seed
-from ._canonical import canonical, value_pattern
+from ._canonical import canonical, detection_view, value_pattern
 from ._catalog import AUTO, NONE
 from ._detectors import (
     DetectorRegistry,
@@ -123,6 +123,7 @@ from ._logging import VaultScrubber, audit, get_logger
 from ._office import OFFICE_EXTENSIONS, OfficeLimits, _Budget, extract_office_text
 from ._packs import pack_detectors
 from ._pattern_risk import enforce, pack_findings
+from ._pattern_timeout import pattern_deadline
 from ._plan import CleanPlan
 from ._policy import DEFAULT_POLICY, RedactionPolicy
 from ._policy import profile as _profile
@@ -268,6 +269,9 @@ class Item:
         Distinct values replaced.
     kinds : dict
         Distinct values replaced, by kind.
+    reported : dict
+        Occurrences left in the text because their kind's action is
+        ``report``, by kind. Non-empty means the output is not safe to send.
     """
 
     status: str
@@ -277,6 +281,7 @@ class Item:
     reason: str = ""
     count: int = 0
     kinds: dict[str, int] = field(default_factory=dict)
+    reported: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -292,6 +297,23 @@ class _Setup:
 #: Stand-in kinds ``remember`` does not repeat into prose; see
 #: :meth:`Cleaner._known_detectors`.
 _NOT_REMEMBERED = frozenset({"COLUMN", "FIGURE", "OUTPUT"})
+
+
+def _count_reported(spans: Iterable[Span]) -> dict[str, int]:
+    """
+    Return how many occurrences of each kind were reported, not hidden.
+
+    Notes
+    -----
+    **Developer notes (``CP-115``).** Counts only, sorted by kind: the report
+    is printed and logged, and the values themselves are still in the text.
+    Occurrences, not distinct values, so the counts of a chunked file's pieces
+    add up to the count of the whole file.
+    """
+    counts: dict[str, int] = {}
+    for span in spans:
+        counts[span.kind] = counts.get(span.kind, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 class _KnownValues:
@@ -358,6 +380,14 @@ class _TokenBound:
     A number token that is itself a sentinel (``-99`` and eight digits) is
     never reported: it is a stand-in already, reserved exactly as a bracket
     placeholder is, which is what keeps re-encoding idempotent (``I7``).
+
+    **The detection view (``CP-109``).** The tokens index the original, so
+    the engine does not hand this wrapper the view (``CP-102``); it reads the
+    view itself instead. A detector that declares ``reads_view`` also scans
+    :func:`~._canonical.detection_view`, each span is mapped back onto the
+    original, and only then clipped. Without this, ``"bob\u200b@example.com"``
+    inside a JSON string reached the model while the same address in a
+    ``.env`` file did not.
     """
 
     __slots__ = (
@@ -379,9 +409,21 @@ class _TokenBound:
         self.priority = inner.priority
         self.confidence = inner.confidence
 
+    def _spans(self, text: str, policy: RedactionPolicy) -> Iterator[Span]:
+        """Yield the detector's spans over ``text``, and over its view if it reads it."""
+        yield from self._inner.detect(text, policy)
+        if not getattr(self._inner, "reads_view", False):
+            return
+        view = detection_view(text)
+        if view is None:
+            return
+        for span in self._inner.detect(view.text, policy):
+            start, end = view.source_span(span.start, span.end)
+            yield replace(span, start=start, end=end, text=text[start:end])
+
     def detect(self, text: str, policy: RedactionPolicy) -> Iterator[Span]:
         """Yield the detector's spans, clipped to tokens."""
-        for span in self._inner.detect(text, policy):
+        for span in self._spans(text, policy):
             seen = set()
             first = max(0, bisect.bisect_right(self._starts, span.start) - 1)
             for start, end, token in self._tokens[first:]:
@@ -507,6 +549,7 @@ class Cleaner:
         "_limits",
         "_lock",
         "_ner",
+        "_pattern_timeout",
         "_plan",
         "_policy",
         "_scrubber",
@@ -538,12 +581,18 @@ class Cleaner:
                 plan.pattern_risk_mode(),
                 ", ".join(plan.custom),
             )
+        # Only custom patterns are time-limited; without them a limit has
+        # nothing to bound. validate() has checked the tier and compiled every
+        # custom pattern on the time-limited engine.
+        self._pattern_timeout = plan.pattern_timeout_seconds() if plan.custom else None
         self._formats = self.catalog.resolve_formats(plan.formats_selection())
         policy = _profile(plan.profile) if plan.profile else DEFAULT_POLICY
         tag_style = replace(
             policy.tag_style, style=plan.style, surrogate_set=plan.surrogate_set()
         )
-        self._policy = policy.evolve(allow=plan.allow, tag_style=tag_style)
+        self._policy = policy.evolve(
+            allow=plan.allow, tag_style=tag_style, actions=plan.actions
+        )
         if plan.hide:
             Redactor._check_terms(  # noqa: SLF001 - same validation as the engine
                 plan.hide,
@@ -598,7 +647,7 @@ class Cleaner:
         setup = _Setup(
             packs=tuple(p.name for p in packs),
             index=self.catalog.field_index(packs),
-            detectors=tuple(pack_detectors(packs)),
+            detectors=tuple(pack_detectors(packs, timeout=self._pattern_timeout)),
             vocabulary=self.catalog.code_vocabulary(packs),
         )
         self._setups[fmt.name] = setup
@@ -846,6 +895,23 @@ class Cleaner:
     def _encode_string(
         self, text: str, fmt: Any, name: str, splitter: str, options: dict
     ) -> Encoded:
+        """
+        Encode one decoded document within its custom-pattern time budget.
+
+        Notes
+        -----
+        **Developer notes.** Every entry point (text, bytes, a file, a tree,
+        an archive member) reaches a document through here, so this is where
+        the document's deadline is set
+        (:func:`~scikitplot.cleanprompt._pattern_timeout.pattern_deadline`);
+        all of its chunks share it.
+        """
+        with pattern_deadline(self._pattern_timeout):
+            return self._encode_document(text, fmt, name, splitter, options)
+
+    def _encode_document(
+        self, text: str, fmt: Any, name: str, splitter: str, options: dict
+    ) -> Encoded:
         """Dispatch a decoded document to the path its splitter needs."""
         setup = self._setup(fmt)
         prior = tuple(self._entries.values())
@@ -998,7 +1064,11 @@ class Cleaner:
             if setup.index
             else 0
         )
-        return result.text, result.entries, {"fields": matched}
+        return (
+            result.text,
+            result.entries,
+            {"fields": matched, "reported": _count_reported(result.reported)},
+        )
 
     def _chunk_limit(self) -> int:
         """Return the largest piece of a record file encoded in one call."""
@@ -1047,6 +1117,7 @@ class Cleaner:
         pieces: list[str] = []
         issued: dict[str, Entry] = {}
         fields_matched = 0
+        reported: dict[str, int] = {}
         low = 0
         cursor = 0
         chunks = 0
@@ -1077,13 +1148,19 @@ class Cleaner:
             for entry in entries:
                 issued.setdefault(entry.label, entry)
             fields_matched += report["fields"]
+            for kind, number in report["reported"].items():
+                reported[kind] = reported.get(kind, 0) + number
             pieces.append(safe)
             chunks += 1
             low = high
         return (
             "".join(pieces),
             tuple(issued.values()),
-            {"fields": fields_matched, "chunks": chunks},
+            {
+                "fields": fields_matched,
+                "chunks": chunks,
+                "reported": dict(sorted(reported.items())),
+            },
         )
 
     def _sentinel_pass(  # ruff: ignore[too-many-positional-arguments]
@@ -1204,6 +1281,7 @@ class Cleaner:
         )
         report = {
             "fields": matched,
+            "reported": _count_reported(result.reported),
             "columns": len(artifact.columns),
             "refused_columns": len(artifact.refused),
             "unparsed": len(artifact.unparsed),
@@ -1487,9 +1565,12 @@ class Cleaner:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     items = self.encode_archive(path, target)
                 kinds: dict[str, int] = {}
+                reported: dict[str, int] = {}
                 for item in items:
                     for kind, number in item.kinds.items():
                         kinds[kind] = kinds.get(kind, 0) + number
+                    for kind, number in item.reported.items():
+                        reported[kind] = reported.get(kind, 0) + number
                 return Item(
                     "encoded",
                     relative,
@@ -1497,21 +1578,35 @@ class Cleaner:
                     relative if out is not None else None,
                     count=sum(i.count for i in items),
                     kinds=dict(sorted(kinds.items())),
+                    reported=dict(sorted(reported.items())),
                 )
             encoded = self.encode_file(path, fmt.name)
         except CleanPromptError as exc:
             return Item("refused", relative, fmt.name, reason=str(exc))
         kinds = dict(encoded.report.get("kinds", {}))
+        reported = dict(encoded.report.get("reported") or {})
         if out is None:
             return Item(
-                "encoded", relative, fmt.name, None, count=encoded.count, kinds=kinds
+                "encoded",
+                relative,
+                fmt.name,
+                None,
+                count=encoded.count,
+                kinds=kinds,
+                reported=reported,
             )
         output = PurePosixPath(relative).with_name(encoded.output_name).as_posix()
         target = out / output
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(encoded.text.encode("utf-8"))
         return Item(
-            "encoded", relative, fmt.name, output, count=encoded.count, kinds=kinds
+            "encoded",
+            relative,
+            fmt.name,
+            output,
+            count=encoded.count,
+            kinds=kinds,
+            reported=reported,
         )
 
     def encode_archive(
@@ -1626,6 +1721,7 @@ class Cleaner:
             output,
             count=encoded.count,
             kinds=dict(encoded.report.get("kinds", {})),
+            reported=dict(encoded.report.get("reported") or {}),
         )
 
     # -- decoding -------------------------------------------------------

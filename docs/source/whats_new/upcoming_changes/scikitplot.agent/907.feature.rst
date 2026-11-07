@@ -1,0 +1,18 @@
+- ``WorkflowGraph`` writes a known order of steps down instead of a planner:
+  ``Task`` nodes call one tool, ``FanOut`` nodes call several -- one audited
+  step per branch (``mode="ordered"``) or one step that runs every branch at
+  the same time (``mode="concurrent"``), judged by the gates as its branches
+  together and joined in declared order -- ``Finish`` nodes answer, and
+  ``Edge`` objects choose the next node, optionally on a condition. Results
+  are folded into named channels by reducers (``replace``, ``append``,
+  ``extend``, ``add``, ``merge`` or a function). ``graph.tools()`` and
+  ``graph.planner()`` drive an ordinary ``Agent``, so every call still passes
+  the five gates and is audited; ``WorkflowGraph.sequence(...)`` builds a
+  straight line. A graph is checked when it is built -- every node reachable,
+  a ``Finish`` reachable from every node, every loop through a node with
+  ``max_visits`` and its ``on_exhausted`` exit not leading back -- so every
+  graph that can be built terminates. The planner replays the recorded steps
+  at each decision, so resume needs no new state, the state schema is
+  unchanged, and a state the graph did not produce is refused with
+  ``WorkflowError``; ``graph.replay(state)`` returns the position and
+  ``WorkflowView.digest()`` its digest.

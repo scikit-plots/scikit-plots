@@ -600,6 +600,22 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Workflow graphs",
+                "autosummary": [
+                    "WorkflowGraph",
+                    "Task",
+                    "FanOut",
+                    "Branch",
+                    "Finish",
+                    "Edge",
+                    "WorkflowView",
+                    "StepSummary",
+                    "REDUCERS",
+                    "WorkflowError",
+                    "WorkflowBranchError",
+                ],
+            },
+            {
                 "title": "Artifacts",
                 "autosummary": [
                     "ArtifactStore",
@@ -1299,6 +1315,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "__bibtex__",
                     "__citation__",
+                    "citation",
                 ],
             },
         ],
@@ -1350,6 +1367,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SufficiencySignals",
                     "route",
                     "run_investigation",
+                    "RoutingPolicy",
+                    "RoutingRule",
+                    "QueryShape",
+                    "DEFAULT_ROUTING_POLICY",
+                    "query_tokens",
                 ],
             },
             {

@@ -81,7 +81,7 @@ from pathlib import Path
 from typing import IO, Any
 
 from ._exceptions import CleanPromptError, LeakError
-from ._guard import Guard
+from ._guard import Guard, refuse_reported
 from ._logging import audit
 
 __all__ = [
@@ -430,6 +430,7 @@ class McpServer:
         path = self._path(_string(arguments, "path"))
         fmt = arguments.get("format")
         encoded = self._guard.cleaner.encode_file(path, fmt)
+        refuse_reported(encoded.report)
         kinds = self._guard.cleaner.leaks(encoded.text)
         if kinds:
             raise LeakError(

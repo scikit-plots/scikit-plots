@@ -1,0 +1,14 @@
+- ``route`` detects the shape of a query from its words and adds the evidence
+  paths that shape needs, when the index has them: ``multi_hop`` and
+  ``hierarchy`` add graph traversal, ``aggregation``, ``negation`` and
+  ``temporal`` add metadata filters (new ``has_metadata=``). ``RoutePlan``
+  gains ``shapes`` and ``unavailable`` (the paths a shape needed that the index
+  lacks); a plain query routes exactly as before and a quoted phrase is still
+  lexical only. The rules are data: ``RoutingRule`` (a shape, its legs,
+  whole-word ``phrases`` and an optional ``matcher(tokens) -> bool``) and
+  ``RoutingPolicy`` (rules in order, ``with_rules`` to extend or replace),
+  with ``DEFAULT_ROUTING_POLICY`` for English and ``route(query,
+  policy=...)`` for another language or vocabulary. Matching is on whole
+  words, never on caller-supplied regular expressions, so routing is linear
+  in the query's length. A labelled routing set of 45 queries, near misses
+  included, pins the default policy.

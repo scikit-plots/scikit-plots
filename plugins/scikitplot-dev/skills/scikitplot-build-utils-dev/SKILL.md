@@ -19,25 +19,25 @@ Installed runtime modules must not import `scikitplot._build_utils`. Version met
 
 ## Treat generated source as a transaction
 
-Template inputs are source-of-truth. Verify deterministic output from the real repository templates, and distinguish generation from validation. Literal `{{`/`}}` can be valid generated code—embedded CSS/JavaScript commonly doubles braces—so never detect Tempita residue with a raw substring test alone. Current `BLD-CYG-001` demonstrates this on `annoylib.pyx.in`: generation succeeds, while `cython_generate --validate` rejects legitimate output. Prefer validation tied to actual template grammar/source markers and a Cython parse/compile lane. Generator documentation that promises atomic writes must match implementation; write via a sibling temporary file and `os.replace` if atomicity is part of the contract.
+Template inputs are source-of-truth. Verify deterministic output from the real repository templates, and distinguish generation from validation. Literal `{{`/`}}` can be valid generated code—embedded CSS/JavaScript commonly doubles braces—so never detect Tempita residue with a raw substring test alone. `BLD-CYG-001` (closed 2026-11-04) showed this on `annoylib.pyx.in`: generation succeeded while `cython_generate --validate` rejected legitimate output. Validation now compares each output with its template rendered again, which also catches stale or edited outputs; keep a Cython parse/compile lane as well. Generator documentation that promises atomic writes must match implementation; write via a sibling temporary file and `os.replace` if atomicity is part of the contract.
 
 ## Git/version code must be side-effect disciplined
 
-Exercise production APIs, not simulations of their expected output. Error paths must preserve the original failure and never reference exception variables after Python clears the `except ... as e` binding. Current `BLD-GIT-001` turns an invalid safe-directory path into `UnboundLocalError`.
+Exercise production APIs, not simulations of their expected output. Error paths must preserve the original failure and never reference exception variables after Python clears the `except ... as e` binding. `BLD-GIT-001` (closed 2026-11-04) turned an invalid safe-directory path into `UnboundLocalError`; every failure is now a non-zero code with its message.
 
-Treat Git configuration as user state. Do not mutate `git config --global` merely because `git log` returned 128. First identify a genuine dubious-ownership diagnostic, resolve the **repository top-level path**, and prefer command-scoped configuration (`git -c safe.directory=...`) or an explicitly authorized isolated config. Current `BLD-GIT-002` globally adds the `_build_utils` subdirectory and retries on any return code 128; both the scope and trigger are wrong for a robust build contract.
+Treat Git configuration as user state. Do not mutate `git config --global` merely because `git log` returned 128. First identify a genuine dubious-ownership diagnostic, resolve the **repository top-level path**, and prefer command-scoped configuration (`git -c safe.directory=...`) or an explicitly authorized isolated config. `BLD-GIT-002` (closed 2026-11-04) globally added the `_build_utils` subdirectory and retried on any return code 128. `git_version` now retries once with `git -c safe.directory=<top level Git names>` only after the dubious-ownership message, and never calls `add_safe_directory`, which remains an explicit, persistent maintainer tool.
 
 Version extraction must be verified from a complete project root, a Git checkout, and an sdist/tarball without `.git`. Generated `version.py` must contain safe precomputed strings and should not require Git at import time.
 
 ## Meson feature installation modifies another package
 
-`install_meson_features.py` copies repository code into `mesonbuild.modules.features`, so treat it as a high-risk compatibility boundary. A timestamp is not content identity. Current `BLD-MESON-001` accepts a destination with different content when its mtime is newer and ignores destination-only stale files. Freshness must detect content changes and removals, stage the complete desired tree, and make replacement recoverable. Test against actual supported Meson versions because `_meson_features` imports Meson-private APIs whose signatures can change.
+`install_meson_features.py` copies repository code into `mesonbuild.modules.features`, so treat it as a high-risk compatibility boundary. A timestamp is not content identity. `BLD-MESON-001` (closed 2026-11-04) accepted a destination with different content when its mtime was newer and ignored destination-only stale files; `_needs_update` now compares file sets and bytes, ignoring bytecode. Freshness must detect content changes and removals, stage the complete desired tree, and make replacement recoverable. Test against actual supported Meson versions because `_meson_features` imports Meson-private APIs whose signatures can change.
 
 Never infer live Meson compatibility from `compileall`; the local `_meson_features.__init__` intentionally avoids loading its Meson-relative imports outside the `meson*` package namespace.
 
 ## Filesystem helpers need ordinary-path semantics
 
-A destination basename in the current directory is a normal file path. Current `BLD-COPY-001` calls `os.makedirs(os.path.dirname(dest))`, which becomes `os.makedirs("")` for `dst.txt`. Test basename destinations, nested destinations, existing files, dry-run, no-overwrite, interactive refusal, multiple sources, directory recursion, archive output, and Windows path forms. Dry-run must perform no mutation.
+A destination basename in the current directory is a normal file path. `BLD-COPY-001` (closed 2026-11-04) called `os.makedirs(os.path.dirname(dest))`, which became `os.makedirs("")` for `dst.txt`. Test basename destinations, nested destinations, existing files, dry-run, no-overwrite, interactive refusal, multiple sources, directory recursion, archive output, and Windows path forms. Dry-run must perform no mutation.
 
 
 ## API-reference generation must separate canonical layout from runtime discovery
@@ -60,7 +60,7 @@ Prefer the AST-based `fix_submodule_import_v2.py` contract over regex assumption
 
 ## Test fidelity is part of the contract
 
-A test named for `GitVersionInfo` that merely constructs local strings is not production-API evidence. Current `BLD-TEST-001` imports `git_version`, `GitVersionInfo`, and `generate_version_template` but does not call them. Replace simulated checks with monkeypatched subprocess/filesystem tests that invoke actual functions and assert return codes, side effects, stderr, generated content, and fallback behavior.
+A test named for `GitVersionInfo` that merely constructs local strings is not production-API evidence. `BLD-TEST-001` (closed 2026-11-04) imported `git_version`, `GitVersionInfo`, and `generate_version_template` without calling them; the suite now runs them against a real repository, a stand-in `git`, and no `git`. Replace simulated checks with monkeypatched subprocess/filesystem tests that invoke actual functions and assert return codes, side effects, stderr, generated content, and fallback behavior.
 
 ## Evidence and release rules
 

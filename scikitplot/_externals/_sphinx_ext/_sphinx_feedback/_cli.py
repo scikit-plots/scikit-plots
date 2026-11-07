@@ -267,19 +267,22 @@ async def check_targets(config, env, *, client) -> list[tuple[str, str, str]]:
 
     Notes
     -----
-    Forges (github, gitlab, bitbucket): the credential resolves, the base
-    branch resolves, and a branch that cannot exist (``feedback/000...``) is
-    reported absent with no review, which exercises the lookup calls a
-    submission makes, without writing anything. ``git``: the path is the top
-    of a working tree. ``sqlite``: the database's directory exists.
-    ``webhook``/``custom``: skipped, since any call would deliver or store.
+    Forges (github, gitlab, bitbucket Cloud and Data Center): the credential
+    resolves, the base branch resolves, and a branch that cannot exist
+    (``feedback/000...``) is reported absent with no review, which exercises
+    the lookup calls a submission makes, without writing anything. A forge
+    whose operations define ``check_read_shapes`` (Bitbucket Data Center)
+    also reads the changes of the base head and checks their shape.
+    ``git``: the path is the top of a working tree. ``sqlite``: the
+    database's directory exists. ``webhook``/``custom``: skipped, since any
+    call would deliver or store.
     """
-    from ._service._bitbucket import BitbucketOps  # noqa: PLC0415
+    from ._service._bitbucket import bitbucket_ops  # noqa: PLC0415
     from ._service._forge import ProviderWriteError  # noqa: PLC0415
     from ._service._github import GitHubOps  # noqa: PLC0415
     from ._service._gitlab import GitLabOps  # noqa: PLC0415
 
-    forge_ops = {"github": GitHubOps, "gitlab": GitLabOps, "bitbucket": BitbucketOps}
+    forge_ops = {"github": GitHubOps, "gitlab": GitLabOps, "bitbucket": bitbucket_ops}
     results: list[tuple[str, str, str]] = []
     for target in config.targets:
         if target.provider in forge_ops:
@@ -298,6 +301,8 @@ async def check_targets(config, env, *, client) -> list[tuple[str, str, str]]:
                 base = await ops.resolve_base()
                 absent = not await ops.branch_exists(_PROBE_BRANCH)
                 no_review = await ops.find_review(_PROBE_BRANCH, target.branch) is None
+                shapes = getattr(ops, "check_read_shapes", None)
+                shape_note = f"; {await shapes(base)}" if shapes is not None else ""
             except ProviderWriteError as exc:
                 results.append((target.id, "fail", f"{exc.code}: {exc}"))
                 continue
@@ -308,7 +313,8 @@ async def check_targets(config, env, *, client) -> list[tuple[str, str, str]]:
                     "ok" if ok else "fail",
                     f"{target.provider} {target.repo}@{target.branch} head {base[:12]} "
                     f"(credential {name}); lookups "
-                    + ("work" if ok else "returned unexpected data"),
+                    + ("work" if ok else "returned unexpected data")
+                    + shape_note,
                 )
             )
         elif target.provider in {"git", "sqlite"}:

@@ -60,9 +60,13 @@ that increment (for round 33:
   record the full hash.
 - `.github/workflows/pr_check_citation.yml` existed (cffconvert action) and
   was first overwritten; restored and extended (lesson DOCS-L1).
-- Follow-ups: `upcoming_changes/tools/citation/zenodo-cache-script-is-matplotlibs.md`,
-  `upcoming_changes/scikitplot/config/runtime-citation-names-latest-only.md`,
-  `upcoming_changes/galleries/examples/gallery-folders-outside-labeler-rel.md`.
+- Follow-ups: `upcoming_changes/scikitplot/config/runtime-citation-names-latest-only.md`;
+  the copied matplotlib `cache_zenodo_svg.py` was removed on 2026-11-04 (PR
+  907): `citation_ref.py` renders and checks the `citing.rst` DOI list from
+  `VERSION_DOIS` and `PREDECESSOR`;
+  the gallery-label follow-up was closed on 2026-11-04 (PR 907): the
+  `galleries/examples/env` and `ipymagic` folders keep their names and are
+  listed in `[tool.scikitplot.maintenance.labeler.satellite_paths]`.
 
 ## Pointers: past work owned elsewhere that changed the docs build
 

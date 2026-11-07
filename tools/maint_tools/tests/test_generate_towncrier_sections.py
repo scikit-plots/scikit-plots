@@ -34,7 +34,25 @@ class TowncrierSectionsTests(unittest.TestCase):
         self.assertEqual(status, 0, stderr.getvalue())
         payload = json.loads(stdout.getvalue())
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["counts"]["expected_sections"], 104)
+        # The section count changes whenever a package is added or removed, so
+        # assert the invariants the check guarantees instead of a fixed number:
+        # the count matches the reported paths, paths are unique, the
+        # configuration covers exactly the expected set, and every owner
+        # section discovered from the tree is part of it.
+        counts = payload["counts"]
+        expected_paths = payload["expected_sections"]
+        self.assertGreater(counts["expected_sections"], 0)
+        self.assertEqual(counts["expected_sections"], len(expected_paths))
+        self.assertEqual(len(set(expected_paths)), len(expected_paths))
+        self.assertEqual(counts["configured_sections"], counts["expected_sections"])
+        data = MODULE._load_pyproject(repo_root / "pyproject.toml")
+        discovered = {
+            section.path
+            for section in MODULE._discover_owner_sections(
+                repo_root, MODULE._load_policy(data)
+            )
+        }
+        self.assertLessEqual(discovered, set(expected_paths))
 
         stdout = io.StringIO()
         status = MODULE.main(

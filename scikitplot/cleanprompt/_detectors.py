@@ -32,7 +32,7 @@ scikitplot.cleanprompt._engine : Composes detector output.
 from __future__ import annotations
 
 import re
-from typing import Iterable, Iterator, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 from ._exceptions import (
     CleanPromptError,
@@ -237,7 +237,7 @@ class RegexDetector(Detector):
         """
         del policy  # the pattern library is policy-independent
         validate = self.spec.validate
-        pattern = self.spec.compiled()
+        pattern = self._pattern()
 
         if validate is None:
             for match in pattern.finditer(text):
@@ -278,6 +278,19 @@ class RegexDetector(Detector):
                 cursor = accepted.end()
             else:
                 cursor = start + 1
+
+    def _pattern(self) -> Any:
+        """
+        Return what :meth:`detect` scans with: the compiled expression.
+
+        Returns
+        -------
+        re.Pattern
+            Anything with ``search``, ``match`` and ``finditer``; a subclass
+            may return a time-limited one
+            (:class:`~scikitplot.cleanprompt._packs.PackPatternDetector`).
+        """
+        return self.spec.compiled()
 
     @staticmethod
     def _boundary_is_real(

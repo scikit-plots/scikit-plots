@@ -2,7 +2,7 @@
 
 ## Current truth
 
-Maintenance tooling is healthy. Runtime/build-tool structural status is FAIL because six owned findings are open. The focused shipped suite is 25/25, but its Git-version tests do not call the production APIs they import. Direct `tempita.py` generation of the Annoy `.pxd.in` template succeeds; the broader `cython_generate.py --validate` command then rejects the generated `.pyx` because it mistakes legitimate doubled braces in embedded CSS/JavaScript for Tempita residue.
+Maintenance tooling is healthy and the runtime/build-tool structural status is PASS: the seven owned findings were closed on 2026-11-04 (`REVIEW.json` resolutions, `evidence/repair-2026-11-04.log`). The shipped suite is 80 tests and calls the production APIs. Release stays BLOCKED on the integration lanes only: the feature installer was verified live on meson 1.12.1, but no full Meson build or cross-platform run has been recorded.
 
 `mesonbuild` is not installed in the evidence environment, so the custom `_meson_features` package was not copied into or executed inside a live Meson installation. Do not mark that lane green from static imports.
 

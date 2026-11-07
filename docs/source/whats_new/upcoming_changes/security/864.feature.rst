@@ -1,0 +1,9 @@
+- ``scikitplot.cleanprompt``: a custom pack pattern that can backtrack
+  catastrophically (nested quantifiers such as ``^(a+)+$``, overlapping
+  alternations, adjacent quantifiers) is now reported when the pack loads
+  instead of loading silently and stalling a run. Warn is the default;
+  ``--pattern-risk ignore|warn|refuse`` (``packs``, ``batch``, ``plan``,
+  ``ask``, ``mcp``), ``pattern_risk`` in a plan file and
+  ``CLEANPROMPT_PATTERN_RISK`` tune it per run, team or machine, a pattern can
+  be marked ``risk: accepted`` with a ``risk_reason``, and ``packs --check``
+  lists every finding.

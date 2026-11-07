@@ -66,11 +66,37 @@ The exact Fix 7 workspace completed the user's Sphinx-enabled full suite with **
 - `foo.py -> test_foo.py`;
 - `__init__.py -> test___init__.py`;
 - one collected Python owner per source module;
-- large feature chunks only under non-collected `_cases/<source>/`;
+- large feature chunks only under non-collected `_cases/<owner>/`, declared by that owner;
 - no historical `test_runNN_*` canonical filenames except `test_run_redis_chaos.py`, which mirrors the real source `run_redis_chaos.py`;
 - `_integration/` and `_architecture/` are explicit cross-module planes;
 - no parent-depth runtime discovery; use `tests/_paths.py`;
 - no stale test-to-test filename references after a move.
+
+## Release-security chain built once per process (PR 907) — CLOSED
+
+- note: `upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/security-tests-rebuild-their-chain.md` (removed: tests only, no release note);
+- imports: every module of `tests/_hf_spaces_proxy/security/` imports its runtime and its predecessors relatively (no `sys.path` edits, no `_load(name, path)` copies); `_architecture/test_release_gate_process_hermeticity.py` and `_hf_spaces_proxy/ci/test_redis_chaos_attestation.py` import those modules as package modules; `_PATH_LOADED_TEST_DIRS` is empty;
+- stages: `security/_stages.py` builds each module-boundary predecessor once per process (`run157`, `run158`, `run159`, `run160`, `run161`, `run162`, `run163`, `run164-fixture`, `run167-base`) and returns a fresh deep copy per use (`cryptography` objects shared); a second call in one test builds an independent chain as before; every stage, and the stages it was built from, is fingerprinted (path, kind, mode, symlink target, bytes) and checked before each use and after each test (`security/conftest.py`); tests that write into a predecessor take `_stages.private` (`test_run161_detects_input_directory_drift_during_external_call`, `test_run164_authority_input_drift_detected`, both found by the guard);
+- not shared: each Run N test still builds its own Run N state with fresh keys; Runs 167/168 still advance their epochs per test through the production verifier, which verifies the whole history (unchanged, as the note requires);
+- module executions (collection + run, this machine): 283 executions with 34 files run more than once (max 29) -> 52 with 2 (`verify_release_evidence.py`, `source_tree.py`: the Run 20/149 scripts import those siblings by top-level name themselves, as before);
+- verification (CPython 3.13, 2 CPUs, `test_verify_supply_chain.py` excluded here: no `httpx`): 519/519 before and after, warning-strict; same outcome reversed and with two shuffles (shuffle runs slower in both trees: module fixtures rebuild when modules interleave); each of the 21 files alone; `_architecture` + `ci` 775 passed; whole `_sphinx_ai_assistant` tree: identical failure set before/after (missing optional packages), +15 passed (the helper's tests, `_architecture/test_security_stages.py`, 8 mutations of the helper each caught);
+- timing (`--durations=0`, same machine, same order):
+
+| test file | before s | after s |
+|---|---|---|
+| `test_preserve_archive_merkle_rebridge.py` (Run 168) | 41.2 | 42.3 |
+| `test_rebridge_archive_merkle_authority.py` (Run 167) | 32.6 | 31.6 |
+| `test_audit_archive_retention.py` (Run 161) | 19.3 | 5.6 |
+| `test_witness_archive_health.py` (Run 162) | 19.2 | 4.2 |
+| `test_verify_archive_merkle_transparency.py` (Run 164) | 18.9 | 6.4 |
+| `test_anchor_archive_health.py` (Run 163) | 17.1 | 5.4 |
+| `test_archive_native_status_evidence.py` (Run 160) | 13.2 | 4.6 |
+| `test_continue_archive_merkle_authority.py` (Run 166) | 11.9 | 11.6 |
+| `test_verify_native_status_provenance.py` (Run 159) | 8.1 | 2.7 |
+| all 21 files | 198.4 | 130.0 |
+
+  Run 167's module setup 3.71 s -> 0.02 s (its base is the stage Run 168 built); whole `_sphinx_ai_assistant` tree 248 s -> 169 s.
+
 
 ## Closed local failure 1 — hermetic command adapter
 

@@ -56,6 +56,8 @@ scikitplot.corpus._storage._storage.FilterSupport : the three-way response.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
 import math
 from typing import Any, Iterable
 
@@ -853,6 +855,34 @@ class SecurityFilter:
         if not isinstance(self.label, str) or not self.label:
             raise TypeError("SecurityFilter.label must be a non-empty str")
         object.__setattr__(self, "expression", validate_filter(self.expression))
+
+    @property
+    def digest(self) -> str:
+        """
+        The scope's identity: ``"sha256:"`` and the hex digest of its expression.
+
+        Returns
+        -------
+        str
+            SHA-256 of the canonical JSON of :func:`filter_to_dict` (sorted
+            keys, no whitespace, UTF-8). The label does not enter.
+
+        Notes
+        -----
+        **User.** Two scopes with the same digest admit the same documents of
+        any index. The digest is of the expression as written: clauses in
+        another order, or ``In`` values in another order, give another
+        digest, so they are treated as another scope (which is refused rather
+        than trusted).
+        """
+        text = json.dumps(
+            filter_to_dict(self.expression),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def combine(self, expression: Filter | None) -> Filter:
         """Return the security expression AND-ed with ``expression``."""

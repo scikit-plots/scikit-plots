@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 from datetime import timedelta
-import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -16,17 +15,11 @@ ROOT = RUNTIME_ROOT
 SECURITY = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
-archive = _load("run160_native_archive", SECURITY / "archive_native_status_evidence.py")
-run159 = _load("run159_helpers_for_run160", HERE / "test_verify_native_status_provenance.py")
+from ...._hf_spaces_proxy.security import archive_native_status_evidence as archive
+from . import test_verify_native_status_provenance as run159
+from . import _stages
 NOW = run159.NOW
 
 
@@ -145,7 +138,7 @@ class RecoverySource:
 
 
 def _native(tmp_path: Path):
-    setup, _, native_dir, *_ = run159._init_native(tmp_path / "run159")
+    setup, _, native_dir, *_ = _stages.shared("run159", run159._init_native, tmp_path / "run159")
     return setup, native_dir
 
 

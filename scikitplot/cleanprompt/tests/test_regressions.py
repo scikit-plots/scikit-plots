@@ -2248,3 +2248,610 @@ class TestCP107HugeRepetitionCountCrashedValidation:
         from .._pattern_risk import analyse_pattern
 
         assert [r.rule for r in analyse_pattern(self._PATTERN)] == ["not-analysed"]
+
+
+class TestCP108NothingBoundedACustomPatternRun:
+    """
+    ``CP-108`` — a custom pattern could run without any time limit.
+
+    Notes
+    -----
+    **Developer notes.** ``CP-104`` reports risky shapes when a pack loads,
+    but a report is not a bound: an accepted or unreported pattern could stall
+    ``batch``, the MCP server or the web app on one near-match, and :mod:`re`
+    has no time limit. A limit (``_pattern_timeout.py``) now stops it with
+    :class:`PatternTimeoutError`; one set without the ``timeout`` tier is
+    refused, never dropped. ``test__pattern_timeout`` covers the rest.
+    """
+
+    _SLOW = regex_fixture(r"^(?:a|a)*$")
+
+    def _pack(self):
+        from .._packs import pack_from_document
+
+        item = {
+            "kind": "SLOWX",
+            "pattern": self._SLOW,
+            "intent": "i",
+            "examples_yes": ["aaa"],
+            "examples_no": ["b"],
+            "risk": "accepted",
+            "risk_reason": "the regression",
+        }
+        document = {"name": "slow", "version": 1, "summary": "s", "patterns": [item]}
+        return pack_from_document(document, source="t.json")
+
+    def test_the_limit_stops_a_runaway_pattern(self):
+        from ._tiers import available
+
+        if not available("timeout"):
+            pytest.skip("the 'timeout' tier (regex) is not installed")
+        import time
+
+        from .._exceptions import PatternTimeoutError
+        from .._packs import PackPatternDetector
+        from .._policy import DEFAULT_POLICY
+
+        pack = self._pack()
+        detector = PackPatternDetector(pack.patterns[0], "slow", timeout=0.2)
+        started = time.monotonic()
+        with pytest.raises(PatternTimeoutError, match=r"ran past the 0\.2 s"):
+            list(detector.detect("a" * 40 + "!", DEFAULT_POLICY))
+        assert time.monotonic() - started < 5
+
+    def test_a_limit_without_the_tier_is_refused(self, monkeypatch):
+        from .. import _capabilities
+        from .._exceptions import CapabilityError
+        from .._packs import PackPatternDetector
+
+        pack = self._pack()
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _name: None)
+        with pytest.raises(CapabilityError, match=r"requires regex>=2020\.1"):
+            PackPatternDetector(pack.patterns[0], "slow", timeout=0.2)
+
+
+class TestCP109FormatCharactersInsideNames:
+    """
+    ``CP-109`` -- an invisible character inside a name hid the value it named.
+
+    Notes
+    -----
+    **Developer notes.** Recorded in round 25 and reproduced on the round-28
+    tree before the fix: ``export DB_PASS\u200bWORD=...`` (shell), ``const
+    pass\u200dword = "..."`` (JavaScript, where the joiner is legal in an
+    identifier), ``API_\u200bKEY = "..."`` (Python) and ``{"z":
+    "bob\u200b@example.com"}`` (JSON) all went out unchanged. Splitters cut a
+    name at the format character, and the JSON token wrapper never read the
+    detection view. The sweep below puts each of seven format characters at
+    every position inside the name of every code and key-value sample: no
+    value is sent, the structure equals the plain encoding, and the round
+    trip is exact.
+    """
+
+    _SALTS = ("\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\u00ad", "\u202e")
+
+    #: (format, text, the name to salt, the value that must not be sent)
+    _SAMPLES = (
+        ("shell", "export DB_PASSWORD=hunter2hunter2\n", "DB_PASSWORD", "hunter2hunter2"),
+        ("env", "DB_PASSWORD=hunter2hunter2\n", "DB_PASSWORD", "hunter2hunter2"),
+        ("ini", "[db]\npassword = hunter2hunter2\n", "password", "hunter2hunter2"),
+        ("yaml", "db:\n  password: hunter2hunter2\n", "password", "hunter2hunter2"),
+        ("javascript", 'const password = "hunter2hunter2";\n', "password", "hunter2hunter2"),
+        ("rlang", 'api_key <- "abc123def456"\n', "api_key", "abc123def456"),
+        ("sql", "SET password = 'hunter2hunter2';\n", "password", "hunter2hunter2"),
+        ("python", 'API_KEY = "abc123def456"\n', "API_KEY", "abc123def456"),
+        ("json", '{"password": "hunter2hunter2"}\n', "password", "hunter2hunter2"),
+        ("jsonl", '{"password": "hunter2hunter2"}\n', "password", "hunter2hunter2"),
+    )
+
+    @staticmethod
+    def _cleaner():
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        return Cleaner(FluentCleanPrompt().packs("all").build())
+
+    @pytest.mark.parametrize(
+        ("fmt", "text", "name", "value"), _SAMPLES, ids=[s[0] for s in _SAMPLES]
+    )
+    def test_every_salt_at_every_position_in_the_name(self, fmt, text, name, value):
+        plain = self._cleaner().encode_text(text, fmt, name=f"s.{fmt}").text
+        assert value not in plain, "the plain sample must be redacted to begin with"
+        for salt in self._SALTS:
+            for cut in range(1, len(name)):
+                salted = text.replace(name, name[:cut] + salt + name[cut:], 1)
+                cleaner = self._cleaner()
+                encoded = cleaner.encode_text(salted, fmt, name=f"s.{fmt}")
+                where = f"{fmt}: {salt!r} after {name[:cut]!r}"
+                assert value not in encoded.text, where
+                assert encoded.text.replace(salt, "") == plain, where
+                assert cleaner.decode(encoded.text) == salted, where
+
+    @pytest.mark.parametrize(
+        ("fmt", "text", "secret"),
+        [
+            ("json", '{"z": "bob\u200b@example.com"}', "bob"),
+            ("json", '{"z": "a\\n bob\u200b@example.com \\"q\\""}', "bob"),
+            ("jsonl", '{"a": 1}\n{"z": "bob\u200b@example.com"}\n', "bob"),
+            ("shell", "export DB_PASS\u200bWORD=hunter2\u200bhunter2\r\nexport X=1\r\n", "hunter2"),
+        ],
+    )
+    def test_salted_values_escapes_and_crlf(self, fmt, text, secret):
+        cleaner = self._cleaner()
+        encoded = cleaner.encode_text(text, fmt, name=f"s.{fmt}")
+        assert secret not in encoded.text
+        assert encoded.text.count("\n") == text.count("\n")
+        assert encoded.text.count("\r") == text.count("\r")
+        assert cleaner.decode(encoded.text) == text
+        if fmt.startswith("json"):
+            import json
+
+            for line in encoded.text.splitlines():
+                json.loads(line)
+
+    def test_json_spans_are_mapped_back_before_they_are_clipped(self):
+        # Ten format characters before the values: a view span left in view
+        # offsets, or a field span (original offsets) read as a view span,
+        # would land ten characters off, in the next token.
+        lead = "x\u200b" * 10
+        salted = (
+            '{"note": "' + lead + '", "e": "bob\u200b@example.com", '
+            '"mrn": "00412345", "k": "ab"}'
+        )
+        plain = salted.replace("\u200b", "")
+        expected = self._cleaner().encode_text(plain, "json", name="s.json").text
+        cleaner = self._cleaner()
+        encoded = cleaner.encode_text(salted, "json", name="s.json")
+        assert encoded.text.replace("\u200b", "") == expected
+        assert '"k": "ab"' in encoded.text
+        assert cleaner.decode(encoded.text) == salted
+
+
+class TestCP110EmailAddressesWithNonAsciiLetters:
+    """
+    ``CP-110`` -- one non-ASCII letter kept a whole address from being found.
+
+    Notes
+    -----
+    **Developer notes.** Recorded in round 25 and reproduced on the round-28
+    tree: ``EMAIL`` accepted ASCII letters only and began at ``\b``, so
+    ``jos\u00e9@example.com``, ``ada@ex\u00e4mple.com``, an address in another
+    script and ``\u0430da@example.com`` (a Cyrillic letter first, where
+    ``\b`` is not a boundary) were all sent whole. The pattern now takes
+    letters, digits and combining marks of any script and starts where no
+    local-part character precedes it.
+    """
+
+    _FOUND = (
+        "jos\u00e9@example.com",
+        "ada@ex\u00e4mple.com",
+        "\u7528\u6237@\u4f8b\u5b50.\u5e7f\u544a",
+        "\u0430da@example.com",
+        "\u0928\u092e\u0938\u094d\u0924\u0947@\u0909\u0926\u093e\u0939\u0930\u0923.\u092d\u093e\u0930\u0924",
+        "\u0e2a\u0e27\u0e31\u0e2a\u0e14\u0e35@\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07.\u0e44\u0e17\u0e22",
+        "jose\u0301@example.com",
+    )
+
+    @pytest.mark.parametrize("address", _FOUND)
+    @pytest.mark.parametrize(
+        "frame", ["mail {} now", "({})", "{}.", "to: {},", "{}"]
+    )
+    def test_found_whole_and_restored(self, address, frame):
+        from .. import Redactor, encode
+
+        text = frame.format(address)
+        result = encode(text)
+        assert address not in result.text
+        assert frame.format("[EMAIL-1]") == result.text
+        redacted = Redactor().redact(text)
+        assert [e.original for e in redacted.entries] == [address]
+
+    @pytest.mark.parametrize("address", _FOUND)
+    def test_in_a_json_string(self, address):
+        import json
+
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        text = json.dumps({"note": f"write to {address} today"}, ensure_ascii=False)
+        cleaner = Cleaner(FluentCleanPrompt().build())
+        encoded = cleaner.encode_text(text, "json", name="s.json")
+        assert address not in encoded.text
+        assert json.loads(encoded.text) == {"note": "write to [EMAIL-1] today"}
+        assert cleaner.decode(encoded.text) == text
+
+    @pytest.mark.parametrize(
+        "text", ["price @ 5 each", "\u00e9t\u00e9 @ caf\u00e9", "@handle", "a@b", "x@-y.com"]
+    )
+    def test_text_that_is_no_address_is_left(self, text):
+        from .. import encode
+
+        assert encode(text).text == text
+
+    def test_no_match_spans_a_pipe(self):
+        from .. import encode
+
+        assert encode("jos\u00e9@ex\u00e4mple.com|evil").text == "[EMAIL-1]|evil"
+
+    @pytest.mark.parametrize("address", ["#ops@example.com", "+tag@example.com", "{x}@example.com"])
+    def test_a_local_part_may_start_with_a_special_character(self, address):
+        # RFC 5322 atext includes these; a word boundary would start the match
+        # after them and leave the first character outside the placeholder.
+        from .. import encode
+
+        assert encode(f"mail {address} now").text == "mail [EMAIL-1] now"
+
+
+class TestCP111PhoneGroupingsAndRanges:
+    """
+    ``CP-111`` -- part of an international number was sent; ranges were hidden.
+
+    Notes
+    -----
+    **Developer notes.** Recorded in round 25 and reproduced on the round-28
+    tree. ``PHONE`` accepted groups of two to four digits only, so ``+33 1 23
+    45 67 89`` sent ``+33 1`` and ``+49 (0)30 1234 5678`` sent ``+49 (0)``;
+    ``+49 30 12345678``, ``030 12345678`` and ``+44 7700 900123`` were sent
+    whole; an extension was left beside the placeholder. Year ranges and
+    day-month-year dates were hidden as phone numbers.
+    """
+
+    @pytest.mark.parametrize(
+        "number",
+        [
+            "+33 1 23 45 67 89",
+            "01 23 45 67 89",
+            "+49 30 12345678",
+            "+49 (0)30 1234 5678",
+            "030 12345678",
+            "+44 20 7946 0958",
+            "+44 7700 900123",
+            "+90 212 555 12 34",
+            "0212 555 12 34",
+            "+1 555 010 4477 ext. 123",
+            "555-010-4477 x12",
+        ],
+    )
+    @pytest.mark.parametrize("frame", ["Tel {} now", "({})", "{}.", "call: {},"])
+    def test_found_whole(self, number, frame):
+        from .. import encode
+
+        assert encode(frame.format(number)).text == frame.format("[PHONE-1]")
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Revenue grew 12% in 2019-2024",
+            "from 1999-2001 and 2019\u20132024",
+            "on 15-01-2024",
+            "on 15.01.2024",
+            "on 01/15/2024",
+            "on 2024-01-15",
+            "pp. 120-135",
+            "ISBN 978-3-16-148410-0",
+            "ISBN 0-306-40615-2",
+            "in 2019 12345 people",
+        ],
+    )
+    def test_ranges_dates_and_isbns_are_left(self, text):
+        from .. import encode
+
+        assert encode(text).text == text
+
+
+class TestCP112RewrittenSpellingsInTheSource:
+    """
+    ``CP-112`` -- a label spelling written in the source was restored as a value.
+
+    Notes
+    -----
+    **Developer notes.** Recorded in round 25 and reproduced on the round-28
+    tree: ``[EMAIL\u2028-1] ada@example.com`` redacted to ``[EMAIL\u2028-1]
+    [EMAIL-1]`` and restored to ``ada@example.com ada@example.com``, because
+    restoration repairs rewritten labels and encoding reserved only exact
+    ones. Every spelling the lenient restorer accepts now reserves the label
+    it normalises to.
+    """
+
+    _SPELLINGS = (
+        "[email_1]",
+        "[EMAIL 1]",
+        "\\[EMAIL-1\\]",
+        "[email\\_1]",
+        "[EMAIL\u2011" "1]",
+        "[EMAIL-\n1]",
+        "[EMAIL\u2028-1]",
+    )
+
+    @pytest.mark.parametrize("spelling", _SPELLINGS)
+    def test_the_round_trip_is_exact(self, spelling):
+        from .. import Redactor, restore
+
+        text = f"{spelling} ada@example.com"
+        result = Redactor().redact(text)
+        assert result.text == f"{spelling} [EMAIL-2]"
+        assert restore(result.text, result.vault).text == text
+
+    @pytest.mark.parametrize("spelling", _SPELLINGS)
+    def test_a_model_rewrite_is_still_repaired(self, spelling):
+        from .. import Redactor, restore
+
+        result = Redactor().redact("ada@example.com")
+        assert restore(f"see {spelling}", result.vault).text == "see ada@example.com"
+
+    def test_a_lenient_match_still_reaches_detection(self):
+        # Only the label is reserved: a value inside such a shape is found.
+        from .. import Redactor
+
+        result = Redactor().redact("[EMAIL ada@example.com 1]")
+        assert "ada@example.com" not in result.text
+
+    def test_prose_in_brackets_is_untouched(self):
+        from .. import Redactor, restore
+
+        text = "see [note 2] and [fig 3] for ada@example.com"
+        result = Redactor().redact(text)
+        assert result.text == "see [note 2] and [fig 3] for [EMAIL-1]"
+        assert restore(result.text, result.vault).text == text
+
+    def test_surrogate_style(self):
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        cleaner = Cleaner(FluentCleanPrompt().style("surrogate").build())
+        text = "[email_1] wrote ada@example.com and [EMAIL\u2028-1]"
+        assert cleaner.decode(cleaner.encode_text(text).text) == text
+
+
+class TestCP113SpellingsOfEarlierLabels:
+    """
+    ``CP-113`` -- a spelling typed in a later turn was restored as an earlier value.
+
+    Notes
+    -----
+    **Developer notes.** Recorded while verifying ``CP-112`` and reproduced:
+    after ``[EMAIL-1]`` was issued for ``ada@example.com``, a second message
+    holding ``[email_1]`` encoded with the spelling left in place and decoded
+    to ``ada@example.com``. Whatever restoration would repair in the source,
+    given the labels already held, is now hidden as a value of its own.
+    """
+
+    @staticmethod
+    def _cleaner(style="placeholder", **kwargs):
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        return Cleaner(FluentCleanPrompt().style(style).build(), **kwargs)
+
+    @pytest.mark.parametrize(
+        "spelling", ["[email_1]", "[EMAIL 1]", "\\[EMAIL-1\\]", "[email\\_1]", "[EMAIL-\n1]"]
+    )
+    def test_a_later_turn_round_trips_exactly(self, spelling):
+        cleaner = self._cleaner()
+        cleaner.encode_text("mail ada@example.com")
+        second = f"I typed {spelling} myself, and bob@example.com"
+        encoded = cleaner.encode_text(second)
+        assert spelling not in encoded.text
+        assert cleaner.decode(encoded.text) == second
+
+    def test_a_model_rewrite_of_the_earlier_label_is_still_repaired(self):
+        cleaner = self._cleaner()
+        cleaner.encode_text("mail ada@example.com")
+        cleaner.encode_text("I typed [email_1] myself")
+        assert cleaner.decode("ok, [email_1]") == "ok, ada@example.com"
+
+    def test_a_re_cased_surrogate_in_a_later_turn(self):
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        cleaner = Cleaner(FluentCleanPrompt().style("surrogate").packs("all").build())
+        first = cleaner.encode_text("name: Marion Holt\n", "yaml", name="a.yaml")
+        stand_in = first.text.split(": ", 1)[1].strip()
+        second = f"I wrote {stand_in.lower()} in my notes"
+        encoded = cleaner.encode_text(second)
+        assert stand_in.lower() not in encoded.text
+        assert cleaner.decode(encoded.text) == second
+
+    def test_a_chunked_file(self):
+        # A later chunk's spelling of a label an earlier chunk issued.
+        cleaner = self._cleaner(chunk_chars=40)
+        text = '{"email": "ada@example.com"}\n' + '{"note": "see [email_1]"}\n' * 4
+        encoded = cleaner.encode_text(text, "jsonl", name="s.jsonl")
+        assert cleaner.decode(encoded.text) == text
+
+
+class TestCP114LookAlikeLetters:
+    """
+    ``CP-114`` -- a look-alike letter of another script hid a value or cut it.
+
+    Notes
+    -----
+    **Developer notes.** Recorded in round 25 and reproduced on the round-28
+    tree: ``\u0410KIAIOSFODNN7EXAMPLE`` (a Cyrillic capital A) was sent whole,
+    and ``https://ex\u0430mple.com/x`` was cut at the look-alike, sending
+    ``\u0430mple.com/x``. The detection view now folds letters and digits
+    that look like one ASCII letter or digit, from a generated UTS #39 table.
+    """
+
+    @pytest.mark.parametrize(
+        ("prefix", "value", "kind"),
+        [
+            ("key", "\u0410KIAIOSFODNN7EXAMPLE", "AWS_ACCESS_KEY"),
+            ("go to", "https://ex\u0430mple.com/x", "URL"),
+            ("ip", "192.168.\u0661.10", "IPV4"),
+            ("mail", "\u0430da@ex\u0430mple.com", "EMAIL"),
+            ("iban", "GB82 W\u0415ST 1234 5698 7654 32", "IBAN"),
+        ],
+    )
+    def test_found_whole_and_restored(self, prefix, value, kind):
+        from .. import Redactor, restore
+
+        text = f"{prefix} {value}"
+        result = Redactor().redact(text)
+        assert result.text == f"{prefix} [{kind}-1]"
+        assert restore(result.text, result.vault).text == text
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "\u041d\u041e\u041c\u0415\u0420 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430",
+            "\u0397 \u0391\u03b8\u03ae\u03bd\u03b1 \u03b5\u03af\u03bd\u03b1\u03b9 \u03c0\u03cc\u03bb\u03b7",
+            "\u09e8\u09e6\u09e8\u09ea \u09b8\u09be\u09b2",
+        ],
+    )
+    def test_prose_in_other_scripts_is_left(self, text):
+        from .. import encode
+
+        assert encode(text).text == text
+
+
+class TestCP115PerKindActions:
+    """
+    ``CP-115`` -- one global way of replacing values, for every kind.
+
+    Notes
+    -----
+    **Developer notes.** A design gap recorded in round 25, not a defect: a
+    policy could say what is detected and one style for everything, so it
+    could not keep a card number as a placeholder while giving an e-mail a
+    surrogate, refuse to send a value of one kind, or only report a noisy
+    one. ``RedactionPolicy.actions`` adds that; without actions every output
+    is byte-identical to the earlier one (checked over 1500 random documents
+    against the round-28 tree, ``evidence/round28.log``).
+    """
+
+    def test_four_actions_in_one_text(self):
+        from .. import Redactor, restore
+        from .._exceptions import BlockedError
+        from .._policy import DEFAULT_POLICY
+
+        text = "mail ada@example.com, card 4242 4242 4242 4242, call +1 555 010 4477"
+        policy = DEFAULT_POLICY.evolve(actions={"EMAIL": "surrogate", "PHONE": "report"})
+        result = Redactor(policy=policy).redact(text)
+        assert result.text == (
+            "mail marion.holt@example.invalid, card [CREDIT_CARD-1], call +1 555 010 4477"
+        )
+        assert restore(result.text, result.vault).text == text
+        with pytest.raises(BlockedError):
+            Redactor(policy=policy.evolve(actions={"CREDIT_CARD": "block"})).redact(text)
+
+
+class TestCP117VehicleIdentificationNumbers:
+    """
+    ``CP-117`` -- no detector recognised a vehicle identification number.
+
+    Notes
+    -----
+    **Developer notes.** A coverage gap recorded in the 2026-10-10 review:
+    ``kinds`` listed no VIN, so a VIN in a support ticket or a fleet export
+    was sent as written. The ``vehicle`` pack adds one, checked by its North
+    American check digit in running text and by shape next to its label.
+    """
+
+    TEMPLATES = TestCP027And028PunctuationBoundaries.TEMPLATES
+
+    @staticmethod
+    def _cleaner():
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        return Cleaner(FluentCleanPrompt().packs("vehicle").build())
+
+    @pytest.mark.parametrize(
+        "vin", ["1M8GDM9AXKP042788", "1HGCM82633A004352", "jh4ka4650jc000403"]
+    )
+    def test_found_whole_in_every_sentence_position(self, vin):
+        for template in self.TEMPLATES:
+            text = template.format(vin)
+            cleaner = self._cleaner()
+            encoded = cleaner.encode_text(text)
+            assert vin not in encoded.text, template
+            assert encoded.text == template.format("[VIN-1]"), template
+            assert cleaner.decode(encoded.text) == text, template
+
+    @pytest.mark.parametrize(
+        ("fmt", "text"),
+        [
+            ("text", "VIN: WVWZZZ3BZWE689725\n"),
+            ("text", "chassis no. WVWZZZ3BZWE689725\n"),
+            ("csv", "vin,plate\nWVWZZZ3BZWE689725,AB12 CDE\n"),
+            ("json", '{"vin": "WVWZZZ3BZWE689725", "plate": "AB12 CDE"}'),
+            ("env", "VIN=WVWZZZ3BZWE689725\n"),
+        ],
+    )
+    def test_a_labelled_vin_without_a_check_digit(self, fmt, text):
+        cleaner = self._cleaner()
+        encoded = cleaner.encode_text(text, fmt, name=f"s.{fmt}")
+        assert "WVWZZZ3BZWE689725" not in encoded.text
+        assert "AB12 CDE" not in encoded.text
+        assert cleaner.decode(encoded.text) == text
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "model ABCDEFGHJK1234567 in stock",  # 17 characters, wrong check digit
+            "WVWZZZ3BZWE689725 in prose",  # no label, no check digit
+            "placeholder 11111111111111111",
+            "commit 1a2b3c4d5e6f7a8b9",
+        ],
+    )
+    def test_look_alikes_in_prose_are_left(self, text):
+        assert self._cleaner().encode_text(text).text == text
+
+
+class TestCP119GermanTaxIdentificationNumbers:
+    """
+    ``CP-119`` -- no detector recognised a German tax identification number.
+
+    Notes
+    -----
+    **Developer notes.** A coverage gap recorded in the 2026-10-10 review
+    (``locale-identifier-packs.md``): a Steuer-ID in an HR export or a tax
+    letter was sent as written. The ``de`` pack adds it, accepted only when
+    the published structure rule and check digit hold.
+    """
+
+    TEMPLATES = TestCP027And028PunctuationBoundaries.TEMPLATES
+
+    @staticmethod
+    def _cleaner():
+        from .._plan import FluentCleanPrompt
+        from .._runtime import Cleaner
+
+        return Cleaner(FluentCleanPrompt().packs("de").build())
+
+    @pytest.mark.parametrize("number", ["86504957138", "86 504 957 138", "12345678911"])
+    def test_found_whole_in_every_sentence_position(self, number):
+        for template in self.TEMPLATES:
+            text = template.format(number)
+            cleaner = self._cleaner()
+            encoded = cleaner.encode_text(text)
+            assert encoded.text == template.format("[TAX_ID_DE-1]"), template
+            assert cleaner.decode(encoded.text) == text, template
+
+    @pytest.mark.parametrize(
+        ("fmt", "text"),
+        [
+            ("csv", "name,steuer_id\nAda,86504957138\n"),
+            ("json", '{"steuer_id": "86504957138"}'),
+            ("env", "STEUER_ID=86504957138\n"),
+        ],
+    )
+    def test_as_a_field(self, fmt, text):
+        cleaner = self._cleaner()
+        encoded = cleaner.encode_text(text, fmt, name=f"s.{fmt}")
+        assert "86504957138" not in encoded.text
+        assert cleaner.decode(encoded.text) == text
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "order 86504957139 shipped",  # wrong check digit
+            "order 47198320652 shipped",  # ten distinct digits: no repeated digit
+            "order 11123456786 shipped",  # a digit three times in a row
+            "test number 02476291358",  # test numbers start with 0
+            "invoice 86504957 138 sent",  # not a 2-3-3-3 grouping
+        ],
+    )
+    def test_look_alikes_in_prose_are_left(self, text):
+        assert self._cleaner().encode_text(text).text == text

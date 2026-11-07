@@ -59,6 +59,7 @@ from typing import Any, Callable, Iterable
 
 from ._diagnostics import ErrorCategory, ErrorRecord
 from ._retrieval import LegKind, RetrievalStatus
+from ._routing import DEFAULT_ROUTING_POLICY, RoutingPolicy
 from ._schema import _StrEnumBase
 
 __all__: list[str] = [
@@ -236,6 +237,17 @@ class BudgetPolicy:
 class RoutePlan:
     """A deterministic decision about which evidence paths to use.
 
+    Parameters
+    ----------
+    legs : tuple of LegKind
+        The evidence paths to run, in order.
+    reason : str
+        Why, in words.
+    shapes : tuple of str, default=()
+        Query shapes the routing policy detected (``"negation"``, ...).
+    unavailable : tuple of LegKind, default=()
+        Paths a detected shape needs that the index does not have.
+
     Notes
     -----
     ``legs`` may be **empty**, which is a legitimate outcome rather than an
@@ -244,6 +256,8 @@ class RoutePlan:
 
     legs: tuple[LegKind, ...]
     reason: str
+    shapes: tuple[str, ...] = ()
+    unavailable: tuple[LegKind, ...] = ()
 
     @property
     def retrieves(self) -> bool:
@@ -256,6 +270,8 @@ def route(  # ruff: ignore[undocumented-param]
     *,
     has_dense: bool = True,
     has_graph: bool = False,
+    has_metadata: bool = False,
+    policy: RoutingPolicy | None = None,
 ) -> RoutePlan:
     """Choose evidence paths by deterministic rule (autonomy level A1).
 
@@ -266,20 +282,44 @@ def route(  # ruff: ignore[undocumented-param]
         Whether a dense index is available.
     has_graph : bool, optional
         Whether a graph view is available.
+    has_metadata : bool, optional
+        Whether structured metadata filters are available.
+    policy : RoutingPolicy or None, optional
+        Query-shape rules; ``None`` is :data:`DEFAULT_ROUTING_POLICY`. Pass
+        ``RoutingPolicy()`` to detect no shapes.
 
     Returns
     -------
     RoutePlan
 
+    Raises
+    ------
+    TypeError
+        If ``query`` is not a string or ``policy`` is not a
+        :class:`RoutingPolicy`.
+
     Notes
     -----
+    **User.**  A plain query routes lexical plus dense (plus graph when
+    ``has_graph``), as before. A query with a detected shape -- counting,
+    negation, a date, a multi-hop relation, a containment -- also gets the
+    paths that shape needs, when the index has them; ``plan.shapes`` names
+    what was detected and ``plan.unavailable`` the paths that were missing.
+
     **Developer.**  Rule-based, never model-controlled: the guide forbids
     beginning with a model router, and a deterministic router is also the only
-    kind whose behaviour can be regression-tested.
+    kind whose behaviour can be regression-tested; the labelled routing set in
+    ``tests/data/routing_set.json`` pins it.
 
-    A quoted phrase routes lexical-only, because a caller who quoted a phrase
-    asked for that phrase, not for something semantically nearby.
+    A quoted phrase routes lexical-only and detects no shape, because a caller
+    who quoted a phrase asked for that phrase, not for something semantically
+    nearby.
     """
+    if not isinstance(query, str):
+        raise TypeError(f"query must be a string, got {type(query).__name__}")
+    policy = DEFAULT_ROUTING_POLICY if policy is None else policy
+    if not isinstance(policy, RoutingPolicy):
+        raise TypeError(f"policy must be a RoutingPolicy, got {type(policy).__name__}")
     stripped = query.strip()
     if not stripped:
         return RoutePlan(legs=(), reason="empty query: nothing to retrieve")
@@ -297,7 +337,32 @@ def route(  # ruff: ignore[undocumented-param]
     if has_graph:
         legs.append(LegKind.GRAPH)
     reason = "hybrid" if has_dense else "lexical only: no dense index available"
-    return RoutePlan(legs=tuple(legs), reason=reason)
+    shapes = policy.detect(stripped)
+    if not shapes:
+        return RoutePlan(legs=tuple(legs), reason=reason)
+    available = {
+        LegKind.LEXICAL: True,
+        LegKind.DENSE: bool(has_dense),
+        LegKind.GRAPH: bool(has_graph),
+        LegKind.METADATA: bool(has_metadata),
+    }
+    unavailable: list[LegKind] = []
+    for leg in policy.legs_for(shapes):
+        if leg in legs:
+            continue
+        if available[leg]:
+            legs.append(leg)
+        else:
+            unavailable.append(leg)
+    reason = f"{reason}; shapes: {', '.join(shapes)}"
+    if unavailable:
+        reason += f"; unavailable: {', '.join(leg.value for leg in unavailable)}"
+    return RoutePlan(
+        legs=tuple(legs),
+        reason=reason,
+        shapes=shapes,
+        unavailable=tuple(unavailable),
+    )
 
 
 @dataclasses.dataclass(frozen=True)

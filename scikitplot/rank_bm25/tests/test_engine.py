@@ -17,7 +17,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from .._engine import numba_available, top_positions
+from .._engine import SparseScoreEngine, numba_available, top_positions
 from .._rank_bm25 import BM25L, BM25Okapi, BM25Plus
 
 RECIPES = (BM25Okapi, BM25L, BM25Plus)
@@ -227,3 +227,33 @@ def test_top_positions_equals_stable_full_sort(seed):
         assert top_positions(scores, n, mask).tolist() == want.tolist()
         want_all = np.argsort(-scores, kind="stable")[:n]
         assert top_positions(scores, n).tolist() == want_all.tolist()
+
+
+# -- the absent-term argument is checked, not assumed ---------------------------
+
+
+@pytest.mark.parametrize("cls", RECIPES)
+@pytest.mark.parametrize("b", [0.0, 1.0])
+def test_empty_documents_need_no_special_rows(cls, b):
+    """With the empty-document case defined, every row shares one absent value."""
+    index = cls([["a"], [], ["a", "b", "b"]], b=b, backend="numpy")
+    index.prepare()
+    engine = index._engine
+    assert not hasattr(engine, "irregular_rows")
+    assert np.array_equal(
+        index.get_scores(["a", "zz"]),
+        cls([["a"], [], ["a", "b", "b"]], b=b, backend="reference").get_scores(
+            ["a", "zz"]
+        ),
+    )
+
+
+def test_an_engine_refuses_a_length_dependent_absent_contribution():
+    """A formula breaking the exactness argument fails at build, not silently."""
+    class LengthDependent(BM25Plus):
+        def _term_contribution(self, idf, frequency, length):
+            return idf * (frequency + length)
+
+    index = LengthDependent([["a"], ["a", "b"]], backend="reference")
+    with pytest.raises(RuntimeError, match="absent-term contribution"):
+        SparseScoreEngine(index)

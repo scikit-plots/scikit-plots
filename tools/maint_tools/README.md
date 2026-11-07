@@ -120,6 +120,23 @@ used by `scikitplot.mcp`:
 - validate repository-relative paths before writing or deleting files.
 
 These rules make helpers testable, scriptable, and safe to call repeatedly.
+`tests/test_cli_policy.py` checks every `*.py` file in this directory, so a
+new helper is covered without being listed: its module body is only imports,
+definitions, constant assignments and one `if __name__ == "__main__":` guard
+that calls `main`; nothing reads `sys.argv` or `sys.stdin` or calls
+`parse_args` at import time; `--help` exits 0 from outside the checkout, with
+the same output each run; and no `sklearn` path appears.
+
+The helpers inherited from scikit-learn were removed in PR 907:
+`bump-dependencies-versions.py`, `check_xfailed_checks.py`,
+`sort_whats_new.py`, `update_tracking_issue.py` and `whats_missing.sh`. No
+workflow called them (only the archived configs under `tools/zz_yanked/`),
+each one did its work at import time or crashed there, and each one encoded
+scikit-learn's own repository: its paths (`sklearn/_min_dependencies.py`,
+`doc/whats_new/`), its changelog format (release notes here are Towncrier
+fragments, checked by `generate_towncrier_sections.py` and
+`pr_check_changelog.yml`), its private estimator-check API and its GitHub
+repository.
 
 ## Towncrier ownership helper
 
@@ -300,10 +317,11 @@ python tools/maint_tools/check_path_lengths.py suggest                     # ren
 python tools/maint_tools/check_path_lengths.py fix --apply                 # git mv + rewrite references
 ```
 
-Known debt outside the maintenance planes is listed with a reason in
-`path_length_baseline.txt`; a listed path that no longer violates fails the
-check, so the list only shrinks. `fix` renames only Markdown under
-`maintenances/`, deterministically (shared directory
+Every tracked path is within the budget. A path outside the maintenance planes
+that cannot be shortened at once may be listed with a reason in
+`path_length_baseline.txt` (absent while nothing is listed); a listed path that
+no longer violates fails the check, so the list only shrinks. `fix` renames
+only Markdown under `maintenances/`, deterministically (shared directory
 affixes, then filler words, then trailing words; a leading identifier is
 kept), and refuses a name it cannot shorten or that would collide.
 

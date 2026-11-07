@@ -42,10 +42,11 @@ Rules
     are written by people and agents; a name is a label, the title belongs in
     the file's first heading.
 
-Known debt outside the maintenance planes is listed, with a reason, in
-``path_length_baseline.txt`` next to this file. A listed path is reported as
-known and does not fail the check; a listed path that no longer violates is a
-*stale* entry and fails it, so the list can only shrink.
+A path outside the maintenance planes that cannot be shortened at once may be
+listed, with a reason, in ``path_length_baseline.txt`` next to this file; the
+file is absent while nothing is listed. A listed path is reported as known and
+does not fail the check; a listed path that no longer violates is a *stale*
+entry and fails it, so the list can only shrink.
 
 Commands
 --------

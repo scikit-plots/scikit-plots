@@ -187,6 +187,7 @@ _submodules = sorted(
     | {
         "__bibtex__",
         "__citation__",
+        "citation",
         "config_context",
         "get_config",
         "set_config",
@@ -222,6 +223,36 @@ __all__ = tuple(_submodules)
 ######################################################################
 
 
+#: The names ``scikitplot.api`` exports (its ``__all__``), served from the root.
+#: Kept here as data so that resolving or listing them never imports
+#: ``scikitplot.api``; ``tests/test___init__.py`` fails when this copy and
+#: ``scikitplot/api/__init__.py`` disagree.
+_API_EXPORTS: frozenset[str] = frozenset(
+    {
+        "decomposition",
+        "estimators",
+        "metrics",
+        "plot_calibration",
+        "plot_classifier_eval",
+        "plot_confusion_matrix",
+        "plot_elbow",
+        "plot_feature_importances",
+        "plot_learning_curve",
+        "plot_pca_2d_projection",
+        "plot_pca_component_variance",
+        "plot_precision_recall",
+        "plot_precision_recall_curve",
+        "plot_residuals_distribution",
+        "plot_roc",
+        "plot_roc_curve",
+        "plot_silhouette",
+        "plotters",
+        "stack",
+        "test",
+    }
+)
+
+
 def _api_names() -> frozenset[str]:
     """
     Return the names re-exported from ``scikitplot.api``.
@@ -229,30 +260,32 @@ def _api_names() -> frozenset[str]:
     Returns
     -------
     frozenset of str
-        Public names of ``scikitplot.api``; empty when ``scikitplot.api``
-        itself is not installed.
-
-    Raises
-    ------
-    ImportError
-        If ``scikitplot.api`` is installed but cannot be imported, for example
-        because one of its dependencies is missing.
+        :data:`_API_EXPORTS` when ``scikitplot.api`` is installed; empty when
+        it is not (a partial distribution).
 
     Notes
     -----
-    **Developer.** ``scikitplot.api`` belongs to the full distribution only. A
-    partial distribution has no such module, and that must read as "no
-    re-exports", not as a failure: otherwise every lazy attribute lookup, and
-    ``dir(scikitplot)``, would fail on a module unrelated to the name asked
-    for. Only the absence of ``scikitplot.api`` itself is tolerated; a broken
-    ``scikitplot.api`` still raises.
+    **User.** ``scikitplot.plot_roc`` and the other plotting functions resolve
+    as before, and ``dir(scikitplot)`` lists them, but neither looking up a
+    name the package does not have nor listing the package imports the
+    plotting API (scikit-learn, SciPy, the vendored seaborn) any more.
+
+    **Developer.** The names are a checked copy of ``scikitplot.api.__all__``,
+    not discovered by importing it. Discovery imported ``scikitplot.api`` for
+    every attribute the module lacked -- tools probe modules for optional
+    names all the time, pytest five times per collected package -- and a
+    failed import was retried by every later probe, since nothing remembered
+    it. Only whether the package is installed is checked here
+    (:func:`importlib.util.find_spec`, which imports nothing below
+    ``scikitplot``); a broken ``scikitplot.api`` therefore fails when one of
+    its names is used, with the import error as the cause, not when an
+    unrelated name is looked up.
     """
-    try:
-        return frozenset(dir(__import__(__name__ + ".api", fromlist=[""])))
-    except ModuleNotFoundError as exc:
-        if exc.name == __name__ + ".api":
-            return frozenset()
-        raise
+    from importlib.util import find_spec  # noqa: PLC0415
+
+    if find_spec(__name__ + ".api") is None:
+        return frozenset()
+    return _API_EXPORTS
 
 
 ## Customize dir(object) behavior to control what attributes are displayed.
@@ -394,10 +427,11 @@ def __getattr__(  # ruff: ignore[too-many-branches, too-many-return-statements]
             return import_module(f"{package}.{name}")
 
         if name in _api_names():
-            from ._compat.optional_deps import nested_import
-
-            # return any object, If any
-            return nested_import(f"{package}.api.{name}")
+            # Every exported name is an attribute of the imported package
+            # (a function, or a subpackage it imports), so no helper module is
+            # needed: a partial distribution that ships ``api`` without
+            # ``_compat`` serves it too.
+            return getattr(import_module(f"{package}.api"), name)
 
         # Lazily load scikitplot flavors to avoid excessive dependencies.
         # defensive; visualkeras is in _submodules

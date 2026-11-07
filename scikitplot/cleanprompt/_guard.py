@@ -343,6 +343,44 @@ class StreamDecoder:
         return decoded
 
 
+def refuse_reported(report: Mapping[str, Any]) -> None:
+    """
+    Refuse outgoing text that still holds values reported, not hidden.
+
+    Parameters
+    ----------
+    report : mapping
+        :attr:`~scikitplot.cleanprompt.Encoded.report`.
+
+    Raises
+    ------
+    LeakError
+        If ``report["reported"]`` counts any value. Kinds and counts, never
+        values, are named.
+
+    Notes
+    -----
+    **Developer notes (``CP-115``).** The ``report`` action leaves a value in
+    the text on purpose, for inspection. Every path that hands text to a model
+    (:meth:`Guard.outgoing`, the MCP server's ``read_file``) calls this, so
+    the action cannot send a value without the caller allowing it
+    (``allow=``) or choosing another action.
+    """
+    reported = dict(report.get("reported") or {})
+    if not reported:
+        return
+    kinds = tuple(
+        kind for kind, count in sorted(reported.items()) for _ in range(count)
+    )
+    audit("blocked", values=len(kinds), kinds=sorted(reported))
+    detail = ", ".join(f"{count} {kind}" for kind, count in sorted(reported.items()))
+    msg = (
+        f"refused to send: the plan's actions report, not hide, {detail}; "
+        "allow those values with allow(), or set another action for the kind"
+    )
+    raise LeakError(msg, kinds=kinds)
+
+
 class Guard:
     """
     Encode what goes to a model, check it, and decode what comes back.
@@ -433,14 +471,19 @@ class Guard:
         Raises
         ------
         LeakError
-            If the independent check finds a removed value still present.
+            If the independent check finds a removed value still present, or
+            the plan's actions left a value in the text (``report``).
+        BlockedError
+            If the text holds a value whose action is ``block``.
         CleanPromptError
             If the text cannot be read as its format.
         """
         # Encode and check as one step: another thread must not add a value
         # between them (CP-067). The cleaner's lock is re-entrant.
         with self._cleaner._lock:  # noqa: SLF001 - same package, one invariant
-            safe = self._cleaner.encode_text(text, format or self._format).text
+            encoded = self._cleaner.encode_text(text, format or self._format)
+            refuse_reported(encoded.report)
+            safe = encoded.text
             kinds = self._cleaner.leaks(safe) if self._verify else ()
         if kinds:
             audit("blocked", values=len(kinds), kinds=sorted(set(kinds)))

@@ -35,7 +35,9 @@ is not the deployable Run 172 ZIP. Never confuse the two anchors.
 
 Python tests mirror runtime modules exactly: `foo.py -> test_foo.py` and
 `__init__.py -> test___init__.py`. A large module may use non-collected
-`_cases/<source>/` fragments, but pytest sees only the one canonical owner.
+`_cases/<owner>/` fragments (the owner module's name without its leading
+underscore, or its trailing words) that the owner declares in its
+`export_case_tests` call, but pytest sees only the one canonical owner.
 Cross-module contracts live only in `_integration/`; test-system contracts live
 in `_architecture/`; Python adapters for JS/CSS live in `_static/ai_assistant/`.
 The executable invariant is `tests/_architecture/test_test_layout.py`.

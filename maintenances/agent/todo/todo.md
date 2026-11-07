@@ -155,5 +155,26 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
   the child's audit head; not idempotent. 11 tests incl. nested delegation.
 - [x] M-5 (same PR): `evaluate_audit` (`_evaluate.py`) on a verified trail;
   refused when the trail does not verify. 5 tests.
-- Not done, by decision: W1 workflow graph (needs its own design review),
-  W5 durable memory (its seven prerequisites are still absent).
+- Not done, by decision: W5 durable memory (its seven prerequisites are
+  still absent).
+
+### PR 907: workflow graph (W1)
+- [x] `WorkflowGraph`, `Task`, `FanOut`/`Branch`, `Finish`, `Edge`,
+  `WorkflowView`, `REDUCERS` (`_workflow.py`). Design reviewed 2026-11-03:
+  the graph compiles to a planner for `Agent` (gates, audit, resume and
+  artifacts reused, no state schema change) and a concurrent fan-out
+  compiles to one tool (strongest effect, union of scopes, sum of costs,
+  results in declared order, all or nothing); an ordered fan-out is one
+  gated step per branch.
+- Termination, checked at build: every node reachable; a `Finish`
+  reachable from every node; the unbounded nodes form a DAG over every
+  transition (edges, `on_exhausted`, `on_rejected`); no `on_exhausted`
+  target reaches its node. Fuzz: 4000 random graphs, every one that built
+  ended (`done` or `planner_failed`), none at `max_steps`.
+- Replay: the planner keeps no state; each decision replays the steps and
+  refuses a step this graph would not have taken (`WorkflowError`).
+  `replay(state).digest()` is equal for a state and its JSON round trip.
+- Invariant I9 holds: `_workflow.py` imports only this package's modules
+  and the standard library.
+- Tests: 49 new (`tests/test_agent_workflow.py`); guide example 7 runs;
+  Python 3.8 and 3.13.

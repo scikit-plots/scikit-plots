@@ -86,8 +86,14 @@ from typing import Any
 
 from ._canonical import detection_view
 from ._detectors import RegexDetector
-from ._exceptions import CleanPromptError
+from ._exceptions import CleanPromptError, PatternTimeoutError
 from ._hooks import get_validator, validator_names
+from ._pattern_timeout import (
+    BoundedPattern,
+    active_deadline,
+    bounded_compile,
+    check_seconds,
+)
 from ._patterns import PatternSpec
 from ._schema import ROLES
 from ._types import Span
@@ -826,9 +832,45 @@ class PackPatternDetector(RegexDetector):
     from.
     """
 
-    def __init__(self, spec: PatternSpec, pack: str) -> None:
+    def __init__(
+        self, spec: PatternSpec, pack: str, timeout: float | None = None
+    ) -> None:
         super().__init__(spec)
         self.name = f"pack:{pack}:{spec.kind}"
+        self.pack = pack
+        #: The per-document limit in seconds, or None (scanned with ``re``).
+        self.timeout = None if timeout is None else check_seconds(timeout)
+        self._bounded = None if timeout is None else bounded_compile(spec, pack)
+
+    def _pattern(self):
+        """
+        Return the expression to scan with, time-limited when a limit is set.
+
+        Notes
+        -----
+        **Developer notes.** Called once per :meth:`detect`, on its first
+        step, so the deadline is the document's
+        (:func:`~scikitplot.cleanprompt._pattern_timeout.pattern_deadline`)
+        or, outside a document, one starting with this scan.
+        """
+        if self._bounded is None:
+            return super()._pattern()
+        return BoundedPattern(
+            self._bounded, active_deadline(self.timeout), self._timeout_error
+        )
+
+    def _timeout_error(self) -> PatternTimeoutError:
+        """Return the error for a scan that ran past the limit (no text)."""
+        return PatternTimeoutError(
+            f"custom pattern {self.kind} of pack {self.pack!r} ran past the "
+            f"{self.timeout:g} s pattern time limit; the document was not "
+            "cleaned. Rewrite the pattern, raise --pattern-timeout, or leave "
+            "the pack out",
+            detector=self.name,
+            pack=self.pack,
+            kind=self.kind,
+            seconds=self.timeout,
+        )
 
     def _span(self, match: re.Match, start: int, end: int) -> Span:
         """
@@ -856,7 +898,9 @@ class PackPatternDetector(RegexDetector):
         return super()._span(match, start, end)
 
 
-def pack_detectors(packs: Iterable[PackSpec]) -> list[RegexDetector]:
+def pack_detectors(
+    packs: Iterable[PackSpec], timeout: float | None = None
+) -> list[RegexDetector]:
     """
     Build one detector per distinct pattern across the given packs.
 
@@ -864,6 +908,10 @@ def pack_detectors(packs: Iterable[PackSpec]) -> list[RegexDetector]:
     ----------
     packs : iterable of PackSpec
         Already resolved and ordered.
+    timeout : float or None, default=None
+        The per-document limit, in seconds, for the patterns of custom packs
+        (:mod:`~scikitplot.cleanprompt._pattern_timeout`). Built-in packs are
+        never time-limited.
 
     Returns
     -------
@@ -885,5 +933,6 @@ def pack_detectors(packs: Iterable[PackSpec]) -> list[RegexDetector]:
             if key in seen:
                 continue
             seen.add(key)
-            detectors.append(PackPatternDetector(spec, pack.name))
+            bound = None if pack.source == "<builtin>" else timeout
+            detectors.append(PackPatternDetector(spec, pack.name, bound))
     return detectors

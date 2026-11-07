@@ -54,6 +54,11 @@ Or install only the tier you need:
      - ``crypto``
      - cryptography
      - the optional Fernet vault cipher; encryption itself needs no tier
+   * - ``cleanprompt-timeout``
+     - ``timeout``
+     - regex
+     - a time limit on custom pack patterns
+       (:ref:`cleanprompt-pattern-timeout`)
 
 A lightweight partial distribution is also available as
 ``scikit-plots-cleanprompt``. It composes with ``scikit-plots-skinny`` and is

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
 import copy
 import json
-import sys
 from datetime import timedelta
 from pathlib import Path
 import pytest
@@ -15,13 +14,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 TESTS = Path(__file__).resolve().parent
 SEC = RUNTIME_ROOT / '_hf_spaces_proxy' / 'security'
-sys.path.insert(0, str(TESTS))
-sys.path.insert(0, str(SEC))
-import test_verify_archive_merkle_transparency as t164  # type: ignore[import-not-found]
-import test_govern_archive_merkle_log_authority as t165  # type: ignore[import-not-found]
-import continue_archive_merkle_authority as cont  # type: ignore[import-not-found]
-import govern_archive_merkle_log_authority as auth  # type: ignore[import-not-found]
-import verify_archive_merkle_transparency as merkle  # type: ignore[import-not-found]
+from . import test_verify_archive_merkle_transparency as t164
+from . import test_govern_archive_merkle_log_authority as t165
+from ...._hf_spaces_proxy.security import continue_archive_merkle_authority as cont
+from ...._hf_spaces_proxy.security import govern_archive_merkle_log_authority as auth
+from ...._hf_spaces_proxy.security import verify_archive_merkle_transparency as merkle
+from . import _stages
 
 NOW = t164.NOW; LATER = NOW + timedelta(minutes=5)
 
@@ -143,7 +141,7 @@ def _advance_run163(
 @pytest.fixture(scope='module')
 def base(tmp_path_factory):
     tmp = tmp_path_factory.mktemp('run166-base')
-    f = t164._fixture(tmp / 'pred')
+    f = _stages.shared("run164-fixture", t164._fixture, tmp / "pred")
     run164 = tmp / 'run164'
     merkle.anchor_merkle_transparency(
         **t164._kwargs(f, run164), adapters=f['adapters']

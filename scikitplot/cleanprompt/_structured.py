@@ -48,9 +48,11 @@ from __future__ import annotations
 import ast
 import json
 import re
+from bisect import bisect_right
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 
+from ._canonical import DetectionView, structure_view
 from ._exceptions import CleanPromptError
 from ._packs import FieldSpec, normalise_field
 from ._types import Span
@@ -1004,11 +1006,98 @@ def field_regions(
     [('a', '1'), ('b', '2')]
     >>> [r.field for r in field_regions("export DB_PASSWORD=hunter2", "script")]
     ['DB_PASSWORD']
+    >>> text = "export DB_PASS\u200bWORD=hunter2"
+    >>> [(r.field, text[r.start : r.end]) for r in field_regions(text, "script")]
+    [('DB_PASSWORD', 'hunter2')]
+
+    Notes
+    -----
+    **User notes.** A name with an invisible character inside it (a
+    zero-width space or joiner, a soft hyphen, a bidirectional control) names
+    its field as if it were written plainly, in every format.
+
+    **Developer notes: names through the view (``CP-109``).** Splitters find
+    names with identifier classes, ``ast`` or :mod:`tokenize`, all of which
+    stop at a format character, so ``DB_PASS\u200bWORD=...`` had no field and
+    its value went out. When the text holds format characters the splitter
+    runs a second time over :func:`~._canonical.structure_view`, which has the
+    original's structure exactly, and every region it finds is mapped back
+    onto the original. Boundaries always come from the original: a view
+    region that overlaps an original region of another span is dropped. The
+    view decides only the *name* of a value both readings found at the same
+    span, since the original read may have cut it at the format character
+    (``a\u200bpi_key <- "..."`` is read as ``pi_key``), and it adds values
+    the original did not find. On text without format characters nothing runs.
     """
     if splitter not in SPLITTERS:
         msg = f"unknown splitter {splitter!r}; choose from {', '.join(SPLITTERS)}"
         raise CleanPromptError(msg)
     opts = dict(options or {})
+    found = _regions_as_read(text, splitter, opts)
+    view = structure_view(text)
+    if view is not None:
+        found = _with_view_regions(
+            found, view, _regions_as_read(view.text, splitter, opts)
+        )
+    return tuple(sorted(found, key=lambda region: (region.start, region.end)))
+
+
+def _with_view_regions(
+    found: list[FieldRegion],
+    view: DetectionView,
+    seen: Iterable[FieldRegion],
+) -> list[FieldRegion]:
+    """
+    Return ``found``, named as the view reads it, and the view's new regions.
+
+    Parameters
+    ----------
+    found : list of FieldRegion
+        The regions of the original text.
+    view : DetectionView
+        The structure view the other regions were found in.
+    seen : iterable of FieldRegion
+        Regions with offsets into ``view.text``.
+
+    Returns
+    -------
+    list of FieldRegion
+        ``found``, each renamed where the view found the same span under
+        another name, then the mapped view regions overlapping none of it.
+
+    Notes
+    -----
+    **Developer notes.** Every splitter yields disjoint regions (one scalar
+    value each), so a mapped region can only meet the two regions of
+    ``found`` around its start, found by bisection: the whole merge is
+    ``O(n log n)`` on a file salted throughout.
+    """
+    by_span = {(region.start, region.end): region for region in found}
+    taken = sorted(by_span)
+    starts = [start for start, _ in taken]
+    added: list[FieldRegion] = []
+    for region in seen:
+        if region.end > region.start:
+            start, end = view.source_span(region.start, region.end)
+        else:
+            start = end = view.source_index(region.start)
+        same = by_span.get((start, end))
+        if same is not None:
+            if same.field != region.field:
+                by_span[(start, end)] = FieldRegion(
+                    start, end, region.field, same.token
+                )
+            continue
+        at = bisect_right(starts, start)
+        neighbours = taken[max(0, at - 1) : at + 1]
+        if any(low < end and start < high for low, high in neighbours):
+            continue
+        added.append(FieldRegion(start, end, region.field, region.token))
+    return [*by_span.values(), *added]
+
+
+def _regions_as_read(text: str, splitter: str, opts: dict) -> list[FieldRegion]:
+    """Return the regions ``splitter`` finds in ``text``, in its own order."""
     if splitter == "json":
         found = _json_regions(text)
     elif splitter == "jsonl":
@@ -1033,4 +1122,4 @@ def field_regions(
         found = _keyvalue_regions(text, separators=(":",), comments=(), prose=True)
     else:
         found = []
-    return tuple(sorted(found, key=lambda region: (region.start, region.end)))
+    return list(found)

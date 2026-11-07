@@ -347,23 +347,19 @@ if the ``v3.7.x`` branch exists)
 Release management / DOI
 ========================
 
-Via the `GitHub UI <https://github.com/matplotlib/matplotlib/releases>`__, turn the
+Via the `GitHub UI <https://github.com/scikit-plots/scikit-plots/releases>`__, turn the
 newly pushed tag into a release. If this is a pre-release remember to mark it as such.
 
 For final releases, also get the DOI from `Zenodo <https://zenodo.org/>`__ (which will
-automatically produce one once the tag is pushed). Add the DOI post-fix and version to
-the dictionary in :file:`tools/cache_zenodo_svg.py` and run the script.
+automatically produce one once the tag is pushed). Add the version and its DOI at the
+top of ``VERSION_DOIS`` in :file:`tools/citation/citation_ref.py` and regenerate the
+citation files and the DOI list of :file:`docs/source/project/citing.rst` from it::
 
-This will download the new SVG to :file:`doc/_static/zenodo_cache/{postfix}.svg` and
-edit :file:`doc/project/citing.rst`. Commit the new SVG, the change to
-:file:`tools/cache_zenodo_svg.py`, and the changes to :file:`doc/project/citing.rst`
-to the VER-doc branch and push to GitHub. ::
-
-  git checkout v3.7.0-doc
-  $EDITOR tools/cache_zenodo_svg.py
-  python tools/cache_zenodo_svg.py
+  $EDITOR tools/citation/citation_ref.py
+  python tools/citation/citation_ref.py sync            # preview
+  python tools/citation/citation_ref.py sync --apply
+  python tools/citation/citation_ref.py check
   git commit -a
-  git push DANGER v3.7.0-doc:v3.7.0-doc
 
 
 .. _release_bld_bin:

@@ -801,7 +801,10 @@ rng = random.Random(20260920)
 frag_hot = ["ada@example.com","b.c+d@sub.example.co.uk","https://example.com/a?b=1#c","+1 555 010 4477",
             "4242 4242 4242 4242","192.168.1.10","2001:db8:85a3:0:0:8a2e:370:7334","00:1B:44:11:3A:B7",
             "123-45-6789","GB82 WEST 1234 5698 7654 32","AKIAIOSFODNN7EXAMPLE"]
-frag_cold = ["hello","world","2024-01-15","12345678","numpy 1.26.4","\n","\t"," ","Ünïcodé \U0001f389","[EMAIL-1]","<<x>>"]
+frag_cold = ["hello","world","2024-01-15","12345678","numpy 1.26.4","\n","\t"," ","Ünïcodé \U0001f389","[EMAIL-1]","<<x>>",
+             # CP-112: spellings the lenient restorer repairs, written in the source.
+             "[email_1]", "[EMAIL 1]", "\\[EMAIL-1\\]", "[email\\_1]", "[EMAIL\u2011" "1]",
+             "[EMAIL-\n1]", "[EMAIL\u2028-1]", "[phone 2]", "[note 2]"]
 bad_rt = bad_leak = bad_idem = 0
 N = 3000
 t0 = time.monotonic()
@@ -828,6 +831,22 @@ for _ in range(1000):
     if res.text.replace("before ", "").replace(" after", "").strip() == salted: _v_leak += 1
 check("V25", "1000 salted values: each found and restored exactly", _v_rt == 0 and _v_leak == 0,
       "%d round-trip, %d leak failures" % (_v_rt, _v_leak))
+# CP-114 at scale: the same hot values with ASCII letters and digits swapped,
+# at random, for a look-alike of another script from the generated table.
+from scikitplot.cleanprompt._confusables import CONFUSABLES as _CONF
+_alike = {}
+for _point, _char in sorted(_CONF.items()):
+    _alike.setdefault(_char, []).append(chr(_point))
+_c_rt = _c_leak = 0
+for _ in range(1000):
+    value = rng.choice(frag_hot)
+    salted = "".join(rng.choice(_alike[c]) if c in _alike and rng.random() < .3 else c for c in value)
+    text = "before " + salted + " after"
+    res = r.redact(text)
+    if restore(res.text, res.vault).text != text: _c_rt += 1
+    if res.text.replace("before ", "").replace(" after", "").strip() == salted: _c_leak += 1
+check("V28", "1000 values with look-alike letters: each found and restored exactly",
+      _c_rt == 0 and _c_leak == 0, "%d round-trip, %d leak failures" % (_c_rt, _c_leak))
 check("I2", "no detected surface survives", bad_leak == 0, "%d failures" % bad_leak)
 check("I7", "idempotent re-redaction", bad_idem == 0, "%d failures" % bad_idem)
 print("           (%d documents in %.2fs)" % (N, dt))

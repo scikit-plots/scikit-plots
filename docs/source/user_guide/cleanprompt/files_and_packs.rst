@@ -39,6 +39,20 @@ named function in a fixed registry, and a pack can only name it. The built-in
 definitions are compiled into a JSON file the base tier reads with the
 standard library alone.
 
+The built-in packs are ``personal``, ``addressbook``, ``patient``,
+``finance``, ``secrets``, ``records``, ``email``, ``cloud``, ``vehicle``,
+``de``, and ``pandas``, ``numpy`` and ``sklearn`` for code;
+:ref:`cleanprompt-coverage` lists every kind each one finds. ``vehicle`` is chosen by name
+(``--pack vehicle``), not by ``auto``: in running text it accepts a vehicle
+identification number only when its North American check digit holds, and
+next to its label (``VIN:``, ``chassis number``) any well-formed one, as VINs
+outside North America are written. ``de`` is chosen the same way
+(``--pack de``): it finds the German tax identification number (Steuer-ID),
+written together or in groups of 2-3-3-3, only when its published structure
+rule and check digit hold, and in fields such as ``steuer_id``. The UK
+National Insurance number and the Turkish identity number are in
+``personal``, and the NHS number in ``patient``.
+
 A plan for a set of files
 -------------------------
 
@@ -252,6 +266,43 @@ So keep treating a pack file like code you would run:
   has a fixed shape — they are also more precise;
 * keep the ``intent`` and examples honest, because they are what a reviewer
   reads.
+
+.. _cleanprompt-pattern-timeout:
+
+A time limit for custom patterns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The check above reports shapes; it cannot stop a slow pattern once a document
+is being cleaned, because Python's :mod:`re` has no time limit. A time limit
+can. It needs the optional ``regex`` package (the ``timeout`` tier):
+
+.. prompt:: bash $
+
+   pip install "scikit-plots[cleanprompt-timeout]"
+   python -m scikitplot.cleanprompt batch hr/ --out hr-safe/ --pack-file hr_pack.yaml --pack hr --pattern-timeout 2
+
+The limit is one budget per document, shared by every custom pattern and every
+chunk of a long file. A document that runs past it is **not cleaned at all**,
+so nothing half-redacted is written or returned; the error names the pack and
+the kind, never the text. ``batch`` reports that file as refused and cleans the
+others; the MCP server and the web page fail that request and keep serving.
+
+Set it where the rest of the configuration lives:
+
+* **for one run** — ``--pattern-timeout SECONDS`` on ``packs``, ``batch``,
+  ``plan``, ``ask`` and ``mcp``;
+* **for a team** — ``pattern_timeout: 2`` in a plan file (a plan fixes every
+  choice, so ``--pattern-timeout`` cannot be combined with ``--plan``);
+* **for a machine or a CI job** — ``CLEANPROMPT_PATTERN_TIMEOUT=2``;
+* **from Python** — ``FluentCleanPrompt().pattern_timeout(2)``.
+
+It applies to custom packs only; built-in patterns keep :mod:`re`. Without a
+custom pack there is nothing to bound and the setting is not checked. With
+one, the limit is refused, before any document is read, when ``regex`` is not
+installed (the message names the install command) and when ``regex`` cannot
+compile a pattern exactly as :mod:`re` reads it, naming the pack and kind. It
+is never silently dropped. ``doctor`` reports whether the ``timeout`` tier is
+available.
 
 Before sending a record to a model
 ----------------------------------

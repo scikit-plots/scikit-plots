@@ -32,6 +32,7 @@ scikitplot.cleanprompt._capabilities : Probes that populate :class:`CapabilityEr
 from __future__ import annotations
 
 __all__ = [
+    "BlockedError",
     "CapabilityError",
     "CleanPromptError",
     "DetectorError",
@@ -39,6 +40,7 @@ __all__ = [
     "LimitExceededError",
     "OverlapError",
     "PatternError",
+    "PatternTimeoutError",
     "PolicyError",
     "RestorationError",
 ]
@@ -90,6 +92,41 @@ class DetectorError(CleanPromptError, RuntimeError):
     def __init__(self, message: str, detector: str) -> None:
         super().__init__(message)
         self.detector = detector
+
+
+class PatternTimeoutError(DetectorError):
+    """
+    A custom pack pattern ran past the pattern time limit on one document.
+
+    Parameters
+    ----------
+    message : str
+        Human-readable description. Names the pack and the kind, never the
+        text being scanned.
+    detector : str
+        The detector, ``pack:NAME:KIND``.
+    pack : str
+        The pack the pattern came from.
+    kind : str
+        The pattern's kind.
+    seconds : float
+        The limit that was exceeded.
+
+    Notes
+    -----
+    **User notes.** The document is not cleaned: nothing is returned for it,
+    so nothing half-redacted can be sent. Rewrite the pattern (``doctor`` and
+    the pattern-risk check say which shapes backtrack), raise the limit, or
+    leave the pack out.
+    """
+
+    def __init__(
+        self, message: str, detector: str, pack: str, kind: str, seconds: float
+    ) -> None:
+        super().__init__(message, detector=detector)
+        self.pack = pack
+        self.kind = kind
+        self.seconds = seconds
 
 
 class OverlapError(CleanPromptError, ValueError):
@@ -152,6 +189,29 @@ class RestorationError(CleanPromptError, ValueError):
     def __init__(self, message: str, labels: tuple[str, ...]) -> None:
         super().__init__(message)
         self.labels = labels
+
+
+class BlockedError(CleanPromptError):
+    """
+    The text holds a value of a kind whose action is ``block``; nothing was returned.
+
+    Parameters
+    ----------
+    message : str
+        Human-readable description. Names kinds and counts, never a value.
+    kinds : dict of str to int
+        Each blocked kind and how many values of it the text holds.
+
+    Notes
+    -----
+    **User notes.** Raised before any output exists, so a blocked document is
+    never partly written: ``batch`` reports the file as refused and continues.
+    Remove the value, or change the kind's action (``--action KIND=tokenize``).
+    """
+
+    def __init__(self, message: str, kinds: dict[str, int]) -> None:
+        super().__init__(message)
+        self.kinds = dict(kinds)
 
 
 class LeakError(CleanPromptError):

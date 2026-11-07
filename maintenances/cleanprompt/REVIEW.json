@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-10",
+  "updated_at": "2026-11-06",
   "status": "CLOSED",
   "note": "All findings are closed by construction, each with a named regression test and an executable negative probe. CP-015 and CP-016 were found by this rewrite's own scale verification; CP-024 to CP-029 were found by round three's verification, and CP-030 and CP-031 by a user report of the command line being unusable for a pasted paragraph, rather than inherited from upstream - by the suite, by the import-isolation probe once its harness was strengthened, by the live-engine probe's runtime, and by exercising every pattern's own examples in ordinary sentence positions. CP-041 to CP-043 share one root cause: the hop between redaction and restoration is a language model, not a lossless channel, and the design had treated it as one. CP-044 and CP-045 were found while writing the published gallery examples: CP-044 by checking the documented rewrite table against the implementation instead of against itself, and CP-045 by piping a report into head in an example of how to explore the output. CP-064 and CP-065 were found by round 15's scale verification (evidence/scale.log). CP-067 was found by round 16's concurrency probe. CP-068 and CP-069 were found by round 17's multi-process probe. CP-070 was found by round 18's variant probe, and CP-071 by the stricter check CP-070 introduced. CP-072 was found by round 19's restoration probe. CP-073 to CP-075 were found by round 20's agent-threat review. CP-076 to CP-078 were found by round 21's review of the tool loop. CP-079 was found by a refused push in round 22; CP-080 by reviewing the reader its fix relies on; CP-081 to CP-083 by running the suite on the tree as committed, after a lint pass; CP-084 by a test that had been asserting it. Round 25 added CP-093 to CP-101: six from the internal review of 2026-10-10 (each reproduced on the tree first: readiness false green, the web app's own detector construction, the image's model, the published port, remote debug, obfuscated values) and five found by round 25's own verification (CP-099 a drifted repair hint, CP-100 NLTK data under pre-3.9 names, CP-101 a documented option that does not exist, CP-102 the first detection view cutting through record files — introduced and caught within the round — and CP-103 an invisible character in a field name hiding its column).",
   "findings": [
@@ -967,8 +967,8 @@
       "title": "The first detection view mapped document-bound detectors twice and cut through record files",
       "detail": "Introduced during round 25 by CP-098's first form and caught by the round's independent review before delivery. The view ran every non-entity detector, including FieldDetector, the JSON _TokenBound wrapper and _artifacts._RegionDetector, whose offsets were computed from the original document; reading the view, their spans were mapped back a second time. With one zero-width space early in a .env file, DB_PASSWORD and the next two lines merged into one placeholder (newlines lost); a CSV row lost a column; JSON failed closed with 'no longer valid JSON'. Recorded as a finding although it never shipped, because the review is what caught it.",
       "retired_by": "Detector.reads_view (default False) declares that detect() is a pure function of the text it is given; RegexDetector, LiteralDetector and PackPatternDetector set it; Redactor._view_spans runs only detectors that declare it. Document-bound detectors keep reading the original only.",
-      "honest_limit": "Because token-bound JSON detectors do not read the view, a salted value inside a JSON string is not caught yet (upcoming_changes: invisible-characters-in-keyvalue-and-code-names.md).",
-      "regression": "test__runtime.TestInvisibleCharactersKeepStructure (every round-trip sample salted, structural equivalence plus exact round trip; NOT_YET lists the recorded exceptions); test_regressions.TestCP102DocumentBoundDetectorsDoNotReadTheView; evidence/probe_negative.py CP-102"
+      "honest_limit": "Closed by CP-109: the JSON token wrapper now reads the view itself (spans mapped back, then clipped to the original tokens), so a salted value inside a JSON string is caught.",
+      "regression": "test__runtime.TestInvisibleCharactersKeepStructure (every round-trip sample salted, structural equivalence plus exact round trip; STRUCTURAL_KEY names the one by-design exception, the notebook's own keys); test_regressions.TestCP102DocumentBoundDetectorsDoNotReadTheView; evidence/probe_negative.py CP-102"
     },
     {
       "id": "CP-103",
@@ -977,7 +977,7 @@
       "title": "One invisible character in a field name hid the whole column or key",
       "detail": "Present on the uploaded tree, found in round 25 while testing CP-102: normalise_field('n\\u200bame') gave 'n_ame', so the field rule for 'name' did not apply and every value in the column went out in the clear; the same for a JSON key ('m\\u200brn' with its MRN), a TSV header and an email header ('F\\u200brom'). Full-width header letters behaved the same.",
       "retired_by": "_packs.normalise_field reads the name through _canonical.detection_view before splitting and folding; the one function builds the field index and looks names up, so the two cannot disagree.",
-      "honest_limit": "Covers formats whose splitter hands over the whole key string. Shell/.env-style keys and code identifiers are tokenised with an identifier class first and are still open (upcoming_changes: invisible-characters-in-keyvalue-and-code-names.md).",
+      "honest_limit": "Covered whole-string keys only; names found inside a line (shell/.env keys, code identifiers) are covered since CP-109.",
       "regression": "test__runtime.TestInvisibleCharactersKeepStructure.test_a_salted_field_name_still_names_the_field (csv, tsv, json, email, full-width csv); test_regressions.TestCP103InvisibleCharactersInFieldNames; evidence/probe_negative.py CP-103"
     },
     {
@@ -1009,6 +1009,126 @@
       "retired_by": "_cli._check_append_grammar compares the vault's recorded grammar_fingerprint with the run's before seeding (redact, encode, batch) and refuses, naming the recorded style and set and the two ways forward; the vault is not touched.",
       "honest_limit": "A vault written before the grammar was recorded is not checked (nothing to compare). Python API callers who seed a Redactor themselves are responsible for passing a matching policy.",
       "regression": "test_regressions.TestCP106AppendingMixedGrammars; test__surrogate_sets.TestCommandLine.test_appending_with_another_grammar_is_refused (both frontends)"
+    },
+    {
+      "id": "CP-108",
+      "severity": "medium",
+      "status": "closed",
+      "title": "Nothing bounded the run time of a custom pack pattern",
+      "detail": "Recorded in round 26 (upcoming_changes note bound-custom-pattern-runtime-with-a-timeout): CP-104 reports risky shapes when a pack loads, but an accepted or unreported pattern could still take exponential time on one near-match and stall batch, the MCP server or the web app; Python's re has no time limit.",
+      "retired_by": "_pattern_timeout.py: with a limit set (--pattern-timeout, plan pattern_timeout, FluentCleanPrompt.pattern_timeout, CLEANPROMPT_PATTERN_TIMEOUT) every custom pattern is compiled again on the optional regex package (V0, flags mapped by name) and scanned with one time budget per document; running past it raises PatternTimeoutError naming pack, kind and seconds, and the document is not cleaned. A limit with custom packs and no regex, or a pattern regex will not compile, fails plan validation before any input is read.",
+      "honest_limit": "Built-in patterns keep re and are not bounded (they are reviewed and pinned by tests). Without the optional regex package there is no bound, and a limit set then is refused rather than dropped. The limit bounds pattern scanning only, not parsing or validators.",
+      "regression": "test_regressions.TestCP108NothingBoundedACustomPatternRun; test__pattern_timeout.TestBoundedEngine (the child-process stop, batch continuing past the slow file)"
+    },
+    {
+      "id": "CP-109",
+      "severity": "high",
+      "status": "closed",
+      "title": "An invisible character inside a variable name, a code identifier or a JSON string hid the value",
+      "detail": "Recorded in round 25 (upcoming_changes note invisible-characters-in-keyvalue-and-code-names) and reproduced on the round-28 tree: export DB_PASS\\u200bWORD=... (shell), const pass\\u200dword = \"...\" (JavaScript, where the joiner is legal), api_key <- \"...\" salted (R), SQL SET, API_\\u200bKEY = \"...\" (Python) and {\"z\": \"bob\\u200b@example.com\"} (JSON) were sent unchanged. Splitters find names with identifier classes or ast, which stop at a format character, and the JSON _TokenBound wrapper was excluded from the detection view (CP-102) without reading it itself. A salted Python file also lost its whole column schema, because ast rejected it.",
+      "retired_by": "_canonical.structure_view (format characters removed, nothing folded, so the view has exactly the original's structure); _structured.field_regions runs the splitter again on it, maps every region back, keeps the original's boundaries, and lets the view name a span both readings found; _runtime._TokenBound reads detection_view itself, maps spans back, then clips to the original tokens; _code.discover parses a failing fragment again without format characters.",
+      "honest_limit": "Full-width or other compatibility letters inside a code identifier or a shell name are not folded for splitting, because folding can create structure (a full-width comma or quote). A column literal written with a format character inside it is renamed only where it is written that way.",
+      "regression": "test_regressions.TestCP109FormatCharactersInsideNames (seven format characters at every position in the name of ten code and key-value samples; JSON escapes, JSON Lines, CRLF, a salted value); test__runtime.TestInvisibleCharactersKeepStructure (python and rlang now included); test__structured.TestNamesThroughTheView; test__canonical.TestStructureView; test__code.TestFormatCharacters"
+    },
+    {
+      "id": "CP-110",
+      "severity": "high",
+      "status": "closed",
+      "title": "One non-ASCII letter kept an e-mail address from being found at all",
+      "detail": "Recorded in round 25 (upcoming_changes note email-addresses-with-non-ascii-letters) and reproduced on the round-28 tree: EMAIL accepted ASCII letters only and began at \\b, so jos\\u00e9@example.com, ada@ex\\u00e4mple.com, an address in another script and \\u0430da@example.com (a Cyrillic letter first, where \\b is no boundary) were sent whole.",
+      "retired_by": "_patterns.EMAIL: local part of RFC 5322 atext with letters, digits and combining marks of any script (RFC 6531); domain labels of the RFC 1035 shape with the same letters (IDNA U-labels); a look-behind that rejects only local-part characters replaces \\b. Combining marks are a class built once from unicodedata, since \\w does not match them and scripts such as Devanagari and Thai cannot write a word without them.",
+      "honest_limit": "In text written without spaces (Chinese, Japanese, Thai) nothing marks where an address ends, so the placeholder can also cover adjacent words. Quoted-string local parts and IP-literal domains are not recognised as addresses (an IP literal is still hidden as IPV4). Importing the pattern table costs about 20 ms more, for the mark class.",
+      "regression": "test_regressions.TestCP110EmailAddressesWithNonAsciiLetters (seven addresses in five sentence frames through encode and Redactor, inside JSON strings, non-addresses left, no pipe); EMAIL examples_yes/examples_no run in the twelve sentence positions; probe_negative.py and probe_fuzz.py green"
+    },
+    {
+      "id": "CP-111",
+      "severity": "high",
+      "status": "closed",
+      "title": "Part of an international phone number was sent, some numbers were missed, and year ranges were hidden",
+      "detail": "Recorded in round 25 (upcoming_changes note phone-pattern-groupings-and-ranges) and reproduced on the round-28 tree with plain ASCII: PHONE took groups of two to four digits only, so +33 1 23 45 67 89 sent '+33 1' and +49 (0)30 1234 5678 sent '+49 (0)'; +49 30 12345678, 030 12345678 and +44 7700 900123 were sent whole; 'ext. 123' and 'x12' were left beside the placeholder. 2019-2024 (also with an en dash, through the view), 15-01-2024 and 15.01.2024 were hidden as phone numbers.",
+      "retired_by": "_patterns.PHONE: three alternatives (international with a one-to-four-digit area code, an optional (0) trunk and groups of up to eight; national with a trunk 0 and a long subscriber number; the national two-to-four-digit groups as before) and an optional extension; _phone_validate also rejects a year range of two years from 1800 to 2199 and a day-month-year or month-day-year date with one separator throughout.",
+      "honest_limit": "A local number written as two years (1999-2001) or as a valid date is not hidden. Two groups of four digits (1234-5678) are still hidden, a page range included, since many local numbers are written that way. No locale database: groupings outside these shapes are the locale packs' job.",
+      "regression": "test_regressions.TestCP111PhoneGroupingsAndRanges (eleven numbers in four frames, ten ranges, dates and ISBNs left); PHONE examples_yes/examples_no run in the twelve sentence positions; probe_scale.py (2000 rows), probe_negative.py and probe_fuzz.py green"
+    },
+    {
+      "id": "CP-112",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A placeholder spelling written in the source was restored as a value",
+      "detail": "Recorded in round 25 (upcoming_changes note restore-alters-near-placeholders-in-the-source) and reproduced on the round-28 tree: Redactor().redact('[EMAIL\\u2028-1] ada@example.com') gave '[EMAIL\\u2028-1] [EMAIL-1]', and restoring it gave 'ada@example.com ada@example.com'. Encoding reserved exact placeholders only, while restoration also repairs the rewritten spellings of CP-042, so I1 broke on text holding no literal placeholder.",
+      "retired_by": "_engine.reserved_label_spans also scans TagStyle.lenient_pattern and reserves the label each match normalises to, so no value is issued it and restoration of that spelling resolves nothing and leaves it as written. Only the label is reserved, not the range, so a value inside such a shape is still detected.",
+      "honest_limit": "Per call only; the session case (a spelling of a label issued in an earlier turn) is closed by CP-113.",
+      "regression": "test_regressions.TestCP112RewrittenSpellingsInTheSource (seven spellings: exact round trip, model rewrites still repaired, detection inside the shape, prose untouched, surrogate style); probe_negative.py I1 with the spellings in its cold fragments"
+    },
+    {
+      "id": "CP-113",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A label spelling typed in a later turn was restored as the earlier value",
+      "detail": "Found while verifying CP-112 (upcoming_changes note source-spellings-of-earlier-labels-in-a-session) and reproduced: once [EMAIL-1] was issued for ada@example.com, a later message holding [email_1] encoded with the spelling left in place and decoded to ada@example.com; the same for a re-cased surrogate stand-in of an earlier turn, and for a later chunk of a chunked JSON Lines file spelling a label an earlier chunk issued.",
+      "retired_by": "_engine._held_spellings: whatever restore would repair in the source, given the labels already held (the seed), is added as a span of the held label's kind, so the spelling is hidden as a value with a fresh label whose vault entry is the spelling as written. The vault format is unchanged, and the model never sees the spelling, so a rewrite in its reply is unambiguous and still repaired. A pre-check skips the pass when the text holds no lenient match of a held label (bracket style), so large files cost one grammar scan.",
+      "honest_limit": "The model receives a placeholder where the user wrote a label-like spelling. A held label's exact spelling typed in a later turn is a literal placeholder and is restored as before (I1 excludes literal placeholders).",
+      "regression": "test_regressions.TestCP113SpellingsOfEarlierLabels (five spellings in a later turn, a model rewrite still repaired, a re-cased surrogate, a chunked JSON Lines file); probe_scale.py timing unchanged"
+    },
+    {
+      "id": "CP-114",
+      "severity": "high",
+      "status": "closed",
+      "title": "A look-alike letter of another script hid a value or cut it short",
+      "detail": "Recorded in round 25 (upcoming_changes note look-alike-characters-in-detection-view) and reproduced on the round-28 tree: '\\u0410KIAIOSFODNN7EXAMPLE' (Cyrillic capital A) was sent whole while the ASCII key was hidden, 'https://ex\\u0430mple.com/x' was cut at the look-alike and 'u0430mple.com/x' sent, and an IPv4 address with an Arabic-Indic one and an IBAN with a Cyrillic E were sent whole.",
+      "retired_by": "scikitplot/cleanprompt/_confusables.py, generated from UTS #39 confusables.txt (Version 13.0.0) by maintenances/cleanprompt/_maintenance/tools/generate_confusables.py: each non-ASCII letter or decimal digit that looks like one ASCII letter or digit, mapped to the ASCII member of its prototype class with the same case (digits only where shape and value agree). _canonical._view_tables folds them in the detection view, applied after compatibility folding, one code point to one code point.",
+      "honest_limit": "The data is Version 13.0.0, the newest raw file available to the build; regenerate with a newer confusables.txt. Look-alikes needing more than one character (rn for m), look-alike punctuation and characters whose class has no single same-case ASCII member are not folded. Text with look-alike letters now gets a detection view, so it costs a second detection pass.",
+      "regression": "test_regressions.TestCP114LookAlikeLetters (AWS key, URL, IPv4, e-mail, IBAN found whole; Cyrillic, Greek and Bengali prose left); test__confusables.TestTable; test__canonical.TestDetectionView.test_look_alike_letters_fold_letter_for_letter; _maintenance/tests/test_generate_confusables.py; probe_negative.py V28 (1000 salted values)"
+    },
+    {
+      "id": "CP-115",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A policy could choose one way of replacing values for every kind, and nothing else",
+      "detail": "A design gap recorded in round 25 (upcoming_changes note per-kind-action-policy), not a defect: RedactionPolicy said what was detected and TagStyle.style one global replacement, so a card number could not keep a placeholder while an e-mail got a surrogate, a kind could not refuse the send, and a noisy kind could not be reported for review.",
+      "retired_by": "_policy.Action (tokenize, surrogate, report, block) and RedactionPolicy.actions (sorted pairs; in as_dict and the fingerprint only when set, so every earlier fingerprint holds); _engine._apply_actions after resolution: the strictest class of the merged detections wins (block, hide, report) and the resolved kind decides between tokenize and surrogate; block raises BlockedError naming kinds and counts; report leaves the value and lists it in RedactionResult.reported. Plan field, FluentCleanPrompt.action, plan and config files, --action on the detection and the file commands in both frontends; Guard.outgoing and the MCP read_file refuse reported values; describe_outcome makes them an alert; doctor lists reported kinds as a high blind spot; batch refuses a blocked file and warns on reported ones.",
+      "honest_limit": "The note's merge order put tokenize above surrogate; both hide completely, so they are one class and the resolved kind decides the form, which keeps an explicit default identical to none. Outputs written by batch or redact with report actions hold the values (announced, not prevented). Action kinds are checked against what the caller can produce: plans against the catalog, the detection commands against core patterns, entity labels and CUSTOM; a Redactor built in Python accepts any kind name.",
+      "regression": "test_regressions.TestCP115PerKindActions; test__policy.TestActions; test__engine.TestActions (each action, strictest-wins cases, explicit defaults equal none over 600 random texts in both styles); test__plan.TestActions; test__guard.TestReportedValues; test__diagnostics.TestReportedKinds; test__cli.TestActionOption (both frontends, batch block and report); default output byte-identical to the earlier tree over 1500 random documents (evidence/round28.log)"
+    },
+    {
+      "id": "CP-116",
+      "severity": "low",
+      "status": "closed",
+      "title": "What covers each kind was stated by hand in several places, with no single view",
+      "detail": "A design gap recorded in the 2026-10-10 internal review (upcoming_changes note generated-coverage-matrix): coverage was spread over the core patterns, the entity engines' canonical labels, the pack field and pattern kinds, and doctor, each surface stating its own subset; hand-written lists had drifted before (CP-025, CP-099).",
+      "retired_by": "_diagnostics.coverage_matrix and CoverageRow: one row per kind from PATTERNS, every catalog pack's patterns and fields (validators included), CANONICAL_LABELS and DEFAULT_ENTITY_LABELS, the plan's runtime kinds, SURROGATE_KINDS and the policy's actions; no optional engine imported. 'kinds --matrix' (with --action, both frontends) prints it; tools/generate_coverage_docs.py renders the user guide's table (coverage_matrix.inc, included by how_it_works.rst) and _maintenance/tests/test_coverage_docs.py fails when it is stale.",
+      "honest_limit": "The note's locale and semantic-risk columns are not produced: no registry records them, and a hand-written column would be the drift this replaces. Entity rows name the tiers that provide engines, not which labels each engine reports (the registries do not record that per engine). The table describes the default policy; 'kinds --matrix --action' shows a plan's own actions.",
+      "regression": "test__diagnostics.TestCoverageMatrix (columns equal the registries, a custom pack appears, the action column reads the policy); test__cli.TestKindsMatrix (both frontends); _maintenance/tests/test_coverage_docs.py (the committed table equals the registries)"
+    },
+    {
+      "id": "CP-117",
+      "severity": "medium",
+      "status": "closed",
+      "title": "No detector recognised a vehicle identification number",
+      "detail": "A coverage gap recorded in the 2026-10-10 review (upcoming_changes note vehicle-and-locale-identifier-packs): no kind covered VINs, so a VIN in a support ticket, a fleet export or a claim file was sent as written.",
+      "retired_by": "_config/packs/vehicle.yaml (opt-in: --pack vehicle or all): fields vin, vehicle_id, chassis_number and others (VIN) and plate, license_plate, registration_number and others (VEHICLE_PLATE); one VIN pattern with an optional label group, validated by _hooks.vin_check: 49 CFR 565.15 Tables III and IV, check digit in position 9 (remainder 10 is X), positions 14 to 17 numeric, a single repeated character rejected; next to a label any well-formed VIN is accepted.",
+      "honest_limit": "In running text only North American VINs (check digit) are found; a European VIN without a label is not. Of random 17-character tokens from the VIN alphabet with a numeric tail, 3.0 percent pass the check digit (measured over 200000 tokens). Licence plates are found only as fields: plate shapes differ by country. Locale identifier packs remain open (upcoming_changes: locale-identifier-packs.md).",
+      "regression": "test_regressions.TestCP117VehicleIdentificationNumbers (twelve sentence positions, labelled form in text, CSV, JSON and .env, look-alikes left); test__hooks.TestVinCheck; probe_scale.py (2000 VIN rows); the packs gallery example"
+    },
+    {
+      "id": "CP-118",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A surrogate stand-in that is an ordinary word rewrote the model's reply",
+      "detail": "Round 26 review (upcoming_changes note surrogate-stand-ins-that-are-ordinary-words): decode restores a stand-in wherever it appears, so a set with GPE: [The, Ash] turned 'The trip from The to Ash' into 'Oslo trip from Oslo to Bergen'. Nothing in a set could say which words were ordinary.",
+      "retired_by": "_surrogate_sets.py: optional top-level avoid list (at most 4096 words), compared by word_key (NFC, compatibility forms folded, case folded, separator runs as one space, the differences lenient restoration repairs). An entry equal to an avoided word is refused at load with the reason; SurrogateSet.avoids is asked by _surrogates.surrogate_for on every candidate, so combined two-part names and the built-in names of kinds the set leaves out are skipped too. The words enter the identity digest only when present. Maintainer's choice of direction: the per-set avoid list.",
+      "honest_limit": "Only words the set's author lists are avoided; no word list is shipped, because which words are ordinary depends on the language. A stand-in that is not listed and happens to be a word is still restored wherever it appears. A provider without avoids avoids nothing.",
+      "regression": "test__surrogate_sets.TestAvoid (the review's The/Ash reproduction refused at load, lenient-equivalent spellings, combined names and built-in names avoided at run time, fallback to placeholders, invalid lists, bound, identity, file load)"
+    },
+    {
+      "id": "CP-119",
+      "severity": "medium",
+      "status": "closed",
+      "title": "No detector recognised a German tax identification number",
+      "detail": "A coverage gap recorded in the 2026-10-10 review (upcoming_changes note locale-identifier-packs): no kind covered the Steuer-ID, so one in an HR export, a payroll file or a tax letter was sent as written.",
+      "retired_by": "_config/packs/de.yaml (opt-in: --pack de or all): fields steuer_id, steueridentifikationsnummer and others (TAX_ID_DE); one pattern for eleven digits written together or in groups of 2-3-3-3, validated by _hooks.de_tax_id: the published ELSTER check specification (first digit not 0; in the first ten digits exactly one digit twice or three times, never three in a row; ISO 7064 MOD 11,10 check digit).",
+      "honest_limit": "Of random eleven-digit runs with a non-zero first digit, 0.35 percent pass (measured over 200000). Test numbers (leading 0) are refused by design. Other jurisdictions remain open (locale-identifier-packs.md); the UK National Insurance number was already covered by personal.",
+      "regression": "test_regressions.TestCP119GermanTaxIdentificationNumbers (twelve sentence positions, compact and grouped, CSV, JSON and .env fields, look-alikes left); test__hooks.TestDeTaxId; probe_scale.py (2000 rows)"
     }
   ],
   "investigated_and_rejected": [

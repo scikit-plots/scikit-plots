@@ -9,6 +9,9 @@ import pytest
 from .. import TIERS, CapabilityError, CapabilityReport, CapabilityStatus, capabilities, probe
 from .._capabilities import _parse_release
 
+#: Tiers with no upper bound, each for the reason given beside it in TIERS.
+_UNCAPPED = frozenset({"crypto", "timeout"})
+
 
 class TestVocabulary:
     """The seven-state enum, consumed by value from the project's canon."""
@@ -87,7 +90,7 @@ class TestTierTable:
     """The static tier description."""
 
     def test_expected_tiers(self):
-        assert set(TIERS) == {"ner", "nltk", "web", "crypto"}
+        assert set(TIERS) == {"ner", "nltk", "web", "crypto", "timeout"}
 
     @pytest.mark.parametrize("tier", sorted(TIERS))
     def test_range_is_ordered(self, tier):
@@ -141,6 +144,31 @@ class TestProbe:
             probe("nope")
 
 
+class TestRegexRange:
+    """regex is versioned by release date, so only its floor is checked."""
+
+    def test_the_supported_range_has_no_ceiling(self):
+        assert TIERS["timeout"].below is None
+        assert probe("timeout").supported == "regex>=2020.1"
+
+    @pytest.mark.parametrize("version", ["2020.1.8", "2024.11.6", "2026.9.29", "2099.1.1"])
+    def test_every_release_from_the_floor_up_is_accepted(self, monkeypatch, version):
+        from .. import _capabilities
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: version)
+        report = _capabilities.probe("timeout")
+        assert report.status is CapabilityStatus.AVAILABLE, report.detail
+
+    @pytest.mark.parametrize("version", ["2019.12.20", "2018.1.10"])
+    def test_a_release_below_the_floor_is_refused(self, monkeypatch, version):
+        from .. import _capabilities
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: version)
+        report = _capabilities.probe("timeout")
+        assert report.status is CapabilityStatus.INCOMPATIBLE
+        assert report.detail == f"installed {version} is outside regex>=2020.1"
+
+
 class TestCryptoRange:
     """``cryptography`` has a floor and, deliberately, no ceiling (CP-092)."""
 
@@ -170,7 +198,7 @@ class TestCryptoRange:
         assert report.status is CapabilityStatus.INCOMPATIBLE
         assert report.detail == f"installed {version} is outside cryptography>=41"
 
-    @pytest.mark.parametrize("tier", sorted(set(TIERS) - {"crypto"}))
+    @pytest.mark.parametrize("tier", sorted(set(TIERS) - _UNCAPPED))
     def test_the_other_tiers_keep_their_ceiling(self, monkeypatch, tier):
         from .. import _capabilities
 

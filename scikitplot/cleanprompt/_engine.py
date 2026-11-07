@@ -60,19 +60,28 @@ scikitplot.cleanprompt._detectors : Produces the spans this resolves.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
 from ._canonical import canonical, detection_view, normal_form, value_pattern
 from ._detectors import DetectorRegistry, LiteralDetector, default_registry
-from ._exceptions import LimitExceededError, OverlapError, PolicyError, RestorationError
+from ._exceptions import (
+    BlockedError,
+    LimitExceededError,
+    OverlapError,
+    PolicyError,
+    RestorationError,
+)
 from ._policy import (
+    ACTIONS,
     DEFAULT_POLICY,
+    Action,
     OverlapStrategy,
     RedactionPolicy,
     allowed_surfaces,
 )
-from ._surrogates import surrogate_for
+from ._surrogates import SURROGATE_KINDS, surrogate_for
 from ._types import Entry, RedactionResult, RestorationResult, Span, Stats
 from ._vault import Vault
 
@@ -123,15 +132,212 @@ def reserved_label_spans(
     ``"[EMAIL-1] and bob@example.com"`` the real address would otherwise be
     issued ``[EMAIL-1]`` as well, and restoration would then rewrite both
     occurrences to the same value.
+
+    **Rewritten spellings in the source (``CP-112``).** Restoration also
+    repairs labels a model rewrote (:meth:`TagStyle.lenient_pattern`), so a
+    source that already holds such a spelling (``[email_1]``,
+    ``[EMAIL<U+2028>-1]``) was restored as the value later issued that label,
+    and the round trip was not exact. The label each one normalises to is
+    therefore reserved too, so no value is ever issued it: restoring the
+    spelling then finds nothing in the vault and leaves it as written, while
+    a model's rewrite of a label that *was* issued is still repaired. Only
+    the label is reserved, not the range: a lenient match such as
+    ``[PHONE 5550104477]`` can hold a real value, and detection must still
+    see it.
     """
     if not policy.preserve_placeholders:
         return (), set()
     ranges: list[tuple[int, int]] = []
     labels: set[str] = set()
-    for match in policy.tag_style.pattern().finditer(text):
+    style = policy.tag_style
+    for match in style.pattern().finditer(text):
         ranges.append(match.span())
         labels.add(match.group())
+    for match in style.lenient_pattern().finditer(text):
+        label = style.normalize(match.group())
+        if label is not None:
+            labels.add(label)
     return tuple(ranges), labels
+
+
+#: Detector name of the spans :func:`_held_spellings` returns.
+_HELD_SPELLING = "held-spelling"
+
+
+def _held_spellings(
+    text: str, policy: RedactionPolicy, seed: Sequence[Entry]
+) -> list[Span]:
+    """
+    Return every spelling in ``text`` that restoration would read as a held label.
+
+    Parameters
+    ----------
+    text : str
+        The original text of this call.
+    policy : RedactionPolicy
+        Supplies the grammar restoration uses.
+    seed : sequence of Entry
+        The labels already issued in earlier calls (a session's prior turns).
+
+    Returns
+    -------
+    list of Span
+        One span per occurrence, of the held label's kind, so the spelling is
+        hidden as a value of its own.
+
+    Notes
+    -----
+    **Developer notes (``CP-113``).** :func:`reserved_label_spans` keeps a
+    rewritten spelling in the source from being given a label *in this call*
+    (``CP-112``). A label issued in an earlier turn is already held, so a
+    spelling of it typed now (``[email_1]`` once ``[EMAIL-1]`` exists, or a
+    re-cased surrogate) would be restored as that earlier value. The test is
+    restoration itself: whatever :func:`restore` would *repair* in this text,
+    given the held labels, is a spelling it would rewrite. Hiding each one as
+    a value gives it a fresh label whose vault entry is the spelling as
+    written, so the round trip is exact, the vault format is unchanged, and
+    the model never sees the spelling: a ``[email_1]`` in its reply can only
+    mean the label it was sent, and is still repaired. Exact spellings of a
+    held label are literal placeholders and stay reserved as before.
+
+    The restoration pass runs only when it can find something: a lenient
+    match that names a held label under another spelling, or held stand-ins
+    (surrogates), whose rewritten forms only restoration's own matcher
+    knows. Otherwise a large record file in a long session costs one scan of
+    the lenient grammar.
+    """
+    if not seed or not policy.preserve_placeholders:
+        return []
+    style = policy.tag_style
+    # Stand-ins exist only in the surrogate style; a bracket grammar needs a
+    # lenient match in the text before anything is built from the seed.
+    candidates = (
+        None
+        if style.style == "surrogate"
+        else [match.group() for match in style.lenient_pattern().finditer(text)]
+    )
+    if candidates is not None and not candidates:
+        return []
+    held = {entry.label: entry for entry in seed}
+    if candidates is not None and not any(
+        found not in held and style.normalize(found) in held for found in candidates
+    ):
+        return []
+    vault = Vault({label: entry.original for label, entry in held.items()})
+    repaired = restore(text, vault, policy=policy).repaired
+    return [
+        Span(
+            start=match.start(),
+            end=match.end(),
+            kind=held[label].kind,
+            text=found,
+            detector=_HELD_SPELLING,
+            priority=100,
+            confidence=1.0,
+        )
+        for found, label in dict(repaired).items()
+        for match in re.finditer(re.escape(found), text)
+    ]
+
+
+def _default_action(kind: str, policy: RedactionPolicy) -> Action:
+    """Return what the global style does with ``kind`` when no action is set."""
+    if policy.tag_style.style == "surrogate" and kind in SURROGATE_KINDS:
+        return Action.SURROGATE
+    return Action.TOKENIZE
+
+
+def _apply_actions(
+    resolved: Sequence[Span], candidates: Sequence[Span], policy: RedactionPolicy
+) -> tuple[list[Span], tuple[Span, ...], dict[tuple[int, int], Action]]:
+    """
+    Decide each resolved span's action, refusing the text on ``block``.
+
+    Parameters
+    ----------
+    resolved : sequence of Span
+        Disjoint spans from :func:`resolve_spans`, ascending.
+    candidates : sequence of Span
+        Every detection that went into resolution.
+    policy : RedactionPolicy
+        Supplies :attr:`~RedactionPolicy.actions`.
+
+    Returns
+    -------
+    replaced : list of Span
+        The spans to replace, in order.
+    reported : tuple of Span
+        The spans to leave in the text and report.
+    modes : dict of (int, int) to Action
+        ``TOKENIZE`` or ``SURROGATE`` for each replaced span, keyed by
+        ``(start, end)``.
+
+    Raises
+    ------
+    BlockedError
+        If any span's action is ``block``. The message names kinds and counts.
+
+    Notes
+    -----
+    **Developer notes (``CP-115``).** Resolution merges overlapping
+    detections into one span over their full extent, so every detection that
+    shares characters with a resolved span lies inside it; one sweep over the
+    detections in start order finds each span's members.
+
+    The strictest *class* among the members wins: ``block``, then hide
+    (``tokenize`` or ``surrogate``), then ``report``. Merging can therefore
+    only make the outcome stricter. Both hiding actions hide the value
+    completely, so between them the resolved span's own kind decides the
+    form, as the global style does without actions; when that kind's action is
+    ``report`` or ``block`` but the class is hide, the value gets a
+    placeholder. Setting every kind's default action explicitly is therefore
+    the same as setting none. Without actions this returns the spans
+    unchanged and the global style decides, as before.
+    """
+    if not policy.actions:
+        return list(resolved), (), {}
+    hide = (Action.TOKENIZE, Action.SURROGATE)
+    rank = {action: index for index, action in enumerate(ACTIONS)}
+    ordered = sorted(candidates, key=lambda span: (span.start, span.end))
+    cursor = 0
+    replaced: list[Span] = []
+    reported: list[Span] = []
+    modes: dict[tuple[int, int], Action] = {}
+    blocked: dict[str, set[str]] = {}
+    for span in resolved:
+        while cursor < len(ordered) and ordered[cursor].start < span.start:
+            cursor += 1
+        members = [span]
+        index = cursor
+        while index < len(ordered) and ordered[index].start < span.end:
+            members.append(ordered[index])
+            index += 1
+        actions = {
+            member.kind: (
+                policy.action_for(member.kind) or _default_action(member.kind, policy)
+            )
+            for member in members
+        }
+        action = min(actions.values(), key=rank.__getitem__)
+        if action is Action.BLOCK:
+            for kind, chosen in actions.items():
+                if chosen is Action.BLOCK:
+                    blocked.setdefault(kind, set()).add(span.text)
+        elif action is Action.REPORT:
+            reported.append(span)
+        else:
+            own = policy.action_for(span.kind) or _default_action(span.kind, policy)
+            replaced.append(span)
+            modes[(span.start, span.end)] = own if own in hide else Action.TOKENIZE
+    if blocked:
+        counts = {kind: len(values) for kind, values in sorted(blocked.items())}
+        detail = ", ".join(f"{count} {kind}" for kind, count in counts.items())
+        msg = (
+            f"the text holds value(s) whose action is 'block' ({detail}); nothing "
+            "was returned. Remove them or change the action for those kinds"
+        )
+        raise BlockedError(msg, counts)
+    return replaced, tuple(reported), modes
 
 
 def _in_reserved(span: Span, ranges: Sequence[tuple[int, int]]) -> bool:
@@ -513,6 +719,7 @@ class Redactor:
 
         detected = self.registry.detect_all(text, policy, detectors=detectors)
         detected.extend(self._view_spans(text, detected, detectors))
+        detected.extend(_held_spellings(text, policy, tuple(seed or ())))
         allow = allowed_surfaces(policy)
         fold = policy.case_insensitive
         candidate = [
@@ -524,14 +731,17 @@ class Redactor:
             )
         ]
         resolved = resolve_spans(candidate, policy, text=text)
+        replaced, reported, modes = _apply_actions(resolved, candidate, policy)
 
-        return self._assign_and_rewrite(
+        result = self._assign_and_rewrite(
             text=text,
-            resolved=resolved,
+            resolved=replaced,
             detected_count=len(detected),
             reserved_labels=reserved_labels,
             seed=tuple(seed or ()),
+            modes=modes,
         )
+        return replace(result, reported=reported) if reported else result
 
     # -- internals --------------------------------------------------------
 
@@ -649,9 +859,16 @@ class Redactor:
         resolved: Sequence[Span],
         detected_count: int,
         reserved_labels: set[str],
+        *,
         seed: tuple[Entry, ...] = (),
+        modes: dict[tuple[int, int], Action] | None = None,
     ) -> RedactionResult:
-        """Allocate labels and rebuild the text in one left-to-right pass."""
+        """
+        Allocate labels and rebuild the text in one left-to-right pass.
+
+        ``modes`` gives each span's action from :func:`_apply_actions`; a span
+        without one follows the global style.
+        """
         policy = self.policy
         style = policy.tag_style
         if (
@@ -732,7 +949,10 @@ class Redactor:
                     # rather than issue a colliding one.
                     ordinal += 1
                     label = style.render(span.kind, ordinal)
-                if style.style == "surrogate":
+                mode = (modes or {}).get((span.start, span.end))
+                if mode is Action.SURROGATE or (
+                    mode is None and style.style == "surrogate"
+                ):
                     # An invented value the model will neither rewrite nor
                     # comment on. It falls back to the label for kinds where a
                     # plausible-looking stand-in would be a hazard rather than

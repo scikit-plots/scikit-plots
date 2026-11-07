@@ -161,7 +161,8 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
             "extras: pip install scikit-plots[cleanprompt-ner] (names/places, "
             "spaCy), [cleanprompt-nltk] (names/places, English, NLTK), "
             "[cleanprompt-web] (browser UI), [cleanprompt-crypto] (Fernet "
-            "vault cipher)"
+            "vault cipher), [cleanprompt-timeout] (time limit on custom "
+            "pack patterns)"
         ),
     ),
 )

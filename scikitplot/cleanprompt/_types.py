@@ -233,6 +233,11 @@ class RedactionResult:
     truncated : bool, default=False
         Always ``False``. Present so that callers can assert the pipeline never
         truncates; a bound is exceeded by raising, not by dropping content.
+    reported : tuple of Span, default=()
+        Values left in ``text`` because their kind's action is ``report``
+        (:class:`~._policy.Action`), in text order. Empty unless a policy asks
+        for it; they are **not** hidden, and the text is not safe to transmit
+        while this is non-empty.
 
     See Also
     --------
@@ -245,6 +250,7 @@ class RedactionResult:
     stats: Stats
     policy_fingerprint: str
     truncated: bool = False
+    reported: tuple[Span, ...] = ()
 
     @property
     def labels(self) -> tuple[str, ...]:

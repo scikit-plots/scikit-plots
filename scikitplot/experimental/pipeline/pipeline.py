@@ -237,11 +237,9 @@ class Pipeline(pipeline.Pipeline):
                 requested certain metadata for these parameters to be forwarded to
                 them.
 
-            .. versionchanged:: 1.4
-                Parameters are now passed to the ``transform`` method of the
-                intermediate steps as well, if requested, and if
-                `enable_metadata_routing=True` is set via
-                :func:`~sklearn.set_config`.
+            In scikit-learn 1.4 and later, parameters are also passed to the
+            ``transform`` method of the intermediate steps, if requested, and if
+            `enable_metadata_routing=True` is set via :func:`~sklearn.set_config`.
 
             See :ref:`Metadata Routing User Guide <metadata_routing>` for more
             details.
@@ -300,10 +298,9 @@ class Pipeline(pipeline.Pipeline):
                 requested certain metadata for these parameters to be forwarded to
                 them.
 
-            .. versionchanged:: 1.4
-                Parameters are now passed to the ``transform`` method of the
-                intermediate steps as well, if requested, and if
-                `enable_metadata_routing=True`.
+            In scikit-learn 1.4 and later, parameters are also passed to the
+            ``transform`` method of the intermediate steps, if requested, and if
+            `enable_metadata_routing=True`.
 
             See :ref:`Metadata Routing User Guide <metadata_routing>` for more
             details.
@@ -364,12 +361,9 @@ class Pipeline(pipeline.Pipeline):
                 requested certain metadata for these parameters to be forwarded to
                 them.
 
-            .. versionadded:: 0.20
-
-            .. versionchanged:: 1.4
-                Parameters are now passed to the ``transform`` method of the
-                intermediate steps as well, if requested, and if
-                `enable_metadata_routing=True`.
+            In scikit-learn 1.4 and later, parameters are also passed to the
+            ``transform`` method of the intermediate steps, if requested, and if
+            `enable_metadata_routing=True`.
 
             See :ref:`Metadata Routing User Guide <metadata_routing>` for more
             details.
@@ -440,10 +434,9 @@ class Pipeline(pipeline.Pipeline):
                 requested certain metadata for these parameters to be forwarded to
                 them.
 
-            .. versionchanged:: 1.4
-                Parameters are now passed to the ``transform`` method of the
-                intermediate steps as well, if requested, and if
-                `enable_metadata_routing=True`.
+            In scikit-learn 1.4 and later, parameters are also passed to the
+            ``transform`` method of the intermediate steps, if requested, and if
+            `enable_metadata_routing=True`.
 
             See :ref:`Metadata Routing User Guide <metadata_routing>` for more
             details.
@@ -499,10 +492,9 @@ class Pipeline(pipeline.Pipeline):
             requested certain metadata for these parameters to be forwarded to
             them.
 
-            .. versionadded:: 1.4
-                Only available if `enable_metadata_routing=True`. See
-                :ref:`Metadata Routing User Guide <metadata_routing>` for more
-                details.
+            Only available if `enable_metadata_routing=True` (scikit-learn 1.4
+            and later). See :ref:`Metadata Routing User Guide <metadata_routing>`
+            for more details.
 
         Returns
         -------

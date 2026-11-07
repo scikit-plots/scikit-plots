@@ -1,0 +1,12 @@
+- ``scikitplot.cleanprompt``: telephone numbers in common international
+  groupings are now hidden whole. Previously the country and area code of
+  ``+33 1 23 45 67 89`` or ``+49 (0)30 1234 5678`` were sent beside the
+  placeholder, and numbers with a long subscriber group (``+49 30 12345678``,
+  ``030 12345678``, ``+44 7700 900123``) were not found at all. An extension
+  (``ext. 123``, ``x12``) is hidden with its number. Year ranges such as
+  ``2019-2024`` and day-month-year dates are no longer mistaken for phone
+  numbers. Separately, a placeholder spelling already present in the source
+  text, such as ``[email_1]`` or ``\[EMAIL-1\]``, is now restored exactly as
+  written, in a single call and across a session's turns. Previously
+  restoration replaced it with the value issued under that label, in the same
+  call or an earlier turn.

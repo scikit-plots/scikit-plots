@@ -79,15 +79,15 @@ The public module exports one base class and three concrete scorers:
      - Defaults
      - Distinguishing behavior
    * - ``BM25Okapi``
-     - ``okapi-epsilon-floor/1``
+     - ``okapi-epsilon-floor/2``
      - ``k1=1.5``, ``b=0.75``, ``epsilon=0.25``
      - Floors negative IDF values at ``epsilon * average_idf``.
    * - ``BM25L``
-     - ``bm25l-delta/1``
+     - ``bm25l-delta/2``
      - ``k1=1.5``, ``b=0.75``, ``delta=0.5``
      - Adds ``delta`` to normalized term frequency.
    * - ``BM25Plus``
-     - ``bm25plus-delta/1``
+     - ``bm25plus-delta/2``
      - ``k1=1.5``, ``b=0.75``, ``delta=1``
      - Adds ``delta`` to the term contribution.
 
@@ -101,7 +101,7 @@ implementation detail::
 
    index = BM25Okapi([['alpha'], ['beta']])
    print(index.recipe.identifier)
-   # okapi-epsilon-floor/1
+   # okapi-epsilon-floor/2
 
 Parameter domains are validated when the index is built:
 
@@ -110,6 +110,12 @@ Parameter domains are validated when the index is built:
 * ``epsilon`` and ``delta`` must be finite and non-negative; and
 * booleans are rejected even though Python treats ``bool`` as a subclass of
   ``int``.
+
+Every ``b`` in that range, ``b=1`` included, gives every document a finite
+score.  An empty document holds no query term, so it scores the recipe's
+absent-term value: ``0`` for ``BM25Okapi`` and the ``delta`` lower bound for
+``BM25L`` and ``BM25Plus``, the same as a non-empty document that lacks every
+query term.
 
 Tokenization is part of correctness
 ===================================

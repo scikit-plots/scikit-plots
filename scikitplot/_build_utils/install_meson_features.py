@@ -44,8 +44,8 @@ what this script does.
 **Idempotency**
 
 The up-to-date check is performed **before** any destructive operation.
-``_needs_update`` compares modification timestamps of every source file
-against the corresponding destination file.  Only when the check returns
+``_needs_update`` compares the set of files and every file's bytes in the
+source and the destination (bytecode ignored).  Only when the check returns
 ``True`` is the destination removed and replaced.  Re-running
 ``meson setup`` is therefore cheap when nothing has changed.
 
@@ -89,6 +89,7 @@ Direct invocation (for testing outside meson):
 
 from __future__ import annotations
 
+import filecmp
 import os
 import shutil
 import stat
@@ -158,8 +159,36 @@ def _rmtree(path: str) -> None:
         shutil.rmtree(path, onerror=_rmtree_error_handler)
 
 
+def _package_files(root: str) -> dict:
+    """
+    Return ``{relative path: absolute path}`` of every file under *root*.
+
+    Parameters
+    ----------
+    root : str
+        Directory to walk.
+
+    Returns
+    -------
+    dict of str to str
+        Files at any depth, keyed by their ``/``-separated path relative to
+        *root*. ``__pycache__`` directories and ``.pyc``/``.pyo`` files are
+        left out: the destination gains them as soon as Meson imports the
+        package, and they are not part of what is installed.
+    """
+    found = {}
+    for current, dirs, files in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+        for name in sorted(files):
+            if name.endswith((".pyc", ".pyo")):
+                continue
+            full = os.path.join(current, name)
+            found[os.path.relpath(full, root).replace(os.sep, "/")] = full
+    return found
+
+
 def _needs_update(src_dir: str, dst_dir: str) -> bool:
-    """Return ``True`` when *dst_dir* is missing or any source file is newer.
+    """Return ``True`` unless *dst_dir* holds exactly the files of *src_dir*.
 
     Parameters
     ----------
@@ -171,27 +200,29 @@ def _needs_update(src_dir: str, dst_dir: str) -> bool:
     Returns
     -------
     bool
-        ``True``  → destination is absent or stale; copy is required.
-        ``False`` → every source file is older than its destination counterpart;
-        no copy needed.
+        ``True``  → destination is absent, misses a file, holds a file the
+        source does not (left from an earlier version), or any file's bytes
+        differ; copy is required.
+        ``False`` → the same set of files with identical contents; no copy
+        needed.
 
     Notes
     -----
-    Comparison is based on ``os.path.getmtime`` (float seconds since epoch).
-    Sub-directories inside *src_dir* are not recursed into; the package
-    layout is intentionally flat (``__init__.py``, ``module.py``,
-    ``feature.py``, ``utils.py``).
+    Comparison is by content (:func:`filecmp.cmp` with ``shallow=False``),
+    not by modification time: a destination edited, or written by another
+    checkout, after the source changed is newer and still wrong. Generated
+    bytecode is ignored on both sides (see :func:`_package_files`).
     """
     if not os.path.isdir(dst_dir):
         return True
-    for name in os.listdir(src_dir):
-        src_file = os.path.join(src_dir, name)
-        dst_file = os.path.join(dst_dir, name)
-        if not os.path.exists(dst_file):
-            return True
-        if os.path.getmtime(src_file) > os.path.getmtime(dst_file):
-            return True
-    return False
+    source = _package_files(src_dir)
+    installed = _package_files(dst_dir)
+    if set(source) != set(installed):
+        return True
+    return any(
+        not filecmp.cmp(source[rel], installed[rel], shallow=False)
+        for rel in sorted(source)
+    )
 
 
 def main() -> None:
@@ -260,7 +291,11 @@ def main() -> None:
         _rmtree(dst_tmp)
 
     try:
-        shutil.copytree(src_dir, dst_tmp)
+        shutil.copytree(
+            src_dir,
+            dst_tmp,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
         if os.path.isdir(dst_dir):
             _rmtree(dst_dir)
         shutil.move(dst_tmp, dst_dir)

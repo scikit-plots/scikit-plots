@@ -58,7 +58,7 @@ precondition:
 The scoring formula is named and versioned rather than implied by the class:
 
 >>> bm25.recipe.identifier
-'okapi-epsilon-floor/1'
+'okapi-epsilon-floor/2'
 
 """
 

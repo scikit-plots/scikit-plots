@@ -176,7 +176,7 @@ class TestDoctor:
         status, out, _ = _run(["doctor", "--format", "json"])
         payload = json.loads(out)
         assert status == 0
-        assert set(payload["tiers"]) == {"ner", "nltk", "web", "crypto"}
+        assert set(payload["tiers"]) == {"ner", "nltk", "web", "crypto", "timeout"}
         assert payload["tiers"]["ner"]["install_hint"].startswith("pip install")
         assert payload["status"] in ("ok", "degraded")
 
@@ -2163,3 +2163,83 @@ class TestFernetVaultWithoutTheTier:
         monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: None)
         with pytest.raises(CleanPromptError, match="encrypted with Fernet"):
             _decrypt_entries("vault.json", {}, {})
+
+
+class TestActionOption:
+    """CP-115: ``--action KIND=ACTION`` on both frontends."""
+
+    def test_redact_in_both_frontends(self, tmp_path):
+        args = ["redact", "--action", "EMAIL=surrogate", "--vault", str(tmp_path / "v.json")]
+        results = _run_both(args, "mail ada@example.com and +1 555 010 4477")
+        status, out, _ = results
+        assert status == 0
+        assert "@example.invalid" in out
+        assert "[PHONE-1]" in out
+
+    def test_report_is_announced_and_block_refuses(self, tmp_path):
+        vault = ["--vault", str(tmp_path / "v.json")]
+        status, out, err = _run(["redact", "--action", "PHONE=report", *vault], "call +1 555 010 4477")
+        assert "+1 555 010 4477" in out
+        assert "ALERT" in err
+        assert "NOT safe to send" in err
+        status, out, err = _run(["redact", "--action", "PHONE=block", *vault], "call +1 555 010 4477")
+        assert status != 0
+        assert out == ""
+        assert "block" in err
+
+    @pytest.mark.parametrize(
+        ("value", "message"),
+        [("EMAIL", "KIND=ACTION"), ("EMIAL=block", "unknown kind 'EMIAL'"), ("EMAIL=nope", "unknown action")],
+    )
+    def test_bad_values(self, tmp_path, value, message):
+        status, _, err = _run(["redact", "--action", value, "--vault", str(tmp_path / "v.json")], "x")
+        assert status != 0
+        assert message in err
+
+    def test_batch_refuses_a_blocked_file_and_warns_on_reported(self, tmp_path):
+        source = tmp_path / "in"
+        source.mkdir()
+        (source / "a.txt").write_text("MRN: 00412345\n", encoding="utf-8")
+        (source / "b.txt").write_text("card 4242 4242 4242 4242\n", encoding="utf-8")
+        status, out, err = _run(
+            [
+                "batch", str(source), "--out", str(tmp_path / "out"),
+                "--vault", str(tmp_path / "v.json"), "--pack", "all",
+                "--action", "MRN=report", "--action", "CREDIT_CARD=block", "--format", "json",
+            ]
+        )
+        report = json.loads(out)
+        assert status == 1
+        assert {i["relative"]: i["status"] for i in report["items"]} == {
+            "a.txt": "encoded", "b.txt": "refused"
+        }
+        assert report["reported"] == {"MRN": 1}
+        assert not (tmp_path / "out" / "b.txt").exists()
+        assert "not safe to send" in err
+
+    def test_a_plan_fixes_the_actions(self, tmp_path):
+        status, _, err = _run(
+            ["batch", str(tmp_path), "--out", str(tmp_path / "o"), "--plan", str(tmp_path / "p.json"),
+             "--action", "EMAIL=report"]
+        )
+        assert status != 0
+        assert "--action" in err
+
+
+class TestKindsMatrix:
+    """CP-116: ``kinds --matrix`` on both frontends."""
+
+    def test_matrix_with_an_action(self):
+        status, out, _ = _run_both(["kinds", "--matrix", "--action", "MRN=report", "--format", "json"])
+        assert status == 0
+        rows = {row["kind"]: row for row in json.loads(out)["matrix"]}
+        assert rows["MRN"]["action"] == "report"
+        assert rows["MRN"]["pack_fields"] == ["patient"]
+
+    def test_a_misspelt_kind_and_action_without_matrix_are_refused(self):
+        status, _, err = _run(["kinds", "--matrix", "--action", "EMIAL=report"])
+        assert status != 0
+        assert "unknown kind 'EMIAL'" in err
+        status, _, err = _run(["kinds", "--action", "EMAIL=report"])
+        assert status != 0
+        assert "'kinds --matrix' only" in err

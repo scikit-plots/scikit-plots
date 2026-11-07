@@ -614,7 +614,8 @@ folder, making ownership ambiguous and moves fragile.
 
 **Rule:** Every Python runtime module has one collected test owner with the exact
 mechanical name `test_<module>.py`; `__init__.py` maps to `test___init__.py`. Large
-contracts split only into hidden non-collected `_cases/<module>/` fragments.
+contracts split only into hidden non-collected `_cases/<owner>/` fragments that
+the owner declares.
 Run provenance belongs in maintenance/checkpoints or test function names, not the
 canonical test filename.
 
@@ -1319,7 +1320,7 @@ mutants stayed, so the mutation suite was red for a reason nobody read.
 - When: a storage schema changes, or a loader gains an early return.
 - Then: a blob the loader will not use is removed, not skipped; a blob it does
   use is rewritten if it carries any field outside the persisted list.
-- Verified by: `test_ai_assistant__endpoint_secret_lifecycle.mjs` and the two
+- Verified by: `test_endpoint_secret_lifecycle.mjs` and the two
   `endpoint-*` mutants.
 
 ## 2026-10-02: A test that restates a value fails when the value changes

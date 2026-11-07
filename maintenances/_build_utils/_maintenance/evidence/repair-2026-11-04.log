@@ -1,0 +1,25 @@
+# _build_utils repair round, 2026-11-04 (CPython 3.13.18, git 2.43.0, Cython 3.3.1)
+
+## contract checker
+maintenance=PASS runtime=PASS release=PASS
+
+
+## runtime tests (scikitplot/_build_utils/tests)
+80 passed in 24.72s
+
+## maintenance tests
+29 passed in 113.30s (0:01:53)
+
+## cython_generate --validate on scikitplot/annoy/_annoy templates (scratch copy)
+exit 0
+  ✓  All generated files passed validation.
+previous tree: exit 1 (false-positive markers; the generated annoylib.pyx holds 30 '{{' in CSS)
+
+## dubious ownership (repository owned by nobody, run as root, HOME without .gitconfig)
+git_version: 1.0.dev0+git.20261104.32d2bbd
+~/.gitconfig written: False
+previous tree: retried after 'git config --global --add safe.directory .../_build_utils' (persistent, and the subdirectory, which Git does not accept)
+
+## install_meson_features.py live (meson 1.12.1, Python 3.12 venv)
+first run: Installed; second run: up-to-date; after import (dst __pycache__): up-to-date;
+after appending to dst utils.py and adding dst stale_extra.py: Installed, stale file removed, content equal to source

@@ -185,16 +185,116 @@ def _not_repeated_digit(match: re.Match) -> bool:
     return bool(digits) and len(set(digits)) > 1
 
 
+#: VIN letter values, 49 CFR 565.15(c), Table III. Digits keep their own value;
+#: I, O and Q are not used in a VIN.
+_VIN_VALUES = {
+    **{str(digit): digit for digit in range(10)},
+    "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8,
+    "J": 1, "K": 2, "L": 3, "M": 4, "N": 5, "P": 7, "R": 9,
+    "S": 2, "T": 3, "U": 4, "V": 5, "W": 6, "X": 7, "Y": 8, "Z": 9,
+}  # fmt: skip
+
+#: VIN position weights, 49 CFR 565.15(c), Table IV (position 9 is the check
+#: digit and carries no weight).
+_VIN_WEIGHTS = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2)
+
+
+def _vin_check(match: re.Match) -> bool:
+    """
+    Accept a vehicle identification number: by its check digit, or by its label.
+
+    Notes
+    -----
+    **User notes.** A pattern that captures a ``label`` group (``VIN:``,
+    ``chassis number``) is accepted on shape alone, check digit or not, as
+    VINs are written outside North America; without a label the check digit
+    and numeric tail must hold.
+
+    **Developer notes.** The North American rule (49 CFR 565.15): seventeen
+    characters, no I, O or Q; each character's value (Table III) times its
+    position's weight (Table IV), summed, modulo 11, is the check digit in
+    position 9, a remainder of 10 written ``X``. The last four characters are
+    numeric for every vehicle (positions 14 to 17), which this also requires.
+    A run of one repeated character (``11111111111111111`` passes the
+    arithmetic) is a placeholder, not a vehicle, and is rejected. Case is
+    ignored. Outside North America the check digit is optional, so a VIN
+    there is found only next to its label.
+    """
+    groups = match.re.groupindex
+    vin = (match.group("value") if "value" in groups else match.group()).upper()
+    if len(vin) != len(_VIN_WEIGHTS) or len(set(vin)) == 1:
+        return False
+    if not all(char in _VIN_VALUES for char in vin):
+        return False
+    if "label" in groups and match.group("label"):
+        return True
+    if not vin[13:].isdigit():
+        return False
+    remainder = sum(_VIN_VALUES[c] * w for c, w in zip(vin, _VIN_WEIGHTS)) % 11
+    return vin[8] == ("X" if remainder == 10 else str(remainder))  # noqa: PLR2004
+
+
+def _de_tax_id(match: re.Match) -> bool:
+    """
+    Accept a German tax identification number (Steuer-ID) that passes its checks.
+
+    Notes
+    -----
+    **User notes.** Eleven digits, written together or in groups
+    (``12 345 678 901``); separators are ignored. The number must pass the
+    published structure rule and check digit, so an order number or a phone
+    number of the same length is left alone. Test numbers, which start with
+    ``0``, are not personal and are not accepted.
+
+    **Developer notes.** The rules are those of the tax administration's
+    published check specification ("Pruefung der Steuer- und
+    Steueridentifikationsnummer", ELSTER interface documentation):
+
+    1. eleven digits, the eleventh a check digit, the first not ``0``;
+    2. in the first ten digits exactly one digit occurs twice or three times
+       and every other digit at most once; a digit occurring three times
+       never stands in three directly consecutive positions;
+    3. check digit (ISO 7064 MOD 11,10): ``product = 10``; for each of the
+       first ten digits ``total = (digit + product) mod 10``, read as ``10``
+       when it is ``0``, then ``product = (2 * total) mod 11``; the check
+       digit is ``11 - product``, written ``0`` when that is ``10``.
+
+    A pattern's ``value`` group is read when present, so a labelled pattern
+    validates the number and not the label.
+    """
+    groups = match.re.groupindex
+    text = match.group("value") if "value" in groups else match.group()
+    digits = _NON_DIGIT.sub("", text)
+    if len(digits) != 11 or digits[0] == "0":  # ruff: ignore[magic-value-comparison]
+        return False
+    head = digits[:10]
+    counts = sorted((head.count(d) for d in set(head)), reverse=True)
+    if counts[0] not in (2, 3) or (len(counts) > 1 and counts[1] > 1):
+        return False
+    if counts[0] == 3 and any(  # ruff: ignore[magic-value-comparison]
+        head[i] == head[i + 1] == head[i + 2] for i in range(8)
+    ):
+        return False
+    product = 10
+    for char in head:
+        total = (ord(char) - 48 + product) % 10 or 10
+        product = (2 * total) % 11
+    check = 11 - product
+    return digits[10] == str(0 if check == 10 else check)  # noqa: PLR2004
+
+
 #: Every validator a pack may name. The keys are the public vocabulary; they
 #: are part of the pack schema and are never renamed.
 VALIDATORS: dict[str, Callable[[re.Match], bool]] = {
     "aba_routing": _aba_routing,
+    "de_tax_id": _de_tax_id,
     "iban_mod97": _iban_mod97,
     "luhn": _luhn,
     "nhs_mod11": _nhs_mod11,
     "not_repeated_digit": _not_repeated_digit,
     "npi": _npi,
     "tckn": _tckn,
+    "vin_check": _vin_check,
 }
 
 

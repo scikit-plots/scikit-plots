@@ -1,0 +1,7 @@
+- New user-guide page :ref:`metadata_routing`: where scikit-plots takes part in
+  scikit-learn's metadata routing (estimators built on ``BaseEstimator``, the
+  experimental ``Pipeline``, the corpus scorers with and without
+  scikit-learn), with the result of each call with routing on and off. The
+  experimental ``Pipeline``'s docstrings linked to this page before it
+  existed, and showed scikit-learn's version numbers as if they were
+  scikit-plots versions; both are fixed.

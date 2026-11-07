@@ -298,10 +298,70 @@
       "artifact": "evidence/maintenance-tests.log",
       "id": "regex_fixtures",
       "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "pattern_timeout",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "names_through_view",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "email_any_script",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "phone_groupings",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "source_spellings",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "held_spellings",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "look_alikes",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "actions",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "coverage_matrix",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "vehicle_pack",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "surrogate_avoid",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round28.log",
+      "id": "de_pack",
+      "status": "PASS"
     }
   ],
-  "runtime_tree_fingerprint": "48b07f877d9d38ba2f80fc097076992b606d0fa1a1a8f83fb69b277f8e7228e4",
+  "runtime_tree_fingerprint": "2afc135a92b3562a0a17c0e0038f8a4668b1c9324fdd2a6192464311bc75c058",
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-10"
+  "updated_at": "2026-11-06"
 }

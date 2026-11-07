@@ -23,10 +23,10 @@
   ],
   "runtime_contract": {
     "inventory": {
-      "baseline_sha256": "01a8c772ec0d5ae1f525d6d1f06424405b31a970024b2f7a776f63f774417080",
-      "tracked_files": 27,
-      "production_python_files": 21,
-      "test_python_files": 3,
+      "baseline_sha256": "4648ba3ddb0c48787deca1b2ed8de636c4f65c99f2b7e778892df9c5a0b5f4dc",
+      "tracked_files": 31,
+      "production_python_files": 22,
+      "test_python_files": 6,
       "test_support_python_files": 1,
       "paths": [
         "__init__.py",
@@ -44,6 +44,7 @@
         "gcc_build_bitness.py",
         "generate_apis_reference/__init__.py",
         "generate_apis_reference/__main__.py",
+        "generate_apis_reference/_importability.py",
         "generate_apis_reference/apis_reference.py.in",
         "gitversion.py",
         "install_meson_features.py",
@@ -52,9 +53,12 @@
         "system_info.py",
         "tempita.py",
         "tests/__init__.py",
+        "tests/test_copyfiles.py",
+        "tests/test_cython_generate.py",
         "tests/test_fix_submodule_import_v2.py",
         "tests/test_generate_apis_reference.py",
         "tests/test_gitversion.py",
+        "tests/test_install_meson_features.py",
         "version.py"
       ]
     },

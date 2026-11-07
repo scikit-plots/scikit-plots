@@ -36,4 +36,23 @@ arrays only if a path needs them (``backend="reference"``,
 Measured on a synthetic 100 000-document index: the previous format
 (``bm25-index/1``, every document's counts in the JSON) took 173 MB and 4.2 s to
 load and answer a first query; ``bm25-index/2`` took 82 MB and 0.6 s.
-Generations of ``bm25-index/1`` still load.
+Generations of ``bm25-index/1`` are not read: each was written with an earlier
+recipe version, so rebuild them from their corpus.
+
+What ``load`` verifies
+----------------------
+
+Before it rebuilds anything, ``load`` checks the generation against the class
+it is called on, and refuses with a ``ValueError`` that names the cause:
+
+* the recipe must be the class's own (``BM25Plus.load`` on a ``BM25Okapi``
+  index says ``load it with BM25Okapi``); an earlier version of the formula, or
+  an unknown recipe, is refused rather than rescored with the current one;
+* the parameters must be exactly the recipe's, each inside the domain the
+  constructor enforces (a persisted ``b=7`` is refused);
+* the recorded ``identity`` must equal the one recomputed from the declared
+  recipe, analyzer and parameters, so edited metadata is refused;
+* each array must match its recorded SHA-256, dtype and shape.
+
+Load with the scorer class that built the index; ``BM25.load`` raises
+``TypeError`` because the base class has no formula.

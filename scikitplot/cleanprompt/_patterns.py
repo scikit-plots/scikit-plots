@@ -40,6 +40,7 @@ scikitplot.cleanprompt._detectors : Turns these specs into detectors.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -220,6 +221,56 @@ def _iban_validate(match: re.Match) -> bool:
     return int("".join(buffer)) % 97 == 1
 
 
+def _mark_ranges() -> str:
+    r"""
+    Return every combining mark as the body of a regular-expression class.
+
+    Notes
+    -----
+    **Developer notes.** ``\w`` matches letters and digits but not combining
+    marks (categories ``Mn``, ``Mc``, ``Me``), and many scripts cannot write
+    a word without them: Devanagari vowel signs and virama, Thai vowels,
+    Hebrew points, a decomposed accent. A local part or domain label built on
+    ``\w`` alone would stop inside the first such word, and a partial
+    address is a leak (``CP-110``). Every mark lies below ``U+20000`` or in
+    the variation-selector supplement, so those planes are scanned once at
+    import (about 30 ms), as :mod:`._canonical` does for format characters.
+    The set follows the running :mod:`unicodedata`, as ``\w`` does.
+    """
+    ranges: list[list[int]] = []
+    for block in (range(0x20000), range(0xE0000, 0xE1000)):
+        for point in block:
+            if unicodedata.category(chr(point)) in ("Mn", "Mc", "Me"):
+                if ranges and ranges[-1][1] == point - 1:
+                    ranges[-1][1] = point
+                else:
+                    ranges.append([point, point])
+    return "".join(
+        (
+            re.escape(chr(low))
+            if low == high
+            else f"{re.escape(chr(low))}-{re.escape(chr(high))}"
+        )
+        for low, high in ranges
+    )
+
+
+#: Letters, digits and combining marks of any script, without ``_``.
+_LETTER = r"[^\W_]|[" + _mark_ranges() + r"]"
+
+#: RFC 5322 ``atext`` outside letters and digits. ``|`` is atext; only the
+#: domain excludes it (``CP-005``).
+_ATEXT_SPECIALS = r"!#$%&'*+/=?^_`{|}~-"
+
+#: One ``atext`` character of an internationalised local part (RFC 6531).
+_ATEXT = r"(?:" + _LETTER + r"|[" + _ATEXT_SPECIALS + r"])"
+
+#: One domain label (RFC 1035 shape, letters of any script as in an IDNA
+#: U-label): starts with a letter or digit, ends with a letter, digit or
+#: mark, at most 63 characters.
+_LABEL = r"(?:[^\W_])(?:(?:" + _LETTER + r"|-){0,61}(?:" + _LETTER + r"))?"
+
+
 #: Characters allowed anywhere inside a URL's path, query or fragment, from
 #: the RFC 3986 unreserved and sub-delimiter sets.
 _URL_BODY = r"A-Za-z0-9\-._~%!$&'()*+,;=:@/"
@@ -248,6 +299,30 @@ def _ipv4_validate(match: re.Match) -> bool:
 
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{1,2}-\d{1,2}$")
+
+#: Two years joined by a dash: a range, never a telephone number.
+_YEAR_RANGE = re.compile(r"^(?:1[89]|2[01])\d\d ?- ?(?:1[89]|2[01])\d\d$")
+
+#: A date of three numbers with one hyphen or full stop throughout, year last
+#: (the only separators the phone expression shares with a date).
+_NUMERIC_DATE = re.compile(r"^(\d{1,2})([.\-])(\d{1,2})\2[12]\d{3}$")
+
+#: The largest day and month numbers.
+_MAX_DAY, _MAX_MONTH = 31, 12
+
+
+def _is_numeric_date(text: str) -> bool:
+    """Return whether ``text`` is a day-month-year or month-day-year date."""
+    found = _NUMERIC_DATE.match(text)
+    if found is None:
+        return False
+    first, second = int(found.group(1)), int(found.group(3))
+    if not (first and second):
+        return False
+    return (first <= _MAX_DAY and second <= _MAX_MONTH) or (
+        first <= _MAX_MONTH and second <= _MAX_DAY
+    )
+
 
 #: Words that begin a sentence often enough that treating them as a name is
 #: simply wrong. Used only by :func:`_title_case_validate`.
@@ -338,9 +413,13 @@ def _phone_validate(match: re.Match) -> bool:
        number in general use; fifteen is the E.164 maximum.
     3. A match without an international prefix must contain a separator, so a
        bare run of digits is never taken for a phone number.
+    4. A year range (two years from 1800 to 2199 joined by a dash) and a
+       day-month-year or month-day-year date with one separator throughout
+       are not numbers either (``CP-111``). Read through the detection view,
+       an en dash arrives as ``-``, so ``2019\u20132024`` is a range too.
     """
     text = match.group().strip()
-    if _ISO_DATE.match(text):
+    if _ISO_DATE.match(text) or _YEAR_RANGE.match(text) or _is_numeric_date(text):
         return False
     digits = re.sub(r"[^0-9]", "", text)
     if not 7 <= len(digits) <= 15:  # ruff: ignore[magic-value-comparison]
@@ -443,28 +522,40 @@ _SPECS: tuple[PatternSpec, ...] = (
     PatternSpec(
         kind="EMAIL",
         pattern=(
-            r"\b[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
-            r"(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
-            r"@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
-            r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+"
+            r"(?<!" + _ATEXT + r")" + _ATEXT + r"+(?:\." + _ATEXT + r"+)*"
+            r"@" + _LABEL + r"(?:\." + _LABEL + r")+"
         ),
         intent=(
             "An email address, following the RFC 5322 dot-atom local part and "
-            "an RFC 1035 label-based domain. The top-level label is letters, "
-            "digits or hyphen only; the upstream class '[A-Z|a-z]' admitted a "
-            "literal pipe, which is defect CP-005."
+            "an RFC 1035 label-based domain, with letters, digits and marks of "
+            "any script as RFC 6531 and IDNA allow (CP-110). It starts where "
+            "no local-part character precedes it, so a letter of another script "
+            "in front is part of the address instead of hiding it. No label "
+            "admits a pipe; the upstream class '[A-Z|a-z]' did, which is "
+            "defect CP-005."
         ),
         priority=80,
         examples_yes=(
             "a.b+tag@example.co.uk",
             "user_name@sub.domain.org",
             "o'hara.test@example.com",
+            "jos\u00e9@example.com",
+            "ada@ex\u00e4mple.com",
+            "\u0928\u092e\u0938\u094d\u0924\u0947@\u0909\u0926\u093e\u0939\u0930\u0923.\u092d\u093e\u0930\u0924",
+            "\u7528\u6237@\u4f8b\u5b50.\u5e7f\u544a",
         ),
         # 'a@b.a|b' is deliberately NOT listed here: the pipe is excluded from
         # the domain, so the expression stops at 'a@b.a', which is itself a
         # well-formed address. The contract is "no match ever spans a pipe",
         # asserted directly in test__patterns.TestEmailDomainCharacters.
-        examples_no=("a@b", "not.an.email", "@example.com", "a@-bad.com", "a@b..c"),
+        examples_no=(
+            "a@b",
+            "not.an.email",
+            "@example.com",
+            "a@-bad.com",
+            "a@b..c",
+            "\u00e9t\u00e9 @ caf\u00e9",
+        ),
     ),
     PatternSpec(
         kind="URL",
@@ -584,22 +675,54 @@ _SPECS: tuple[PatternSpec, ...] = (
         kind="PHONE",
         pattern=(
             r"(?<![\w.])"
-            r"(?:\+[0-9]{1,3}[ .\-]?)?"
-            r"(?:\([0-9]{2,4}\)[ .\-]?)?"
-            r"[0-9]{2,4}(?:[ .\-][0-9]{2,4}){1,4}"
+            r"(?:"
+            # International: +CC, an optional bracketed group (a "(0)" trunk
+            # or an area code), an area code of one to four digits, then
+            # groups of up to eight (CP-111).
+            r"\+[0-9]{1,3}[ .\-]?(?:\([0-9]{1,4}\)[ .\-]?)?"
+            r"[0-9]{1,4}(?:[ .\-][0-9]{1,8}){1,5}"
+            r"|"
+            # National with a trunk 0 and a long subscriber number.
+            r"0[0-9]{1,4}[ .\-][0-9]{5,8}"
+            r"|"
+            # National in groups of two to four digits.
+            r"(?:\([0-9]{2,4}\)[ .\-]?)?[0-9]{2,4}(?:[ .\-][0-9]{2,4}){1,4}"
+            r")"
+            r"(?:[ ]?(?:ext\.?|x)[ ]?[0-9]{1,6})?"
             r"(?![\w])"
         ),
         intent=(
             "A telephone number written with separators, or with an "
-            "international prefix. A validator enforces a 7-to-15 digit count "
-            "and rejects ISO-8601 dates, which the upstream expression matched "
-            "(defect CP-013)."
+            "international prefix, from its + or first digit to its last "
+            "group and any extension (CP-111). A validator enforces a 7-to-15 "
+            "digit count and rejects ISO-8601 dates (defect CP-013), "
+            "day-month-year dates and year ranges."
         ),
         priority=40,
         validate=_phone_validate,
         confidence=0.85,
-        examples_yes=("+1 555 010 4477", "(020) 7946 0958", "555-010-4477"),
-        examples_no=("2024-01-15", "12345678", "1.26.4", "Revenue rose 1234"),
+        examples_yes=(
+            "+1 555 010 4477",
+            "(020) 7946 0958",
+            "555-010-4477",
+            "+33 1 23 45 67 89",
+            "+49 30 12345678",
+            "+49 (0)30 1234 5678",
+            "030 12345678",
+            "+44 7700 900123",
+            "+90 212 555 12 34",
+            "+1 555 010 4477 ext. 123",
+        ),
+        examples_no=(
+            "2024-01-15",
+            "12345678",
+            "1.26.4",
+            "Revenue rose 1234",
+            "2019-2024",
+            "15-01-2024",
+            "15.01.2024",
+            "ISBN 978-3-16-148410-0",
+        ),
     ),
 )
 

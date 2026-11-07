@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import hashlib
-import importlib.util
 import json
 import os
 from datetime import datetime, timedelta, timezone
@@ -18,18 +17,12 @@ PROXY = ROOT / "_hf_spaces_proxy"
 SECURITY = PROXY / "security"
 
 
-def _load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
-verify_mod = _load("run20_verify_release_evidence", SECURITY / "verify_release_evidence.py")
-probe_mod = _load("run20_probe_redis_authority", SECURITY / "probe_redis_authority.py")
-gate_mod = _load("run20_verify_release_gate", SECURITY / "verify_release_gate.py")
-subjects_mod = _load("run20_release_subjects", SECURITY / "release_subjects.py")
+from ...._hf_spaces_proxy.security import verify_release_evidence as verify_mod
+from ...._hf_spaces_proxy.security import probe_redis_authority as probe_mod
+from ...._hf_spaces_proxy.security import verify_release_gate as gate_mod
+from ...._hf_spaces_proxy.security import release_subjects as subjects_mod
 
 real_source_tree_sha256 = verify_mod.source_tree_sha256
 

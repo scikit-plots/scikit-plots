@@ -146,6 +146,53 @@ dt = time.monotonic() - t0
 check("%d chars in 5-char chunks equals the whole" % len(reply), streamed == guard.incoming(reply), "%.2fs" % dt)
 check("streamed decode under 3 s (was 3.44 s in v18)", dt < 3.0, "%.2fs" % dt)
 
+# CP-111: international groupings found whole, ranges and dates left, at scale.
+from scikitplot.cleanprompt import encode as _encode_cp111
+
+_numbers = ["+33 1 23 45 67 89", "+49 30 12345678", "+49 (0)30 1234 5678",
+            "030 12345678", "+44 7700 900123", "+90 212 555 12 34"]
+_kept = ["2019-2024", "15.01.2024", "15-01-2024", "ISBN 978-3-16-148410-0"]
+_doc = " ".join("Row %d: tel %s, period %s." % (i, _numbers[i % 6], _kept[i % 4]) for i in range(2000))
+t0 = time.monotonic()
+_out = _encode_cp111(_doc).text
+dt = time.monotonic() - t0
+check("2000 phone rows: no number sent, not even its prefix",
+      not any(n in _out or n.split()[0] + " " + n.split()[1] in _out for n in _numbers), "%.2fs" % dt)
+check("2000 rows: every range, date and ISBN kept", all(_out.count(k) == _doc.count(k) for k in _kept))
+check("2000 phone rows under 5 s", dt < 5.0, "%.2fs" % dt)
+
+# CP-117: VINs at scale, checked and labelled, with 17-character look-alikes.
+_vins = ["1M8GDM9AXKP042788", "1HGCM82633A004352", "jh4ka4650jc000403"]
+_labelled = ["WVWZZZ3BZWE689725"]
+_alike = ["ABCDEFGHJK1234567", "11111111111111111"]
+_vdoc = " ".join(
+    "Row %d: vin %s, loan VIN: %s, part %s." % (i, _vins[i % 3], _labelled[0], _alike[i % 2])
+    for i in range(2000)
+)
+_vcleaner = FluentCleanPrompt().packs("vehicle").materialize()
+t0 = time.monotonic()
+_vout = _vcleaner.encode_text(_vdoc).text
+dt = time.monotonic() - t0
+check("2000 VIN rows: no VIN sent, checked or labelled",
+      not any(v in _vout for v in _vins + _labelled), "%.2fs" % dt)
+check("2000 VIN rows: every look-alike kept", all(_vout.count(a) == _vdoc.count(a) for a in _alike))
+check("2000 VIN rows restore exactly", _vcleaner.decode(_vout) == _vdoc)
+
+# CP-119: German tax identification numbers at scale, with look-alikes.
+_ids = ["86504957138", "86 504 957 138", "12345678911"]
+_not_ids = ["86504957139", "47198320652", "11123456786"]
+_ddoc = " ".join(
+    "Zeile %d: Steuer-ID %s, Bestellung %s." % (i, _ids[i % 3], _not_ids[i % 3])
+    for i in range(2000)
+)
+_dcleaner = FluentCleanPrompt().packs("de").materialize()
+t0 = time.monotonic()
+_dout = _dcleaner.encode_text(_ddoc).text
+dt = time.monotonic() - t0
+check("2000 Steuer-ID rows: no Steuer-ID sent", not any(n in _dout for n in _ids), "%.2fs" % dt)
+check("2000 Steuer-ID rows: every look-alike kept", all(_dout.count(a) == _ddoc.count(a) for a in _not_ids))
+check("2000 Steuer-ID rows restore exactly", _dcleaner.decode(_dout) == _ddoc)
+
 print()
 print("TOTAL FAILURES:", len(fails), fails if fails else "")
 _sys.exit(1 if fails else 0)

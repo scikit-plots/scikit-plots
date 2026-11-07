@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import base64
-import importlib.util
 import json
 import sys
 from datetime import timedelta
@@ -18,20 +17,11 @@ ROOT = RUNTIME_ROOT
 SEC = ROOT / "_hf_spaces_proxy" / "security"
 
 
-def _load(name, path):
-    s = importlib.util.spec_from_file_location(name, path)
-    assert s and s.loader
-    m = importlib.util.module_from_spec(s)
-    sys.modules[name] = m
-    s.loader.exec_module(m)
-    return m
 
 
-anchor = _load("run163_anchor", SEC / "anchor_archive_health.py")
-r162t = _load(
-    "run162_helpers_for_run163",
-    HERE / "test_witness_archive_health.py",
-)
+from ...._hf_spaces_proxy.security import anchor_archive_health as anchor
+from . import test_witness_archive_health as r162t
+from . import _stages
 NOW = r162t.NOW
 
 
@@ -153,7 +143,7 @@ class Observer:
 
 
 def _anchored(tmp, plan_mut=None, channel_mut=None, previous=None, at=NOW):
-    r, wr, wrp, wrpin, wprivs, wout, _ = r162t._witnessed(tmp / "r162")
+    r, wr, wrp, wrpin, wprivs, wout, _ = _stages.shared("run162", r162t._witnessed, tmp / "r162")
     plan, pp, cpriv, opriv = _plan(tmp, wr, wprivs, plan_mut)
     adapters = []
     for cid, cfg in plan["signed"]["channels"].items():

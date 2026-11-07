@@ -1,13 +1,13 @@
 ---
 title: "Any unknown attribute of scikitplot imports scikitplot.api, and a failed import runs again on every probe"
-status: open
+status: promoted
 kind: "reliability"
 area: "scikitplot/__init__.py"
 discovered_during: "TP-1, the test-performance recorder's module-execution count, 2026-10-23"
 release_note: "unknown"
-towncrier_section: "unknown"
-towncrier_type: "efficiency"
-towncrier_fragment: ""
+towncrier_section: "scikitplot"
+towncrier_type: "fix"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot/907.fix.rst"
 ---
 
 # Any unknown attribute of scikitplot imports scikitplot.api, and a failed import runs again on every probe
@@ -106,3 +106,30 @@ None.
 ## Release-note promotion
 
 Probably an `efficiency` fragment for `scikitplot`, decided when implemented.
+
+## Resolution (2026-11-04)
+
+`_api_names()` no longer imports `scikitplot.api`: it returns
+`_API_EXPORTS`, a checked copy of `scikitplot.api.__all__`
+(`test___init__.py::test_api_exports_are_the_api_packages_all` compares it with
+the `__all__` literal by `ast`, without importing), when
+`importlib.util.find_spec("scikitplot.api")` finds the package, and an empty
+set otherwise. `__getattr__` serves an exported name with
+`getattr(import_module("scikitplot.api"), name)` instead of `_compat`'s
+`nested_import`, so a partial distribution with `api` but no `_compat` serves
+it too.
+
+Measured with an `exec` audit hook while running
+`scikitplot/rank_bm25/tests/test__validation.py` in a tree whose
+`scikitplot.api` cannot import: `scikitplot/api/__init__.py` executed 5 times
+before, 0 times after. In that tree `dir(scikitplot)` used to raise the
+`scikitplot.api` import error; it now works, and the seven `TestDir` and
+`TestModuleHygiene` tests that failed there pass. Served names are only the
+public `__all__`; the underscore names of `scikitplot.api`'s namespace were
+never reached before either (its dunders are also root globals, and `_utils` is
+a declared root submodule, both checked first).
+
+The guarded-name fast path (an early `AttributeError` for `_`-names and hook
+names) was not added: with discovery free of imports it saves only a
+`find_spec` probe, and refusing `_`-names would break `scikitplot._x` access
+before import. Remove this note once the PR merges.
