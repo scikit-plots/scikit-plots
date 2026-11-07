@@ -69,15 +69,31 @@ and on this checkout's build
 
 ## Root cause / current understanding
 
-Not established. Leads to verify against the directory's own finding detail
-(the portal's "Documentation" link per finding), not to act on as facts:
+Two of the three blocking findings are cleared. `35a80cf` (built from
+`fc892dcd`, PR 909) carries the workflow's directory-policy step
+(`.github/workflows/ci_claude_plugins_publish.yml`): `LICENSES/*.txt` and
+`name`/`description`-only frontmatter. Its scan reports only
+`LAUNCHER_REGISTRY_REDIRECT` on `skills/scikitplot-corpus/SKILL.md`.
 
-- file type: the extensionless `LICENSES/LICENSE_*` files may not count as
-  "a license" (only the root `LICENSE` may);
-- frontmatter: the agents' `skills:` list or the skills' `metadata:` map may
-  be outside the community allowed list;
-- registry redirect: the trigger in the corpus skill is unknown; its text is
-  generated from `scikitplot/corpus/__init__.py`'s docstring.
+That skill is the only one whose example block held `# doctest: +SKIP`
+lines (11) and URLs (2). `generate_usage_skills._examples` copied a module's
+whole numpydoc `Examples` section into a `pycon` fence: prose, reST
+directives and skipped examples included. For `scikitplot.corpus` that put
+live URLs passed to `run`/`run_url`, a build into `"./data/"`, a README
+path and paragraphs of prose into what reads as a transcript. A skipped
+example never runs, so it was also unverified text presented as output.
+Public cases of this finding were raised by a command changing a package
+manager's configuration (`npm config set`), an output file named
+`config.json`, and `VIRTUAL_ENV` in an MCP server's environment; the
+detector's exact rule is not published, so which corpus line it read is
+confirmed only by the next scan.
+
+PR 910: `_examples` keeps the `>>>` lines a doctest run executes (with
+their output) and the `>>>` comment lines, and drops `+SKIP` examples, prose
+and directives; the regenerated corpus block holds none of the lines above.
+The workflow step also refuses text that changes a package manager's
+configuration, sets an index or registry, or names its configuration files
+or `VIRTUAL_ENV`, so such text fails CI instead of the directory.
 
 ## Expected behavior
 

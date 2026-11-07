@@ -81,22 +81,12 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 ## Example (from the docstring of `scikitplot.corpus`)
 
 ```pycon
-Direct pipeline control:
-
 >>> from pathlib import Path
 >>> from scikitplot.corpus import CorpusPipeline, ParagraphChunker
 >>> pipeline = CorpusPipeline(chunker=ParagraphChunker())
->>> result = pipeline.run(Path("article.txt"))  # doctest: +SKIP
->>> print(f"{result.n_documents} chunks from {result.source}")  # doctest: +SKIP
-
-The dependency-free default sentence backend is ``REGEX``. Passing a spaCy
-model name explicitly selects the spaCy shorthand instead:
 
 >>> from scikitplot.corpus import SentenceChunker
 >>> portable = SentenceChunker()
->>> spacy_chunker = SentenceChunker("en_core_web_sm")  # doctest: +SKIP
-
-High-level builder:
 
 >>> from scikitplot.corpus import CorpusBuilder, BuilderConfig
 >>> builder = CorpusBuilder(
@@ -107,72 +97,28 @@ High-level builder:
 ...         build_index=True,
 ...     )
 ... )
->>> result = builder.build("./data/")  # doctest: +SKIP
->>> results = builder.search("quantum computing")  # doctest: +SKIP
-
-Reusable declarative configuration:
 
 >>> from scikitplot.corpus import FluentCorpus
 >>> fluent = FluentCorpus().chunker("paragraph").storage("memory")
 >>> fluent.validate()
 []
 
-Materialization is explicit and performs no source read by itself:
-
 >>> from scikitplot.corpus import RuntimePolicy
 >>> with fluent.materialize(policy=RuntimePolicy(allow_network=False)) as runtime:
 ...     len(runtime.documents)
 0
 
-A configured source becomes operational only when ``run()`` is called:
-
 >>> runtime_fluent = (
 ...     FluentCorpus().source("article.txt").chunker("paragraph").storage("memory")
 ... )
->>> with runtime_fluent.materialize() as runtime:
-...     result = runtime.run()  # doctest: +SKIP
-
-Network and optional-capability examples:
-
-Live URLs, OCR, ASR, spaCy, NLTK resource-backed NLP, model embeddings, and
-native vector backends depend on the corresponding environment capability.
-User-facing examples should not fabricate results when a capability is absent.
-Documentation/gallery examples should either use a portable executed path or
-report a clear skip while keeping the optional configuration visible.
-
-URL ingestion:
-
->>> result = pipeline.run_url("https://en.wikipedia.org/wiki/Python")  # doctest: +SKIP
-
-YouTube transcript:
-
->>> result = pipeline.run(
-...     "https://www.youtube.com/watch?v=rwPISgZcYIk"
-... )  # doctest: +SKIP
-
-Image OCR:
 
 >>> from scikitplot.corpus import DocumentReader
->>> reader = DocumentReader.create(Path("scan.png"))  # doctest: +SKIP
->>> docs = list(reader.get_documents())  # doctest: +SKIP
-
-With model embeddings:
 
 >>> from scikitplot.corpus import EmbeddingEngine
->>> engine = EmbeddingEngine(backend="sentence_transformers")  # doctest: +SKIP
-
-Dependency-free local helpers:
 
 >>> from scikitplot.corpus import HAMLET_TEXT, HashEmbedder, SimpleEnricherSpec
 >>> HashEmbedder(dimension=32)([HAMLET_TEXT[:120]]).shape
 (1, 32)
 >>> FluentCorpus().enricher(SimpleEnricherSpec()).validate()
 []
-
-``HashEmbedder`` is a deterministic lexical hashing baseline, not a learned
-semantic model. ``HAMLET_TEXT`` is bundled convenience sample data rather than
-an authoritative scholarly edition.
-
-See ``scikitplot/corpus/README.md`` for the user-oriented API map, runtime
-policy boundary, retrieval modes, and optional-capability guidance.
 ```

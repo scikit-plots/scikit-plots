@@ -42,9 +42,6 @@ All names with signatures: [references/API.md](references/API.md).
 ## Example (from the docstring of `scikitplot.preprocessing.DummyCodeEncoder`)
 
 ```pycon
-Given a dataset with three features, we let the encoder find the unique
-values per feature and transform the data to a binary one-hot dummy encoding.
-
 >>> import pandas as pd
 >>> df = pd.DataFrame(
 ...     {
