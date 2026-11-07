@@ -56,6 +56,27 @@ class TextTests(unittest.TestCase):
         )
         self.assertEqual(MODULE._examples(doc), ">>> # Load the data\n>>>\n>>> x = 1\n>>> x\n1")
 
+    def test_install_names_only_the_pypi_distribution(self):
+        """A partial distribution is not on PyPI: it is linked, never installed."""
+        text = "\n".join(MODULE._install_lines("scikitplot.corpus", ["scikit-plots-corpus"]))
+        commands = [l for l in text.splitlines() if l.startswith("pip ")]
+        self.assertEqual(commands, ["pip install scikit-plots"])
+        self.assertIn("`scikit-plots-corpus`", text)
+        self.assertIn(f"({MODULE.INSTALL_PARTS})", text)
+        for redirect in (" -i ", "--index", "git+", "--find-links"):
+            self.assertNotIn(redirect, text)
+
+    def test_install_for_a_module_without_a_part_links_the_guide(self):
+        text = "\n".join(MODULE._install_lines("scikitplot.api", []))
+        self.assertIn(f"({MODULE.INSTALL_GUIDE})", text)
+        self.assertNotIn("only one part", text)
+        self.assertNotIn("to install only", text)
+
+    def test_the_package_root_is_never_said_to_be_missing(self):
+        text = "\n".join(MODULE._install_lines("scikitplot", []))
+        self.assertNotIn("import scikitplot` fails", text)
+        self.assertNotIn("can lack `scikitplot`", text)
+
     def test_a_section_of_skipped_examples_gives_nothing(self):
         doc = "Summary.\n\nExamples\n--------\n>>> f()  # doctest: +SKIP\n"
         self.assertEqual(MODULE._examples(doc), "")

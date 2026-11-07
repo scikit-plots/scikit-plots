@@ -11,6 +11,7 @@ import sys
 import pytest
 
 from scikitplot._cli import loader
+from scikitplot._distributions import pip_install
 from scikitplot._cli.errors import CapabilityMissingError, HandlerLoadError
 
 _FAKE = "scikitplot._cli.tests._fake_delegate:main"
@@ -140,7 +141,7 @@ def test_missing_part_names_its_distribution(monkeypatch, target, missing, distr
     with pytest.raises(CapabilityMissingError) as excinfo:
         _loader.run_delegate(target, [], install_hint="pip install scikit-plots[extra]")
     hint = excinfo.value.hint
-    assert f"pip install {distribution}" in hint
+    assert pip_install([distribution]) in hint
     # The command's own hint is about optional dependencies of a part that is
     # present; it must not be shown for a part that is absent.
     assert "scikit-plots[extra]" not in hint
@@ -186,5 +187,5 @@ def test_bare_module_form_names_the_distribution_too(monkeypatch):
     old_argv = list(sys.argv)
     with pytest.raises(CapabilityMissingError) as excinfo:
         _loader.run_delegate("scikitplot.mcp", ["--help"], install_hint="the hint")
-    assert "pip install scikit-plots-mcp" in excinfo.value.hint
+    assert pip_install(["scikit-plots-mcp"]) in excinfo.value.hint
     assert sys.argv == old_argv  # restored even though the run failed

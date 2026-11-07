@@ -3,6 +3,7 @@ import pytest
 
 from scikitplot._cli.errors import HandlerLoadError
 from scikitplot._cli.loader import load_handler
+from scikitplot._distributions import install_hint
 
 
 def test_malformed_target():
@@ -50,7 +51,7 @@ def _context():
     [
         ("scikitplot.utils", "pip install scikit-plots"),
         ("scikitplot.config.__config__", "pip install scikit-plots"),
-        ("scikitplot.corpus", "pip install scikit-plots-corpus"),
+        ("scikitplot.corpus", install_hint("scikitplot.corpus")),
     ],
 )
 def test_handler_needing_an_absent_part_is_an_unavailable_capability(

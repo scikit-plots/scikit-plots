@@ -16,8 +16,12 @@ metadata:
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-skinny  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.logging`. If `import scikitplot.logging` fails after
+installing it, or to install only `scikit-plots-skinny`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

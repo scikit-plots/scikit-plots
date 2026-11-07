@@ -16,8 +16,13 @@ Redact sensitive values from a prompt, then restore them from the reply.
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-cleanprompt  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.cleanprompt`. If `import scikitplot.cleanprompt` fails
+after installing it, or to install only `scikit-plots-cleanprompt`, follow the
+[install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

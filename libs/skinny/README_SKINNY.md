@@ -11,6 +11,15 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny
 pip install scikit-plots-skinny
 ```
 

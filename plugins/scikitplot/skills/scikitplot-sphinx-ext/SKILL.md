@@ -16,8 +16,13 @@ Private namespace for vendored Sphinx extensions.
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-sphinx-ext  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot._externals._sphinx_ext`. If `import
+scikitplot._externals._sphinx_ext` fails after installing it, or to install
+only `scikit-plots-sphinx-ext`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

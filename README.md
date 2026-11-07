@@ -797,9 +797,9 @@ pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/sim
  </p>
 
 ```bash
-## pip install [<distribution_metadata_name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>
-#  pip install mlflow  @ git+https://github.com/mlflow/mlflow.git@master#subdirectory=libs/skinny
-#  pip install voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python
+## pip install "[<distribution_metadata_name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>"
+#  pip install "mlflow  @ git+https://github.com/mlflow/mlflow.git@master#subdirectory=libs/skinny"
+#  pip install "voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python"
 ```
 
 ⚠️ ``scikit-plots-skinny`` as base required/dependency remaining ``scikit-plots-x``.
@@ -807,25 +807,40 @@ pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/sim
 ```bash
 ## Pure Python - https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
 ## ⚠️ ``scikit-plots-skinny`` as base required/dependency remaining ``scikit-plots-x``.
-pip install scikit-plots-skinny@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+## Install it first: the parts below depend on it, and it is not on PyPI yet, so
+## a part installed without it fails ("No matching distribution found").
+# pip install scikit-plots-skinny@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny"
+```
+
+```bash
+## The same development builds from the staging index: the project's packages
+## from it (--no-deps), then their dependencies from PyPI. Example, corpus:
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-corpus
+pip install scikit-plots-skinny scikit-plots-corpus
+```
+
+```bash
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" \
+  "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"
 ```
 
 ```bash
 ## 🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
 ## Pure Python - https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
-pip install scikit-plots-cleanprompt@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt
-pip install scikit-plots-corpus@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus
-pip install scikit-plots-cython@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython
-pip install scikit-plots-mcp@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp
-pip install scikit-plots-mlflow@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow
-pip install scikit-plots-rank-bm25@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25
-pip install scikit-plots-sphinx-ext@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext
+pip install "scikit-plots-cleanprompt @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"
+pip install "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"
+pip install "scikit-plots-cython @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython"
+pip install "scikit-plots-mcp @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp"
+pip install "scikit-plots-mlflow @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow"
+pip install "scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25"
+pip install "scikit-plots-sphinx-ext @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"
 ```
 
 ```bash
 ## 🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
 ## May Need Compiler (C++) - https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
-pip install scikit-plots-annoy@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy
+pip install "scikit-plots-annoy @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy"
 ```
 
  <h5>

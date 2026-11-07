@@ -43,6 +43,7 @@ import dataclasses
 import logging
 from typing import Any, Callable, Protocol
 
+from .._distributions import install_hint
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
 from ._outcome import DEGRADED, EMPTY, FAILED, SUCCESS, LegRecord, RetrievalOutcome
 
@@ -390,7 +391,7 @@ def _checked_filter(expression: Any) -> Any:
     except ImportError as exc:
         raise RuntimeError(
             "a corpus filter needs scikitplot.corpus, which is not installed. "
-            "Install it with: pip install scikit-plots-corpus"
+            f"Install it with: {install_hint('scikitplot.corpus')}"
         ) from exc
     checked = validate_filter(expression)
     pending = [filter_to_dict(checked)]
@@ -663,7 +664,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
             # user to install a package that is already present.
             raise RuntimeError(
                 "scikitplot.corpus is required to build the retriever and is not "
-                "installed (pip install scikit-plots-corpus)."
+                f"installed ({install_hint('scikitplot.corpus')})."
             ) from exc
         except Exception as exc:  # pragma: no cover - integration path
             # MCP-M00-08 / MCP-D05: BROKEN is not ABSENT.

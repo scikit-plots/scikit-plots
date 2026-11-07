@@ -39,6 +39,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import logging
+import re
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -306,17 +307,107 @@ class TestProviderOf:
                 assert dists.provider_of(tree.replace("/", ".")) == dist.name
 
 
+#: A partial distribution's sources, as the install guide and pip name them.
+_GIT = "git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/"
+_REINSTALL_MCP = f'pip install --force-reinstall --no-deps "scikit-plots-mcp @ {_GIT}mcp"'
+
+
+def _named(command):
+    """Return the project names a ``pip install`` command installs, in order."""
+    found = re.findall(r'"([a-z0-9-]+) @ [^"]+"|(?<= )([a-z0-9-]+)(?= |$)', command)
+    return [quoted or bare for quoted, bare in found if (quoted or bare) != "install"]
+
+
 class TestInstallHint:
+    """The partial distributions are not on PyPI; no advice may send pip there for one."""
+
     def test_partial_distribution_when_one_ships_the_module(self):
-        assert dists.install_hint("scikitplot.corpus") == "pip install scikit-plots-corpus"
+        assert dists.install_hint("scikitplot.corpus") == (
+            f'pip install "scikit-plots-skinny @ {_GIT}skinny"'
+            f' "scikit-plots-corpus @ {_GIT}corpus"'
+        )
 
     def test_full_distribution_otherwise(self):
         assert dists.install_hint("scikitplot.utils") == "pip install scikit-plots"
 
+    def test_the_core_alone_is_not_doubled(self):
+        assert dists.install_hint("scikitplot.logging") == (
+            f'pip install "scikit-plots-skinny @ {_GIT}skinny"'
+        )
+
     def test_a_hint_always_names_a_known_distribution(self):
         known = {dists.FULL} | {dist.name for dist in dists.DISTRIBUTIONS}
         for module in ("scikitplot.mcp", "scikitplot.api", "scikitplot.cexternals._annoy"):
-            assert dists.install_hint(module).rsplit(" ", 1)[1] in known
+            assert set(_named(dists.install_hint(module))) <= known
+
+    def test_no_name_outside_pypi_is_left_to_the_index(self):
+        for dist in dists.DISTRIBUTIONS:
+            command = dists.pip_install([dist.name])
+            bare = re.findall(r"(?<= )(scikit-plots[a-z0-9-]*)(?= |$)", command)
+            assert set(bare) <= dists.ON_PYPI, command
+            assert f'"{dists.CORE} @ ' in command, command
+
+
+class TestStagingInstall:
+    def test_the_core_comes_first_and_the_index_only_serves_the_first_step(self):
+        first, second = dists.staging_install(["scikit_plots_mcp", "scikit-plots-corpus"])
+        names = "scikit-plots-skinny scikit-plots-mcp scikit-plots-corpus"
+        assert first == f"pip install --index-url {dists.STAGING_INDEX} --no-deps {names}"
+        assert second == f"pip install {names}"
+        assert "extra-index-url" not in first + second
+
+    def test_the_full_distribution_needs_no_core(self):
+        first, _ = dists.staging_install(["scikit-plots"])
+        assert first.endswith("--no-deps scikit-plots")
+
+    def test_an_unknown_name_is_refused(self):
+        with pytest.raises(ValueError, match="not distributions of this project"):
+            dists.staging_install(["numpy"])
+
+
+class TestRequirement:
+    def test_a_name_on_pypi_is_bare(self):
+        assert dists.requirement("scikit_plots") == "scikit-plots"
+
+    def test_a_partial_distribution_is_built_from_its_libs_directory(self):
+        assert dists.requirement("scikit-plots_rank_bm25") == (
+            f"scikit-plots-rank-bm25 @ {_GIT}rank-bm25"
+        )
+        assert dists.requirement("scikit-plots-sphinx-ext", ref="v0.5.0").endswith(
+            ".git@v0.5.0#subdirectory=libs/sphinx-ext"
+        )
+
+    @pytest.mark.parametrize("name", ["numpy", "scikit-plots-nope"])
+    def test_an_unknown_name_is_refused(self, name):
+        with pytest.raises(ValueError, match="not a distribution of this project"):
+            dists.requirement(name)
+
+    def test_an_empty_name_is_refused(self):
+        with pytest.raises(ValueError, match="empty"):
+            dists.requirement("")
+
+    @pytest.mark.parametrize("ref", ["", "main dev", "main#x", "a@b"])
+    def test_a_malformed_ref_is_refused(self, ref):
+        with pytest.raises(ValueError, match="not a branch, tag or commit"):
+            dists.requirement("scikit-plots-mcp", ref=ref)
+
+    def test_no_deps_installs_only_what_is_named(self):
+        assert dists.pip_install(
+            ["scikit-plots-mcp"], ("--force-reinstall", "--no-deps"), with_core=False
+        ) == _REINSTALL_MCP
+
+    def test_a_name_given_twice_is_installed_once(self):
+        assert _named(dists.pip_install(["scikit-plots-mcp", "scikit_plots_mcp"])) == [
+            dists.CORE,
+            "scikit-plots-mcp",
+        ]
+
+    def test_every_libs_directory_exists(self):
+        repo = Path(dists.__file__).resolve().parents[1]
+        if not (repo / "libs").is_dir():
+            pytest.skip("not a source checkout: libs/ is not installed")
+        for dist in dists.DISTRIBUTIONS:
+            assert (repo / "libs" / dist.name[len(dists.FULL) + 1 :]).is_dir(), dist.name
 
 
 # ===========================================================================
@@ -415,7 +506,7 @@ class TestReport:
         (note,) = report["notes"]
         assert "scikit-plots-mcp 0.5.0" in note and "scikit-plots-skinny 0.5.1" in note
         assert f"core API ({dists.CORE_API})" in note
-        assert "pip install --upgrade scikit-plots-skinny scikit-plots-mcp" in note
+        assert dists.pip_install([dists.CORE, "scikit-plots-mcp"], ("--upgrade",)) in note
 
     def test_equal_versions_have_no_note(self, monkeypatch, present):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
@@ -438,7 +529,7 @@ class TestReport:
         assert f"built for core API {stated}" in problem
         assert f"provides core API {dists.CORE_API}" in problem
         assert f"{newer} is the newer side" in problem
-        assert "pip install --upgrade scikit-plots-mcp scikit-plots-skinny" in problem
+        assert dists.pip_install(["scikit-plots-mcp", dists.CORE], ("--upgrade",)) in problem
         assert report["notes"] == []
 
     def test_a_part_that_states_nothing_is_trusted_only_at_the_core_version(
@@ -451,7 +542,7 @@ class TestReport:
         (problem,) = dists.report()["problems"]
         assert "does not state which core API" in problem
         assert "cannot be judged" in problem
-        assert "pip install --upgrade scikit-plots-mcp scikit-plots-skinny" in problem
+        assert dists.pip_install(["scikit-plots-mcp", dists.CORE], ("--upgrade",)) in problem
 
     @pytest.mark.parametrize(
         "groups",
@@ -471,7 +562,7 @@ class TestReport:
         )
         (problem,) = dists.report()["problems"]
         assert "expected one entry-point group" in problem
-        assert "pip install --force-reinstall --no-deps scikit-plots-mcp" in problem
+        assert _REINSTALL_MCP in problem
 
     def test_a_part_without_the_core_is_not_judged(self, monkeypatch, present):
         _fake_metadata(monkeypatch, {"scikit-plots-mcp": "0.5.0"}, apis={})
@@ -519,7 +610,7 @@ class TestReport:
         monkeypatch.setattr(dists, "_is_present", lambda module: module != "mcp")
         (problem,) = dists.report()["problems"]
         assert problem.startswith("scikit-plots-mcp is installed but")
-        assert "pip install --force-reinstall --no-deps scikit-plots-mcp" in problem
+        assert _REINSTALL_MCP in problem
 
     def test_a_part_that_is_not_installed_is_never_reported_missing(self, monkeypatch):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0"})

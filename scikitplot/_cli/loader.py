@@ -22,6 +22,7 @@ import sys
 from typing import Any, Callable
 
 from .._distributions import IMPORT_NAME, install_hint, provider_of
+from .._distributions import install_hint as _install_hint
 from ._spec import CommandSpec
 from .context import Context
 from .errors import CapabilityMissingError, HandlerLoadError
@@ -182,13 +183,13 @@ def _delegate_hint(exc: ImportError, module_name: str, install_hint: str | None)
     distribution map is consulted first for exactly that case.
     """
     missing = _missing_part(exc)
-    if missing is not None:
-        provider = provider_of(missing)
-        if provider is not None:
-            return (
-                "This part of scikitplot is not installed. "
-                f"Install it with: pip install {provider}"
-            )
+    # ``install_hint`` is this function's parameter; ``_install_hint`` is the
+    # distribution map's function of that name.
+    if missing is not None and provider_of(missing) is not None:
+        return (
+            "This part of scikitplot is not installed. "
+            f"Install it with: {_install_hint(missing)}"
+        )
     return install_hint or f"Ensure {module_name!r} is installed."
 
 

@@ -988,13 +988,40 @@ def render_manifest(package) -> str:
 def _install_block(package, distributions, meta: RootMetadata) -> list[str]:
     """Return the installation section of a package description."""
     name = package.distribution
-    lines = ["## Install", "", "```sh", f"pip install {name}", "```", ""]
+    # The command comes from the distribution map, so it names an index only
+    # for a distribution published there; until then it builds from the
+    # repository (with the core), which pip resolves without PyPI.
+    lines = ["## Install", "", "```sh", distributions.pip_install([name]), "```", ""]
+    if name not in distributions.ON_PYPI:
+        first, second = distributions.staging_install([name])
+        lines += [
+            "Not on PyPI yet: the command above builds it from the repository",
+            "(`git` needed). The project's staging index serves development builds;",
+            "take the project's packages from it, then their dependencies from PyPI:",
+            "",
+            "```sh",
+            first,
+            second,
+            "```",
+            "",
+        ]
     optional = _optional_dependencies(package, distributions, meta)
     if optional:
         lines += ["Optional extras:", ""]
+        known = {dist.name for dist in distributions.DISTRIBUTIONS}
         for extra, requirements in optional.items():
+            # An extra that needs another part names it, for the reason above.
+            parts = [
+                distributions.canonicalize_name(
+                    re.match(r"[A-Za-z0-9._-]+", r).group(0)
+                )
+                for r in requirements
+            ]
+            command = distributions.pip_install(
+                [name, *(p for p in parts if p in known)], extras={name: (extra,)}
+            )
             lines.append(
-                f'- `pip install "{name}[{extra}]"`: '
+                f"- `{command}`: "
                 + ", ".join(f"`{requirement}`" for requirement in requirements)
             )
         lines.append("")

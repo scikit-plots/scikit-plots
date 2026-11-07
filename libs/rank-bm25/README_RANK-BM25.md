@@ -11,12 +11,21 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-rank-bm25
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-rank-bm25
+pip install scikit-plots-skinny scikit-plots-rank-bm25
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-rank-bm25[rank-bm25]"`: `numba; python_version < "3.15"`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-rank-bm25[rank-bm25] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25"`: `numba; python_version < "3.15"`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_rank_bm25` installs it too.
 

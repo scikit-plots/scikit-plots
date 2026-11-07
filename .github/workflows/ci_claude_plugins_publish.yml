@@ -175,6 +175,11 @@ jobs:
           }
 
       - name: "🧩 Build"
+        # build_skills_repo.py writes the tree the directory accepts from a
+        # publisher that is not a Verified organization (licenses as .txt,
+        # name/description frontmatter, agents that load their skill) and
+        # exits 1, before anything is uploaded, when the result breaks the
+        # checklist or that policy; `check` compares the same bytes.
         env:
           VERSION: ${{ steps.ref.outputs.version }}
         run: |
@@ -184,143 +189,6 @@ jobs:
           else
             python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --unversioned
           fi
-
-      - name: "🛡️ Directory policy for community plugins"
-        # The Claude directory refused 246d056 (LOCAL_CODE_FILE_TYPE,
-        # LOCAL_CODE_FRONTMATTER_KEY): a plugin from an organization that is
-        # not Verified may ship only Markdown, text, JSON, YAML and PNG/JPEG/
-        # GIF/WebP/ICO files (plus LICENSE, README, .gitignore), and only the
-        # frontmatter keys the directory accepts with text values. This step
-        # makes the built tree meet that and fails the run, before anything
-        # is uploaded or pushed, when it still does not:
-        #   - LICENSES/<name> without an allowed suffix -> LICENSES/<name>.txt
-        #     (same bytes; the root LICENSE stays, the directory allows it);
-        #   - skill, command, agent and output-style frontmatter keeps only
-        #     `name` and `description`, the keys known to be accepted; an
-        #     agent's `skills:` preload becomes one line in its body naming
-        #     the skill to load, so the agent still starts from it;
-        #   - no text names a package manager's configuration file, changes
-        #     its configuration or sets an index or registry
-        #     (LAUNCHER_REGISTRY_REDIRECT).
-        # Deterministic: the same tree in gives the same tree out.
-        env:
-          TREE: ${{ runner.temp }}/tree
-        run: |
-          set -euo pipefail
-          python -I -B - "$TREE" <<'PY'
-          import pathlib
-          import re
-          import sys
-
-          root = pathlib.Path(sys.argv[1])
-          ALLOWED = {".md", ".txt", ".json", ".yaml", ".yml",
-                     ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"}
-          IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"}
-          ALWAYS = {"LICENSE", ".gitignore"}
-          KEEP = ("name", "description")
-          PM_CONFIG = {".npmrc", ".yarnrc", ".yarnrc.yml", "bunfig.toml",
-                       "pip.conf", "pip.ini", "uv.toml", "pnpm-workspace.yaml",
-                       ".pypirc", ".condarc", "poetry.toml"}
-          # Text the directory reads as redirecting a package source
-          # (LAUNCHER_REGISTRY_REDIRECT): changing a package manager's
-          # configuration, an index or registry option, or naming one of its
-          # configuration files (config.json included) or VIRTUAL_ENV.
-          PM_TEXT = re.compile(
-              r"(?i)\b(?:npm|pnpm|yarn|bun|pip|uv|conda) config (?:set|edit)\b"
-              r"|--(?:extra-)?index-url\b|--registry\b|--trusted-host\b"
-              r"|\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|VIRTUAL_ENV)\b"
-              r"|(?<![\w.-])(?:config\.json|\.npmrc|\.yarnrc(?:\.yml)?|bunfig\.toml|pip\.(?:conf|ini)"
-              r"|uv\.toml|pnpm-workspace\.yaml|\.condarc|\.pypirc|poetry\.toml)\b"
-          )
-          KEY = re.compile(r"([A-Za-z0-9_-]+):(.*)")
-          ITEM = re.compile(r"\s+-\s+(\S.*)")
-          problems = []
-
-          # 1. Extensionless third-party license texts become .txt files.
-          licenses = root / "LICENSES"
-          for path in sorted(licenses.iterdir()) if licenses.is_dir() else []:
-              if path.is_file() and path.suffix.lower() not in ALLOWED:
-                  target = path.with_name(path.name + ".txt")
-                  if target.exists():
-                      problems.append(f"{target.relative_to(root)} already exists")
-                  else:
-                      path.rename(target)
-
-          # 2. Frontmatter: keep `name` and `description` (single-line text).
-          components = [*root.glob("skills/*/SKILL.md"), *root.glob("agents/*.md"),
-                        *root.glob("commands/*.md"), *root.glob("output-styles/*.md")]
-          for path in sorted(components):
-              rel = path.relative_to(root).as_posix()
-              text = path.read_text(encoding="utf-8")
-              if not text.startswith("---\n"):
-                  continue
-              end = text.find("\n---\n", 4)
-              if end < 0:
-                  problems.append(f"{rel}: frontmatter is not closed")
-                  continue
-              head, body = text[4:end].splitlines(), text[end + 5:]
-              kept, preload, current = {}, [], None
-              for line in head:
-                  match = KEY.fullmatch(line)
-                  if match:
-                      current = match.group(1)
-                      if current in KEEP:
-                          kept[current] = line
-                      continue
-                  item = ITEM.fullmatch(line)
-                  if current == "skills" and item:
-                      preload.append(item.group(1).strip().strip("\"'"))
-                  elif current in KEEP and line.strip():
-                      problems.append(f"{rel}: `{current}` is not one line of text")
-              for key in KEEP:
-                  if key not in kept or not KEY.fullmatch(kept[key]).group(2).strip():
-                      problems.append(f"{rel}: `{key}` is missing or empty")
-              if preload and rel.startswith("agents/"):
-                  names = ", ".join(f"`{name}`" for name in preload)
-                  line = (f"Load the {names} skill before you start; "
-                          "this plugin does not preload it.\n\n")
-                  marker = body.find("-->\n")
-                  cut = marker + 4 if marker >= 0 else 0
-                  body = body[:cut] + ("\n" if cut else "") + line + body[cut:].lstrip("\n")
-              new = "---\n" + "\n".join(kept[k] for k in KEEP if k in kept) + "\n---\n" + body
-              if new != text:
-                  path.write_text(new, encoding="utf-8", newline="\n")
-
-          # 3. Every file is now one the directory accepts from any publisher.
-          for path in sorted(p for p in root.rglob("*") if p.is_file()):
-              rel = path.relative_to(root).as_posix()
-              if rel.startswith(".git/"):
-                  continue
-              suffix = path.suffix.lower()
-              data = path.read_bytes()
-              if path.name in PM_CONFIG:
-                  problems.append(f"{rel}: package-manager configuration file")
-              if path.name not in ALWAYS and suffix not in ALLOWED:
-                  problems.append(f"{rel}: file type not accepted")
-              if data.startswith(b"#!"):
-                  problems.append(f"{rel}: starts with #!")
-              if suffix in IMAGES:
-                  if suffix == ".png" and not data.startswith(b"\x89PNG\r\n\x1a\n"):
-                      problems.append(f"{rel}: not a PNG image")
-                  continue
-              if b"\x00" in data:
-                  problems.append(f"{rel}: holds a NUL byte")
-              try:
-                  text = data.decode("utf-8")
-              except UnicodeDecodeError:
-                  problems.append(f"{rel}: not UTF-8 text")
-                  continue
-              if not rel.startswith("LICENSE"):
-                  for found in PM_TEXT.finditer(text):
-                      line = text.count("\n", 0, found.start()) + 1
-                      problems.append(f"{rel}:{line}: package-source text {found.group(0)!r}")
-
-          for problem in problems:
-              print(f"::error::{problem}")
-          if problems:
-              sys.exit(1)
-          print(f"Directory policy: {sum(1 for _ in root.rglob('*'))} entries checked.")
-          PY
 
       - name: "📦 Upload the tree"
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

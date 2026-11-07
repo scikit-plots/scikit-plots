@@ -16,8 +16,12 @@ Composable documentation retrieval for Model Context Protocol (MCP) servers.
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-mcp  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.mcp`. If `import scikitplot.mcp` fails after installing
+it, or to install only `scikit-plots-mcp`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

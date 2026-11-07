@@ -26,10 +26,14 @@ read it and nothing else decides the answer:
 
 Notes
 -----
-**User.** Install only what you need; the parts compose into one package::
+**User.** Install only what you need; the parts compose into one package.
+The partial distributions are not on PyPI yet: :func:`pip_install` gives the
+command that builds them from the repository (the core comes with them), and
+the install guide also lists the project's staging index::
 
-    pip install scikit-plots-rank-bm25                 # just BM25 ranking
-    pip install scikit-plots-corpus scikit-plots-mcp   # two parts, one package
+    >>> print(pip_install(["scikit-plots-rank-bm25"]))  # doctest: +SKIP
+    pip install "scikit-plots-skinny @ git+https://...#subdirectory=libs/skinny" \
+        "scikit-plots-rank-bm25 @ git+https://...#subdirectory=libs/rank-bm25"
 
 Every spelling pip accepts for a name is the same project, so
 ``scikit_plots_rank_bm25`` and ``scikit-plots-rank_bm25`` both resolve to
@@ -85,8 +89,11 @@ __all__ = [
     "log_report",
     "parts_entry_points",
     "parts_group",
+    "pip_install",
     "provider_of",
     "report",
+    "requirement",
+    "staging_install",
 ]
 
 #: The import package every distribution contributes to.
@@ -98,6 +105,23 @@ FULL = "scikit-plots"
 #: The core partial distribution. It owns the root ``__init__.py`` and the
 #: shared infrastructure, and every other partial distribution depends on it.
 CORE = "scikit-plots-skinny"
+
+#: The repository every distribution is built from; a partial distribution's
+#: sources are its ``libs/<name without "scikit-plots-">`` subdirectory.
+REPOSITORY = "https://github.com/scikit-plots/scikit-plots.git"
+
+#: The branch or tag :func:`requirement` installs a partial distribution from.
+REPOSITORY_REF = "main"
+
+#: The distributions published on PyPI. The partial distributions are not yet
+#: (their names there are unclaimed): advice installs them from
+#: :data:`REPOSITORY`, so no command sends pip to PyPI for one of them. Add a
+#: name here when its first release is on PyPI.
+ON_PYPI: frozenset[str] = frozenset({FULL})
+
+#: The project's staging index: development builds of every distribution, and
+#: no third-party package (NumPy and the rest come from PyPI).
+STAGING_INDEX = "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple"
 
 #: The values :func:`flavor` can return.
 FLAVORS = ("full", "partial", "source")
@@ -418,6 +442,180 @@ def provider_of(module: str) -> str | None:
     return None
 
 
+def requirement(name: str, ref: str | None = None, extras: tuple[str, ...] = ()) -> str:
+    """
+    Return the PEP 508 requirement that installs a distribution.
+
+    Parameters
+    ----------
+    name : str
+        A distribution of this project, in any spelling pip accepts.
+    ref : str or None, default None
+        Branch, tag or commit of :data:`REPOSITORY`; ``None`` means
+        :data:`REPOSITORY_REF`. Unused for a distribution on PyPI.
+    extras : tuple of str, default ()
+        Optional-dependency names, written as ``name[extra,...]``.
+
+    Returns
+    -------
+    str
+        The name (with its extras) for a distribution in :data:`ON_PYPI`;
+        otherwise
+        ``"<name>[<extras>] @ git+<REPOSITORY>@<ref>#subdirectory=libs/<part>"``.
+
+    Raises
+    ------
+    ValueError
+        If *name* is not a distribution of this project, or *ref* is empty or
+        holds whitespace, ``#`` or ``@``.
+
+    Examples
+    --------
+    >>> requirement("scikit-plots")
+    'scikit-plots'
+    >>> requirement("scikit_plots_rank_bm25")
+    'scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25'
+    """
+    canonical = canonicalize_name(name)
+    if any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", extra) for extra in extras):
+        raise ValueError(f"{extras!r} holds a name that is not a valid extra.")
+    named = canonical + (f"[{','.join(extras)}]" if extras else "")
+    if canonical in ON_PYPI:
+        return named
+    if canonical not in {dist.name for dist in DISTRIBUTIONS}:
+        raise ValueError(f"{name!r} is not a distribution of this project.")
+    ref = REPOSITORY_REF if ref is None else ref
+    if not ref or any(char.isspace() or char in "#@" for char in ref):
+        raise ValueError(f"{ref!r} is not a branch, tag or commit.")
+    part = canonical[len(FULL) + 1 :]
+    return f"{named} @ git+{REPOSITORY}@{ref}#subdirectory=libs/{part}"
+
+
+def pip_install(
+    names: tuple[str, ...] | list[str],
+    options: tuple[str, ...] = (),
+    *,
+    ref: str | None = None,
+    with_core: bool = True,
+    extras: Mapping[str, tuple[str, ...]] | None = None,
+) -> str:
+    """
+    Return a ``pip install`` command for distributions of this project.
+
+    Parameters
+    ----------
+    names : sequence of str
+        Distributions to install, in order.
+    options : tuple of str, default ()
+        pip options placed before the requirements, e.g. ``("--upgrade",)``.
+    ref : str or None, default None
+        Passed to :func:`requirement`.
+    with_core : bool, default True
+        Add :data:`CORE` first when a partial distribution is named and
+        :data:`CORE` is not on PyPI. Every partial distribution depends on
+        it, and pip would otherwise look it up on PyPI. Pass ``False`` with
+        ``--no-deps``.
+    extras : mapping of str to tuple of str, optional
+        Optional-dependency names per distribution, passed to
+        :func:`requirement`. An extra that needs another distribution of this
+        project needs that distribution in *names* too, for the same reason.
+
+    Returns
+    -------
+    str
+        One command; a requirement with spaces is double-quoted.
+
+    Notes
+    -----
+    **User notes.** A partial distribution is built from its ``libs/``
+    directory of the repository at :data:`REPOSITORY_REF`, which needs
+    ``git``; the project's staging index serves the same builds (see the
+    install guide).
+
+    **Developer notes.** The partial distributions are not on PyPI and their
+    names there are unclaimed, so advice that let pip resolve one from PyPI
+    would install whatever another party publishes under that name. Every
+    project name in the command therefore comes from :func:`requirement`.
+
+    Examples
+    --------
+    >>> pip_install(["scikit-plots"])
+    'pip install scikit-plots'
+    >>> pip_install(["scikit-plots-skinny"], with_core=False)  # doctest: +ELLIPSIS
+    'pip install "scikit-plots-skinny @ git+...#subdirectory=libs/skinny"'
+    """
+    wanted = [canonicalize_name(name) for name in names]
+    if (
+        with_core
+        and CORE not in ON_PYPI
+        and CORE not in wanted
+        and any(name not in ON_PYPI and name != FULL for name in wanted)
+    ):
+        wanted.insert(0, CORE)
+    unique = list(dict.fromkeys(wanted))
+    chosen = {
+        canonicalize_name(key): tuple(value) for key, value in (extras or {}).items()
+    }
+    quoted = [
+        f'"{req}"' if " " in req or "[" in req else req
+        for req in (requirement(name, ref, chosen.get(name, ())) for name in unique)
+    ]
+    return " ".join(["pip", "install", *options, *quoted])
+
+
+def staging_install(names: tuple[str, ...] | list[str]) -> tuple[str, str]:
+    """
+    Return the two commands that install distributions from :data:`STAGING_INDEX`.
+
+    Parameters
+    ----------
+    names : sequence of str
+        Distributions of this project; :data:`CORE` is added for a partial
+        one. An extra that needs another distribution needs it named here.
+
+    Returns
+    -------
+    tuple of str
+        The first command takes the named distributions from the staging
+        index only, without dependencies. The second, run after it, installs
+        their dependencies; the named distributions are already satisfied,
+        so pip resolves no project name from another index.
+
+    Raises
+    ------
+    ValueError
+        If a name is not a distribution of this project.
+
+    Notes
+    -----
+    **Developer notes.** ``pip install -i <staging> <part>`` alone fails: the
+    staging index holds no third-party package. ``--extra-index-url`` would
+    let pip take a project name from whichever index offers the higher
+    version, and the partial names are unclaimed on PyPI. Two commands avoid
+    both; pip has no per-package index.
+
+    Examples
+    --------
+    >>> first, second = staging_install(["scikit-plots-corpus"])
+    >>> first  # doctest: +ELLIPSIS
+    'pip install --index-url https://pypi.anaconda.org/.../simple --no-deps scikit-plots-skinny scikit-plots-corpus'
+    >>> second
+    'pip install scikit-plots-skinny scikit-plots-corpus'
+    """
+    wanted = [canonicalize_name(name) for name in names]
+    known = {dist.name for dist in DISTRIBUTIONS} | {FULL}
+    unknown = [name for name in wanted if name not in known]
+    if unknown:
+        raise ValueError(f"{unknown!r} are not distributions of this project.")
+    if CORE not in wanted and any(name != FULL for name in wanted):
+        wanted.insert(0, CORE)
+    unique = " ".join(dict.fromkeys(wanted))
+    return (
+        f"pip install --index-url {STAGING_INDEX} --no-deps {unique}",
+        f"pip install {unique}",
+    )
+
+
 def install_hint(module: str) -> str:
     """
     Return the command that makes a missing ``scikitplot`` module available.
@@ -430,18 +628,18 @@ def install_hint(module: str) -> str:
     Returns
     -------
     str
-        ``"pip install <distribution>"`` for the smallest distribution that
-        ships the module: its partial distribution when one exists, otherwise
-        the full distribution.
+        :func:`pip_install` for the smallest distribution that ships the
+        module: its partial distribution when one exists (with
+        :data:`CORE`), otherwise the full distribution.
 
     Examples
     --------
-    >>> install_hint("scikitplot.corpus")
-    'pip install scikit-plots-corpus'
     >>> install_hint("scikitplot.utils")
     'pip install scikit-plots'
+    >>> install_hint("scikitplot.corpus")  # doctest: +ELLIPSIS
+    'pip install "scikit-plots-skinny @ git+...libs/skinny" "scikit-plots-corpus @ git+...libs/corpus"'
     """
-    return f"pip install {provider_of(module) or FULL}"
+    return pip_install([provider_of(module) or FULL])
 
 
 def _installed_version(name: str) -> str | None:
@@ -712,7 +910,10 @@ def _compatibility_findings(found: Mapping[str, str]) -> tuple[list[str], list[s
         except ValueError as error:
             problems.append(
                 f"{error}. Its metadata was not written by this project's build "
-                f"tooling. Fix: pip install --force-reinstall --no-deps {dist.name}"
+                "tooling. Fix: "
+                + pip_install(
+                    [dist.name], ("--force-reinstall", "--no-deps"), with_core=False
+                )
             )
             continue
         if declared is None:
@@ -721,7 +922,7 @@ def _compatibility_findings(found: Mapping[str, str]) -> tuple[list[str], list[s
                     f"{dist.name} {version} does not state which core API it was "
                     f"built for, and {CORE} is {core_version}: whether they work "
                     "together cannot be judged. "
-                    f"Fix: pip install --upgrade {dist.name} {CORE}"
+                    "Fix: " + pip_install([dist.name, CORE], ("--upgrade",))
                 )
         elif declared != CORE_API:
             newer = dist.name if declared > CORE_API else CORE
@@ -731,7 +932,7 @@ def _compatibility_findings(found: Mapping[str, str]) -> tuple[list[str], list[s
                 "disagree about how the core and a part work together, so the "
                 f"part may fail in ways that look unrelated. {newer} is the "
                 "newer side. "
-                f"Fix: pip install --upgrade {dist.name} {CORE}"
+                "Fix: " + pip_install([dist.name, CORE], ("--upgrade",))
             )
         elif version != core_version:
             behind.append(f"{dist.name} {version}")
@@ -740,8 +941,9 @@ def _compatibility_findings(found: Mapping[str, str]) -> tuple[list[str], list[s
             f"Mixed versions: {', '.join(behind)} with {CORE} {core_version}. "
             f"They state the same core API ({CORE_API}), so they are expected to "
             "work together; nothing needs to change. To align them anyway: "
-            f"pip install --upgrade {CORE} "
-            + " ".join(entry.split(" ")[0] for entry in behind)
+            + pip_install(
+                [CORE, *(entry.split(" ")[0] for entry in behind)], ("--upgrade",)
+            )
         )
     return problems, notes
 
@@ -847,7 +1049,10 @@ def report() -> dict[str, object]:
         if not all(_is_present(module) for module in _provided_modules(dist)):
             problems.append(
                 f"{dist.name} is installed but some of its files are missing. "
-                f"Fix: pip install --force-reinstall --no-deps {dist.name}"
+                "Fix: "
+                + pip_install(
+                    [dist.name], ("--force-reinstall", "--no-deps"), with_core=False
+                )
             )
 
     if FULL in found and partial_names:
@@ -856,7 +1061,7 @@ def report() -> dict[str, object]:
             f"{FULL} already contains them and both own the same files, so "
             "uninstalling either removes files the other needs. "
             f"Fix: pip uninstall {' '.join(partial_names)} && "
-            f"pip install --force-reinstall --no-deps {FULL}"
+            + pip_install([FULL], ("--force-reinstall", "--no-deps"), with_core=False)
         )
 
     notes: list[str] = []
@@ -915,8 +1120,8 @@ def log_report(
 
     * Install the full distribution **or** partial ones in an environment,
       not both: they own the same files.
-    * Upgrade the parts together (``pip install --upgrade scikit-plots-skinny
-      scikit-plots-annoy ...``). A mix of versions is accepted while the core
+    * Upgrade the parts together (the command the report prints installs the
+      core and each part from the same ref). A mix of versions is accepted while the core
       API number is the same, and is reported as a note; it becomes a problem
       only when the number differs.
     * NumPy 1.x installed after the fact keeps working. NumPy 2 needs

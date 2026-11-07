@@ -16,8 +16,12 @@ Various BM25 algorithms for document ranking.
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-rank-bm25  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.rank_bm25`. If `import scikitplot.rank_bm25` fails after
+installing it, or to install only `scikit-plots-rank-bm25`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

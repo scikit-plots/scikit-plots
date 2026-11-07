@@ -55,6 +55,7 @@ import pytest
 
 # from .. import __init__ as sp
 import scikitplot as sp
+from scikitplot._distributions import install_hint as dists_install_hint
 
 
 # ===========================================================================
@@ -722,9 +723,9 @@ class TestPartialDistribution:
     @pytest.mark.parametrize(
         ("name", "command"),
         [
-            ("corpus", "pip install scikit-plots-corpus"),
-            ("mcp", "pip install scikit-plots-mcp"),
-            ("annoy", "pip install scikit-plots-annoy"),
+            ("corpus", dists_install_hint("scikitplot.corpus")),
+            ("mcp", dists_install_hint("scikitplot.mcp")),
+            ("annoy", dists_install_hint("scikitplot.annoy")),
             ("utils", "pip install scikit-plots"),
             ("config", "pip install scikit-plots"),
         ],

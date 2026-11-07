@@ -26,7 +26,12 @@ Rank-BM25 is included in the full ``scikit-plots`` distribution.  It is also
 available as the project-maintained partial distribution
 ``scikit-plots-rank-bm25``::
 
-   python -m pip install scikit-plots-rank-bm25
+   python -m pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" \
+       "scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25"
+
+It is not on PyPI yet: this builds it, with the core it depends on, from the
+repository (``git`` needed). :ref:`installing-a-lightweight-version` also
+gives the commands for the project's staging index.
 
 The partial distribution ships ``scikitplot.rank_bm25`` and depends on NumPy
 and the dependency-light Scikit-Plots core.  Do not install it alongside the
