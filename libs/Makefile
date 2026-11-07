@@ -40,6 +40,7 @@ remove:
 		-type f -name 'MANIFEST*' \
 	\) -exec ls -l {} +
 
+# python -m libs._tools generate
 generate:
 	@# Only generate nested 'MANIFEST.in', what if 'scikitplot'
 	@python -m _tools generate

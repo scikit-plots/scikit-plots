@@ -18,6 +18,11 @@ Seaborn-style scikit-plots plotting.
 pip install scikit-plots
 ```
 
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.seaborn`. If `import scikitplot.seaborn` fails after
+installing it, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html).
+
 ## Before writing code
 
 The API below was read from one version of the package. Check the version the

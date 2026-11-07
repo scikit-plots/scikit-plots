@@ -16,8 +16,12 @@ metadata:
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-mlflow  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.mlflow`. If `import scikitplot.mlflow` fails after
+installing it, or to install only `scikit-plots-mlflow`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

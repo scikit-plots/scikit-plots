@@ -165,7 +165,10 @@ class BranchBuildTests(unittest.TestCase):
         for path in shared.rglob("*"):
             if path.is_file():
                 rel = "skills/" + path.relative_to(shared).as_posix()
-                self.assertEqual(self.files[rel], path.read_bytes(), rel)
+                expected = path.read_bytes()
+                if rel.endswith("/SKILL.md"):
+                    expected = MODULE.community_component(rel, expected.decode()).encode()
+                self.assertEqual(self.files[rel], expected, rel)
 
 
 class PublishedTreeTests(unittest.TestCase):
@@ -240,10 +243,98 @@ class DirectoryReviewTests(unittest.TestCase):
         errors = [e for e in MODULE.validate(out, versioned=False) if "network" in e]
         self.assertEqual(len(errors), 3, errors)
 
-    def test_a_local_script_is_allowed(self):
+    def test_a_local_script_is_not_a_network_load(self):
         out = self._built()
         page = out / "skills/scikitplot/page.html"
         page.write_text(
             '<script src="./x.js"></script><script>1</script>', encoding="utf-8"
         )
+        errors = MODULE.validate(out, versioned=False)
+        self.assertFalse([e for e in errors if "network" in e], errors)
+        # An HTML page is refused by type from a publisher that is not Verified.
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("not Markdown, text, JSON, YAML or an image", errors[0])
+
+
+class CommunityPolicyTests(unittest.TestCase):
+    """The directory refused 246d056 and 35a80cf/05d1ab6 for the community policy."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.files = MODULE.render(REPO, None)
+
+    def _built(self) -> Path:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        MODULE.apply(out, self.files)
+        return out
+
+    def test_every_published_component_has_only_name_and_description(self):
+        for rel, data in self.files.items():
+            if rel.endswith("/SKILL.md") or rel.startswith("agents/"):
+                head = data.decode().split("\n---\n", 1)[0].splitlines()[1:]
+                self.assertEqual([line.split(":", 1)[0] for line in head], ["name", "description"], rel)
+
+    def test_an_agent_loads_its_skill_instead_of_preloading_it(self):
+        text = self.files["agents/scikitplot-corpus.md"].decode()
+        self.assertNotIn("preloaded", text)
+        self.assertIn("- Load the `scikitplot-corpus` skill first;", text)
+
+    def test_every_license_text_ships_as_a_text_file(self):
+        names = [rel for rel in self.files if rel.startswith("LICENSES/")]
+        self.assertTrue(names)
+        self.assertTrue(all(rel.endswith(".txt") for rel in names), names)
+        self.assertEqual(MODULE.published_license("LICENSE_x"), "LICENSE_x.txt")
+        self.assertEqual(MODULE.published_license("LICENSE_x.md"), "LICENSE_x.md")
+
+    def test_the_built_tree_passes(self):
+        self.assertEqual(MODULE.validate(self._built(), versioned=False), [])
+
+    def test_each_refused_case_fails(self):
+        cases = {
+            "skills/scikitplot/run": (b"echo x\n", "not Markdown"),
+            "skills/scikitplot/a.md": (b"#!/bin/sh\n", "starts with #!"),
+            "skills/scikitplot/b.txt": (b"a\x00b", "NUL byte"),
+            "skills/scikitplot/c.txt": (b"\xff\xfe", "not UTF-8"),
+            "skills/scikitplot/.npmrc": (b"x\n", "configuration file"),
+            "skills/scikitplot/d.md": (b"run `npm config set prefix ~/x`\n", "package source"),
+            "skills/scikitplot/e.md": (b"pip install --index-url https://x y\n", "package source"),
+            "skills/scikitplot/f.md": (b"writes $WORK/config.json\n", "package source"),
+            "skills/scikitplot/h.md": (b"pip install -i https://pypi.example.org/simple x\n", "package source"),
+            "skills/scikitplot/i.md": (b"uv pip install --index https://x y\n", "package source"),
+            "skills/scikitplot/j.md": (b"pip install -f https://example.org/wheels x\n", "package source"),
+            "skills/scikitplot/k.md": (b'pip install "x @ git+https://github.com/o/r.git@main#subdirectory=a"\n', "package source"),
+            "skills/scikitplot/l.md": (b"pip install x@git+https://github.com/o/r.git@main\n", "package source"),
+        }
+        for rel, (data, message) in cases.items():
+            with self.subTest(rel=rel):
+                out = self._built()
+                (out / rel).write_bytes(data)
+                errors = MODULE.validate(out, versioned=False)
+                self.assertTrue(any(rel in e and message in e for e in errors), errors)
+
+    def test_a_name_that_only_contains_a_config_name_passes(self):
+        out = self._built()
+        (out / "skills/scikitplot/g.md").write_text(
+            "myconfig.json and project.config.json.bak; a GitHub link"
+            " https://github.com/o/r and `python -i script.py` and digit-i 3-i\n"
+        )
         self.assertEqual(MODULE.validate(out, versioned=False), [])
+
+    def test_an_extra_frontmatter_key_fails(self):
+        out = self._built()
+        path = out / "skills/scikitplot-corpus/SKILL.md"
+        path.write_text(path.read_text().replace("\n---\n", "\nlicense: BSD-3-Clause\n---\n", 1))
+        errors = MODULE.validate(out, versioned=False)
+        self.assertTrue(any("license" in e and "frontmatter" in e for e in errors), errors)
+
+    def test_an_agent_template_change_fails_the_build(self):
+        text = "---\nname: a\ndescription: d\nskills:\n  - a\n---\n\n- Start from `a`.\n"
+        with self.assertRaises(ValueError):
+            MODULE.community_component("agents/a.md", text)
+
+    def test_a_multi_line_description_fails_the_build(self):
+        text = "---\nname: a\ndescription: >\n  folded\n---\nbody\n"
+        with self.assertRaises(ValueError):
+            MODULE.community_component("skills/a/SKILL.md", text)

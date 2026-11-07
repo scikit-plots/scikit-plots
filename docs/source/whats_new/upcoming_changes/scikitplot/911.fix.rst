@@ -1,0 +1,10 @@
+- The command printed when a part of ``scikitplot`` is missing (``Install it
+  with: ...``, in Python, in the ``scikitplot`` command line, in
+  ``scikitplot doctor`` and in the ``cleanprompt`` and ``mcp`` corpus
+  messages) now works as written. It named partial distributions such as
+  ``scikit-plots-corpus`` as if they were on PyPI, where they are not yet; it
+  now installs them from the repository together with
+  ``scikit-plots-skinny``, which every part depends on. The partial
+  distributions' own descriptions also give the two commands for the
+  project's staging index. New in ``scikitplot._distributions``:
+  ``requirement``, ``pip_install`` and ``staging_install``.

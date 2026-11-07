@@ -16,8 +16,12 @@ A lightweight runtime Cython development kit with caching, pinning, garbage coll
 
 ```sh
 pip install scikit-plots
-pip install scikit-plots-cython  # this part only
 ```
+
+The release on PyPI can be older than the version this skill was read from, and
+can lack `scikitplot.cython`. If `import scikitplot.cython` fails after
+installing it, or to install only `scikit-plots-cython`, follow the [install
+guide](https://scikit-plots.github.io/dev/install/installation.html#installing-a-lightweight-version).
 
 ## Before writing code
 

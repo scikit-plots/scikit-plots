@@ -65,6 +65,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from .._distributions import install_hint
 from ._exceptions import CapabilityError, CleanPromptError
 from ._office import OFFICE_EXTENSIONS, extract_office_text
 
@@ -106,7 +107,8 @@ DERIVED_FIELDS = (
     "semanteme_count",
 )
 
-_INSTALL = "pip install scikit-plots-corpus"
+#: How to install the missing part; the distribution map decides the command.
+_INSTALL = install_hint("scikitplot.corpus")
 
 
 def _corpus() -> Any:

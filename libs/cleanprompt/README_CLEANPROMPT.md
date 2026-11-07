@@ -11,18 +11,27 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-cleanprompt
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-cleanprompt
+pip install scikit-plots-skinny scikit-plots-cleanprompt
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-cleanprompt[cleanprompt]"`: `lxml`, `flask`, `cryptography`, `nltk`, `spacy`, `regex`
-- `pip install "scikit-plots-cleanprompt[cleanprompt-ner]"`: `spacy`
-- `pip install "scikit-plots-cleanprompt[cleanprompt-nltk]"`: `nltk`
-- `pip install "scikit-plots-cleanprompt[cleanprompt-web]"`: `flask`
-- `pip install "scikit-plots-cleanprompt[cleanprompt-crypto]"`: `cryptography`
-- `pip install "scikit-plots-cleanprompt[cleanprompt-timeout]"`: `regex`
-- `pip install "scikit-plots-cleanprompt[corpus]"`: `scikit-plots-corpus>=0.5.dev0`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `lxml`, `flask`, `cryptography`, `nltk`, `spacy`, `regex`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt-ner] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `spacy`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt-nltk] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `nltk`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt-web] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `flask`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt-crypto] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `cryptography`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[cleanprompt-timeout] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt"`: `regex`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-cleanprompt[corpus] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt" "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"`: `scikit-plots-corpus>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_cleanprompt` installs it too.
 

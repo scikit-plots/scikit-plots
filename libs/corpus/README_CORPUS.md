@@ -11,13 +11,22 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-corpus
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-corpus
+pip install scikit-plots-skinny scikit-plots-corpus
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-corpus[corpus]"`: `lxml`, `pypdf`, `pdfminer`, `pdfminer.six`, `langdetect`, `gensim`, `nltk`, `spacy`, `datasets`, `sentence-transformers`, `langchain-core`, `openai-whisper`, `faster-whisper`, `pytesseract`, `youtube-transcript-api`, `krippendorff`
-- `pip install "scikit-plots-corpus[annoy]"`: `scikit-plots-annoy>=0.5.dev0`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus[corpus] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"`: `lxml`, `pypdf`, `pdfminer`, `pdfminer.six`, `langdetect`, `gensim`, `nltk`, `spacy`, `datasets`, `sentence-transformers`, `langchain-core`, `openai-whisper`, `faster-whisper`, `pytesseract`, `youtube-transcript-api`, `krippendorff`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus[annoy] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus" "scikit-plots-annoy @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy"`: `scikit-plots-annoy>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_corpus` installs it too.
 

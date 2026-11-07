@@ -1,6 +1,6 @@
 ---
-title: "The Claude plugin directory refused the scikit-plots/skills build"
-status: open
+title: "The Claude directory refuses the corpus skill: LAUNCHER_REGISTRY_REDIRECT"
+status: blocked
 kind: "packaging"
 area: "tools/maint_tools"
 discovered_during: "PR 909 assembly: directory review of scikit-plots/skills 246d056"
@@ -10,133 +10,140 @@ towncrier_type: "unknown"
 towncrier_fragment: ""
 ---
 
-# The Claude plugin directory refused the scikit-plots/skills build
+# The Claude directory refuses the corpus skill: LAUNCHER_REGISTRY_REDIRECT
 
 ## Summary
 
-The `scikitplot` plugin, published to `scikit-plots/skills` by
-`.github/workflows/ci_claude_plugins_publish.yml` from `plugins/scikitplot/`
-through `tools/maint_tools/build_skills_repo.py`, was refused by the Claude
-plugin directory for version `246d056` ("Build main from
-scikit-plots/scikit-plots@583b6490"). The maintainer's directory page
-reports "Validation failed, Directory policy failed, Security scan passed",
-with three findings that block and three that do not.
+The Claude plugin directory refuses every build of `scikit-plots/skills` with
+one blocking finding, `LAUNCHER_REGISTRY_REDIRECT` ("Package registry
+redirected") on `skills/scikitplot-corpus/SKILL.md`. Latest refused build:
+`05d1ab6`, from `scikit-plots/scikit-plots@70d915bf` (PR 910). The portal's
+advice: "Name the output file in full, with a name that is not a package
+manager's configuration file (.npmrc, bunfig.toml, pip.conf,
+pnpm-workspace.yaml and the like); in documentation, link to the package
+manager's instructions instead." Which text in the skill it reads is not yet
+known; status `blocked` on the probe below.
 
 ## Why it matters
 
-The plugin cannot be listed until each blocking finding is cleared, and every
-push to `main` publishes a new build: a fix made by hand in
-`scikit-plots/skills` is overwritten by the next build, so every fix belongs
-in this repository's generators.
+The plugin cannot be listed while a finding blocks, and every push to `main`
+publishes a new build that the directory rescans. A fix made by hand in
+`scikit-plots/skills` is overwritten by the next build (Rule 166), so the fix
+belongs in this repository's generators.
 
 ## Current evidence
 
-Directory findings, as reported for `246d056` (blocking first):
-
-1. `LAUNCHER_REGISTRY_REDIRECT`, `skills/scikitplot-corpus/SKILL.md`: "Name
-   the output file in full, with a name that is not a package manager's
-   configuration file (.npmrc, bunfig.toml, pip.conf, pnpm-workspace.yaml and
-   the like); in documentation, link to the package manager's instructions
-   instead."
-2. `LOCAL_CODE_FILE_TYPE`: refused unless every file is Markdown, text, JSON,
-   YAML or an allowed image, none starts with `#!`, all text is UTF-8
-   without NUL; "a license, a readme, .gitignore, and the plugin's icon can
-   stay".
-3. `LOCAL_CODE_FRONTMATTER_KEY`: a skill, command, agent or output style has
-   a frontmatter key, or a value under one, outside the allowed list; "give
-   a key such as tags only text".
-4. Not blocking: `MCP_FORWARDS_CREDENTIAL_ENV` (`.claude-plugin/plugin.json`;
-   a reviewer checks it), `UNKNOWN_KEY_CROSS_TOOL` (`icon`; no action
-   needed), `MANIFEST_VERSION_MISSING` (branch builds are unversioned by
-   design; release tags carry a version).
-
-Checked on the published tree (`git clone scikit-plots/skills`, `246d056`)
-and on this checkout's build
-(`build_skills_repo.py build --out DIR --unversioned`, 115 files):
-
-- No file starts with `#!`, holds a NUL byte (other than the PNG icon) or is
-  not UTF-8. Files that are not `.md`, `.json` or `.png`: `.gitignore`,
-  `LICENSE`, and the extensionless license texts under `LICENSES/` (22 in the
-  published tree; PR 909 adds `LICENSES/LICENSE_unicode`).
-- Frontmatter keys in use: skills `name`, `description`, `license`,
-  `metadata` (a map, for example `scikitplot-module:`); agents `name`,
-  `description`, `skills` (a list naming the preloaded skill).
-- `skills/scikitplot-corpus/SKILL.md` names no package-manager configuration
-  file by a plain search; its install block is `pip install scikit-plots` and
-  `pip install scikit-plots-corpus`. Eight other skills carry the same
-  two-line install block and were not flagged, so the install block alone is
-  not the trigger.
+- Portal, version `05d1ab6`: "Directory policy refused this version. Reason:
+  Package registry redirected"; one blocking finding, the one above.
+- The finding names the corpus skill only. Every other skill of the same
+  build, with the same generated sections, passes.
+- Non-blocking findings of the same version, with their evidence:
+  `MCP_FORWARDS_CREDENTIAL_ENV` on `.claude-plugin/plugin.json` (the plugin
+  has no MCP server, hook or script, and no file reads or sends a token; the
+  only matches are rule text in `scikitplot-engineering-rules`; a reviewer
+  confirms), `UNKNOWN_KEY_CROSS_TOOL` (`icon`, "no action needed"),
+  `MANIFEST_VERSION_MISSING` (branch builds are unversioned by design; a
+  release tag sets `version`).
+- Cleared earlier, history in PR 909 and its fragments: `LOCAL_CODE_FILE_TYPE`
+  and `LOCAL_CODE_FRONTMATTER_KEY` (now enforced by
+  `tools/maint_tools/build_skills_repo.py`, see Expected behavior).
 
 ## Root cause / current understanding
 
-Two of the three blocking findings are cleared. `35a80cf` (built from
-`fc892dcd`, PR 909) carries the workflow's directory-policy step
-(`.github/workflows/ci_claude_plugins_publish.yml`): `LICENSES/*.txt` and
-`name`/`description`-only frontmatter. Its scan reports only
-`LAUNCHER_REGISTRY_REDIRECT` on `skills/scikitplot-corpus/SKILL.md`.
+Verified:
 
-That skill is the only one whose example block held `# doctest: +SKIP`
-lines (11) and URLs (2). `generate_usage_skills._examples` copied a module's
-whole numpydoc `Examples` section into a `pycon` fence: prose, reST
-directives and skipped examples included. For `scikitplot.corpus` that put
-live URLs passed to `run`/`run_url`, a build into `"./data/"`, a README
-path and paragraphs of prose into what reads as a transcript. A skipped
-example never runs, so it was also unverified text presented as output.
-Public cases of this finding were raised by a command changing a package
-manager's configuration (`npm config set`), an output file named
-`config.json`, and `VIRTUAL_ENV` in an MCP server's environment; the
-detector's exact rule is not published, so which corpus line it read is
-confirmed only by the next scan.
+- The trigger is inside `skills/scikitplot-corpus/` of the published tree.
 
-PR 910: `_examples` keeps the `>>>` lines a doctest run executes (with
-their output) and the `>>>` comment lines, and drops `+SKIP` examples, prose
-and directives; the regenerated corpus block holds none of the lines above.
-The workflow step also refuses text that changes a package manager's
-configuration, sets an index or registry, or names its configuration files
-or `VIRTUAL_ENV`, so such text fails CI instead of the directory.
+Ruled out, each with the evidence that excludes it:
+
+- The example block. PR 910 reduced it to executed doctest lines (no URL,
+  path, prose or `+SKIP`); `05d1ab6` is still refused.
+- The install block (`pip install scikit-plots`, `pip install
+  scikit-plots-corpus`): eight unflagged skills carry the same two lines.
+- The "Before writing code" block (`python -c ...m.<name>...`): every skill
+  carries it.
+- A package-manager configuration file, an index or registry option, a
+  `npm|pip|uv config set` command or `VIRTUAL_ENV` (the triggers of the
+  public cases of this finding): none occurs in the tree;
+  `build_skills_repo.validate` now refuses each.
+
+Unverified candidates (corpus-only content):
+
+- `references/API.md`: downloaders that take `input_url` and write
+  `output_path: Path | None = None` (an output file not named in full), and
+  the embedding cache (`CachePolicy(unpinned=...)`, `DEFAULT_CACHE_DIR`,
+  "the Hugging Face Hub commit a model id currently points to").
+- The Public API rows of `SKILL.md` (`extract_archive`, "to a destination
+  directory", and the rest of the corpus table).
 
 ## Expected behavior
 
-The build passes the portal's **Validate** with no blocking finding, and
-`build_skills_repo.py`'s own `validate` refuses each case the directory
-refuses, so a regression fails in this repository's CI before it is
-published.
+The published build passes the directory with no blocking finding, and
+`build_skills_repo.validate` refuses the identified trigger, so a regression
+fails this repository's CI before it is published.
 
 ## Affected paths and ownership
 
-`tools/maint_tools/build_skills_repo.py` (layout, licenses, validation),
-`maintenances/_repo/_maintenance/tools/check_records.py` (agent files and
-their frontmatter), `tools/maint_tools/generate_usage_skills.py` (skill
-text), `scikitplot/corpus/__init__.py` (the docstring the corpus skill is
-generated from). Maintenance area: `maintenances/_plugins/`.
+- `tools/maint_tools/generate_usage_skills.py`: the skill text and its
+  `references/API.md` (signatures and summaries from the installed package).
+- `scikitplot/corpus/`: the docstrings and signatures those are read from
+  (downloaders, embedding cache).
+- `tools/maint_tools/build_skills_repo.py`: published layout and the
+  directory checks; `.github/workflows/ci_claude_plugins_publish.yml`: the
+  publish job that runs it.
+- Maintenance area: `maintenances/_plugins/`.
 
 ## Constraints and non-goals
 
 Generated files are never edited by hand, here or in `scikit-plots/skills`.
-Third-party license texts stay complete and shipped. No change to the
-`scikitplot-dev` plugin, which is not published to the directory.
+No change is made on a guess: the probe names the part first. The library's
+API (downloaders, cache policy) is not changed to satisfy a listing rule; if
+the trigger is its documentation, the skill's rendering of it changes.
 
 ## Edge cases to cover
 
-A release tag build (`--version`) and a branch build (`--unversioned`); a
-new vendored license (as `LICENSE_unicode` in PR 909).
+A trigger in `references/API.md` rather than `SKILL.md` (the finding may be
+reported on the skill's entry file); a trigger split across two sections (no
+single ablation clears it: then pair the two candidates).
 
 ## Proposed direction
 
-Read each blocking finding's detail on the directory page, reproduce it in
-`build_skills_repo.validate`, fix it in the generator, rebuild, and confirm
-with the portal's Validate before the next publish.
+Run one portal **Validate** round on an ablation probe; do not submit it.
+
+1. Build the probe from the latest refused build: one plugin folder per
+   variant, each holding `.claude-plugin/plugin.json` (a distinct `name`),
+   a README of at least 40 words, `LICENSE`, and
+   `skills/scikitplot-corpus/` as listed:
+   - `p9-full-tree`: the whole published tree (control);
+   - `p0-control`: `SKILL.md` and `references/API.md` unchanged (control);
+   - `p1-no-references`: `SKILL.md` only;
+   - `p2-only-references`: `references/API.md`; `SKILL.md` reduced to
+     frontmatter, title and intro;
+   - `p3-no-example`, `p4-no-api-table`, `p5-no-install`, `p6-no-before`:
+     `SKILL.md` without that one section, `references/API.md` unchanged;
+   - `p7-head-only`: frontmatter, title and intro; no references.
+2. Push it to a scratch public repository; in the developer portal open one
+   draft (**Submit new > Plugin bundle**), validate each folder in turn
+   (change the plugin path, **Re-validate**).
+3. Both controls must report the finding; the variant that does not names
+   the part. Narrow within it by halving the lines the same way.
+4. Change the generator for that part, add the case to
+   `build_skills_repo.validate` with a test, and delete this note once a
+   published build passes.
 
 ## Verification / acceptance criteria
 
-`build_skills_repo.py check` green; a new validation test per finding; the
-portal's Validate passes for the next published commit.
+- The probe table (folder, finding yes/no) recorded here.
+- `build_skills_repo.py check` green, with a test that refuses the trigger.
+- The directory's scan of the next published `main` build reports no
+  blocking finding.
 
 ## Documentation impact
 
-`plugins/README.md` and `maintenances/_plugins/MAINTAINING.md` if the
-published layout or frontmatter changes.
+`plugins/README.md` and `maintenances/_plugins/MAINTAINING.md` only if the
+published layout or a skill's sections change.
 
 ## Release-note promotion
 
 Not required: the published plugin tree is not part of the Python package.
+Delete this note when the acceptance criteria hold; the PR is the record.

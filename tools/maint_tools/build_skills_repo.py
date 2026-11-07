@@ -16,8 +16,10 @@ repository: ``main`` builds ``main``, ``maintenance/X.Y.x`` builds
 script turns one checkout into that tree: it copies the generated skills,
 agents and README, adds the icon, the licenses and a one-plugin marketplace,
 sets ``version`` for a release (none for a branch, so Claude Code versions a
-branch build by its commit), then checks the result against the directory's
-pre-submission checklist.
+branch build by its commit), reduces the tree to what the directory accepts
+from a publisher that is not a Verified organization (:func:`community_component`,
+:func:`published_license`), then checks the result against the directory's
+pre-submission checklist and that policy.
 
 Usage::
 
@@ -101,6 +103,44 @@ REMOTE_SCRIPT = re.compile(
     r"""<script\b[^>]*\bsrc\s*=\s*["']?(?:https?:)?//""", re.IGNORECASE
 )
 
+# The directory's policy for a publisher that is not a Verified organization
+# (refusals of scikit-plots/skills 246d056: LOCAL_CODE_FILE_TYPE,
+# LOCAL_CODE_FRONTMATTER_KEY; LAUNCHER_REGISTRY_REDIRECT). Anthropic does not
+# publish the lists; these are the values the refusals name and the keys known
+# to be accepted, so a build that passes here can still be refused, never the
+# reverse.
+#: File types accepted from any publisher: Markdown, text, JSON, YAML, images.
+ALLOWED_SUFFIXES = (
+    ".md", ".txt", ".json", ".yaml", ".yml", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
+)
+#: Files accepted by name whatever their suffix ("a license ... and .gitignore").
+ALLOWED_NAMES = ("LICENSE", ".gitignore")
+#: Frontmatter keys of a skill, agent, command or output style, as one line of text.
+COMPONENT_KEYS = ("name", "description")
+#: Package-manager configuration files (a registry, index, proxy or cache source).
+PACKAGE_CONFIG = frozenset(
+    {
+        ".npmrc", ".yarnrc", ".yarnrc.yml", "bunfig.toml", "pnpm-workspace.yaml",
+        "pip.conf", "pip.ini", "uv.toml", "poetry.toml", ".pypirc", ".condarc",
+        "config.json",
+    }
+)
+#: Text that changes a package manager's configuration, sets an index,
+#: registry, link page or VCS/URL source (``-i``, ``--index``, ``-f``,
+#: ``--find-links``, ``name @ git+...``), or names one of its configuration
+#: files or ``VIRTUAL_ENV``. "The directory resolves pins from the public
+#: registry only"; a git URL also runs whatever its branch holds that day.
+PACKAGE_SOURCE = re.compile(
+    r"(?i)\b(?:npm|pnpm|yarn|bun|pip|uv|conda) config (?:set|edit)\b"
+    r"|--(?:extra-)?index-url\b|--registry\b|--trusted-host\b"
+    r"|--index\b|--find-links\b|(?<!\S)-[if]\s+(?:https?://|file:)"
+    r"|(?<![\w.+-])(?:git|hg|svn|bzr)\+(?:https?|ssh|git|file)://"
+    r"|\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|VIRTUAL_ENV)\b"
+    r"|(?<![\w.-])(?:" + "|".join(re.escape(n) for n in sorted(PACKAGE_CONFIG)) + r")\b"
+)
+_TOP_KEY = re.compile(r"([A-Za-z0-9_-]+):(.*)")
+_LIST_ITEM = re.compile(r"\s+-\s+(\S.*)")
+
 
 def _records():
     spec = importlib.util.spec_from_file_location(
@@ -142,6 +182,79 @@ def check_version(version: str) -> str:
             " the released plugin describes a scikit-plots release (Rule 166)"
         )
     return version
+
+
+def _split_frontmatter(rel: str, text: str) -> tuple[list[str], str]:
+    """Return the frontmatter lines and the body of a component file."""
+    if not text.startswith("---\n") or "\n---\n" not in text[3:]:
+        raise ValueError(f"{rel}: no closed YAML frontmatter")
+    end = text.index("\n---\n", 3)
+    return text[4:end].split("\n"), text[end + 5 :]
+
+
+def community_component(rel: str, text: str) -> str:
+    """
+    Return a skill or agent file as the directory accepts it from any publisher.
+
+    Parameters
+    ----------
+    rel : str
+        Path of the file in the plugin (``skills/<name>/SKILL.md`` or
+        ``agents/<name>.md``), for messages.
+    text : str
+        The file as generated in this repository.
+
+    Returns
+    -------
+    str
+        The same file with only ``name`` and ``description`` in its
+        frontmatter. An agent that preloaded its skill (``skills:``, Rule 165)
+        instead tells Claude to load it first.
+
+    Raises
+    ------
+    ValueError
+        When a kept key is not one line of text, or a preloading agent's body
+        does not have the generated "preloaded" line to rewrite.
+
+    Notes
+    -----
+    **Developer notes.** The repository keeps the full frontmatter
+    (``metadata.scikitplot-module`` maps a skill to its module for
+    ``check_records.py``; the development plugin preloads skills); only the
+    published tree is reduced. The rewrite is exact, so a change to the agent
+    template fails here instead of publishing an agent that contradicts itself.
+    """
+    head, body = _split_frontmatter(rel, text)
+    kept: dict[str, str] = {}
+    preload: list[str] = []
+    current = None
+    for line in head:
+        match = _TOP_KEY.fullmatch(line)
+        if match:
+            current = match.group(1)
+            if current in COMPONENT_KEYS:
+                kept[current] = line
+            continue
+        item = _LIST_ITEM.fullmatch(line)
+        if current == "skills" and item:
+            preload.append(item.group(1).strip().strip("\"'"))
+        elif current in COMPONENT_KEYS and line.strip():
+            raise ValueError(f"{rel}: '{current}' is not one line of text")
+    for key in COMPONENT_KEYS:
+        if not kept.get(key, "").partition(":")[2].strip():
+            raise ValueError(f"{rel}: '{key}' is missing or empty")
+    for skill in preload:
+        old = f"- Start from the preloaded `{skill}` skill."
+        if old not in body:
+            raise ValueError(f"{rel}: preloads {skill!r} but has no {old!r} line to rewrite")
+        body = body.replace(old, f"- Load the `{skill}` skill first; it lists what the module offers.")
+    return "---\n" + "\n".join(kept[k] for k in COMPONENT_KEYS) + "\n---\n" + body
+
+
+def published_license(name: str) -> str:
+    """Return the published name of ``LICENSES/<name>``: a ``.txt`` file when it has no accepted suffix."""
+    return name if Path(name).suffix.lower() in ALLOWED_SUFFIXES else name + ".txt"
 
 
 def render(source: Path, version: str | None) -> dict[str, bytes]:
@@ -186,14 +299,21 @@ def render(source: Path, version: str | None) -> dict[str, bytes]:
     for base in ("skills", "agents"):
         for path in sorted((plugin / base).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:
-                files[path.relative_to(plugin).as_posix()] = path.read_bytes()
+                rel = path.relative_to(plugin).as_posix()
+                data = path.read_bytes()
+                if re.fullmatch(r"skills/[^/]+/SKILL\.md|agents/[^/]+\.md", rel):
+                    data = community_component(rel, data.decode("utf-8")).encode("utf-8")
+                files[rel] = data
     files["README.md"] = (plugin / "README.md").read_bytes()
     files[ICON] = (source / ICON_SOURCE).read_bytes()
     files["LICENSE"] = (source / LICENSE_SOURCE).read_bytes()
     files[".gitignore"] = GITIGNORE.encode("utf-8")
     for path in sorted((source / LICENSES_SOURCE).iterdir()):
         if path.is_file():
-            files[f"LICENSES/{path.name}"] = path.read_bytes()
+            target = f"LICENSES/{published_license(path.name)}"
+            if target in files:
+                raise ValueError(f"{target}: two license files publish to this name")
+            files[target] = path.read_bytes()
     released = {
         "name": manifest["name"],
         "displayName": manifest.get("displayName", manifest["name"]),
@@ -331,6 +451,34 @@ def _check_files(out: Path) -> list[str]:
         if path.suffix.lower() in (".html", ".htm")
         and REMOTE_SCRIPT.search(path.read_text(encoding="utf-8", errors="replace"))
     )
+    for path in files:
+        rel = path.relative_to(out).as_posix()
+        data = path.read_bytes()
+        suffix = path.suffix.lower()
+        if path.name in PACKAGE_CONFIG:
+            errors.append(f"{rel}: a package manager's configuration file")
+        if path.name not in ALLOWED_NAMES and suffix not in ALLOWED_SUFFIXES:
+            errors.append(
+                f"{rel}: not Markdown, text, JSON, YAML or an image; refused from a"
+                " publisher that is not a Verified organization"
+            )
+        if data.startswith(b"#!"):
+            errors.append(f"{rel}: starts with #!")
+        if suffix in IMAGE_SUFFIXES:
+            continue
+        if b"\x00" in data:
+            errors.append(f"{rel}: holds a NUL byte")
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            errors.append(f"{rel}: not UTF-8 text")
+            continue
+        if not rel.startswith("LICENSE"):
+            errors.extend(
+                f"{rel}:{text.count(chr(10), 0, found.start()) + 1}: names a package"
+                f" source ({found.group(0)!r}); link to the package manager's instructions"
+                for found in PACKAGE_SOURCE.finditer(text)
+            )
     errors.extend(
         f"{name}: claude.ai refuses a top-level bin/, and the portal a .gitattributes"
         for name in ("bin", ".gitattributes")
@@ -408,6 +556,21 @@ def _check_components(out: Path) -> list[str]:
             )
         if not isinstance(front.get("description"), str) or not front["description"]:
             errors.append(f"{rel}: 'description' is not a single text value")
+    for base, pattern in (("skills", "*/SKILL.md"), ("agents", "*.md"), ("commands", "*.md"), ("output-styles", "*.md")):
+        for path in sorted((out / base).glob(pattern)):
+            rel = path.relative_to(out).as_posix()
+            try:
+                head, _ = _split_frontmatter(rel, path.read_text(encoding="utf-8"))
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+            keys = [m.group(1) for m in map(_TOP_KEY.fullmatch, head) if m]
+            extra = [k for k in keys if k not in COMPONENT_KEYS]
+            if extra or len(head) != len(keys):
+                errors.append(
+                    f"{rel}: frontmatter beyond one-line {' and '.join(COMPONENT_KEYS)}"
+                    f" ({', '.join(extra) or 'a multi-line value'})"
+                )
     errors.extend(
         f"agents/{agent.name}: no skill of this name"
         for agent in sorted((out / "agents").glob("*.md"))

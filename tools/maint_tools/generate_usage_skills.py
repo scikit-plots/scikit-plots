@@ -944,6 +944,63 @@ def module_api(module: str) -> dict:
     }
 
 
+#: The install guide. A skill links to it instead of naming another index, a
+#: git URL or a distribution that is not on PyPI (see :func:`_install_lines`).
+INSTALL_GUIDE = "https://scikit-plots.github.io/dev/install/installation.html"
+#: Its section on the single-part distributions and development builds.
+INSTALL_PARTS = INSTALL_GUIDE + "#installing-a-lightweight-version"
+
+
+def _install_lines(module: str, dists: Sequence[str]) -> List[str]:
+    """
+    Return the ``## Install`` section of a usage skill.
+
+    Parameters
+    ----------
+    module : str
+        Dotted module name, such as ``"scikitplot.corpus"``.
+    dists : sequence of str
+        The partial distributions that ship *module*; may be empty.
+
+    Returns
+    -------
+    list of str
+        Markdown lines, ending with a blank line.
+
+    Notes
+    -----
+    **Developer notes.** The only command is ``pip install scikit-plots``, the
+    one name this project holds on PyPI. A skill is read from the checkout's
+    version, which can be newer than that release; a module added since is
+    missing from it, so the text says so. The partial distributions are not
+    on PyPI, and an install from another index or from a git URL redirects
+    the package source, which the Claude directory refuses in a plugin
+    ("in documentation, link to the package manager's instructions instead");
+    both are therefore linked, not written, and the guide keeps the commands.
+    """
+    lines = ["## Install", "", "```sh", "pip install scikit-plots", "```", ""]
+    tail = f" or to install only `{dists[0]}`," if len(dists) == 1 else (
+        " or to install only one part (" + ", ".join(f"`{d}`" for d in dists) + "),"
+        if dists else ""
+    )
+    if module == "scikitplot":
+        # The package root is in every release; only its contents can differ.
+        text = (
+            "The release on PyPI can be older than the version this skill was"
+            " read from; a name below can be missing from it. For a development"
+            f" build, follow the [install guide]({INSTALL_GUIDE})."
+        )
+    else:
+        text = (
+            "The release on PyPI can be older than the version this skill was read"
+            f" from, and can lack `{module}`. If `import {module}` fails after"
+            f" installing it,{tail} follow the"
+            f" [install guide]({INSTALL_PARTS if dists else INSTALL_GUIDE})."
+        )
+    lines += textwrap.wrap(text, width=79, break_long_words=False, break_on_hyphens=False)
+    return lines + [""]
+
+
 def distributions_for(module: str) -> list[tuple[str, str]]:
     """Return ``(distribution, summary)`` for each partial distribution shipping *module*."""
     from scikitplot import _distributions
@@ -1022,10 +1079,7 @@ def render(
     ]
     if what:
         lines += [what, ""]
-    lines += ["## Install", "", "```sh", "pip install scikit-plots"]
-    for dist, _ in dists:
-        lines.append(f"pip install {dist}  # this part only")
-    lines += ["```", ""]
+    lines += _install_lines(module, [dist for dist, _ in dists])
     lines += [
         "## Before writing code",
         "",

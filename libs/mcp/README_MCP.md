@@ -11,13 +11,22 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-mcp
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-mcp @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-mcp
+pip install scikit-plots-skinny scikit-plots-mcp
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-mcp[mcp]"`: `mcp>=2.0.0,<3`, `pydantic>=2,<3`, `starlette>=0.40`
-- `pip install "scikit-plots-mcp[corpus]"`: `scikit-plots-corpus>=0.5.dev0`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-mcp[mcp] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp"`: `mcp>=2.0.0,<3`, `pydantic>=2,<3`, `starlette>=0.40`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-mcp[corpus] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp" "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"`: `scikit-plots-corpus>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_mcp` installs it too.
 

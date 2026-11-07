@@ -24,7 +24,12 @@ The full Scikit-Plots distribution already includes Rank-BM25::
 For a smaller installation that owns only the Rank-BM25 package and the
 Scikit-Plots core dependencies::
 
-    python -m pip install scikit-plots-rank-bm25
+    python -m pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" \
+        "scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25"
+
+It is not on PyPI yet: this builds it, with the core it depends on, from the
+repository (``git`` needed); the installation guide also gives the commands
+for the project's staging index.
 
 Do not install the full and partial distributions into the same environment;
 they own overlapping ``scikitplot`` package files.  See

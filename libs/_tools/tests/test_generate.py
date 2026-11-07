@@ -472,12 +472,23 @@ class TestOtherFiles:
 
     @pytest.mark.parametrize("package", registry.PACKAGES, ids=lambda p: p.distribution)
     def test_package_description_states_how_to_install_it(self, package):
+        """
+        The command comes from the distribution map, which names no part bare
+        while it is not on PyPI (the name there is unclaimed).
+        """
+        name = package.distribution
         text = generate.render_readme_package(package, MAP, META)
-        assert f"pip install {package.distribution}" in text
-        assert package.distribution.replace("-", "_") in text
+        assert MAP.pip_install([name]) in text
+        if name not in MAP.ON_PYPI:
+            # The staging pair, in one block and in order: its second command
+            # names the parts bare and is safe only after the first.
+            pair = "\n".join(MAP.staging_install([name]))
+            assert pair in text
+            assert f"\npip install {name}\n" not in text.replace(pair, "")
+        assert name.replace("-", "_") in text
         assert package.example.strip() in text
         for extra in package.extras:
-            assert f'"{package.distribution}[{extra}]"' in text
+            assert MAP.requirement(name, extras=(extra,)) in text
 
     @pytest.mark.parametrize("package", registry.PACKAGES, ids=lambda p: p.distribution)
     def test_directory_readme_lists_what_is_owned(self, package):

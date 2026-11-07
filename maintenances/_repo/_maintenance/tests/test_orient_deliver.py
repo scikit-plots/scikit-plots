@@ -54,6 +54,7 @@ def checkout(tmp_path):
     _note(tmp_path / "upcoming_changes/a/later.md", "open", "Later")
     _note(tmp_path / "upcoming_changes/a/now.md", "open", "Now")
     _note(tmp_path / "upcoming_changes/a/done.md", "promoted")
+    _note(tmp_path / "upcoming_changes/a/wait.md", "blocked", "Wait")
     (tmp_path / "upcoming_changes/README.md").write_text(
         "status: open\n", encoding="utf-8"
     )
@@ -83,8 +84,9 @@ class TestOrient:
         report = orient["state"](checkout)
         assert report["pr"] == "42"
         assert report["open_notes"] == [
-            {"path": "upcoming_changes/a/later.md", "title": "Later", "deferred": True},
-            {"path": "upcoming_changes/a/now.md", "title": "Now", "deferred": False},
+            {"path": "upcoming_changes/a/later.md", "title": "Later", "status": "open", "deferred": True},
+            {"path": "upcoming_changes/a/now.md", "title": "Now", "status": "open", "deferred": False},
+            {"path": "upcoming_changes/a/wait.md", "title": "Wait", "status": "blocked", "deferred": False},
         ]
         assert report["fragments"] == ["sec/42.fix.rst"]
         assert report["areas"] == [

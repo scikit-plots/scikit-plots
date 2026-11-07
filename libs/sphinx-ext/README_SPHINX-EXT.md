@@ -11,19 +11,28 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-sphinx-ext
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-sphinx-ext
+pip install scikit-plots-skinny scikit-plots-sphinx-ext
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-sphinx-ext[ai-assistant]"`: `beautifulsoup4`, `httpx`, `markdownify`
-- `pip install "scikit-plots-sphinx-ext[collection]"`: `pyyaml`, `sphinx-design`
-- `pip install "scikit-plots-sphinx-ext[feedback]"`: `httpx`
-- `pip install "scikit-plots-sphinx-ext[gallery-grid]"`: `sphinx-design`
-- `pip install "scikit-plots-sphinx-ext[gallery-jupyterlite]"`: `sphinx-gallery`
-- `pip install "scikit-plots-sphinx-ext[llm]"`: `sphinx-markdown-builder`
-- `pip install "scikit-plots-sphinx-ext[youtube-gallery]"`: `defusedxml`, `pyyaml`
-- `pip install "scikit-plots-sphinx-ext[proxy]"`: `cryptography`, `fastapi`, `httpx`, `huggingface_hub`, `pandas`, `redis`, `starlette`, `tomli; python_version < "3.11"`, `typing_extensions`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[ai-assistant] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `beautifulsoup4`, `httpx`, `markdownify`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[collection] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `pyyaml`, `sphinx-design`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[feedback] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `httpx`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[gallery-grid] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `sphinx-design`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[gallery-jupyterlite] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `sphinx-gallery`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[llm] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `sphinx-markdown-builder`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[youtube-gallery] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `defusedxml`, `pyyaml`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-sphinx-ext[proxy] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext"`: `cryptography`, `fastapi`, `httpx`, `huggingface_hub`, `pandas`, `redis`, `starlette`, `tomli; python_version < "3.11"`, `typing_extensions`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_sphinx_ext` installs it too.
 

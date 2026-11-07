@@ -32,6 +32,7 @@ from typing import Any, Mapping, TextIO
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, build_opener
 
+from .._distributions import install_hint
 from ._capabilities import (  # SDK-free (no pydantic)
     server_capabilities,
     server_runtime_status,
@@ -694,7 +695,7 @@ def _build_corpus_annoy_retriever(config: RuntimeConfig):
             # reports the same absence as an unavailable capability.
             raise SystemExit(
                 "--corpus-annoy needs scikitplot.corpus, which is not installed. "
-                "Install it with: pip install scikit-plots-corpus"
+                f"Install it with: {install_hint('scikitplot.corpus')}"
             ) from exc
 
         kwargs["embedder"] = HashEmbedder(dimension=config.hash_dimension)

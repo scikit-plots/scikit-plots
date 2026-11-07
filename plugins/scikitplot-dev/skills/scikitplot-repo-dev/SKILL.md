@@ -1,6 +1,6 @@
 ---
 name: scikitplot-repo-dev
-description: Measure, analyse and compare where scikit-plots test runs spend time and memory, and how fast the package itself is (benchmarks/), locally, offline and in CI. Use when tests or CI shards are slow or time out, when a profile, a benchmark result or a CI artifact (coverage-*.zip, test-perf.zip, benchmarks-on-demand.zip, a .prof, junit.xml) must be analysed, when a speed-up must be proved before and after, or when performance work continues from a fresh chat.
+description: Measure, analyse and compare where scikit-plots test runs spend time and memory, and how fast the package itself is (benchmarks/), locally, offline and in CI; and install, build and advise on the partial distributions under libs/ (scikit-plots-skinny, -corpus, ...), which are not on PyPI. Use when tests or CI shards are slow or time out, when a profile, a benchmark result or a CI artifact (coverage-*.zip, test-perf.zip, benchmarks-on-demand.zip, a .prof, junit.xml) must be analysed, when a speed-up must be proved before and after, when a partial distribution must be installed (checkout, GitHub or the staging index) or its install advice changed, or when this work continues from a fresh chat.
 metadata:
   scikitplot-mirror: "_repo"
 ---
@@ -113,6 +113,52 @@ python .github/scripts/ci_bench.py compare base.json head.json            # make
   test time. `SKPLT_TEST_GC=frozen` removes most of it (section 8), at the
   cost described in `_FreezeSurvivors`; it is opt-in until a CI run proves it.
 
+## Partial distributions (`libs/`): install and advise
+
+The parts (`scikit-plots-skinny`, `-corpus`, `-rank-bm25`, ...) are not on
+PyPI, and their names there are unclaimed. Every part depends on
+`scikit-plots-skinny`. A command that lets pip look a part up on an index
+this project does not control installs whatever another party publishes
+under that name, so no command does.
+
+- **Source of truth**: `scikitplot/_distributions.py`: `ON_PYPI` (today only
+  `scikit-plots`), `REPOSITORY`, `REPOSITORY_REF`, `STAGING_INDEX`, and
+  `requirement`, `pip_install`, `staging_install`, `install_hint`. Runtime
+  messages, `doctor`, the `libs/` READMEs (`python -m libs._tools generate`)
+  and the docs use them; never write a part's install command by hand.
+- **From this checkout** (development): `pip install ./libs/skinny ./libs/corpus`.
+- **From GitHub** (one command, `git` needed; the core is named, so pip does
+  not look it up):
+
+  ```bash
+  pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" \
+    "scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"
+  ```
+
+- **From the staging index** (development builds; it holds no third-party
+  package): the project's packages from it without dependencies, then their
+  dependencies from PyPI. The second command finds the parts satisfied and
+  resolves no project name:
+
+  ```bash
+  pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-corpus
+  pip install scikit-plots-skinny scikit-plots-corpus
+  ```
+
+- **Never**: a part by its bare name, `-i <staging>` in one command (no NumPy
+  there), or `--extra-index-url` (pip takes a project name from whichever
+  index offers the higher version).
+- An extra that needs another part names it: `scikit-plots-mcp[corpus]` with
+  `scikit-plots-corpus`.
+- The published usage plugin (`plugins/scikitplot`) carries none of these:
+  the Claude directory refuses another index or a git URL in a plugin
+  (`tools/maint_tools/build_skills_repo.py` enforces it). Its skills say
+  `pip install scikit-plots` and link the install guide.
+- **When a part reaches PyPI**: add its name to `ON_PYPI`, then run
+  `python -m libs._tools generate` and the tests below; every command then
+  names it bare. Open note:
+  `upcoming_changes/scikitplot/_distributions/unpublished-partial-install-lines.md`.
+
 ## Record the work
 
 Plan and results go to the owner's `todo/todo.md` (CI and tooling:
@@ -127,4 +173,6 @@ python -m unittest discover -s .github/scripts/tests -p "test_*.py"
 python -m pytest scikitplot/_testing/tests/test__perf_telemetry.py scikitplot/tests/test_conftest_gc_policy.py -p no:cacheprovider
 python .github/scripts/ci_bench.py run --quick --out build/bench/smoke.json
 python -B maintenances/_repo/_maintenance/tools/check_records.py
+python -m pytest scikitplot/tests/test__distributions.py scikitplot/_cli/tests -p no:cacheprovider
+python -B -m libs._tools check
 ```

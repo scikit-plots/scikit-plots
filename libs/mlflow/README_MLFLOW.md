@@ -11,12 +11,21 @@ It is pure Python: no compiler is needed to install it.
 ## Install
 
 ```sh
-pip install scikit-plots-mlflow
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-mlflow @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-mlflow
+pip install scikit-plots-skinny scikit-plots-mlflow
 ```
 
 Optional extras:
 
-- `pip install "scikit-plots-mlflow[mlflow]"`: `mlflow`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-mlflow[mlflow] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow"`: `mlflow`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_mlflow` installs it too.
 

@@ -15,8 +15,10 @@ Notes
 **User notes.** The first command of a new chat, whoever or whatever runs
 it. It lists, from the files in this checkout and nothing else:
 
-* the open ledger: every note under ``upcoming_changes/`` whose front matter
-  says ``status: open``, marked ``deferred`` when the start template defers it;
+* the open ledger: every note under ``upcoming_changes/`` that still needs
+  work (``status`` ``open``, ``planned``, ``in-progress`` or ``blocked``, the
+  ledger README's lifecycle; ``promoted`` is done), with its status when it
+  is not ``open``, marked ``deferred`` when the start template defers it;
 * the release-note fragments already filed for the pull request;
 * per maintenance area, how many findings ``REVIEW.json`` holds and the next
   free id of each id series, and the first lines of ``RESUME.md``'s
@@ -72,6 +74,9 @@ _PR_LINE = re.compile(
 )
 _PATH = re.compile(r"`(upcoming_changes/[^`]+\.md)`")
 _STATUS = re.compile(r"^status:\s*([A-Za-z_-]+)\s*$", re.MULTILINE)
+#: Ledger statuses that still need work (upcoming_changes/README.md). A
+#: ``blocked`` note waits on named evidence; hiding it would hide that wait.
+_ACTIVE = ("open", "planned", "in-progress", "blocked")
 _TITLE = re.compile(r"^title:\s*\"?(.*?)\"?\s*$", re.MULTILINE)
 _ID = re.compile(r"^(?P<prefix>.*?)(?P<number>\d+)$")
 _SKIP_NOTES = frozenset({"README.md", "TEMPLATE.md"})
@@ -137,7 +142,7 @@ def template_settings(root: Path) -> tuple[str | None, list[str]]:
 
 def open_notes(root: Path, deferred: list[str]) -> list[dict]:
     """
-    Return every open note under ``upcoming_changes/``, sorted by path.
+    Return every note under ``upcoming_changes/`` that still needs work, by path.
 
     Parameters
     ----------
@@ -149,8 +154,8 @@ def open_notes(root: Path, deferred: list[str]) -> list[dict]:
     Returns
     -------
     list of dict
-        ``path``, ``title`` and ``deferred`` for each note whose front matter
-        has ``status: open``.
+        ``path``, ``title``, ``status`` and ``deferred`` for each note whose
+        front matter has a status in ``_ACTIVE``.
     """
     notes = []
     for path in sorted((root / "upcoming_changes").rglob("*.md")):
@@ -158,7 +163,7 @@ def open_notes(root: Path, deferred: list[str]) -> list[dict]:
             continue
         head = path.read_text(encoding="utf-8").split("\n---", 1)[0]
         status = _STATUS.search(head)
-        if not status or status.group(1) != "open":
+        if not status or status.group(1) not in _ACTIVE:
             continue
         rel = path.relative_to(root).as_posix()
         title = _TITLE.search(head)
@@ -166,6 +171,7 @@ def open_notes(root: Path, deferred: list[str]) -> list[dict]:
             {
                 "path": rel,
                 "title": title.group(1) if title else "",
+                "status": status.group(1),
                 "deferred": rel in deferred,
             }
         )
@@ -376,7 +382,10 @@ def render(report: dict) -> str:
     """Return the report as plain text."""
     lines = [f"pull request: {report['pr']}", "", "open ledger:"]
     for note in report["open_notes"]:
-        mark = " (deferred)" if note["deferred"] else ""
+        marks = ([] if note["status"] == "open" else [note["status"]]) + (
+            ["deferred"] if note["deferred"] else []
+        )
+        mark = f" ({', '.join(marks)})" if marks else ""
         lines.append(f"  {note['path']}{mark}")
     lines += ["", f"fragments for {report['pr']}:"]
     lines += [f"  {one}" for one in report["fragments"]] or ["  (none)"]

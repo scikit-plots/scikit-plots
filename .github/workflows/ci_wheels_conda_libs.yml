@@ -204,7 +204,7 @@ jobs:
           - [ubuntu-22.04, manylinux, x86_64, "", required]
           - [ubuntu-24.04-arm, manylinux, aarch64, "", required]
           - [macos-15-intel, macosx, x86_64, "10.15", required]
-          - [macos-14, macosx, arm64, "11.0", required]
+          - [macos-15, macosx, arm64, "11.0", required]  # macos-14 retired 2026-11-02
           - [windows-2022, win, AMD64, "", required]
           # Not built anywhere yet. The test step installs NumPy and
           # scikit-learn for the platform; where no wheel of them exists for

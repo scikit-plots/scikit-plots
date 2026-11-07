@@ -49,6 +49,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._distributions import install_hint
+
 __all__ = [
     "CANCELLED",
     "DEGRADED",
@@ -329,7 +331,7 @@ def to_corpus_status(status: str) -> Any:
         raise RuntimeError(
             "scikitplot.corpus is required to map MCP retrieval statuses onto "
             "RetrievalStatus and is not installed "
-            "(pip install scikit-plots-corpus)."
+            f"({install_hint('scikitplot.corpus')})."
         ) from exc
     return RetrievalStatus(status)
 

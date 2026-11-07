@@ -1,0 +1,7 @@
+- Installation guide, :ref:`installing-a-lightweight-version`: each git command
+  for a single part now installs ``scikit-plots-skinny`` with it, as a quoted
+  ``"name @ git+..."`` requirement. A part alone failed with "No matching
+  distribution found for scikit-plots-skinny", because its dependency on
+  ``scikit-plots-skinny`` was looked up on PyPI, where it is not published.
+  The section's label was also missing its colon, so links to it did not
+  resolve.

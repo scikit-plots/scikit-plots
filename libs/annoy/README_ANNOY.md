@@ -11,7 +11,16 @@ It contains 2 compiled extensions. Wheels need no compiler; building from source
 ## Install
 
 ```sh
-pip install scikit-plots-annoy
+pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-annoy @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy"
+```
+
+Not on PyPI yet: the command above builds it from the repository
+(`git` needed). The project's staging index serves development builds;
+take the project's packages from it, then their dependencies from PyPI:
+
+```sh
+pip install --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple --no-deps scikit-plots-skinny scikit-plots-annoy
+pip install scikit-plots-skinny scikit-plots-annoy
 ```
 
 Every spelling an installer accepts names the same project, so `scikit_plots_annoy` installs it too.

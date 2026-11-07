@@ -199,7 +199,6 @@
     - "plugins/scikitplot/skills/scikitplot-sphinx-ext/**/*"
     - "plugins/scikitplot/agents/scikitplot-sphinx-ext.md"
     - "docs/source/user_guide/_externals/**/*"
-    - "upcoming_changes/scikitplot/_externals/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals/**/*"
 
 "scikitplot/_sphinx_ext/_pydata_component_list":
@@ -245,7 +244,6 @@
     - "plugins/scikitplot-dev/skills/scikitplot-sphinx-feedback-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-sphinx-feedback-dev.md"
     - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_feedback/**/*"
-    - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_feedback/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_feedback/**/*"
 
 "scikitplot/_sphinx_ext/_sphinx_gallery_grid":
@@ -427,7 +425,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/config/**/*"
-    - "upcoming_changes/scikitplot/config/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.config/**/*"
 
 "scikitplot/corpus":
@@ -441,7 +438,6 @@
     - "plugins/scikitplot/agents/scikitplot-corpus.md"
     - "docs/source/user_guide/corpus/**/*"
     - "galleries/examples/corpus/**/*"
-    - "upcoming_changes/scikitplot/corpus/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.corpus/**/*"
 
 "scikitplot/cython":
@@ -701,7 +697,6 @@
     - "plugins/scikitplot/agents/scikitplot-rank-bm25.md"
     - "docs/source/user_guide/rank_bm25/**/*"
     - "galleries/examples/rank_bm25/**/*"
-    - "upcoming_changes/scikitplot/rank_bm25/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/**/*"
 
 "scikitplot/seaborn":

@@ -60,7 +60,8 @@ that increment (for round 33:
   record the full hash.
 - `.github/workflows/pr_check_citation.yml` existed (cffconvert action) and
   was first overwritten; restored and extended (lesson DOCS-L1).
-- Follow-ups: `upcoming_changes/scikitplot/config/runtime-citation-names-latest-only.md`;
+- Follow-ups: the runtime citation-names note was closed in PR 909 (removed;
+  release note `docs/source/whats_new/upcoming_changes/scikitplot.config/909.enhancement.rst`);
   the copied matplotlib `cache_zenodo_svg.py` was removed on 2026-11-04 (PR
   909): `citation_ref.py` renders and checks the `citing.rst` DOI list from
   `VERSION_DOIS` and `PREDECESSOR`;
