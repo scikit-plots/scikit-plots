@@ -52,3 +52,14 @@
 | `Tool(name: 'str', function: 'Callable[..., Any]', description: 'str' = '', parameters: 'Mapping[str, Any] \| No ...)` | class | One callable tool and the facts the gate chain decides on. |
 | `ToolEffect(value)` | enum | The kind of effect a tool has, which the policy permits or not. |
 | `Toolset(tools: 'Iterable[Tool]' = ()) -> 'None'` | class | The tools one agent may call, by name. |
+| `REDUCERS` | mappingproxy |  |
+| `Branch(name: 'str', tool: 'Tool', arguments: 'Any' = None) -> None` | class | One branch of a `FanOut`: a tool and its arguments. |
+| `Edge(source: 'str', target: 'str', when: 'Callable[..., bool] \| None' = None) -> None` | class | A transition from ``source`` to ``target``, taken when ``when`` is true. |
+| `FanOut(name: 'str', branches: 'tuple[Branch, ...]', mode: 'str' = 'ordered', max_workers: 'int \| None' = None, i ...)` | class | A node that calls several tools, then joins their results. |
+| `Finish(name: 'str', answer: 'Callable[..., Any] \| None' = None, on_rejected: 'str \| None' = None, max_visits: 'i ...)` | class | A node that ends the run with an answer. |
+| `StepSummary(node: 'str', outcome: 'StepOutcome', result: 'Any' = None, error_code: 'str \| None' = None) -> None` | class | What one recorded step came to, as a callback sees it. |
+| `Task(name: 'str', tool: 'Tool', arguments: 'Any' = None, into: 'str \| None' = None, update: 'Callable[..., Map ...)` | class | A node that calls one tool. |
+| `WorkflowBranchError(...)` | exception | A branch of a concurrent fan-out raised; the fan-out step failed. |
+| `WorkflowError(...)` | exception | A graph that cannot be built, or a run the graph cannot continue. |
+| `WorkflowGraph(start: 'str', nodes: 'Sequence[Any]', edges: 'Sequence[Edge]' = (), *, channels: 'Mapping[str, Any] \| Non ...)` | class | A checked, immutable workflow: nodes, edges and channels. |
+| `WorkflowView(goal: 'str', node: 'str \| None', channels: 'Mapping[str, Any]', visits: 'Mapping[str, int]', last: 'StepS ...)` | class | Where a run stands in its workflow, rebuilt from the recorded steps. |

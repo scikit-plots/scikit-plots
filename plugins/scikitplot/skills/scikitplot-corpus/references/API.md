@@ -301,11 +301,16 @@
 | `BudgetPolicy(max_iterations: 'int' = 4, max_retrieval_calls: 'int' = 8, max_subqueries: 'int' = 8, max_evidence_docume ...)` | class | Deterministic, decrementing limits on an investigation. |
 | `InvestigationOutcome(status: 'InvestigationStatus', stop_reason: 'StopReason', hits: 'tuple[Any, ...]' = (), signals: 'Suffici ...)` | class | The result of a bounded investigation. |
 | `InvestigationStatus(value)` | enum | How an investigation finished. |
-| `RoutePlan(legs: 'tuple[LegKind, ...]', reason: 'str') -> None` | class | A deterministic decision about which evidence paths to use. |
+| `RoutePlan(legs: 'tuple[LegKind, ...]', reason: 'str', shapes: 'tuple[str, ...]' = (), unavailable: 'tuple[LegKind,  ...)` | class | A deterministic decision about which evidence paths to use. |
 | `StopReason(value)` | enum | Why the loop stopped. |
 | `SufficiencySignals(retrieval_succeeded: 'bool', provenance_complete: 'bool', independent_evidence: 'int', required_entities_ ...)` | class | The seven deterministic signals, computed before any model judgement. |
-| `route(query: 'str', *, has_dense: 'bool' = True, has_graph: 'bool' = False) -> 'RoutePlan'` | function | Choose evidence paths by deterministic rule (autonomy level A1). |
+| `route(query: 'str', *, has_dense: 'bool' = True, has_graph: 'bool' = False, has_metadata: 'bool' = False, polic ...)` | function | Choose evidence paths by deterministic rule (autonomy level A1). |
 | `run_investigation(session: 'AgenticRetrievalSession', retrieve: 'Callable[[str], Any]', *, plan: 'RoutePlan \| None' = None, ...)` | function | Run the bounded retrieve/evaluate/refine loop (autonomy level A2). |
+| `DEFAULT_ROUTING_POLICY` | RoutingPolicy |  |
+| `QueryShape(value)` | enum | The built-in shapes of `DEFAULT_ROUTING_POLICY`. |
+| `RoutingPolicy(rules: 'tuple[RoutingRule, ...]' = ()) -> None` | class | An ordered set of `RoutingRule`, one per shape. |
+| `RoutingRule(shape: 'str', legs: 'tuple[LegKind, ...]', phrases: 'tuple[str, ...]' = (), matcher: 'Callable[[tuple[str ...)` | class | One shape: the words that reveal it and the evidence paths it needs. |
+| `query_tokens(query: 'str') -> 'tuple[str, ...]'` | function | Return the words a routing rule matches against. |
 | `ANNIndexArtifact(path: 'pathlib.Path', manifest: 'EmbeddingManifest', generation: 'IndexGeneration', doc_ids: 'tuple[str,  ...)` | class | A persisted vector index together with its provenance. |
 | `ArtifactError(...)` | exception | Raised when an artifact is missing, malformed or incompatible. |
 | `And(*clauses: 'Filter') -> 'None'` | class | All sub-expressions must match. |
@@ -337,7 +342,7 @@
 | `LogOddsFusedItem(key: 'str', probability: 'float', log_odds: 'float', contributions: 'tuple[LogOddsContribution, ...]') -> ...)` | class | One item of a probability-fused ranking. |
 | `LogOddsFusion(base_rate: 'float', weights: 'Mapping[str, float] \| tuple[tuple[str, float], ...]' = (), default_weight:  ...)` | class | Pool calibrated legs as log-odds evidence into probabilities of relevance. |
 | `LogOddsFusionResult(items: 'tuple[LogOddsFusedItem, ...]', evidence_correlation: 'dict[tuple[int, int], float \| None]', share ...)` | class | A fused ranking and the diagnostics needed to trust it. |
-| `ProbabilityFusion(policy: 'LogOddsFusion', calibrators: 'Mapping[str, Any]') -> None` | class | Opt-in probability fusion for hybrid search: a policy and a calibrator per leg. |
+| `ProbabilityFusion(policy: 'LogOddsFusion', calibrators: 'Mapping[str, Any]', scope: 'SecurityFilter \| None' = None) -> None` | class | Opt-in probability fusion for hybrid search: a policy and a calibrator per leg. |
 | `IndexGeneration(schema_version: 'str', embedding_manifest_id: 'str \| None', document_digest: 'str', backend: 'str \| None' ...)` | class | Identity of one built index. |
 | `derive_generation(documents: 'Iterable[Any]', *, backend: 'str \| None' = None, schema_version: 'str \| None' = None) -> 'Ind ...)` | function | Derive the generation identity for a set of documents. |
 | `IDENTITY_HEX_WIDTH` | int |  |

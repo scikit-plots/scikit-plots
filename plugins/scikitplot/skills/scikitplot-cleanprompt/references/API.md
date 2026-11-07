@@ -22,8 +22,10 @@
 | `RegexDetector(spec: 'PatternSpec') -> 'None'` | class | Detector backed by one entry of the pattern library. |
 | `default_registry(kinds: 'Iterable[str] \| None' = None, literal_terms: 'Iterable[str] \| None' = None, literal_kind: 'str' = ...)` | function | Build a registry from the pattern library, plus optional literal terms. |
 | `BlindSpot(category: 'str', reason: 'str', remedy: 'str', examples: 'tuple[str, ...]' = (), severity: 'str' = 'mediu ...)` | class | A category of sensitive information nothing currently detects. |
+| `CoverageRow(kind: 'str', pattern: 'bool', validated: 'bool', default_on: 'bool', pack_patterns: 'tuple[str, ...]', pa ...)` | class | What covers one detection kind, and what happens to its values. |
 | `Diagnosis(active_kinds: 'tuple[str, ...]', inactive_kinds: 'tuple[str, ...]', tiers: 'dict[str, Any]', blind_spots: ...)` | class | What a given configuration can and cannot detect. |
 | `Suggestion(text: 'str', count: 'int', reason: 'str', first_offset: 'int') -> None` | class | A candidate the active detectors did not claim. |
+| `coverage_matrix(policy: 'RedactionPolicy \| None' = None, catalog: 'Any \| None' = None) -> 'tuple[CoverageRow, ...]'` | function | Return one row per detection kind, derived from the live registries. |
 | `describe_outcome(result: 'RedactionResult', diagnosis: 'Diagnosis', suggestions: 'tuple[Suggestion, ...]' = ()) -> 'dict[s ...)` | function | Explain a redaction outcome, especially an empty one. |
 | `diagnose(policy: 'RedactionPolicy \| None' = None, registry: 'DetectorRegistry \| None' = None) -> 'Diagnosis'` | function | Report what a configuration can and cannot detect. |
 | `suggest_terms(text: 'str', result: 'RedactionResult \| None' = None, min_tokens: 'int' = 1, max_suggestions: 'int' = 40) ...)` | function | Offer candidate terms the active detectors did not claim. |
@@ -61,6 +63,7 @@
 | `reserved_label_spans(text: 'str', policy: 'RedactionPolicy') -> 'tuple[tuple[tuple[int, int], ...], set[str]]'` | function | Find substrings of ``text`` that already match the placeholder grammar. |
 | `resolve_spans(spans: 'Iterable[Span]', policy: 'RedactionPolicy' = RedactionPolicy(kinds=None, allow=(), tag_style=TagS ...)` | function | Reduce possibly overlapping spans to a disjoint, ascending sequence. |
 | `restore(text: 'str', vault: 'Vault', policy: 'RedactionPolicy \| None' = None, strict: 'bool' = False, lenient: 'b ...)` | function | Replace placeholders in ``text`` with the values held in ``vault``. |
+| `BlockedError(message: 'str', kinds: 'dict[str, int]') -> 'None'` | exception | The text holds a value of a kind whose action is ``block``; nothing was returned. |
 | `CapabilityError(message: 'str', tier: 'str', status: 'str', install_hint: 'str \| None' = None) -> 'None'` | exception | An optional tier is not usable in this environment. |
 | `CleanPromptError(...)` | exception | Base class for every error raised by `scikitplot.cleanprompt`. |
 | `DetectorError(message: 'str', detector: 'str') -> 'None'` | exception | A detector raised while scanning. |
@@ -68,6 +71,7 @@
 | `LimitExceededError(message: 'str', limit_name: 'str', limit: 'int', actual: 'int') -> 'None'` | exception | A policy limit was exceeded. |
 | `OverlapError(message: 'str', spans: 'tuple[tuple[int, int, str], tuple[int, int, str]]') -> 'None'` | exception | Two detections overlap under `STRICT`. |
 | `PatternError(message: 'str', name: 'str \| None' = None) -> 'None'` | exception | A detection pattern is uncompilable or structurally unsafe. |
+| `PatternTimeoutError(message: 'str', detector: 'str', pack: 'str', kind: 'str', seconds: 'float') -> 'None'` | exception | A custom pack pattern ran past the pattern time limit on one document. |
 | `PolicyError(...)` | exception | A `RedactionPolicy` is invalid. |
 | `RestorationError(message: 'str', labels: 'tuple[str, ...]') -> 'None'` | exception | A placeholder in the text cannot be restored from the supplied vault. |
 | `PATTERNS` | dict |  |
@@ -75,9 +79,11 @@
 | `default_patterns() -> 'tuple[PatternSpec, ...]'` | function | Return the patterns enabled when a policy does not name ``kinds``. |
 | `get_pattern(kind: 'str') -> 'PatternSpec'` | function | Return one pattern specification by kind. |
 | `luhn_ok(digits: 'str') -> 'bool'` | function | Return whether ``digits`` satisfies the Luhn checksum. |
+| `ACTIONS` | tuple |  |
 | `DEFAULT_LIMITS` | Limits |  |
 | `DEFAULT_POLICY` | RedactionPolicy |  |
 | `DEFAULT_TAG_STYLE` | TagStyle |  |
+| `Action(value)` | enum | What happens to a value of one kind once it is detected. |
 | `Limits(max_input_chars: 'int' = 1000000, max_spans: 'int' = 100000, max_entries: 'int' = 50000, max_literal_term ...)` | class | Hard bounds on one redaction pass. |
 | `OverlapStrategy(value)` | enum | How to arbitrate two detections that share characters. |
 | `RedactionPolicy(kinds: 'tuple[str, ...] \| None' = None, allow: 'tuple[str, ...]' = (), tag_style: 'TagStyle' = TagStyle(p ...)` | class | Complete, declarative configuration for a redaction pass. |

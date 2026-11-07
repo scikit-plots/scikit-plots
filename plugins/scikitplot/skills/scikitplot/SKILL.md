@@ -1,6 +1,6 @@
 ---
 name: scikitplot
-description: "Use scikitplot (scikit-plots) in any Python project. An intuitive library that seamlessly adds plotting capabilities and functionality to any model objects or outputs, compatible with tools like scikit-learn, XGBoost, TensorFlow, and more. Use when code imports scikitplot or needs LowLevelCallable, annotations, config_context, get_config, get_logger, online_help, set_config, show_config."
+description: "Use scikitplot (scikit-plots) in any Python project. An intuitive library that seamlessly adds plotting capabilities and functionality to any model objects or outputs, compatible with tools like scikit-learn, XGBoost, TensorFlow, and more. Use when code imports scikitplot or needs LowLevelCallable, annotations, citation, config_context, get_config, get_logger, online_help, set_config."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot"
@@ -36,6 +36,7 @@ Declared in `scikitplot.__all__`, in that order.
 |---|---|---|
 | `LowLevelCallable` | class | Low-level callback function. |
 | `annotations` | _Feature |  |
+| `citation` | function | Return a BibTeX citation of scikit-plots. |
 | `config_context` | function | Context manager for global scikit-plots configuration. |
 | `get_config` | function | Retrieve current values for configuration set by `set_config`. |
 | `get_logger` | function | Return SP (scikitplot) logger instance. |
@@ -47,19 +48,14 @@ Declared in `scikitplot.__all__`, in that order.
 
 All names with signatures: [references/API.md](references/API.md).
 
-## Example (from the docstring of `scikitplot.config_context`)
+## Example (from the docstring of `scikitplot.citation`)
 
 ```pycon
->>> import scikitplot
->>> from scikitplot.utils.validation import assert_all_finite
->>> with scikitplot.config_context(assume_finite=True):
-...     assert_all_finite([float("nan")])
->>> with scikitplot.config_context(assume_finite=True):
-...     with scikitplot.config_context(assume_finite=False):
-...         assert_all_finite([float("nan")])
-Traceback (most recent call last):
-...
-ValueError: Input contains NaN...
+>>> from scikitplot.config import citation
+>>> citation() == citation("all")
+True
+>>> citation("build").startswith("@software{scikit-plots_v")
+True
 ```
 
 ## Skills for the parts of scikit-plots
