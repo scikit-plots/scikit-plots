@@ -95,6 +95,24 @@ The workflow step also refuses text that changes a package manager's
 configuration, sets an index or registry, or names its configuration files
 or `VIRTUAL_ENV`, so such text fails CI instead of the directory.
 
+Not confirmed: `05d1ab6` (built from `70d915bf`, PR 910) still reports
+`LAUNCHER_REGISTRY_REDIRECT` on the same file, although its example block no
+longer holds a URL, `./data/`, a README path, prose or a `+SKIP` line. PR 910
+stands on its own merits (a skill shows only executed examples), but it is
+not the cause of this finding. Remaining corpus-only content: the
+`references/API.md` of the skill folder (downloaders with `input_url` and
+`output_path: Path | None = None`; `CachePolicy(unpinned=...)` and
+`DEFAULT_CACHE_DIR` for Hugging Face Hub models) and the Public API rows of
+`SKILL.md`. Next step: one portal Validate round on an ablation probe (one
+plugin folder per removed part of the skill, plus the published tree as a
+control) to name the part before any further change; no fix is made on a
+guess.
+
+Also found, not a directory finding: every `pip install scikit-plots-<part>`
+line in the usage skills names a distribution that is not on PyPI yet (all
+nine return 404), so the instruction fails today and the names are
+unclaimed.
+
 ## Expected behavior
 
 The build passes the portal's **Validate** with no blocking finding, and

@@ -187,8 +187,10 @@ jobs:
           # MACOSX_DEPLOYMENT_TARGET Needed for full C++17 support on macOS >= macOS 10.14
           - [macos-15-intel, macosx, x86_64, openblas, "10.15"]
           - [macos-15-intel, macosx, x86_64, accelerate, "14.0"]
-          - [macos-14, macosx, arm64, openblas, "12.3"]
-          - [macos-14, macosx, arm64, accelerate, "14.0"]
+          # macos-14 was retired on 2026-11-02 (github.blog changelog 2026-10-01);
+          # macos-15 is the pinned arm64 replacement (macos-latest moves).
+          - [macos-15, macosx, arm64, openblas, "12.3"]
+          - [macos-15, macosx, arm64, accelerate, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
           - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
         python: [  # matrix.python[0]
@@ -487,7 +489,7 @@ jobs:
         if: startsWith( matrix.buildplat[0], 'macos-' )
         run: |
           ## Needed due to https://github.com/actions/runner-images/issues/3371
-          ## Supported versions: https://github.com/actions/runner-images/blob/main/images/macos/macos-14-arm64-Readme.md
+          ## Supported versions: https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md
           echo "FC=gfortran-13" >> "$GITHUB_ENV"
           echo "F77=gfortran-13" >> "$GITHUB_ENV"
           echo "F90=gfortran-13" >> "$GITHUB_ENV"
@@ -511,7 +513,7 @@ jobs:
           fi
           echo "✅ Selected Xcode version: $XCODE_VER"
           # [[ -z "$XCODE_VER" ]] || echo "❌ No Xcode installations found in /Applications"
-          # matrix.buildplat[4] → (macos-13/macos-15-intel 10.14, 14.0) (macos-14 12.3, 14.0)
+          # matrix.buildplat[4] → (macos-15-intel 10.15, 14.0) (macos-15 arm64 12.3, 14.0)
           #          XCODE_VER='16.0'
           #          CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
           #          echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
@@ -558,7 +560,9 @@ jobs:
           ## This results in wheels that have 12_3 in their name. Since Python
           ## has no concept of minor OS versions in packaging land rename the
           ## wheel back to 12.
-          if [[ ${{ matrix.buildplat[0] }} == 'macos-14' && ${{ matrix.buildplat[4] }} == '12.3' ]]; then
+          ## Keyed on the wheel (arm64, OpenBLAS, 12.3), not on the runner label,
+          ## so a runner migration cannot silently skip the rename.
+          if [[ '${{ matrix.buildplat[2] }}' == 'arm64' && '${{ matrix.buildplat[3] }}' == 'openblas' && '${{ matrix.buildplat[4] }}' == '12.3' ]]; then
             CIBW+=" && echo \$(ls {dest_dir}) && \
             mv {dest_dir}/*.whl \$(find {dest_dir} -type f -name '*.whl' | sed 's/12_3/12_0/')"
           fi
