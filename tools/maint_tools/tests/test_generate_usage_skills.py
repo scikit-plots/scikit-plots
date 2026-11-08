@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -56,24 +57,20 @@ class TextTests(unittest.TestCase):
         )
         self.assertEqual(MODULE._examples(doc), ">>> # Load the data\n>>>\n>>> x = 1\n>>> x\n1")
 
-    def test_install_names_only_the_pypi_distribution(self):
-        """A partial distribution is not on PyPI: it is linked, never installed."""
-        text = "\n".join(MODULE._install_lines("scikitplot.corpus", ["scikit-plots-corpus"]))
-        commands = [l for l in text.splitlines() if l.startswith("pip ")]
-        self.assertEqual(commands, ["pip install scikit-plots"])
-        self.assertIn("`scikit-plots-corpus`", text)
-        self.assertIn(f"({MODULE.INSTALL_PARTS})", text)
-        for redirect in (" -i ", "--index", "git+", "--find-links"):
-            self.assertNotIn(redirect, text)
-
-    def test_install_for_a_module_without_a_part_links_the_guide(self):
-        text = "\n".join(MODULE._install_lines("scikitplot.api", []))
-        self.assertIn(f"({MODULE.INSTALL_GUIDE})", text)
-        self.assertNotIn("only one part", text)
-        self.assertNotIn("to install only", text)
+    def test_install_never_redirects_the_package_manager(self):
+        """Only PyPI and pip are linked: no other index, git URL or unpublished name."""
+        for module in ("scikitplot", "scikitplot.corpus", "scikitplot.api"):
+            text = "\n".join(MODULE._install_lines(module))
+            commands = [l for l in text.splitlines() if l.startswith("pip ")]
+            self.assertEqual(commands, ["pip install scikit-plots"], module)
+            links = re.findall(r"\]\((https?://[^)]+)\)", text)
+            self.assertEqual(links, [MODULE.PYPI_HISTORY, MODULE.PIP_GUIDE], module)
+            for redirect in (" -i ", "--index", "git+", "--find-links", "anaconda.org",
+                             "scikit-plots-corpus", "scikit-plots-skinny", "scikit-plots.github.io"):
+                self.assertNotIn(redirect, text, module)
 
     def test_the_package_root_is_never_said_to_be_missing(self):
-        text = "\n".join(MODULE._install_lines("scikitplot", []))
+        text = "\n".join(MODULE._install_lines("scikitplot"))
         self.assertNotIn("import scikitplot` fails", text)
         self.assertNotIn("can lack `scikitplot`", text)
 

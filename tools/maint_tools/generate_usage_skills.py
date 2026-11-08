@@ -944,14 +944,14 @@ def module_api(module: str) -> dict:
     }
 
 
-#: The install guide. A skill links to it instead of naming another index, a
-#: git URL or a distribution that is not on PyPI (see :func:`_install_lines`).
-INSTALL_GUIDE = "https://scikit-plots.github.io/dev/install/installation.html"
-#: Its section on the single-part distributions and development builds.
-INSTALL_PARTS = INSTALL_GUIDE + "#installing-a-lightweight-version"
+#: PyPI's page for the one name this project publishes there; its release
+#: history says which release first ships a module.
+PYPI_HISTORY = "https://pypi.org/project/scikit-plots/#history"
+#: pip's own instructions, for upgrading or pinning a release.
+PIP_GUIDE = "https://pip.pypa.io/en/stable/user_guide/"
 
 
-def _install_lines(module: str, dists: Sequence[str]) -> List[str]:
+def _install_lines(module: str) -> List[str]:
     """
     Return the ``## Install`` section of a usage skill.
 
@@ -959,43 +959,49 @@ def _install_lines(module: str, dists: Sequence[str]) -> List[str]:
     ----------
     module : str
         Dotted module name, such as ``"scikitplot.corpus"``.
-    dists : sequence of str
-        The partial distributions that ship *module*; may be empty.
 
     Returns
     -------
     list of str
         Markdown lines, ending with a blank line.
 
+    See Also
+    --------
+    render : The caller that assembles the full ``SKILL.md``.
+
     Notes
     -----
-    **Developer notes.** The only command is ``pip install scikit-plots``, the
-    one name this project holds on PyPI. A skill is read from the checkout's
-    version, which can be newer than that release; a module added since is
-    missing from it, so the text says so. The partial distributions are not
-    on PyPI, and an install from another index or from a git URL redirects
-    the package source, which the Claude directory refuses in a plugin
-    ("in documentation, link to the package manager's instructions instead");
-    both are therefore linked, not written, and the guide keeps the commands.
+    **User notes.** The section installs ``scikit-plots`` from PyPI and, when
+    a module is missing from that release, points to PyPI's release history
+    and pip's own instructions; nothing else is installed.
+
+    **Developer notes.** The Claude plugin directory refuses a skill that
+    sends the package manager anywhere but its default registry
+    (``LAUNCHER_REGISTRY_REDIRECT``: "in documentation, link to the package
+    manager's instructions instead"). Linking this project's install guide did
+    not clear it, because the guide's route for a module missing from PyPI is a
+    staging index (``--index-url``) or a git URL; the link only moved the
+    redirect one click away. So a skill links only PyPI and pip. It also never
+    names a partial distribution (``scikit-plots-corpus`` and the like): those
+    names are not on PyPI, and an agent told to install one would ask PyPI for
+    a name anyone can register.
     """
     lines = ["## Install", "", "```sh", "pip install scikit-plots", "```", ""]
-    tail = f" or to install only `{dists[0]}`," if len(dists) == 1 else (
-        " or to install only one part (" + ", ".join(f"`{d}`" for d in dists) + "),"
-        if dists else ""
-    )
     if module == "scikitplot":
         # The package root is in every release; only its contents can differ.
         text = (
             "The release on PyPI can be older than the version this skill was"
-            " read from; a name below can be missing from it. For a development"
-            f" build, follow the [install guide]({INSTALL_GUIDE})."
+            " read from; a name below can be missing from it. The"
+            f" [release history on PyPI]({PYPI_HISTORY}) lists each release, and"
+            f" [pip's user guide]({PIP_GUIDE}) explains upgrading."
         )
     else:
         text = (
             "The release on PyPI can be older than the version this skill was read"
             f" from, and can lack `{module}`. If `import {module}` fails after"
-            f" installing it,{tail} follow the"
-            f" [install guide]({INSTALL_PARTS if dists else INSTALL_GUIDE})."
+            " installing it, the installed release predates the module: the"
+            f" [release history on PyPI]({PYPI_HISTORY}) lists each release, and"
+            f" [pip's user guide]({PIP_GUIDE}) explains upgrading."
         )
     lines += textwrap.wrap(text, width=79, break_long_words=False, break_on_hyphens=False)
     return lines + [""]
@@ -1048,7 +1054,6 @@ def render(
     dict
         Relative path inside the skill folder to file text.
     """
-    dists = distributions_for(module)
     names = [r["name"] for r in api["rows"]] or [c["module"].rsplit(".", 1)[-1] for c in api["children"]]
     path = module[len("scikitplot.") :].replace(".", "/")
     # The main tree of a partial distribution has a one-line summary written
@@ -1079,7 +1084,7 @@ def render(
     ]
     if what:
         lines += [what, ""]
-    lines += _install_lines(module, [dist for dist, _ in dists])
+    lines += _install_lines(module)
     lines += [
         "## Before writing code",
         "",

@@ -11,15 +11,19 @@ three bullet lines in this shape.
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `909`
-- Task for this chat: `continue the open ledger` (or name one note, finding,
-  submodule or "assemble the pull request")
+- Pull request number for new fragments: `912`
+- Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`
   - `upcoming_changes/docs/devel/rewrite-release-guide-from-copied-text.md`
   - `upcoming_changes/docs/devel/review-astropy-affiliated-language.md`
+  - `upcoming_changes/scikitplot/_distributions/unpublished-partial-install-lines.md` (blocked: needs PyPI publishing)
 - Decisions I have already taken (do not reopen them):
-  - (none yet, or list them here)
+  - The public usage plugin (`plugins/scikitplot`) names only `pip install scikit-plots` and links the install guide; never another index, a git URL or a partial distribution (directory policy; `build_skills_repo.validate` enforces it).
+  - Partial distributions are not on PyPI; every install command comes from `scikitplot/_distributions.py` (`ON_PYPI`, `pip_install`, `staging_install`): GitHub direct link with `scikit-plots-skinny` named, or the staging index in two steps (`--no-deps` from the index, then dependencies from PyPI). Never `-i` alone or `--extra-index-url`.
+  - The directory policy is applied in `build_skills_repo.py` (render + validate), not in the publish workflow.
+  - `LAUNCHER_REGISTRY_REDIRECT` on the corpus skill: no change on a guess; run the ablation probe in the portal first (note `claude-directory-refused-skills-build.md`, status blocked).
+  - macOS arm64 wheel jobs run on `macos-15` (pinned, not `macos-latest`).
 
 ---
 

@@ -126,7 +126,7 @@ assert reader.backend_reports[-1]["backend"] == "gallery-local-asr"
 
 # %%
 # Policy presets express orchestration, not reader semantics
-# ---------------------------------------------------------
+# ----------------------------------------------------------
 # ``offline`` forbids network and download side effects rather than equating
 # "may download" with "must download now".  A backend may participate when it
 # can enforce local-only execution; model-backed adapters can therefore use an

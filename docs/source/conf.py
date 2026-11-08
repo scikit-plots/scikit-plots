@@ -1131,11 +1131,18 @@ html_theme_options = {
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_sidebars
     # 0. Use a dictionary with glob patterns to customize sidebars per section:
     "secondary_sidebar_items": {
-        # Generated docs > On this page > Show Source
-        # Regular docs > On this page > Show Source
+        # Generated docs > On this page > Show Source, with "sourcelink"
+        # Regular docs > On this page > Show Source, with "sourcelink"
+        # 1. Global default fallback placed FIRST, for all other pages (API docs, user guides, index, etc.): use standard sourcelink
+        "**": [
+            "page-toc",
+            "edit-this-page",
+            "sourcelink",
+        ],
         # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
-        # 1. For all Sphinx-Gallery example pages: use gallery download & launcher links, no "sourcelink"
-        "auto_examples/**/*": [
+        # For all Sphinx-Gallery example pages: use gallery download & launcher links, no "sourcelink"
+        # 2. Specific folder override placed LAST (takes precedence)
+        "auto_examples/**": [
             "page-toc",
             # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
             # (recommended) Canonical Sphinx-Gallery components sidebar manually add
@@ -1155,15 +1162,14 @@ html_theme_options = {
             "sg_launcher_links",
             # *(["edit-this-page"] if "dev" in release else []),
             "edit-this-page",
-            # "sourcelink",  # cause doubling sg_download_links and sg_launcher_links
+            # "sourcelink",  # For sg cause doubling sg_download_links and sg_launcher_links
             # "funding_links",
         ],
-        # 2. For all other pages (API docs, user guides, index, etc.): use standard sourcelink
-        "**": [
-            "page-toc",
-            "edit-this-page",
-            "sourcelink",
-        ],
+        # Important Note on Warnings
+        # Even though ordering resolves which sidebar layout gets rendered,
+        # Sphinx will still print a build warning letting you know that pages in auto_examples/ match more than one pattern.
+        # Because standard Sphinx/Python globbing (fnmatch) does not support negative lookaheads or exclusion patterns (like !(auto_examples)/**),
+        # this overlap is unavoidable if you want a global fallback.
     },
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_show_sourcelink
     # -- Announcement ---------------------------------------------------------
