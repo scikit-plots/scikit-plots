@@ -1,0 +1,4 @@
+- :mod:`scikitplot.mlflow`: the module documentation's command-line example,
+  ``python -m scikitplot.mlflow --profile local --open-ui-seconds 5``, is now a
+  shell code block. It was written as a Python doctest line, which could not
+  run, and was copied as Python into the published ``scikitplot-mlflow`` skill.

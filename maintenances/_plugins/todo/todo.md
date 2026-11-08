@@ -94,4 +94,56 @@ verbatim under `../_maintenance/history/` (created with the first one).
   `poetry`, `check` is `ok ... unchanged`, `claude plugin validate .` passes.
 - The version warning is by design on `main`: submit with **Branch or tag**
   `stable` (MAINTAINING section 9).
-- [ ] Rerun the publish workflow on `main`, revalidate in the portal.
+- [x] Rerun the publish workflow on `main`, revalidate in the portal. Latest
+  (24af6c0, 2026-11-09): the hold remains and is with a reviewer ("Content
+  policy review"); its detail names two unrelated surfaces, Rule 77's
+  `{**os.environ, ...}` in `rules/portability.md` and the `scikitplot`
+  skill's example (`citation()`, which reads only local files). No change:
+  the finding says a reviewer confirms unrelated parts.
+
+## Task: CI-9 - the directory refused every build with LAUNCHER_REGISTRY_REDIRECT (2026-11-07 to 2026-11-09)
+
+- Observed: the directory refused 246d056, 35a80cf, 05d1ab6, f43b8bd,
+  8c8bd87, ae294df and 5b6faa3 (checked 7 to 9 Nov) with one blocking
+  finding, `LAUNCHER_REGISTRY_REDIRECT` ("Package registry redirected") on
+  `skills/scikitplot-corpus/SKILL.md`, each "no new findings, none fixed";
+  8aee837 had passed on 30 Oct with nearly the same file.
+- Root cause (Rule 170): the usage skills showed their docstring examples as
+  `pycon` transcripts; the directory reads skill code as commands, and
+  `>>> pipeline = f()` is a shell write to a file named `pipeline`. Why only
+  corpus was named is not proven: its example is the only one that also sets
+  `build_index=True` and calls `.source(...)`.
+- Not the cause, though each removed a real defect: the install text with a
+  staging index and an unpublished distribution (PR 912), the `<name>`
+  placeholder in a shell block (PR 913), another marketplace's install
+  commands in the README (PR 914), the icon (byte-identical in 8aee837).
+- Fix: PR 915, `generate_usage_skills._as_python` (examples as plain Python,
+  doctest's prompt rule, output as `# ` comments) and the `scikitplot.mlflow`
+  docstring's CLI line moved to a bash code block (Rule 54). Guard:
+  `build_skills_repo._check_code` refuses a code line that begins with `>`
+  outside Python and a `python` block that does not parse (Rule 170).
+- Evidence. Portal **Validate** (Rule 171 explains why it is not proof):
+
+  | Branch, one change on 5b6faa3 | Validate | Directory scan |
+  |---|---|---|
+  | `main` @ 5b6faa3 (control) | passed | refused |
+  | `probe/a-no-corpus-example` | passed | not run |
+  | `probe/b-plain-python-examples` (= PR 915) | passed | 24af6c0: passed, 1 fixed |
+  | `probe/c-no-corpus-api` | passed | not run |
+  | `probe/d-no-index-source` | passed | not run |
+
+  Validate and the scan read the same tree of 5b6faa3: 115 files in 52
+  folders, 710.5 kB. 24af6c0 differs from 5b6faa3 only inside the 20 example
+  blocks; `_check_code` refuses 178 lines of 5b6faa3 and none of 24af6c0.
+- Results: 24af6c0 "Compared with 5b6faa3: no new findings, 1 fixed"; it is
+  in review for the CI-8 hold. The ledger note
+  `upcoming_changes/tools/maint_tools/claude-directory-refused-skills-build.md`
+  is deleted (its acceptance criteria hold).
+- Open, for the maintainer: the submission tracks `main`, while Rule 166 and
+  section 9 of `../MAINTAINING.md` intend `stable`, which exists only after
+  the first release tag is built; change the tracked branch only when no
+  publish request waits and the plugin is not with a reviewer (Rule 171).
+- [ ] Delete the probe branches `probe/a-no-corpus-example`,
+  `probe/b-plain-python-examples`, `probe/c-no-corpus-api` and
+  `probe/d-no-index-source` in `scikit-plots/skills` (the session's GitHub
+  access could not).

@@ -45,16 +45,20 @@ is a byte comparison. Names and frontmatter are read with ``check_records.py``
 (loaded from its file), the same code that generated the plugin, so the two
 cannot disagree. :func:`validate` repeats the automated checks of
 https://claude.com/docs/plugins/pre-submission-checklist that a static tree
-can answer; the portal's **Validate** remains the authority.
+can answer. The authority is the directory's scan of a published commit, not
+the portal's **Validate**: Validate passed ``5b6faa3``, which the scan refused
+with ``LAUNCHER_REGISTRY_REDIRECT`` (Rule 171).
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib.util
 import json
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -105,10 +109,11 @@ REMOTE_SCRIPT = re.compile(
 
 # The directory's policy for a publisher that is not a Verified organization
 # (refusals of scikit-plots/skills 246d056: LOCAL_CODE_FILE_TYPE,
-# LOCAL_CODE_FRONTMATTER_KEY; LAUNCHER_REGISTRY_REDIRECT). Anthropic does not
-# publish the lists; these are the values the refusals name and the keys known
-# to be accepted, so a build that passes here can still be refused, never the
-# reverse.
+# LOCAL_CODE_FRONTMATTER_KEY; LAUNCHER_REGISTRY_REDIRECT, which 246d056 to
+# 5b6faa3 drew from `>>>` example transcripts, see _check_code). Anthropic
+# does not publish the lists; these are the values the refusals name and the
+# keys known to be accepted, so a build that passes here can still be refused,
+# never the reverse.
 #: File types accepted from any publisher: Markdown, text, JSON, YAML, images.
 ALLOWED_SUFFIXES = (
     ".md", ".txt", ".json", ".yaml", ".yml", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
@@ -138,6 +143,106 @@ PACKAGE_SOURCE = re.compile(
     r"|\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|VIRTUAL_ENV)\b"
     r"|(?<![\w.-])(?:" + "|".join(re.escape(n) for n in sorted(PACKAGE_CONFIG)) + r")\b"
 )
+#: An opening or closing code fence of a Markdown file, and its info string.
+_FENCE = re.compile(r"(`{3,}|~{3,})(.*)")
+#: Fence languages whose code is Python source; any other block is read as commands.
+PYTHON_FENCES = frozenset({"python", "python3", "py"})
+
+
+def _code_blocks(text: str) -> list[tuple[str, int, list[str]]]:
+    """
+    Return the fenced code blocks of a Markdown text.
+
+    Parameters
+    ----------
+    text : str
+        Markdown source.
+
+    Returns
+    -------
+    list of tuple of (str, int, list of str)
+        Per block: its language (the info string's first word, lowercase,
+        ``""`` when absent), the 1-based line number of its first code line,
+        and its code lines.
+
+    Notes
+    -----
+    **Developer notes.** A block closes at a line holding only the opening
+    fence's character, at least as many times (CommonMark); an unclosed block
+    runs to the end of the text. Fences are found after any indentation, so a
+    block inside a list item is read too.
+    """
+    blocks: list[tuple[str, int, list[str]]] = []
+    fence = ""
+    for number, line in enumerate(text.split("\n"), 1):
+        stripped = line.strip()
+        if not fence:
+            opened = _FENCE.fullmatch(stripped)
+            if opened:
+                fence = opened.group(1)
+                words = opened.group(2).split()
+                blocks.append((words[0].lower() if words else "", number + 1, []))
+        elif len(stripped) >= len(fence) and set(stripped) == {fence[0]}:
+            fence = ""
+        else:
+            blocks[-1][2].append(line)
+    return blocks
+
+
+def _check_code(rel: str, text: str) -> list[str]:
+    """
+    Return the code of a Markdown file that does not run as written.
+
+    Parameters
+    ----------
+    rel : str
+        Path of the file in the plugin, for messages.
+    text : str
+        The file's Markdown source.
+
+    Returns
+    -------
+    list of str
+        One entry per ``python`` block that does not parse with the Python 3.8
+        grammar, and per line of any other block that begins with ``>``.
+
+    Notes
+    -----
+    **User notes.** Write code in a skill as it runs: Python in a ``python``
+    block, with expected output as ``# `` comments; commands in a shell block,
+    never after a ``>>>`` prompt.
+
+    **Developer notes.** The directory reads skill code as commands. A doctest
+    line ``>>> pipeline = f()`` is ``>> > pipeline`` to a shell: a write to a
+    file named ``pipeline``, which the directory's policy treats as a possible
+    package-manager configuration and blocks (``LAUNCHER_REGISTRY_REDIRECT``,
+    on ``skills/scikitplot-corpus/SKILL.md`` from 246d056 to 5b6faa3; the next
+    build, whose only change was these examples, passed). A ``python`` block
+    is parsed instead of scanned, so a docstring that shows ``>>>`` inside
+    Python code passes, and a transcript or a shell command written as Python
+    fails (Rule 170).
+    """
+    errors: list[str] = []
+    for language, first, lines in _code_blocks(text):
+        if language in PYTHON_FENCES:
+            try:
+                ast.parse(textwrap.dedent("\n".join(lines)), feature_version=(3, 8))
+            except SyntaxError as exc:
+                errors.append(
+                    f"{rel}:{first + (exc.lineno or 1) - 1}: a python block that does"
+                    f" not parse as Python ({exc.msg}); write the code as it runs"
+                )
+            continue
+        errors.extend(
+            f"{rel}:{first + offset}: a code line that begins with '>', which a shell"
+            " reads as a write to a file (LAUNCHER_REGISTRY_REDIRECT); write the code"
+            " as it runs, Python in a python block"
+            for offset, line in enumerate(lines)
+            if line.lstrip().startswith(">")
+        )
+    return errors
+
+
 _TOP_KEY = re.compile(r"([A-Za-z0-9_-]+):(.*)")
 _LIST_ITEM = re.compile(r"\s+-\s+(\S.*)")
 
@@ -479,6 +584,8 @@ def _check_files(out: Path) -> list[str]:
                 f" source ({found.group(0)!r}); link to the package manager's instructions"
                 for found in PACKAGE_SOURCE.finditer(text)
             )
+        if suffix == ".md":
+            errors.extend(_check_code(rel, text))
     errors.extend(
         f"{name}: claude.ai refuses a top-level bin/, and the portal a .gitattributes"
         for name in ("bin", ".gitattributes")

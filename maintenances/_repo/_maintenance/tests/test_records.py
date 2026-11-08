@@ -872,7 +872,12 @@ class TestIndexTablesAndDisclosure:
         assert records["skills_with_programs"](ROOT, records["USAGE_SKILLS_DIR"]) == {}
         readme = (ROOT / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
         assert "Markdown only" in readme and "claude -p" not in readme
-        assert "skill-creator@claude-plugins-official" in readme
+        # PR 914: Anthropic's skill-creator is named and its install linked to
+        # Anthropic's plugin documentation, never given as the commands of a
+        # marketplace this plugin does not own.
+        assert "`skill-creator`" in readme
+        assert "(https://code.claude.com/docs/en/plugins)" in readme
+        assert "claude-plugins-official" not in readme
 
     def test_a_new_program_in_a_skill_makes_the_readme_stale(self, tree):
         script = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "tool.py"
