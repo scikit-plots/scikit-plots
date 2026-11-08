@@ -328,6 +328,8 @@ added at any ref of this repository, for Claude Code only:
    development build. The `icon` notice (`UNKNOWN_KEY_CROSS_TOOL`) needs no
    action. A policy hold that names a file the build does not make means the
    tree was not replaced whole; rerun the publish workflow (CI-8).
+   **Validate** does not run every policy check: a version it passes can still
+   be refused by the scan of the published commit (G15, Rule 171).
 3. Data handling: no personal data, nothing sent to other services, no
    retention, not aimed at people under 18 (the README states it).
 4. Keep "GitHub push webhook", then **Submit for review**. The repository
@@ -371,6 +373,8 @@ Never put keys or secrets in `.mcp.json`: every user receives the file.
 | G12 | Each enabled plugin adds context to every session (users' about 4,700 tokens) | Keep descriptions short; `claude plugin details` shows the cost |
 | G13 | The portal says "Couldn't validate that repository" for scikit-plots/scikit-plots | Expected: its `.gitattributes` and size; submit `scikit-plots/skills` ([section 9](#9-release-and-submit-to-anthropics-directory)) |
 | G14 | The publish job is skipped on a fork, on a branch other than `main` or `maintenance/*`, and on a dispatch with `publish` off | By design; push the ref to scikit-plots/scikit-plots, or dispatch with `publish` on ([section 9](#9-release-and-submit-to-anthropics-directory)) |
+| G15 | The portal's **Validate** passed 5b6faa3, which the directory's scan refused (CI-9) | Test a directory fix only through the scan: merge, let the publish workflow push, **Check for new commits**, and read "Compared with ...: N fixed"; Validate the refused commit first as a control (Rule 171) |
+| G16 | The directory reads skill code as commands: a `>>>` line is a shell write to a file | Code runs as written: Python in a `python` block without prompts, output as `# ` comments (`_as_python`); `build_skills_repo.py` refuses the rest (Rule 170) |
 
 ## 12. Troubleshooting
 
@@ -387,6 +391,9 @@ Never put keys or secrets in `.mcp.json`: every user receives the file.
 | `version '0.5.dev0' is not a release` | `build_skills_repo.py` given a development version | Build from a release tag with its version |
 | `the checkout's generated plugin is not current` | Built from a stale checkout | Regenerate there (TL;DR), or build from the tag |
 | `::notice::vX predates the released plugin` | The newest tag has no `build_skills_repo.py` (before 0.5.0) | Nothing to do until the next release |
+| Portal: `Package registry redirected` (`LAUNCHER_REGISTRY_REDIRECT`) on a skill | A code line the directory reads as a write to a file (a `>>>` transcript, CI-9), or a package source or configuration file | `build_skills_repo.py build` names the line (G16); then the scan, not Validate, confirms the fix (G15) |
+| `a code line that begins with '>'` | A transcript or a `>` line in a non-Python code block | Python in a `python` block without prompts; regenerate a usage skill ([section 3](#3-change-a-public-api-or-docstring)) |
+| `a python block that does not parse as Python` | A transcript, or a shell command, in a `python` block | Fix the docstring's `Examples` (Rule 54): a shell command goes in a `.. code-block:: bash` |
 
 ## 13. Review checklist for a pull request
 

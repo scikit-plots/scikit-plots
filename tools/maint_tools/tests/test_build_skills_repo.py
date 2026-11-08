@@ -306,6 +306,12 @@ class CommunityPolicyTests(unittest.TestCase):
             "skills/scikitplot/j.md": (b"pip install -f https://example.org/wheels x\n", "package source"),
             "skills/scikitplot/k.md": (b'pip install "x @ git+https://github.com/o/r.git@main#subdirectory=a"\n', "package source"),
             "skills/scikitplot/l.md": (b"pip install x@git+https://github.com/o/r.git@main\n", "package source"),
+            # 246d056..5b6faa3: doctest transcripts read as writes to files.
+            "skills/scikitplot/m.md": (b"```pycon\n>>> pipeline = make()\n```\n", "begins with '>'"),
+            "skills/scikitplot/n.md": (b"- list item\n\n  ```\n  >>> x = 1\n  ```\n", "begins with '>'"),
+            "skills/scikitplot/o.md": (b"```python\n>>> x = 1\n```\n", "does not parse"),
+            "skills/scikitplot/p.md": (b"```python\npython -m scikitplot.mlflow --open-ui-seconds 5\n```\n", "does not parse"),
+            "skills/scikitplot/q.md": (b"```python\nx := 1\n```\n", "does not parse"),
         }
         for rel, (data, message) in cases.items():
             with self.subTest(rel=rel):
@@ -321,6 +327,22 @@ class CommunityPolicyTests(unittest.TestCase):
             " https://github.com/o/r and `python -i script.py` and digit-i 3-i\n"
         )
         self.assertEqual(MODULE.validate(out, versioned=False), [])
+
+    def test_code_that_runs_as_written_passes(self):
+        """A prompt inside Python code, a blockquote and shell commands are not transcripts."""
+        out = self._built()
+        (out / "skills/scikitplot/r.md").write_text(
+            "> A blockquote is prose, not code.\n\n"
+            "```python\ndef f():\n    \"\"\"\n    >>> f()\n    1\n    \"\"\"\n    return 1\n"
+            "f()\n# 1\n```\n\n"
+            "```sh\npip install scikit-plots\npython -c \"import scikitplot\"\n```\n\n"
+            "```python\nif (n := 1) > 0:\n    pass\n```\n"
+        )
+        self.assertEqual(MODULE.validate(out, versioned=False), [])
+
+    def test_an_unclosed_fence_is_read_to_the_end(self):
+        self.assertEqual(MODULE._code_blocks("a\n```sh\n> x\n"), [("sh", 3, ["> x", ""])])
+        self.assertEqual(MODULE._code_blocks("````md\n```\n> x\n````\n"), [("md", 2, ["```", "> x"])])
 
     def test_an_extra_frontmatter_key_fails(self):
         out = self._built()

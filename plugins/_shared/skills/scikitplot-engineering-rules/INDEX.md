@@ -175,3 +175,5 @@ titles, then open the file that holds the rules you need.
 | 167 | Skills | two homes: records under `maintenances/`, what ships to Claude under `plugins/`; retired locations stay empty; a shared skill is copied, never referenced | [delivery.md](rules/delivery.md) |
 | 168 | Generated configuration | a generated file is a function of the source alone: render every text from facts, never from a format the interpreter, a library or the platform owns | [delivery.md](rules/delivery.md) |
 | 169 | Tests | a child pytest session in a temporary project loads no plugin it did not name | [testing.md](rules/testing.md) |
+| 170 | Skills | code in a published skill runs as written: Python in a `python` block without prompts, output as `# ` comments, and no line a shell reads as a redirect | [delivery.md](rules/delivery.md) |
+| 171 | Skills | a directory finding is reproduced and fixed against the directory's scan of a published commit, never against the portal's Validate alone | [delivery.md](rules/delivery.md) |

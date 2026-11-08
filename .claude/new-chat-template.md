@@ -19,10 +19,10 @@ three bullet lines in this shape.
   - `upcoming_changes/docs/devel/review-astropy-affiliated-language.md`
   - `upcoming_changes/scikitplot/_distributions/unpublished-partial-install-lines.md` (blocked: needs PyPI publishing)
 - Decisions I have already taken (do not reopen them):
-  - The public usage plugin (`plugins/scikitplot`) names only `pip install scikit-plots` and links the install guide; never another index, a git URL or a partial distribution (directory policy; `build_skills_repo.validate` enforces it).
+  - The public usage plugin (`plugins/scikitplot`) names only `pip install scikit-plots` and links PyPI's release history and pip's user guide; never another index, a git URL or a partial distribution (directory policy; `build_skills_repo.validate` enforces it).
   - Partial distributions are not on PyPI; every install command comes from `scikitplot/_distributions.py` (`ON_PYPI`, `pip_install`, `staging_install`): GitHub direct link with `scikit-plots-skinny` named, or the staging index in two steps (`--no-deps` from the index, then dependencies from PyPI). Never `-i` alone or `--extra-index-url`.
   - The directory policy is applied in `build_skills_repo.py` (render + validate), not in the publish workflow.
-  - `LAUNCHER_REGISTRY_REDIRECT` on the corpus skill: no change on a guess; run the ablation probe in the portal first (note `claude-directory-refused-skills-build.md`, status blocked).
+  - `LAUNCHER_REGISTRY_REDIRECT` (refused builds 246d056 to 5b6faa3) is closed: code in a published skill runs as written, examples as plain Python (Rule 170); a directory fix is proved by the directory's scan, not by Validate (Rule 171; `_plugins` CI-9).
   - macOS arm64 wheel jobs run on `macos-15` (pinned, not `macos-latest`).
 
 ---
@@ -179,6 +179,5 @@ pre-existing gate failure and any suite that could not run here, and draft
 the pull-request title and description ending with the AI-assistance line.
 The description has an "Effect on scikit-plots/skills" section: what the
 merge publishes there (from the build comparison in section 5), whether the
-usage skills were regenerated, and any open directory finding
-(`upcoming_changes/tools/maint_tools/claude-directory-refused-skills-build.md`
-while it is open).
+usage skills were regenerated, and any open directory finding (the tasks of
+`maintenances/_plugins/todo/todo.md`).

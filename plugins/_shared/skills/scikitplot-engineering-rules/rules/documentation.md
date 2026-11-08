@@ -13,9 +13,9 @@ free number (see [`../SKILL.md`](../SKILL.md)).
 
 ### Rule 54: Documentation - every example is executed before it is published
 - **When:** a guide page, README section or docstring shows a command or a call.
-- **Then:** run each one against the tree being delivered and compare the output; add a mechanical check where the class of error can recur (options per command).
+- **Then:** run each one against the tree being delivered and compare the output; add a mechanical check where the class of error can recur (options per command). A docstring's `Examples` hold Python that doctest can run; a shell command goes in a `.. code-block:: bash`, never on a doctest line.
 - **Verified by:** the round's notes list each page with "examples executed"; `test_documented_cli.py` passes.
-- **Added:** 2026-10-09. Root cause: executing the rewritten guide found `encode --pack-file` (`CP-101`, an option that never existed), `encode_tree(source)` without its required target, and `batch --dry-run --out` (refused) — two of them copied from the previous guide.
+- **Added:** 2026-10-09. Root cause: executing the rewritten guide found `encode --pack-file` (`CP-101`, an option that never existed), `encode_tree(source)` without its required target, and `batch --dry-run --out` (refused) — two of them copied from the previous guide. Amended 2026-11-09 (CI-9): the `scikitplot.mlflow` docstring wrote its command-line example as a doctest line, which could never run; it reached the published `scikitplot-mlflow` skill as Python and was found when that skill's example was compiled (Rule 170).
 
 ### Rule 126: Documentation - a towncrier fragment holds one top-level bullet, which an increment continues
 - **When:** an increment adds to an existing `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst` (all of round 33 shares PR 865).
