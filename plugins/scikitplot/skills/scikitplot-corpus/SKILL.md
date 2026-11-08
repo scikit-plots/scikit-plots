@@ -87,45 +87,45 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.corpus`)
 
-```pycon
->>> from pathlib import Path
->>> from scikitplot.corpus import CorpusPipeline, ParagraphChunker
->>> pipeline = CorpusPipeline(chunker=ParagraphChunker())
+```python
+from pathlib import Path
+from scikitplot.corpus import CorpusPipeline, ParagraphChunker
+pipeline = CorpusPipeline(chunker=ParagraphChunker())
 
->>> from scikitplot.corpus import SentenceChunker
->>> portable = SentenceChunker()
+from scikitplot.corpus import SentenceChunker
+portable = SentenceChunker()
 
->>> from scikitplot.corpus import CorpusBuilder, BuilderConfig
->>> builder = CorpusBuilder(
-...     BuilderConfig(
-...         chunker="paragraph",
-...         normalize=True,
-...         enrich=True,
-...         build_index=True,
-...     )
-... )
+from scikitplot.corpus import CorpusBuilder, BuilderConfig
+builder = CorpusBuilder(
+    BuilderConfig(
+        chunker="paragraph",
+        normalize=True,
+        enrich=True,
+        build_index=True,
+    )
+)
 
->>> from scikitplot.corpus import FluentCorpus
->>> fluent = FluentCorpus().chunker("paragraph").storage("memory")
->>> fluent.validate()
-[]
+from scikitplot.corpus import FluentCorpus
+fluent = FluentCorpus().chunker("paragraph").storage("memory")
+fluent.validate()
+# []
 
->>> from scikitplot.corpus import RuntimePolicy
->>> with fluent.materialize(policy=RuntimePolicy(allow_network=False)) as runtime:
-...     len(runtime.documents)
-0
+from scikitplot.corpus import RuntimePolicy
+with fluent.materialize(policy=RuntimePolicy(allow_network=False)) as runtime:
+    len(runtime.documents)
+# 0
 
->>> runtime_fluent = (
-...     FluentCorpus().source("article.txt").chunker("paragraph").storage("memory")
-... )
+runtime_fluent = (
+    FluentCorpus().source("article.txt").chunker("paragraph").storage("memory")
+)
 
->>> from scikitplot.corpus import DocumentReader
+from scikitplot.corpus import DocumentReader
 
->>> from scikitplot.corpus import EmbeddingEngine
+from scikitplot.corpus import EmbeddingEngine
 
->>> from scikitplot.corpus import HAMLET_TEXT, HashEmbedder, SimpleEnricherSpec
->>> HashEmbedder(dimension=32)([HAMLET_TEXT[:120]]).shape
-(1, 32)
->>> FluentCorpus().enricher(SimpleEnricherSpec()).validate()
-[]
+from scikitplot.corpus import HAMLET_TEXT, HashEmbedder, SimpleEnricherSpec
+HashEmbedder(dimension=32)([HAMLET_TEXT[:120]]).shape
+# (1, 32)
+FluentCorpus().enricher(SimpleEnricherSpec()).validate()
+# []
 ```

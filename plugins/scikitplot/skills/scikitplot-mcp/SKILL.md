@@ -87,10 +87,10 @@ Declared in `scikitplot.mcp.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.mcp.server_capabilities`)
 
-```pycon
->>> caps = server_capabilities()
->>> caps["kind"], caps["effect_class"]
-('static', 'read_only')
->>> [t["name"] for t in caps["tools"]]
-['search_docs']
+```python
+caps = server_capabilities()
+caps["kind"], caps["effect_class"]
+# ('static', 'read_only')
+[t["name"] for t in caps["tools"]]
+# ['search_docs']
 ```

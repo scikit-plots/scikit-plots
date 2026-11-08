@@ -51,16 +51,16 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.misc.closest_color_name`)
 
-```pycon
->>> closest_color_name("#ffd166")
-['lightgoldenrodyellow']
+```python
+closest_color_name("#ffd166")
+# ['lightgoldenrodyellow']
 
->>> closest_color_name("#118ab2", top_n=3)
-['darkcyan', 'lightseagreen', 'steelblue']
+closest_color_name("#118ab2", top_n=3)
+# ['darkcyan', 'lightseagreen', 'steelblue']
 
->>> closest_color_name("red")
-['red']
+closest_color_name("red")
+# ['red']
 
->>> closest_color_name("xkcd:red", use_spec="xkcd")
-['xkcd:red']
+closest_color_name("xkcd:red", use_spec="xkcd")
+# ['xkcd:red']
 ```

@@ -87,9 +87,9 @@ Declared in `scikitplot.agent.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.agent.MemoryArtifactStore`)
 
-```pycon
->>> store = MemoryArtifactStore()
->>> key = store.put({"rows": [1, 2, 3]})
->>> store.get(key)
-{'rows': [1, 2, 3]}
+```python
+store = MemoryArtifactStore()
+key = store.put({"rows": [1, 2, 3]})
+store.get(key)
+# {'rows': [1, 2, 3]}
 ```

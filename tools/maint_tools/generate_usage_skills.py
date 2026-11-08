@@ -851,6 +851,70 @@ def _examples(doc: str) -> str:
     return ""
 
 
+#: Doctest's prompts, exactly as :mod:`doctest` reads them: ``>>>`` or ``...``
+#: followed by a space or the end of the line.
+_PS1 = re.compile(r"^(?P<indent>[ ]*)>>>(?: |$)(?P<code>.*)$")
+_PS2 = re.compile(r"^(?P<indent>[ ]*)\.\.\.(?: |$)(?P<code>.*)$")
+
+
+def _as_python(transcript: str) -> str:
+    """
+    Turn a ``pycon`` doctest transcript into plain Python source.
+
+    Parameters
+    ----------
+    transcript : str
+        Examples as :func:`_examples` returns them: ``>>>`` and ``...``
+        prompts, expected output, and blank lines between examples.
+
+    Returns
+    -------
+    str
+        The same code without prompts, each expected-output line kept as a
+        ``# `` comment after the code that prints it (``<BLANKLINE>`` as a bare
+        ``#``), and blank lines kept.
+
+    See Also
+    --------
+    _examples : Extracts the transcript from a docstring.
+
+    Notes
+    -----
+    **User notes.** The code block in a skill runs as written in Python, and
+    the comments show what each statement prints.
+
+    **Developer notes.** A transcript line beginning ``>>>`` is a shell
+    redirect to anything that reads the block as commands: ``>>> builder = f()``
+    reads as "append to the file ``builder``". The Claude plugin directory
+    reads skill code that way and refused ``scikitplot-corpus`` with
+    ``LAUNCHER_REGISTRY_REDIRECT`` ("Name the output file in full ...").
+    Plain Python has no such line. The prompts are read with doctest's own
+    rule (``_PS1``, ``_PS2``): a ``...`` line continues the code only directly
+    after a ``>>>`` or ``...`` line, as in :class:`doctest.DocTestParser`;
+    any other non-blank line is expected output.
+    """
+    out: List[str] = []
+    in_code = False
+    indent = ""  # the prompt's indentation; output keeps the rest of its own
+    for line in transcript.split("\n"):
+        ps1 = _PS1.match(line)
+        ps2 = _PS2.match(line) if in_code else None
+        if ps1:
+            indent = ps1["indent"]
+            out.append(indent + ps1["code"])
+            in_code = True
+        elif ps2:
+            out.append(ps2["indent"] + ps2["code"])
+        elif not line.strip():
+            out.append("")
+            in_code = False
+        else:
+            text = line[len(indent):] if line.startswith(indent) else line.lstrip()
+            out.append("#" if text.strip() == "<BLANKLINE>" else "# " + text)
+            in_code = False
+    return "\n".join(text.rstrip() for text in out)
+
+
 def module_api(module: str) -> dict:
     """
     Read one module's declared public API from the installed package.
@@ -1132,8 +1196,8 @@ def render(
             ]
         lines.append("")
     if api["example"]:
-        lines += [f"## Example (from the docstring of `{api['example_source']}`)", "", "```pycon"]
-        lines += [api["example"], "```", ""]
+        lines += [f"## Example (from the docstring of `{api['example_source']}`)", "", "```python"]
+        lines += [_as_python(api["example"]), "```", ""]
     if related:
         lines += ["## Skills for the parts of scikit-plots", "", "| Module | Skill |", "|---|---|"]
         lines += [f"| `{m}` | `{s}` |" for m, s in related]

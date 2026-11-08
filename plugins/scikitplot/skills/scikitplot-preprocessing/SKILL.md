@@ -49,62 +49,62 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.preprocessing.DummyCodeEncoder`)
 
-```pycon
->>> import pandas as pd
->>> df = pd.DataFrame(
-...     {
-...         "tags": ["a,b,", " A , b", "a,B,C", None],
-...         "color": ["red", "blue", "green", "Red"],
-...         "value": [1, 2, 3, 4],
-...     }
-... )
+```python
+import pandas as pd
+df = pd.DataFrame(
+    {
+        "tags": ["a,b,", " A , b", "a,B,C", None],
+        "color": ["red", "blue", "green", "Red"],
+        "value": [1, 2, 3, 4],
+    }
+)
 
->>> from sklearn.pipeline import Pipeline
->>> from scikitplot.preprocessing import DummyCodeEncoder
->>> pipe = Pipeline(
-...     [
-...         (
-...             "encoder",
-...             DummyCodeEncoder(
-...                 # sep=',',
-...                 # sep=r'\s*[,;|]\s*',
-...                 sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
-...                 regex=True,
-...                 sparse_output=True,
-...             ),
-...         )
-...     ]
-... )
->>> X_trans = pipe.fit_transform(df)
->>> print(X_trans)
-<Compressed Sparse Row sparse matrix of dtype 'float64'
-    with 15 stored elements and shape (4, 10)>
->>> type(X_trans)
-scipy.sparse._csr.csr_matrix
+from sklearn.pipeline import Pipeline
+from scikitplot.preprocessing import DummyCodeEncoder
+pipe = Pipeline(
+    [
+        (
+            "encoder",
+            DummyCodeEncoder(
+                # sep=',',
+                # sep=r'\s*[,;|]\s*',
+                sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
+                regex=True,
+                sparse_output=True,
+            ),
+        )
+    ]
+)
+X_trans = pipe.fit_transform(df)
+print(X_trans)
+# <Compressed Sparse Row sparse matrix of dtype 'float64'
+#     with 15 stored elements and shape (4, 10)>
+type(X_trans)
+# scipy.sparse._csr.csr_matrix
 
->>> from sklearn.pipeline import Pipeline
->>> from scikitplot.preprocessing import DummyCodeEncoder
->>> pipe = Pipeline(
-...     [
-...         (
-...             "encoder",
-...             DummyCodeEncoder(
-...                 # sep=',',
-...                 # sep=r'\s*[,;|]\s*',
-...                 sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
-...                 regex=True,
-...                 sparse_output=False,
-...             ),
-...         )
-...     ]
-... ).set_output(transform='pandas')
->>> X_trans = pipe.fit_transform(df)
->>> print(X_trans)
-   value  tags_a  tags_b  tags_c  color_blue  color_green  color_red  value_1  value_2  value_3  value_4
-0      1   1.0     1.0     0.0      0.0         0.0          1.0        1.0      0.0          0.0      0.0
-1      2   1.0     1.0     0.0      1.0         0.0          0.0        0.0      1.0          0.0      0.0
-2      3   1.0     1.0     1.0      0.0         1.0          0.0        0.0      0.0          1.0      0.0
-3      4   0.0     0.0     0.0      0.0         0.0          1.0        0.0      0.0          0.0      1.0
->>> type(X_trans)
-pandas.core.frame.DataFrame
+from sklearn.pipeline import Pipeline
+from scikitplot.preprocessing import DummyCodeEncoder
+pipe = Pipeline(
+    [
+        (
+            "encoder",
+            DummyCodeEncoder(
+                # sep=',',
+                # sep=r'\s*[,;|]\s*',
+                sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
+                regex=True,
+                sparse_output=False,
+            ),
+        )
+    ]
+).set_output(transform='pandas')
+X_trans = pipe.fit_transform(df)
+print(X_trans)
+#    value  tags_a  tags_b  tags_c  color_blue  color_green  color_red  value_1  value_2  value_3  value_4
+# 0      1   1.0     1.0     0.0      0.0         0.0          1.0        1.0      0.0          0.0      0.0
+# 1      2   1.0     1.0     0.0      1.0         0.0          0.0        0.0      1.0          0.0      0.0
+# 2      3   1.0     1.0     1.0      0.0         1.0          0.0        0.0      0.0          1.0      0.0
+# 3      4   0.0     0.0     0.0      0.0         0.0          1.0        0.0      0.0          0.0      1.0
+type(X_trans)
+# pandas.core.frame.DataFrame
 ```

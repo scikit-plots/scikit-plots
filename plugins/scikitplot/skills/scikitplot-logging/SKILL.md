@@ -86,16 +86,16 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.logging.get_logger`)
 
-```pycon
->>> from scikitplot import logger
->>> logger.setLevel(logger.INFO)  # default WARNING
->>> logger.info("This is a info message from the sp logger.")
+```python
+from scikitplot import logger
+logger.setLevel(logger.INFO)  # default WARNING
+logger.info("This is a info message from the sp logger.")
 
->>> import scikitplot as sp
->>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
->>> sp.logger.info("This is a info message from the sp logger.")
+import scikitplot as sp
+sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+sp.logger.info("This is a info message from the sp logger.")
 
->>> import scikitplot as sp
->>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
->>> sp.get_logger().info("This is a info message from the sp logger.")
+import scikitplot as sp
+sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
+sp.get_logger().info("This is a info message from the sp logger.")
 ```

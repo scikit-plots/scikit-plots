@@ -57,12 +57,12 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.citation`)
 
-```pycon
->>> from scikitplot.config import citation
->>> citation() == citation("all")
-True
->>> citation("build").startswith("@software{scikit-plots_v")
-True
+```python
+from scikitplot.config import citation
+citation() == citation("all")
+# True
+citation("build").startswith("@software{scikit-plots_v")
+# True
 ```
 
 ## Skills for the parts of scikit-plots

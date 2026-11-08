@@ -63,14 +63,14 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.random`)
 
-```pycon
->>> from scikitplot.random import default_rng, kiss_context
->>> rng = default_rng(42)
->>> data = rng.random(1000)
+```python
+from scikitplot.random import default_rng, kiss_context
+rng = default_rng(42)
+data = rng.random(1000)
 
->>> with default_rng(42) as rng:
-...     data = rng.random(1000)
->>>
->>> with kiss_context(42) as rng:
-...     data = rng.random(1000)
+with default_rng(42) as rng:
+    data = rng.random(1000)
+
+with kiss_context(42) as rng:
+    data = rng.random(1000)
 ```
