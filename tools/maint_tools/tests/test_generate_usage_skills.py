@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import re
+import shlex
 import sys
 import unittest
 from pathlib import Path
@@ -143,6 +144,41 @@ class RenderTests(unittest.TestCase):
         self.assertIn("| `f` | function | Do f. |", skill)
         self.assertIn(">>> f(1)", skill)
         self.assertIn("| `f(x)` | function | Do f. |", files["references/API.md"])
+
+    def test_shell_blocks_run_as_written(self):
+        """No placeholder in a ``sh`` block: ``<`` and ``>`` would be read as redirects."""
+        fn = {"name": "f", "kind": "function", "signature": "`f(x)`", "summary": "Do f.", "doc": ""}
+        cases = {
+            "rows": ({"doc": "", "rows": [fn], "children": [], "example": "", "example_source": ""},
+                     'help(m.f)'),
+            "none": ({"doc": "", "rows": [], "children": [], "example": "", "example_source": ""},
+                     'help(m)'),
+        }
+        child = {"module": "scikitplot.misc._part", "summary": "Part.", "sphinx": False}
+        cases["children"] = (
+            {"doc": "", "rows": [], "children": [child], "example": "", "example_source": ""},
+            None,
+        )
+        original_trees = MODULE._dist_trees
+        MODULE._dist_trees = lambda: []
+        try:
+            for label, (api, call) in cases.items():
+                skill = MODULE.render("scikitplot.misc", "scikitplot-misc", api, [])["SKILL.md"]
+                blocks = re.findall(r"```sh\n(.*?)```", skill, re.S)
+                self.assertTrue(blocks, label)
+                for line in "".join(blocks).splitlines():
+                    # No placeholder bracket anywhere, and no operator outside quotes.
+                    self.assertNotRegex(line, r"[<>]", label)
+                    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+                    operators = [tok for tok in lexer if tok and set(tok) <= set("();<>|&")]
+                    self.assertEqual(operators, [], f"{label}: {line}")
+                expected = (
+                    'python -c "import scikitplot.misc._part as m; help(m)"' if call is None
+                    else f'python -c "import scikitplot.misc as m; {call}"'
+                )
+                self.assertIn(expected, skill, label)
+        finally:
+            MODULE._dist_trees = original_trees
 
 
 

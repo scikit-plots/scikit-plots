@@ -26,11 +26,12 @@ explains upgrading.
 ## Before writing code
 
 The API below was read from one version of the package. Check the version the
-project has, and read a name's docstring and signature before calling it:
+project has, and read a name's docstring and signature before calling it
+(shown for `SpacingDummyLayer`; use the name you need):
 
 ```sh
 python -c "import scikitplot; print(scikitplot.__version__)"
-python -c "import scikitplot.visualkeras as m, inspect; print(inspect.signature(m.<name>)); help(m.<name>)"
+python -c "import scikitplot.visualkeras as m; help(m.SpacingDummyLayer)"
 ```
 
 ## Public API
