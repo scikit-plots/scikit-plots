@@ -1487,12 +1487,14 @@ def render_plugin_readme(root: Path) -> str:
         "  first and inherits the tools Claude Code allows it.",
         "- **Shared skills**, such as `scholarly-inquiry-cycle`, for structured",
         "  investigation of any question.",
+        # No install command for another publisher's plugin: a command that adds
+        # a marketplace this plugin does not own redirects the package source,
+        # which the Claude directory refuses (LAUNCHER_REGISTRY_REDIRECT, "in
+        # documentation, link to the package manager's instructions instead").
         "- **Writing your own skills** is done with Anthropic's `skill-creator`, a",
-        "  separate plugin maintained by Anthropic and not copied here, so you get",
-        "  its current version: `claude plugin install skill-creator@claude-plugins-official`",
-        "  (if `claude plugin marketplace list` does not show that marketplace, first",
-        "  `claude plugin marketplace add anthropics/claude-plugins-official`). It",
-        "  ships programs of its own; read its `SKILL.md` before running them.",
+        "  separate plugin maintained by Anthropic and not copied here. To install",
+        "  it, follow Anthropic's [plugin documentation](https://code.claude.com/docs/en/plugins).",
+        "  It ships programs of its own; read its `SKILL.md` before running them.",
         "- **The skills ask Claude to check before writing code**: your installed",
         "  version, and the signature and docstring of each name it calls.",
         "",

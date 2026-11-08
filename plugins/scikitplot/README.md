@@ -92,11 +92,9 @@ or hand a task to its agent, such as `@scikitplot:scikitplot-api`.
 - **Shared skills**, such as `scholarly-inquiry-cycle`, for structured
   investigation of any question.
 - **Writing your own skills** is done with Anthropic's `skill-creator`, a
-  separate plugin maintained by Anthropic and not copied here, so you get
-  its current version: `claude plugin install skill-creator@claude-plugins-official`
-  (if `claude plugin marketplace list` does not show that marketplace, first
-  `claude plugin marketplace add anthropics/claude-plugins-official`). It
-  ships programs of its own; read its `SKILL.md` before running them.
+  separate plugin maintained by Anthropic and not copied here. To install
+  it, follow Anthropic's [plugin documentation](https://code.claude.com/docs/en/plugins).
+  It ships programs of its own; read its `SKILL.md` before running them.
 - **The skills ask Claude to check before writing code**: your installed
   version, and the signature and docstring of each name it calls.
 
