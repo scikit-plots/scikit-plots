@@ -29,11 +29,12 @@ upgrading.
 ## Before writing code
 
 The API below was read from one version of the package. Check the version the
-project has, and read a name's docstring and signature before calling it:
+project has, and read a name's docstring and signature before calling it
+(shown for `scikitplot._externals._sphinx_ext._ansi_sanitizer`; use the name you need):
 
 ```sh
 python -c "import scikitplot; print(scikitplot.__version__)"
-python -c "import scikitplot._externals._sphinx_ext as m, inspect; print(inspect.signature(m.<name>)); help(m.<name>)"
+python -c "import scikitplot._externals._sphinx_ext._ansi_sanitizer as m; help(m)"
 ```
 
 ## Subpackages

@@ -1085,15 +1085,27 @@ def render(
     if what:
         lines += [what, ""]
     lines += _install_lines(module)
+    # Every command in a ``sh`` block runs exactly as written: no ``<name>``
+    # placeholder. A shell reads ``>`` in ``m.<name>)`` as an output redirect
+    # to an unnamed file, which the Claude plugin directory refuses
+    # (``LAUNCHER_REGISTRY_REDIRECT``: "Name the output file in full").
+    # A subpackage is imported itself: the parent need not bind it as an attribute.
+    if api["rows"]:
+        shown_module, target = module, f"m.{api['rows'][0]['name']}"
+    elif api["children"]:
+        shown_module, target = api["children"][0]["module"], "m"
+    else:
+        shown_module, target = module, "m"
     lines += [
         "## Before writing code",
         "",
         "The API below was read from one version of the package. Check the version the",
-        "project has, and read a name's docstring and signature before calling it:",
+        "project has, and read a name's docstring and signature before calling it",
+        f"(shown for `{target[2:] or shown_module}`; use the name you need):",
         "",
         "```sh",
         'python -c "import scikitplot; print(scikitplot.__version__)"',
-        f'python -c "import {module} as m, inspect; print(inspect.signature(m.<name>)); help(m.<name>)"',
+        f'python -c "import {shown_module} as m; help({target})"',
         "```",
         "",
     ]
