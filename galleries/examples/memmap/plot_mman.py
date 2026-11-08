@@ -203,13 +203,19 @@ with MemoryMap.create_anonymous(BENCH_SIZE, PY_PROT_READ | PY_PROT_WRITE) as m:
     # --------------------------------------------------------------------------
     # 2. mprotect lifecycle – make read-only, confirm write blocked, restore
     # --------------------------------------------------------------------------
-    m.mprotect(PY_PROT_READ)                    # → read-only
-    print(f"[ADVANCED] after mprotect(PY_PROT_READ): mapping is read-only")
-    # The array flags are unchanged (we do not auto-sync them); the kernel
-    # will SIGSEGV / raise on an actual write attempt.  We only *read* here.
-    _ = m.read(64)                           # safe
-    m.mprotect(PY_PROT_READ | PY_PROT_WRITE)       # restore
+    # Removing a permission while a view is alive is refused: a write through
+    # the writable ``arr`` into read-only pages would crash the process.
+    try:
+        m.mprotect(PY_PROT_READ)
+    except BufferError as exc:
+        print(f"[ADVANCED] refused while the view is alive: {exc}")
+    del arr                                  # release the only exported view
+    m.mprotect(PY_PROT_READ)                 # → read-only
+    print("[ADVANCED] after mprotect(PY_PROT_READ): mapping is read-only")
+    _ = m.read(64)                           # reading is still allowed
+    m.mprotect(PY_PROT_READ | PY_PROT_WRITE) # restore (adding bits is always allowed)
     print("[ADVANCED] mprotect(PY_PROT_READ | PY_PROT_WRITE) restored.")
+    arr = m.as_numpy_array(dtype=np.uint8)   # new view for the benchmark
 
     # --------------------------------------------------------------------------
     # 3. micro-benchmark: .read() vs NumPy slice copy

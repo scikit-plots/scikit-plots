@@ -20,8 +20,11 @@ pip install scikit-plots
 
 The release on PyPI can be older than the version this skill was read from, and
 can lack `scikitplot.feature_selection`. If `import
-scikitplot.feature_selection` fails after installing it, follow the [install
-guide](https://scikit-plots.github.io/dev/install/installation.html).
+scikitplot.feature_selection` fails after installing it, the installed release
+predates the module: the [release history on
+PyPI](https://pypi.org/project/scikit-plots/#history) lists each release, and
+[pip's user guide](https://pip.pypa.io/en/stable/user_guide/) explains
+upgrading.
 
 ## Before writing code
 
