@@ -50,16 +50,16 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.impute.ANNImputer`)
 
-```pycon
->>> import numpy as np
->>> from scikitplot.experimental import enable_aknn_imputer
->>> from scikitplot.impute import ANNImputer
->>> X = np.array([[1, 2, np.nan], [3, 4, 3], [np.nan, 6, 5], [8, 8, 7]])
->>> # imputer = ANNImputer(backend="voyager", n_neighbors=5, metric="euclidean")
->>> imputer = ANNImputer(n_trees=5, n_neighbors=5)
->>> imputer.fit_transform(X)
-array([[1. , 2. , 5. ],
-       [3. , 4. , 3. ],
-       [4. , 6. , 5. ],
-       [8. , 8. , 7. ]])
+```python
+import numpy as np
+from scikitplot.experimental import enable_aknn_imputer
+from scikitplot.impute import ANNImputer
+X = np.array([[1, 2, np.nan], [3, 4, 3], [np.nan, 6, 5], [8, 8, 7]])
+# imputer = ANNImputer(backend="voyager", n_neighbors=5, metric="euclidean")
+imputer = ANNImputer(n_trees=5, n_neighbors=5)
+imputer.fit_transform(X)
+# array([[1. , 2. , 5. ],
+#        [3. , 4. , 3. ],
+#        [4. , 6. , 5. ],
+#        [8. , 8. , 7. ]])
 ```

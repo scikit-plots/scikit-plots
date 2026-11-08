@@ -87,13 +87,13 @@ Declared in `scikitplot.cython.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.cython.register_compiler`)
 
-```pycon
->>> class custom_fast:
-...     name = "custom_fast"
-...
-...     def __call__(self, source, *, build_dir, module_name, **kw):
-...         raise NotImplementedError
->>> register_compiler(custom_fast())
->>> "custom_fast" in list_compilers()
-True
+```python
+class custom_fast:
+    name = "custom_fast"
+
+    def __call__(self, source, *, build_dir, module_name, **kw):
+        raise NotImplementedError
+register_compiler(custom_fast())
+"custom_fast" in list_compilers()
+# True
 ```

@@ -41,6 +41,33 @@ class TextTests(unittest.TestCase):
         self.assertEqual(MODULE._examples(doc), ">>> 1 + 1\n2")
         self.assertEqual(MODULE._examples("Summary only."), "")
 
+    def test_a_transcript_becomes_plain_python(self):
+        """Prompts go, continuations keep their indentation, output becomes comments."""
+        transcript = (
+            ">>> import numpy as np\n>>> np.arange(4).reshape(2, 2)\narray([[0, 1],\n"
+            "       [2, 3]])\n\n>>> with open(\"x\") as f:\n...     pass\n"
+            ">>> print(\"a\\n\\nb\")\na\n<BLANKLINE>\nb\n>>> # a comment\n>>>"
+        )
+        self.assertEqual(
+            MODULE._as_python(transcript),
+            "import numpy as np\nnp.arange(4).reshape(2, 2)\n# array([[0, 1],\n"
+            "#        [2, 3]])\n\nwith open(\"x\") as f:\n    pass\n"
+            "print(\"a\\n\\nb\")\n# a\n#\n# b\n# a comment\n",
+        )
+
+    def test_a_continuation_prompt_follows_doctest(self):
+        """``...`` continues code only right after code, as doctest reads it;
+        after output it is output (an elided value)."""
+        self.assertEqual(MODULE._as_python(">>> f(\n...     1)\n..."), "f(\n    1)\n")
+        self.assertEqual(MODULE._as_python(">>> g()\nx\n..."), "g()\n# x\n# ...")
+
+    def test_no_line_of_a_converted_example_reads_as_a_shell_redirect(self):
+        """A ``>>>`` line is a redirect to a shell parser (``>> > name``)."""
+        transcript = ">>> builder = make(\n...     build_index=True,\n... )\n>>> builder.size\n3"
+        python = MODULE._as_python(transcript)
+        compile(python, "<example>", "exec")
+        self.assertFalse([l for l in python.splitlines() if l.lstrip().startswith(">")])
+
     def test_skipped_examples_and_prose_are_not_copied(self):
         """Only what a doctest run executes is shown (the corpus skill shipped
         skipped network calls and prose inside its ``pycon`` block)."""
@@ -142,7 +169,8 @@ class RenderTests(unittest.TestCase):
         self.assertTrue(skill.startswith("---\nname: scikitplot-misc\n"))
         self.assertIn('scikitplot-module: "scikitplot.misc"', skill)
         self.assertIn("| `f` | function | Do f. |", skill)
-        self.assertIn(">>> f(1)", skill)
+        self.assertIn("```python\nf(1)\n```", skill)
+        self.assertNotIn(">>>", skill)
         self.assertIn("| `f(x)` | function | Do f. |", files["references/API.md"])
 
     def test_shell_blocks_run_as_written(self):

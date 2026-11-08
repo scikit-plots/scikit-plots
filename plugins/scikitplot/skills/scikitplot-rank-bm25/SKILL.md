@@ -59,30 +59,30 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.rank_bm25`)
 
-```pycon
->>> from scikitplot.rank_bm25 import BM25Okapi
->>> corpus = [
-...     "Hello there good man!",
-...     "It is quite windy in London",
-...     "How is the weather today?",
-... ]
->>> tokenized_corpus = [doc.split(" ") for doc in corpus]
->>> bm25 = BM25Okapi(tokenized_corpus)
->>> bm25.corpus_size
-3
+```python
+from scikitplot.rank_bm25 import BM25Okapi
+corpus = [
+    "Hello there good man!",
+    "It is quite windy in London",
+    "How is the weather today?",
+]
+tokenized_corpus = [doc.split(" ") for doc in corpus]
+bm25 = BM25Okapi(tokenized_corpus)
+bm25.corpus_size
+# 3
 
->>> tokenized_query = "windy London".split(" ")
->>> scores = bm25.get_scores(tokenized_query)
->>> [round(float(score), 4) for score in scores]
-[0.0, 0.9373, 0.0]
+tokenized_query = "windy London".split(" ")
+scores = bm25.get_scores(tokenized_query)
+[round(float(score), 4) for score in scores]
+# [0.0, 0.9373, 0.0]
 
->>> bm25.get_top_n(tokenized_query, corpus, n=1)
-['It is quite windy in London']
+bm25.get_top_n(tokenized_query, corpus, n=1)
+# ['It is quite windy in London']
 
->>> bm25 = BM25Okapi(tokenized_corpus, doc_ids=["greeting", "weather", "question"])
->>> [doc_id for doc_id, _score in bm25.get_top_ids(tokenized_query, n=1)]
-['weather']
+bm25 = BM25Okapi(tokenized_corpus, doc_ids=["greeting", "weather", "question"])
+[doc_id for doc_id, _score in bm25.get_top_ids(tokenized_query, n=1)]
+# ['weather']
 
->>> bm25.recipe.identifier
-'okapi-epsilon-floor/2'
+bm25.recipe.identifier
+# 'okapi-epsilon-floor/2'
 ```

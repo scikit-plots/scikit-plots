@@ -61,9 +61,9 @@ name to `extensions` in the project's `conf.py`.
 
 ## Example (from the docstring of `scikitplot._externals._sphinx_ext`)
 
-```pycon
->>> # Safe: no Sphinx needed yet.
->>> import _sphinx_ext
->>> sorted(name for name in _sphinx_ext._PRIVATE_SUBMODULES if name.startswith("_sphinx_"))[:2]
-['_sphinx_collection', '_sphinx_gallery_grid']
+```python
+# Safe: no Sphinx needed yet.
+import _sphinx_ext
+sorted(name for name in _sphinx_ext._PRIVATE_SUBMODULES if name.startswith("_sphinx_"))[:2]
+# ['_sphinx_collection', '_sphinx_gallery_grid']
 ```

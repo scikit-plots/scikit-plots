@@ -57,21 +57,21 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.decile.ModelPlotPy`)
 
-```pycon
->>> from sklearn.linear_model import LogisticRegression
->>> X = pd.DataFrame({"x": [0, 1, 2, 3]})
->>> y = pd.Series([0, 0, 1, 1])
->>> m = LogisticRegression().fit(X, y)
->>> mp = ModelPlotPy([X], [y], ["train"], [m], ["lr"], ntiles=2)
->>> scores = mp.prepare_scores_and_ntiles()
->>> set(scores.columns) >= {
-...     "dataset_label",
-...     "model_label",
-...     "target_class",
-...     "prob_0",
-...     "prob_1",
-...     "dec_0",
-...     "dec_1",
-... }
-True
+```python
+from sklearn.linear_model import LogisticRegression
+X = pd.DataFrame({"x": [0, 1, 2, 3]})
+y = pd.Series([0, 0, 1, 1])
+m = LogisticRegression().fit(X, y)
+mp = ModelPlotPy([X], [y], ["train"], [m], ["lr"], ntiles=2)
+scores = mp.prepare_scores_and_ntiles()
+set(scores.columns) >= {
+    "dataset_label",
+    "model_label",
+    "target_class",
+    "prob_0",
+    "prob_1",
+    "dec_0",
+    "dec_1",
+}
+# True
 ```

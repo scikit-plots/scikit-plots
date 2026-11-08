@@ -87,25 +87,21 @@ Declared in `scikitplot.mlflow.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.mlflow`)
 
-```pycon
->>> import os
->>> import scikitplot as sp
->>>
->>> # print(sp.mlflow.DEFAULT_PROJECT_MARKERS)
->>> # Walk upward from `start` until a directory containing any marker is found.
->>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
->>> os.environ["SCIKITPLOT_PROJECT_MARKERS"] = (
-...     '[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
-... )
->>> sp.mlflow.workflow(
-...     profile="local",
-...     open_ui_seconds=30,
-...     experiment_name="my-first-project",
-...     fmt="toml",
-...     overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
-... )
+```python
+import os
+import scikitplot as sp
 
->>> # Walk upward from `start` until a directory containing any marker is found.
->>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
->>> python -m scikitplot.mlflow --profile local --open-ui-seconds 5
+# print(sp.mlflow.DEFAULT_PROJECT_MARKERS)
+# Walk upward from `start` until a directory containing any marker is found.
+# export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+os.environ["SCIKITPLOT_PROJECT_MARKERS"] = (
+    '[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+)
+sp.mlflow.workflow(
+    profile="local",
+    open_ui_seconds=30,
+    experiment_name="my-first-project",
+    fmt="toml",
+    overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
+)
 ```

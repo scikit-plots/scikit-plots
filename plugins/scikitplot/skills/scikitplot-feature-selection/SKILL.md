@@ -88,24 +88,24 @@ Declared in `scikitplot.feature_selection.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.feature_selection`)
 
-```pycon
->>> import numpy as np, pandas as pd
->>> from scikitplot.feature_selection import profile_features
->>> rng = np.random.default_rng(0)
->>> X = pd.DataFrame(
-...     {
-...         "income": rng.lognormal(10, 1, 300),
-...         "age": rng.integers(18, 80, 300),
-...         "kids": rng.integers(0, 4, 300),
-...         "city": rng.choice(["ankara", "izmir", "bursa"], 300),
-...         "customer_id": [f"c{i}" for i in range(300)],
-...     }
-... )
->>> schema = profile_features(X)
->>> schema.groups(by="kind")["numeric_continuous"]
-['income', 'age']
->>> schema["income"].is_("skewed"), schema["kids"].kind
-(True, 'numeric_discrete')
->>> schema.select(is_=("identifier_like",))
-['customer_id']
+```python
+import numpy as np, pandas as pd
+from scikitplot.feature_selection import profile_features
+rng = np.random.default_rng(0)
+X = pd.DataFrame(
+    {
+        "income": rng.lognormal(10, 1, 300),
+        "age": rng.integers(18, 80, 300),
+        "kids": rng.integers(0, 4, 300),
+        "city": rng.choice(["ankara", "izmir", "bursa"], 300),
+        "customer_id": [f"c{i}" for i in range(300)],
+    }
+)
+schema = profile_features(X)
+schema.groups(by="kind")["numeric_continuous"]
+# ['income', 'age']
+schema["income"].is_("skewed"), schema["kids"].kind
+# (True, 'numeric_discrete')
+schema.select(is_=("identifier_like",))
+# ['customer_id']
 ```

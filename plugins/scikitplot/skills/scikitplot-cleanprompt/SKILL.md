@@ -87,10 +87,10 @@ Declared in `scikitplot.cleanprompt.__all__`, in that order.
 
 ## Example (from the docstring of `scikitplot.cleanprompt.Session`)
 
-```pycon
->>> with session() as chat:
-...     first = chat.encode("Mail ada@example.com")
-...     second = chat.encode("Ping ada@example.com again")
->>> first, second
-('Mail [EMAIL-1]', 'Ping [EMAIL-1] again')
+```python
+with session() as chat:
+    first = chat.encode("Mail ada@example.com")
+    second = chat.encode("Ping ada@example.com again")
+first, second
+# ('Mail [EMAIL-1]', 'Ping [EMAIL-1] again')
 ```

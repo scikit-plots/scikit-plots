@@ -71,8 +71,8 @@ All names with signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.memmap.MemoryMap`)
 
-```pycon
->>> with MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE) as m:
-...     m.write(b"test")
-...     data = m.read(4)
+```python
+with MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE) as m:
+    m.write(b"test")
+    data = m.read(4)
 ```

@@ -33,11 +33,13 @@ Quiskstart Template: Beginner workflow demo
 ...     overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
 ... )
 
-CLI
+CLI (a shell command, not Python):
 
->>> # Walk upward from `start` until a directory containing any marker is found.
->>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
->>> python -m scikitplot.mlflow --profile local --open-ui-seconds 5
+.. code-block:: bash
+
+    # Walk upward from `start` until a directory containing any marker is found.
+    # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+    python -m scikitplot.mlflow --profile local --open-ui-seconds 5
 """  # noqa: D205, D400
 
 from __future__ import annotations
