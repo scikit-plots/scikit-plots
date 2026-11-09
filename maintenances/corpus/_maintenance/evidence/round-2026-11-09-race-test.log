@@ -1,0 +1,54 @@
+# Research self-test round, 2026-11-09, PR 925: the atomic-publication race test (CX-10)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 69e35d6 (PR 924); NEW = the PR 925 branch.
+
+--- pytest scikitplot/corpus/tests/test__atomic.py scikitplot/corpus/_storage -n 4, three runs each
+3.9 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.10 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.11 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.12 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.13 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.13t NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.14 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.14t NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.15 NEW -n 4 x3:  228 passed | 228 passed | 228 passed |
+3.15 OLD -n 4 x3:  1 failed 227 passed | 1 failed 227 passed | 1 failed 227 passed |
+
+--- detection: atomic_write_bytes replaced by a non-atomic writer (halves, 10 ms apart)
+OLD (fork, Pool of 8 for 20 tasks), CPython 3.13.18: caught in 0 of 5 runs
+NEW, one barrier race of 8: caught 3, 3 and 4 of 5 (CPython 3.13, 3.15.0b4, 3.9)
+NEW, 8 publishers x 4 races: caught 10 of 10 on each of CPython 3.13, 3.15.0b4, 3.9, 3.14t
+NEW, 4 publishers x 4 races: caught 9 and 10 of 10 (3.13, 3.15.0b4), test 2.4 s: not taken
+real writer, 8 x 4: passes; test call about 5 s (3.13.18 and 3.15.0b4)
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9      OLD: 24 failed, 5922 passed      NEW: 24 failed, 5922 passed      only-OLD=0 only-NEW=0
+3.10     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6019 passed      only-OLD=0 only-NEW=0
+3.11     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6019 passed      only-OLD=0 only-NEW=0
+3.12     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6019 passed      only-OLD=0 only-NEW=0
+3.13     OLD: 23 failed, 6052 passed      NEW: 23 failed, 6052 passed      only-OLD=0 only-NEW=0
+3.13t    OLD: 24 failed, 5922 passed      NEW: 24 failed, 5922 passed      only-OLD=0 only-NEW=0
+3.14     OLD: 23 failed, 6025 passed      NEW: 23 failed, 6025 passed      only-OLD=0 only-NEW=0
+3.14t    OLD: 23 failed, 6019 passed      NEW: 23 failed, 6019 passed      only-OLD=0 only-NEW=0
+3.15     OLD: 24 failed, 6018 passed      NEW: 23 failed, 6019 passed      only-OLD=1 only-NEW=0 test_contended_target_stays_consistent
+3.8-mcp  OLD: 5 failed, 227 passed        NEW: 5 failed, 227 passed        only-OLD=0 only-NEW=0
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7020, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7020, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
