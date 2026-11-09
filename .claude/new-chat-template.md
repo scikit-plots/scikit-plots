@@ -1,9 +1,12 @@
 # scikit-plots maintenance: new-chat start template
 
-Start any new chat, with any assistant, by attaching a zip of the current
-checkout (hidden folders included, so `.claude/` is inside) and saying:
-"Read `.claude/init` and follow `.claude/new-chat-template.md`." Pasting this
-file works too. Fill in only the block marked FILL IN; everything else stays
+Start any new chat, with any assistant, in one of two ways (section 1,
+"Delivery mode"): for PR mode, no attachment: "Clone
+https://github.com/scikit-plots/scikit-plots, read `.claude/init` and follow
+`.claude/new-chat-template.md`."; for patch mode, attach a zip of the current
+checkout (hidden folders included, so `.claude/` is inside) and say: "Read
+`.claude/init` and follow `.claude/new-chat-template.md`." Pasting this file
+works too. Fill in only the block marked FILL IN; everything else stays
 the same in every chat. `orient.py` (section 2) reads that block, so keep its
 three bullet lines in this shape. The pull request number defaults to the
 last pull request opened, plus one; set it when a chat starts.
@@ -39,13 +42,61 @@ fix at a time. For each fix you:
 2. fix it at the root cause, with the smallest change that is complete;
 3. prove it: the new tests fail on the old tree and pass on the new one, and
    a mutation of the new code makes them fail;
-4. deliver a git patch and a drop-in zip against the tree I attached (or
-   against your previous delivery), and list every file to delete;
-5. stop and wait. I reply "applied continue next" when it is in my tree.
+4. deliver it in the mode chosen below (a pull request, or a git patch and a
+   drop-in zip against the tree I attached or your previous delivery, with
+   every file to delete listed);
+5. stop and wait: I merge the pull request, or I reply "applied continue
+   next" when the patch is in my tree.
 
 When a fix needs a decision that is mine (a direction, a scope, a country, a
 name), ask me one short multiple-choice question first, recommended option
 first. Otherwise do not ask; take the next item.
+
+### Delivery mode (decide once per fix, before step 1)
+
+- **PR mode** (the default): no zip. Clone the public repository
+  https://github.com/scikit-plots/scikit-plots (any Claude account or chat
+  can), branch from a freshly fetched `origin/main`, push the branch to the
+  repository (or to a fork, without push access), and open one pull request;
+  CI runs; I review and merge. The clone is the tree: "the attached tree" in
+  this file means the clone's `main`.
+- **Patch mode**: `deliver.py` writes `NAME.patch` and `NAME-dropin.zip`
+  against the tree I attached (or your previous delivery); I apply and run
+  them, then reply "applied continue next".
+
+Use PR mode only when every line holds:
+
+- [ ] this session can clone the repository and push a branch (to it or to
+  a fork) and open a pull request;
+- [ ] one root cause, one coherent change: at most 3 hand-written files and
+  200 changed lines of hand-written text (`git diff --stat`, files a tool
+  regenerates not counted);
+- [ ] it is verified here and by CI: no step before merging needs my machine
+  (a compiled build, optional dependencies CI lacks, the directory portal, a
+  GPU);
+- [ ] no decision of mine is open for it;
+- [ ] it does not publish to `scikit-plots/skills` while a directory review
+  is open, unless the change is for that review (Rule 171).
+
+Use patch mode when any line holds: a heavy or multi-step change (several
+increments that each need my run between them, a review-campaign round, a
+refactor across modules); verification that needs my environment; this
+session cannot push or open a pull request; I ask for a patch. When neither
+list settles it, ask me one multiple-choice question, recommended option
+first. A security fix or a high-severity bug that meets the PR list goes
+first, in its own pull request.
+
+The same fix delivered twice gives the same change, in either mode:
+
+- PR mode: one fix per pull request; run section 5's gates before opening it;
+  never push to a pull request after I say I will merge it or after it is
+  merged (a squash merge drops later commits, as PR 916 did); a follow-up is
+  a new pull request from the new `main`; describe it as section 8 says.
+- Patch mode: OLD stays an untouched copy of the attached tree; each delivery
+  is against your previous NEW; `deliver.py` proves the patch and the zip
+  each turn OLD into NEW and are byte-identical on a rerun.
+- Both: the records of section 4 and the report of section 6; a rerun adds no
+  second note, fragment, finding or rule for the same fix.
 
 ## 2. Find the current state from the tree, not from this message
 
@@ -163,12 +214,15 @@ verified (numbers), any limit, and the next item. Then the AI-assistance line.
 ## 7. Process flow for one fix
 
     orient -> pick the next item (or ask one question if it is my decision)
+      -> choose the delivery mode (section 1)
       -> reproduce on OLD (evidence)
       -> fix at the root cause
       -> tests: fail on OLD, pass on NEW, fail under a mutation
       -> suites, probes, digest, gates (section 5)
       -> records (section 4)
-      -> deliver.py -> report (section 6) -> wait for "applied continue next"
+      -> deliver (PR mode: push and open the pull request; patch mode:
+         deliver.py) -> report (section 6) -> wait for the merge or for
+         "applied continue next"
 
 Stop and re-plan, and say so, when the fix needs more than the note
 described, an approach fails twice, or a gate fails for a reason you did not
