@@ -5,19 +5,22 @@ checkout (hidden folders included, so `.claude/` is inside) and saying:
 "Read `.claude/init` and follow `.claude/new-chat-template.md`." Pasting this
 file works too. Fill in only the block marked FILL IN; everything else stays
 the same in every chat. `orient.py` (section 2) reads that block, so keep its
-three bullet lines in this shape.
+three bullet lines in this shape. The pull request number defaults to the
+last pull request opened, plus one; set it when a chat starts.
 
 ---
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `916`
+- Pull request number for new fragments: `919`
 - Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`
   - `upcoming_changes/docs/devel/rewrite-release-guide-from-copied-text.md`
   - `upcoming_changes/docs/devel/review-astropy-affiliated-language.md`
   - `upcoming_changes/scikitplot/_distributions/unpublished-partial-install-lines.md` (blocked: needs PyPI publishing)
+  - `upcoming_changes/tools/maint_tools/directory-review-credential-hold.md` (blocked: Anthropic's reviewer)
+  - `upcoming_changes/tools/maint_tools/directory-listing-follows-main.md` (blocked: the first release tag, after the review)
 - Decisions I have already taken (do not reopen them):
   - The public usage plugin (`plugins/scikitplot`) names only `pip install scikit-plots` and links PyPI's release history and pip's user guide; never another index, a git URL or a partial distribution (directory policy; `build_skills_repo.validate` enforces it).
   - Partial distributions are not on PyPI; every install command comes from `scikitplot/_distributions.py` (`ON_PYPI`, `pip_install`, `staging_install`): GitHub direct link with `scikit-plots-skinny` named, or the staging index in two steps (`--no-deps` from the index, then dependencies from PyPI). Never `-i` alone or `--extra-index-url`.
