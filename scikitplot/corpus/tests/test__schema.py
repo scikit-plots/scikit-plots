@@ -30,6 +30,7 @@ Run with:
 """
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 
@@ -566,6 +567,48 @@ class TestReplace:
 # ===========================================================================
 # TestDeadCode
 # ===========================================================================
+
+
+class TestReplaceFieldNames:
+    """CX-12 (1): replace() checks names computed once per class."""
+
+    def test_names_are_the_dataclass_fields(self):
+        names = m._field_names(CorpusDocument)
+        assert names == {f.name for f in dataclasses.fields(CorpusDocument)}
+        assert m._field_names(CorpusDocument) is names
+
+    def test_a_subclass_with_more_fields_gets_its_own_names(self):
+        @dataclasses.dataclass(frozen=True)
+        class Tagged(CorpusDocument):
+            tag: str = ""
+
+        doc = Tagged.create("f.txt", 0, "Hello.")
+        assert doc.replace(tag="x").tag == "x"
+        assert "tag" in m._field_names(Tagged)
+        assert "tag" not in m._field_names(CorpusDocument)
+
+    def test_unknown_name_message_lists_every_field(self):
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        names = sorted(f.name for f in dataclasses.fields(CorpusDocument))
+        with pytest.raises(ValueError, match="unknown field") as caught:
+            doc.replace(nope=1)
+        assert str(caught.value).endswith(f" Valid fields: {names}")
+
+    def test_fields_are_not_recomputed_per_call(self, monkeypatch):
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        doc.replace(normalized_text="a")
+        calls = []
+        real = m.fields
+
+        def counting(obj):
+            calls.append(obj)
+            return real(obj)
+
+        monkeypatch.setattr(m, "fields", counting)
+        for text in ("b", "c", "d"):
+            doc = doc.replace(normalized_text=text)
+        assert calls == []
+        assert doc.normalized_text == "d"
 
 
 class TestDeadCode:

@@ -1,5 +1,20 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 922
+
+- **CX-12, part 1: `CorpusDocument.replace` recomputed its field names.**
+  Every call built `{f.name for f in fields(self)}` to check the changed
+  names. `_field_names(cls)` now computes them once per class (a subclass
+  with more fields gets its own), so the same names are accepted and the
+  same error lists them. `replace` went from 15.6-23.6 us to 12.3-18.4 us
+  per call on CPython 3.9, 3.13, 3.14t and 3.15.0b4; `CorpusBuilder.build`
+  over the 64 research files from 3.15-3.17 s to 2.93-3.00 s (best of
+  three). Tests: 4 new in `TestReplaceFieldNames` (3 fail on `main`; the
+  error-text one passes there by design); 4 mutations caught; suites
+  unchanged on CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8. Part 2
+  (one document per normalizer step) stays a note, waiting on D14.
+- Evidence: `evidence/round-2026-11-09-replace-names.log`.
+
 ## 2026-11-09 — research self-test round, PR 921
 
 - **CX-11: the chunkers' input guard scanned for surrogates in Python.**

@@ -1032,6 +1032,38 @@ class IncompatibleSchemaError(ValueError):
 # ===========================================================================
 
 
+#: Field names per dataclass type, filled on first use (finding CX-12).
+_FIELD_NAMES: dict[type, frozenset[str]] = {}
+
+
+def _field_names(cls: type) -> frozenset[str]:
+    """Return the field names of dataclass *cls*, computed once per class.
+
+    Parameters
+    ----------
+    cls : type
+        A dataclass type, such as :class:`CorpusDocument` or a subclass.
+
+    Returns
+    -------
+    frozenset of str
+        The names :func:`dataclasses.fields` gives for *cls*.
+
+    Notes
+    -----
+    **Developer note:** A dataclass's fields are fixed when the class is made,
+    but :meth:`CorpusDocument.replace` recomputed them on every call (0.62 s
+    of a profiled 8.4 s ``CorpusBuilder.build`` over 64 files). Keyed by the
+    class, so a subclass with more fields gets its own names. Two threads
+    may compute the same entry once each; both store the same value.
+    """
+    names = _FIELD_NAMES.get(cls)
+    if names is None:
+        names = frozenset(f.name for f in fields(cls))
+        _FIELD_NAMES[cls] = names
+    return names
+
+
 @dataclass(frozen=True)
 class CorpusDocument:
     """
@@ -2312,7 +2344,7 @@ class CorpusDocument:
         >>> doc.has_embedding  # original unchanged
         False
         """  # noqa: D205
-        valid_fields = {f.name for f in fields(self)}
+        valid_fields = _field_names(type(self))
         unknown = set(changes) - valid_fields
         if unknown:
             raise ValueError(

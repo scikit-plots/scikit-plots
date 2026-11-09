@@ -388,8 +388,8 @@ everywhere, with opt-in UUIDv7).
   queries: every shape, combinations, unavailable legs, near misses such as
   `notebook`, `knot`, `sectional`) passes; 73 tests in `test__routing.py`.
 
-### PRs 919 to 921: research self-test fixes (CX-05, CX-08, CX-09, CX-11)
+### PRs 919 to 922: research self-test fixes (CX-05, CX-08, CX-09, CX-11, CX-12 part 1)
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-09); found CX-06, CX-07,
   CX-10, CX-12 (notes under `upcoming_changes/scikitplot/corpus/`) and
   decisions D11 to D14.
-- Next: CX-12 part 1, CX-06, CX-07, CX-10.
+- Next: CX-06, CX-07, CX-10; CX-12 part 2 waits on D14.

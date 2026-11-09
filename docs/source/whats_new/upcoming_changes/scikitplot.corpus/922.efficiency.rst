@@ -1,0 +1,5 @@
+- ``CorpusDocument.replace`` computes the document's field names once per
+  class instead of on every call, so it accepts and refuses the same names
+  20 to 25% faster; ``CorpusBuilder.build``, whose normalizer steps call it
+  for every chunk, took 2.9 s instead of 3.2 s over 64 English markdown and
+  text files.

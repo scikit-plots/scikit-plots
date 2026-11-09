@@ -1,0 +1,59 @@
+# Research self-test round, 2026-11-09, PR 922: CorpusDocument.replace computes field names once per class (CX-12 part 1)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 1318b58 (PR 921); NEW = the PR 922 branch.
+
+--- CorpusDocument.replace(normalized_text=...), us per call (best of 5 x 20,000)
+3.9 replace us/call: OLD 23.60 NEW 18.38
+3.13 replace us/call: OLD 17.14 NEW 13.64
+3.14t replace us/call: OLD 19.22 NEW 14.37
+3.15 replace us/call: OLD 15.62 NEW 12.25
+
+--- CorpusBuilder.build over the 64 research files, CPython 3.13.18 (best of 3)
+round 1 build best-of-3 s: OLD 3.17 | NEW 3.00
+round 2 build best-of-3 s: OLD 3.15 | NEW 2.93
+
+--- tests: 4 new in TestReplaceFieldNames (tests/test__schema.py); NEW 107 passed;
+OLD 3 failed (helper absent twice; names recomputed per call), the error-text test passes by design.
+--- mutations
+M1 one cache for every class   -> 1 failed, 106 passed in 0.25s
+M2 names never stored          -> 2 failed, 105 passed in 0.24s
+M3 a field left out            -> 2 failed, 105 passed in 0.23s
+M4 back to per-call fields     -> 1 failed, 106 passed in 0.22s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9      OLD: 24 failed, 5903 passed      NEW: 24 failed, 5907 passed      sets identical: yes
+3.10     OLD: 23 failed, 6000 passed      NEW: 23 failed, 6004 passed      sets identical: yes
+3.11     OLD: 23 failed, 6000 passed      NEW: 23 failed, 6004 passed      sets identical: yes
+3.12     OLD: 23 failed, 6000 passed      NEW: 23 failed, 6004 passed      sets identical: yes
+3.13     OLD: 23 failed, 6033 passed      NEW: 23 failed, 6037 passed      sets identical: yes
+3.13t    OLD: 24 failed, 5903 passed      NEW: 24 failed, 5907 passed      sets identical: yes
+3.14     OLD: 48 failed, 6006 passed      NEW: 48 failed, 6010 passed      sets identical: yes
+3.14t    OLD: 23 failed, 6000 passed      NEW: 23 failed, 6004 passed      sets identical: yes
+3.15     OLD: 24 failed, 5999 passed      NEW: 24 failed, 6003 passed      sets identical: yes
+3.8-mcp  OLD: 5 failed, 227 passed        NEW: 5 failed, 227 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7017, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7018, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+plugin build: 0 of 115 files differ from published 06b9ac4
+usage-skill renderer rows/example/module text identical: True
