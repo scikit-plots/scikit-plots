@@ -1,5 +1,24 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 925
+
+- **CX-10: the atomic-publication race test forked a threaded process,
+  and could not fail.** It asked for the `fork` start method; on CPython
+  3.15.0b4 under `pytest -n 4` the parent already ran threads, CPython warned
+  on the fork and the suite's filters made that a failure (3 of 3 runs; 3.12
+  to 3.14t passed). Checking the fix showed a second, older gap: with a pool,
+  publishers started one by one and never overlapped, so the test passed
+  against a deliberately non-atomic writer on `main` (0 of 5 caught). The test
+  now uses `forkserver` (else `spawn`), and eight processes wait on a barrier
+  and publish together, four races per test: the non-atomic writer is caught
+  in 40 of 40 runs (CPython 3.9, 3.13, 3.14t, 3.15.0b4) while the real one
+  passes. Cost: about 5 s instead of 0.3 s (four publishers took 2.4 s but
+  missed 1 in 20). Tests only: no release note. Suites otherwise unchanged
+  on CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
+- With PR 925 every finding of the round is closed except CX-12 part 2
+  (decision D14); D11 to D13 remain open.
+- Evidence: `evidence/round-2026-11-09-race-test.log`.
+
 ## 2026-11-09 — research self-test round, PR 924
 
 - **CX-07: image reader tests failed without Pillow.** 25 tests in

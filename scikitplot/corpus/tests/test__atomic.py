@@ -37,11 +37,17 @@ from .._atomic import atomic_write_bytes, atomic_write_path
 logger = _atomic.logger  # logging.getLogger(_atomic.__name__)
 
 
-# Top-level so multiprocessing can pickle it under spawn or fork.
-def _publish_worker(args) -> bool:
-    target, payload = args
+#: Publishers that race for one target, the size of each payload (large
+#: enough that writes overlap once every publisher starts at the same time),
+#: and how many races one test runs (a torn write shows in most races, not
+#: all).
+_PUBLISHERS, _PAYLOAD_BYTES, _RACES = 8, 65536, 4
+
+
+# Top-level so multiprocessing can pickle it under spawn or forkserver.
+def _publish_together(barrier, target, payload) -> None:
+    barrier.wait(timeout=60)
     atomic_write_bytes(target, payload)
-    return True
 
 
 class TestAtomicWriteBytes:
@@ -181,19 +187,30 @@ class TestAtomicWritePath:
 class TestConcurrentPublication:
     def test_contended_target_stays_consistent(self, tmp_path: pathlib.Path) -> None:
         target = tmp_path / "contended.bin"
-        n = 20
-        payloads = [bytes([i]) * 4096 for i in range(n)]
-        args = [(str(target), p) for p in payloads]
+        payloads = [bytes([i]) * _PAYLOAD_BYTES for i in range(_PUBLISHERS)]
 
-        ctx = mp.get_context("fork") if "fork" in mp.get_all_start_methods() else mp.get_context()
-        with ctx.Pool(processes=8) as pool:
-            results = pool.map(_publish_worker, args)
-
-        assert all(results)
-        final = target.read_bytes()
-        # Exactly one worker's full payload — never a mix or a partial write.
-        assert final in payloads
-        assert len(final) == 4096
+        # Never fork this process: other tests in the same worker may have left
+        # threads running, CPython 3.12+ warns on such a fork (an error under
+        # this suite's filters, seen on 3.15) and the child can deadlock.
+        # forkserver forks from a clean server process; spawn starts afresh.
+        # A barrier releases every publisher at once, so their writes overlap:
+        # with a pool they started one by one and a torn write was never seen
+        # (finding CX-10).
+        methods = mp.get_all_start_methods()
+        ctx = mp.get_context("forkserver" if "forkserver" in methods else "spawn")
+        for race in range(_RACES):
+            barrier = ctx.Barrier(_PUBLISHERS)
+            procs = [
+                ctx.Process(target=_publish_together, args=(barrier, str(target), p))
+                for p in payloads
+            ]
+            for proc in procs:
+                proc.start()
+            for proc in procs:
+                proc.join(timeout=120)
+            assert [proc.exitcode for proc in procs] == [0] * _PUBLISHERS, race
+            # Exactly one publisher's full payload: never a mix or a partial write.
+            assert target.read_bytes() in payloads, race
         # No orphan temporary files, only the published target remains.
         assert list(tmp_path.glob("*.tmp")) == []
         assert [p.name for p in tmp_path.iterdir()] == ["contended.bin"]
