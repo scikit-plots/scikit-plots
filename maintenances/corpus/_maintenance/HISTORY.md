@@ -1,5 +1,35 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 920
+
+- **CX-08: `detect_script` tested Latin last.** Each character of a chunk's
+  sample went through 23 other scripts' branches (48 range comparisons)
+  before the Latin one, so English text paid for every other script first;
+  the sentence, word, paragraph, fixed-window and semantic chunkers run it on
+  every chunk. An ASCII sample is now counted without the range tests (in
+  ASCII only `A-Z` and `a-z` count, and only as Latin; `str.isalpha` is true
+  for exactly those), and both paths decide through one helper,
+  `_dominant_script`. Identical results: one SHA-256 digest over 239,275
+  cases (edges at every sample size and threshold, 20,000 generated texts,
+  the research paragraphs) on CPython 3.9 to 3.15.0b4, free-threaded 3.13t
+  and 3.14t included. ASCII samples went from 103-232 us to 4.5-7.8 us per
+  call; other samples are unchanged within noise (copies compared at one
+  location); `CorpusBuilder.build` over the 64 research files went from
+  6.2-6.4 s to 3.2 s (best of three). Tests: 13 new in `TestDetectScript`;
+  results cannot differ, so 12 pass on `main` by design, and the one that
+  pins the ASCII path skipping the range tests fails there; 8 mutations
+  caught.
+- **Recorded, not changed** (ledger notes under
+  `upcoming_changes/scikitplot/corpus/`): CX-11 the chunkers' input guard
+  looks for lone surrogates one character at a time (0.84 s of a profiled
+  8.4 s build); CX-12 `CorpusDocument.replace` recomputes its field names
+  (0.62 s) and each normalizer step rebuilds the document (1.6 s), the
+  second part waiting on decision D14.
+- `todo/todo.md` is at 399 of its 400 lines: Runs 4 and 5b are complete and
+  can be archived, each with its manifest entry.
+- Evidence: `evidence/round-2026-11-09-detect-script.log`,
+  `evidence/probe_detect_script.py`.
+
 ## 2026-11-09 — research self-test round (PR 919)
 
 64 text files of collected research (3.35 M characters, 22,034 paragraph

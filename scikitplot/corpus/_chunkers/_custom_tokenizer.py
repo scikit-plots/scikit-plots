@@ -1086,7 +1086,10 @@ def detect_script(  # noqa: PLR0912
 
     **Developer note:** Unicode categories ``unicodedata.category(c)``
     are *not* used here because they do not map cleanly to script families.
-    Code-point ranges from the Unicode Standard are used instead.
+    Code-point ranges from the Unicode Standard are used instead. An ASCII
+    sample skips the range tests, which try every other script before Latin:
+    in ASCII only ``A-Z`` and ``a-z`` count, and only as Latin, so the counts
+    and the result are the same (finding CX-08).
 
     Examples
     --------
@@ -1139,6 +1142,11 @@ def detect_script(  # noqa: PLR0912
         "emoji": 0,
         "symbolic": 0,
     }
+
+    if sample.isascii():
+        # ``str.isalpha`` is true for exactly ``A-Z`` and ``a-z`` in ASCII.
+        counts["latin"] = sum(map(str.isalpha, sample))
+        return _dominant_script(counts, majority_threshold)
 
     for ch in sample:
         cp = ord(ch)
@@ -1296,6 +1304,35 @@ def detect_script(  # noqa: PLR0912
         ):
             counts["latin"] += 1
 
+    return _dominant_script(counts, majority_threshold)
+
+
+def _dominant_script(
+    counts: dict[str, int],
+    majority_threshold: float,
+) -> ScriptType:
+    """Decide :func:`detect_script`'s result from its per-script counts.
+
+    Parameters
+    ----------
+    counts : dict of str to int
+        Characters counted per script, keyed by :class:`ScriptType` value, in
+        the order :func:`detect_script` builds them (the first wins a tie).
+    majority_threshold : float
+        Fraction of the counted characters a single script must reach.
+
+    Returns
+    -------
+    ScriptType
+        ``UNKNOWN`` when nothing was counted, the dominant script when it
+        reaches *majority_threshold*, else ``MIXED``.
+
+    Notes
+    -----
+    **Developer note:** One decision for both of :func:`detect_script`'s
+    counting paths (the ASCII one and the range tests), so they cannot
+    disagree on a result.
+    """
     total = sum(counts.values())
     if total == 0:
         return ScriptType.UNKNOWN
