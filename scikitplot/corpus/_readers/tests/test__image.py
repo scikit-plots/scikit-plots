@@ -32,6 +32,7 @@ All tests use ``unittest.mock`` — no OCR libraries are required.
 
 from __future__ import annotations
 
+import importlib.util
 import pathlib
 import sys
 import types
@@ -55,6 +56,17 @@ from scikitplot.corpus._schema import SectionType, SourceType, _PROMOTED_RAW_KEY
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+
+#: These tests need Pillow: most patch ``PIL.Image.open``, which imports
+#: ``PIL`` to find it, and the reader imports Pillow before it reads a file
+#: (so before its size check). Without Pillow they are skipped instead of
+#: failing (finding CX-07); ``test_raises_import_error_when_pillow_absent``
+#: covers the reader without it.
+_needs_pillow = pytest.mark.skipif(
+    importlib.util.find_spec("PIL") is None,
+    reason="Pillow is not installed",
+)
 
 
 def _make_pil_image(width: int = 100, height: int = 50, mode: str = "RGB") -> MagicMock:
@@ -131,6 +143,7 @@ class TestYieldKeyContract:
                 f"Key {key!r} should go to metadata but is in _PROMOTED_RAW_KEYS."
             )
 
+    @_needs_pillow
     def test_get_raw_chunks_yields_correct_keys(self, tmp_path: pathlib.Path) -> None:
         """
         Integration: actual yield dict keys match the contract.
@@ -171,6 +184,7 @@ class TestYieldKeyContract:
 class TestCriticalI1PromotedKeyValues:
     """Exact values for each promoted field."""
 
+    @_needs_pillow
     def test_page_number_is_zero_based_frame_index(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path)
         mock_img = _make_pil_image()
@@ -182,6 +196,7 @@ class TestCriticalI1PromotedKeyValues:
 
         assert [c["page_number"] for c in chunks] == [0, 1, 2]
 
+    @_needs_pillow
     def test_confidence_is_rounded_float_in_unit_range(self, tmp_path: pathlib.Path) -> None:
         raw_conf = 0.123456789
         reader = _make_reader(tmp_path)
@@ -195,6 +210,7 @@ class TestCriticalI1PromotedKeyValues:
         assert chunks[0]["confidence"] == round(raw_conf, 4)
         assert 0.0 <= chunks[0]["confidence"] <= 1.0
 
+    @_needs_pillow
     def test_ocr_engine_matches_backend(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path, backend=_BACKEND_TESSERACT)
         mock_img = _make_pil_image()
@@ -215,6 +231,7 @@ class TestCriticalI1PromotedKeyValues:
 class TestBugI4SourceType:
     """source_type must be yielded as SourceType.IMAGE.value."""
 
+    @_needs_pillow
     def test_source_type_value_is_image(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path)
         mock_img = _make_pil_image()
@@ -256,6 +273,7 @@ class TestMediumI2ConfidenceScale:
         text, conf = mock_tess(MagicMock(), "eng")
         assert 0.0 <= conf <= 1.0
 
+    @_needs_pillow
     def test_real_tesseract_normalisation_via_internals(self) -> None:
         """
         White-box: exercise the /100 branch inside _ocr_tesseract.
@@ -280,6 +298,7 @@ class TestMediumI2ConfidenceScale:
         assert abs(conf - 0.90) < 1e-9, f"Expected 0.90, got {conf}"
         assert 0.0 <= conf <= 1.0
 
+    @_needs_pillow
     def test_zero_words_returns_zero_confidence(self) -> None:
         """If Tesseract finds no valid words, confidence must be 0.0."""
         import pandas as pd  # noqa: PLC0415
@@ -376,6 +395,7 @@ class TestBugI3EasyocrReaderCaching:
         easy_mock.Reader.assert_not_called()
         assert returned_reader is existing_reader
 
+    @_needs_pillow
     def test_run_ocr_caches_reader_after_first_frame(self, tmp_path: pathlib.Path) -> None:
         """
         After the first easyocr call, self._easyocr_reader must be non-None
@@ -398,6 +418,7 @@ class TestBugI3EasyocrReaderCaching:
 
         assert reader._easyocr_reader is sentinel_reader
 
+    @_needs_pillow
     def test_run_ocr_passes_cached_reader_on_second_call(self, tmp_path: pathlib.Path) -> None:
         """_run_ocr must pass the cached reader to _ocr_easyocr on frame 2+."""
         reader = _make_reader(tmp_path, backend=_BACKEND_EASYOCR)
@@ -420,6 +441,7 @@ class TestBugI3EasyocrReaderCaching:
         # Third argument to _ocr_easyocr must be the cached reader
         assert call_args[0][2] is sentinel_reader
 
+    @_needs_pillow
     def test_reader_created_only_once_across_three_frames(self, tmp_path: pathlib.Path) -> None:
         """Over 3 frames the easyocr.Reader() constructor is called exactly once."""
         img_reader = _make_reader(tmp_path, backend=_BACKEND_EASYOCR)
@@ -481,6 +503,7 @@ class TestReaderConstruction:
 
 
 class TestGetRawChunksEdgeCases:
+    @_needs_pillow
     def test_skips_frames_with_no_text(self, tmp_path: pathlib.Path) -> None:
         """Frames returning only whitespace must be silently dropped."""
         reader = _make_reader(tmp_path)
@@ -501,6 +524,7 @@ class TestGetRawChunksEdgeCases:
         assert chunks[0]["text"] == "real text"
         assert chunks[0]["page_number"] == 1  # second frame (index 1)
 
+    @_needs_pillow
     def test_raises_value_error_when_file_too_large(self, tmp_path: pathlib.Path) -> None:
         img_file = tmp_path / "big.png"
         img_file.write_bytes(b"\x00" * 10)
@@ -528,6 +552,7 @@ class TestGetRawChunksEdgeCases:
                 with patch("builtins.__import__", side_effect=mock_import):
                     list(reader.get_raw_chunks())
 
+    @_needs_pillow
     def test_total_frames_metadata_value(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path)
         mock_img = _make_pil_image()
@@ -539,6 +564,7 @@ class TestGetRawChunksEdgeCases:
 
         assert all(c["total_frames"] == 3 for c in chunks)
 
+    @_needs_pillow
     def test_section_type_is_always_text(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path)
         mock_img = _make_pil_image()
@@ -728,19 +754,23 @@ class TestYieldRawPath:
             chunks = list(reader.get_raw_chunks())
         return chunks
 
+    @_needs_pillow
     def test_raw_tensor_key_present(self, tmp_path: pathlib.Path) -> None:
         chunks = self._run_with_yield_raw(tmp_path)
         assert len(chunks) == 1
         assert "raw_tensor" in chunks[0], "raw_tensor missing when yield_raw=True"
 
+    @_needs_pillow
     def test_raw_shape_key_present(self, tmp_path: pathlib.Path) -> None:
         chunks = self._run_with_yield_raw(tmp_path)
         assert "raw_shape" in chunks[0]
 
+    @_needs_pillow
     def test_raw_dtype_key_present(self, tmp_path: pathlib.Path) -> None:
         chunks = self._run_with_yield_raw(tmp_path)
         assert "raw_dtype" in chunks[0]
 
+    @_needs_pillow
     def test_modality_is_multimodal_when_text_and_tensor(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -748,6 +778,7 @@ class TestYieldRawPath:
         chunks = self._run_with_yield_raw(tmp_path, ocr_text="hello")
         assert chunks[0]["modality"] == "multimodal"
 
+    @_needs_pillow
     def test_raw_tensor_absent_when_yield_raw_false(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -765,6 +796,7 @@ class TestYieldRawPath:
         assert len(chunks) == 1
         assert "raw_tensor" not in chunks[0]
 
+    @_needs_pillow
     def test_modality_is_text_when_yield_raw_false(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -852,6 +884,7 @@ class TestMinConfidenceLogging:
     accidental introduction of a ``continue`` or ``return`` is caught.
     """
 
+    @_needs_pillow
     def test_low_confidence_chunk_is_still_yielded(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -870,6 +903,7 @@ class TestMinConfidenceLogging:
         assert len(chunks) == 1
         assert chunks[0]["text"] == "low conf text"
 
+    @_needs_pillow
     def test_low_confidence_emits_debug_log(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -896,6 +930,7 @@ class TestMinConfidenceLogging:
             f" Actual debug calls: {debug_messages}"
         )
 
+    @_needs_pillow
     def test_high_confidence_no_log_emitted(
         self, tmp_path: pathlib.Path
     ) -> None:
@@ -934,6 +969,7 @@ class TestPreprocessGrayscale:
     ``frame.convert("L")`` for frames that are not already in mode ``"L"``.
     """
 
+    @_needs_pillow
     def test_rgb_frame_converted_to_grayscale(self, tmp_path: pathlib.Path) -> None:
         reader = _make_reader(tmp_path, preprocess_grayscale=True)
         mock_img = _make_pil_image(mode="RGB")
@@ -956,6 +992,7 @@ class TestPreprocessGrayscale:
 
         frame.convert.assert_called_once_with("L")
 
+    @_needs_pillow
     def test_already_grayscale_frame_not_reconverted(
         self, tmp_path: pathlib.Path
     ) -> None:
