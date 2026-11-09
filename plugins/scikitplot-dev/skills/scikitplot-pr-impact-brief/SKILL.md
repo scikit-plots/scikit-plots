@@ -13,14 +13,14 @@ This skill ships the programs below. Before each run, tell the user which one, w
 | Program | Reads | Changes |
 |---|---|---|
 | `scripts/worklist.py` | open pull requests (`gh` GraphQL) | a cache file under `~/.cache/scikitplot-pr-impact-brief/` |
-| `scripts/pr_context.py` | one pull request, its issues and prior art (`gh`); the head commit via `git fetch origin pull/N/head` | git objects only; no branch or file |
+| `scripts/pr_context.py` | one pull request, its files at the merge base and head, linked issues and prior art (`gh`, REST) | nothing |
 
 `worklist.py` picks the next pull request to brief; `pr_context.py` gathers the mechanical part of steps 1 and 3, including the change to the public Python API. Neither writes to GitHub. Scales and options: `reference.md`.
 
 ```sh
 python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots list --counts
 PR=123
-python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/pr_context.py "$PR"
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/pr_context.py "$PR" --repo scikit-plots/scikit-plots
 ```
 
 The question is not whether the code is right (that is a review) but whether

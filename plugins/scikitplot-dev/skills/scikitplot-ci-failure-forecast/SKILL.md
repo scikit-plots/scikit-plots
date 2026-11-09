@@ -12,20 +12,21 @@ This skill ships the programs below. Before each run, tell the user which one, w
 
 | Program | Reads | Changes |
 |---|---|---|
-| `scripts/ci_runs.py` | scheduled runs and their attempt-1 jobs (`gh`) | the `--out` file, when given |
+| `scripts/ci_runs.py` | completed runs and their attempt-1 jobs (`gh`, REST) | the `--out` file, when given |
 
-`baseline` records the newest scheduled run of a workflow (step 1); `score` compares a forecast file, `{"workflow": ..., "baseline_run": ..., "jobs": {"<job>": "<outcome>"}}`, with attempt 1 of the run it forecast and counts hits, misses and false alarms.
+`baseline` records the newest completed scheduled run of a workflow (step 1), or with `--event push --branch main` the newest push run when the history holds no scheduled one; `score` compares a forecast file, `{"workflow": ..., "baseline_run": ..., "jobs": {"<job>": "<outcome>"}}`, with attempt 1 of the run it forecast and counts hits, misses and false alarms; cancelled jobs are not scored, and an unfinished run is refused.
 
 ```sh
 REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-python3 plugins/scikitplot-dev/skills/scikitplot-ci-failure-forecast/scripts/ci_runs.py --repo "$REPO" baseline --workflow nightly.yml
+python3 plugins/scikitplot-dev/skills/scikitplot-ci-failure-forecast/scripts/ci_runs.py --repo "$REPO" baseline --workflow ci_wheels_conda.yml
 ```
 
 A scheduled run tests the default branch against the newest dependencies, so
 it breaks for two reasons: a failure that nobody fixed since the last run, or
 something new since then (a merged change, a dependency release). Both are
 visible before the run. A forecast made beforehand, and scored afterwards,
-turns the nightly from a surprise into a checklist.
+turns the scheduled run from a surprise into a checklist. In scikit-plots the
+scheduled workflows run weekly (Mondays) or monthly, not nightly.
 
 The forecast reads only; it never fixes, pushes, reruns or posts. Drafted
 issues are left for the user to file.
@@ -37,7 +38,7 @@ issues are left for the user to file.
 ```sh
 REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 grep -l "schedule:" .github/workflows/*
-WORKFLOW=nightly.yml
+WORKFLOW=ci_wheels_conda.yml
 gh run list --repo "$REPO" --workflow "$WORKFLOW" --event schedule --limit 5 --json databaseId,headSha,conclusion,createdAt
 RUN="$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --event schedule --limit 1 --json databaseId --jq '.[0].databaseId')"
 SHA="$(gh run view "$RUN" --repo "$REPO" --json headSha --jq .headSha)"
@@ -46,7 +47,10 @@ gh run view "$RUN" --repo "$REPO" --attempt 1 --log-failed
 ```
 
 The baseline is attempt 1: a manual rerun can turn a run green and hide what
-failed. Note jobs marked `continue-on-error`: they can fail while the run
+failed. A run still in progress is not a baseline; take the newest completed
+one. When the history holds no scheduled run at all (scikit-plots' Actions
+history had none on 2026-11-09), use the newest `push` run on the default
+branch and say so in the forecast: it ran with the dependencies of that day. Note jobs marked `continue-on-error`: they can fail while the run
 reports success, and they are often where breakage appears first, so forecast
 them too.
 
@@ -56,8 +60,8 @@ them too.
   baseline commit.
 
   ```sh
-  git fetch origin
-  git log --oneline "$SHA..origin/HEAD"
+  BRANCH="$(gh api "repos/$REPO" --jq .default_branch)"
+  gh api "repos/$REPO/compare/$SHA...$BRANCH" --jq '.commits[] | [.sha[0:12], (.commit.message | split("\n")[0])] | @tsv'
   ```
 
 - **Dependencies:** for each dependency the workflow installs without an

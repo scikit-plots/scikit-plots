@@ -9,7 +9,34 @@ license: BSD-3-Clause
 The process for a contributor or maintainer reviewing a scikit-plots pull
 request. Each stage names the skill that does it; this skill decides the
 order, the gates between stages, and where the result is kept. State lives in
-the tree (records, ledger, rules), never only in the chat.
+the tree (records, ledger, rules) or on GitHub, never only in the chat.
+
+## Before you start
+
+**First review here?** Read `AGENTS.md` (the "Needs ..." labels),
+`maintenances/README.md` (where each area's records live) and
+`references/gates-by-path.md` (which checks a change needs). Nothing else is
+needed to begin.
+
+**Choose the depth** with the user, by what a wrong merge would cost:
+
+| Depth | When | Stages |
+|---|---|---|
+| quick | one area, no public API or dependency change, a maintainer's own change, or a time-boxed pass | 1, 3 (the `pr_paths.py` table only), 4, 5 |
+| full | anything else: outside contributions, public API, dependencies, CI, published plugin | 1 to 8 |
+
+A quick pass that finds a public API change, a new dependency or a change to
+`plugins/scikitplot/` becomes a full one; say so.
+
+**Resume, don't restart.** Each stage leaves a trace another person or a
+later session can see; begin at the first stage without one:
+
+| Stage | Its trace |
+|---|---|
+| 2 | a brief in the user's briefs folder, named `<number>-...` |
+| 5 | the findings list given to the user, or ledger notes under `upcoming_changes/` |
+| 7 | your pending review on the pull request (`post_pending_review.py --dry-run` reports it and which comments it already holds) |
+| 8 | a forecast file named by the run's date |
 
 ## Stages
 
@@ -34,7 +61,8 @@ project has not decided yet.
 
 ### 3. Understand
 
-`scikitplot-pr-walkthrough`. From its Level 0, name the owning area under
+`scikitplot-pr-walkthrough`; its `pr_paths.py` table (owning area and kind of
+every changed file) is the first step, and all a quick pass needs. From its Level 0, name the owning area under
 `maintenances/`, its skill (`plugins/INDEX.md`), its open findings
 (`REVIEW.json`), and the engineering rules the change touches.
 

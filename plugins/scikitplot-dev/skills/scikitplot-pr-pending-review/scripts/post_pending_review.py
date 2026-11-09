@@ -15,10 +15,13 @@ and ``start_side``. Line numbers are file line numbers, not diff positions.
 
 Every comment is checked against the pull request's diff first; if one cannot
 be placed, nothing is posted (exit 1). A comment identical to one already on
-the pull request (same file, side, line and text) is skipped, so a rerun
-posts nothing twice. Without an existing pending review of yours, one is
-created through REST with no ``event``; otherwise the comments are added to
-it through GraphQL. The review is never submitted.
+the pull request (same file, side, line and text), or already in your own
+pending review (same file and text: GitHub reports no line for a pending
+comment), is skipped, so a rerun after a partial failure posts nothing twice.
+Without a pending review of yours, one is created through REST with no
+``event``; otherwise the comments are added to it through GraphQL, one at a
+time, and a failure stops with the list of what was added. The review is
+never submitted.
 """
 
 from __future__ import annotations
@@ -157,34 +160,52 @@ def diff_index(repo: str, pr: int) -> LineIndex:
 
 
 def existing(repo: str, pr: int) -> Set[Tuple[str, str, int, str]]:
-    """Return the keys of the review comments already on the pull request."""
+    """Return the keys of the submitted review comments on the pull request."""
     text = _gh(["api", "--paginate", f"repos/{repo}/pulls/{pr}/comments",
                 "--jq", ".[] | {path, line: (.line // .original_line), side, body}"])
     return {key(c) for c in _json_lines(text) if c.get("line")}
 
 
-def pending_review_id(repo: str, pr: int) -> Optional[str]:
-    """Return the node id of the user's pending review on the pull request."""
-    owner, name = repo.split("/", 1)
-    query = (
-        "query($owner: String!, $name: String!, $number: Int!) {"
-        " viewer { login }"
-        " repository(owner: $owner, name: $name) { pullRequest(number: $number) {"
-        " reviews(states: PENDING, first: 50) { nodes { id author { login } } } } } }"
-    )
-    data = json.loads(_gh(["api", "graphql", "-F", f"owner={owner}", "-F", f"name={name}",
-                           "-F", f"number={pr}", "-f", f"query={query}"]))["data"]
-    login = data["viewer"]["login"]
-    for node in data["repository"]["pullRequest"]["reviews"]["nodes"]:
-        if (node.get("author") or {}).get("login") == login:
-            return node["id"]
+def pending_review(repo: str, pr: int) -> Optional[dict]:
+    """
+    Return the user's own pending review on the pull request, or ``None``.
+
+    Returns
+    -------
+    dict or None
+        ``{"id": <REST id>, "node_id": <GraphQL id>, "comments": [(path,
+        body), ...]}``. Only the author sees a pending review, so at most one
+        is returned.
+    """
+    login = _gh(["api", "user", "--jq", ".login"]).strip()
+    text = _gh(["api", "--paginate", f"repos/{repo}/pulls/{pr}/reviews",
+                "--jq", ".[] | {id, node_id, state, login: .user.login}"])
+    for review in _json_lines(text):
+        if review["state"] == "PENDING" and review["login"] == login:
+            body = _gh(["api", "--paginate", f"repos/{repo}/pulls/{pr}/reviews/{review['id']}/comments",
+                        "--jq", ".[] | {path, body}"])
+            review["comments"] = [(c["path"], c["body"].strip()) for c in _json_lines(body)]
+            return review
     return None
 
 
-def post(repo: str, pr: int, comments: List[dict]) -> str:
+def to_post(comments: List[dict], submitted: Set[Tuple[str, str, int, str]],
+            pending: Optional[dict]) -> List[dict]:
+    """
+    Return the comments that are on the pull request in neither form.
+
+    A submitted comment matches on file, side, line and text (:func:`key`);
+    a pending one on file and text, because GitHub reports no line for a
+    comment while its review is pending.
+    """
+    drafts = set((pending or {}).get("comments", []))
+    return [c for c in comments
+            if key(c) not in submitted and (c["path"], c["body"].strip()) not in drafts]
+
+
+def post(repo: str, pr: int, comments: List[dict], pending: Optional[dict]) -> str:
     """Post *comments* as, or into, the user's pending review; return a summary."""
-    review = pending_review_id(repo, pr)
-    if review is None:
+    if pending is None:
         head = _gh(["pr", "view", str(pr), "--repo", repo, "--json", "headRefOid",
                     "--jq", ".headRefOid"]).strip()
         payload = json.dumps({"commit_id": head, "comments": comments})
@@ -200,13 +221,21 @@ def post(repo: str, pr: int, comments: List[dict]) -> str:
         " line: $line, side: $side, startLine: $startLine, startSide: $startSide,"
         " body: $body}) { thread { id } } }"
     )
+    review = pending["node_id"]
+    added: List[str] = []
     for c in comments:
         args = ["api", "graphql", "-F", f"review={review}", "-F", f"path={c['path']}",
                 "-F", f"line={c['line']}", "-F", f"side={c['side']}",
                 "-F", f"body={c['body']}", "-f", f"query={mutation}"]
         if "start_line" in c:
             args[2:2] = ["-F", f"startLine={c['start_line']}", "-F", f"startSide={c['start_side']}"]
-        _gh(args)
+        try:
+            _gh(args)
+        except RuntimeError as exc:
+            done = "\n  ".join(added) or "none"
+            raise RuntimeError(f"{exc}\nadded before the failure:\n  {done}\n"
+                               "rerun to post the rest; added comments are skipped") from None
+        added.append(f"{c['path']}:{c['line']}")
     return f"added {len(comments)} comment(s) to your pending review {review}"
 
 
@@ -223,28 +252,35 @@ def main(argv: Optional[List[str]] = None) -> int:
     raw = json.loads(text)
     if not isinstance(raw, list) or not raw:
         parser.error("the comments file must hold a non-empty list")
-    problems, comments = [], []
+    problems: List[str] = []
+    numbered: List[Tuple[int, dict]] = []
     for number, item in enumerate(raw, 1):
         try:
-            comments.append(normalize(item))
+            numbered.append((number, normalize(item)))
         except ValueError as exc:
             problems.append(f"#{number}: {exc}")
+    comments = [c for _, c in numbered]
     index = diff_index(args.repo, args.pr)
-    for number, comment in enumerate(comments, 1):
+    for number, comment in numbered:
         reason = check(comment, index)
         status = f"INVALID: {reason}" if reason else "ok"
         print(f"#{number} {comment['path']}:{comment['line']} {comment['side']}: {status}")
         if reason:
             problems.append(f"#{number}: {reason}")
     if problems:
-        print("nothing posted:", *problems, sep="\n  ", file=sys.stderr)
+        print("nothing posted:", *sorted(problems, key=lambda s: int(s[1:].split(":", 1)[0])), sep="\n  ", file=sys.stderr)
         return 1
-    seen = existing(args.repo, args.pr)
-    new = [c for c in comments if key(c) not in seen]
-    print(f"{len(comments) - len(new)} already on the pull request, {len(new)} to post")
+    pending = pending_review(args.repo, args.pr)
+    new = to_post(comments, existing(args.repo, args.pr), pending)
+    where = f"; you have pending review {pending['id']}" if pending else ""
+    print(f"{len(comments) - len(new)} already on the pull request, {len(new)} to post{where}")
     if args.dry_run or not new:
         return 0
-    print(post(args.repo, args.pr, new))
+    try:
+        print(post(args.repo, args.pr, new, pending))
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     print("Open the pull request's 'Files changed' tab to edit and submit it yourself.")
     return 0
 

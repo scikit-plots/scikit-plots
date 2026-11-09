@@ -56,24 +56,29 @@ only; none writes to GitHub.
 python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots fetch
 python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots list --counts
 python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots pick --seed 1
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots --briefs ~/briefs pick --seed 1
 ```
 
 `fetch` keeps the open pull requests in a cache under `~/.cache` (refreshed
 when older than `--max-age-hours`, 24 by default, or with `--force`). `list
 --counts` shows how each filter stage narrows the list. `pick` draws at random
-from the worklist (open, not draft, touching `--paths`, no "Needs ..." label,
-no maintainer other than the author engaged, not yet briefed in `--briefs`);
-`--seed` makes the draw repeatable.
+from the worklist (open, not draft, opened by someone outside the maintainers,
+touching `--paths`, no "Needs ..." label, no maintainer engaged, not yet
+briefed in `--briefs`); `--seed` makes the draw repeatable. Options such as
+`--briefs`, `--paths` and `--include-maintainers` go before the command.
 
 ### `scripts/pr_context.py`
 
 ```sh
-python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/pr_context.py 123
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/pr_context.py 123 --repo scikit-plots/scikit-plots
 ```
 
 Prints the pull request's metadata and description (the author's claims, to
-check), its linked issues with labels, the change to the public Python API
-computed from the base and head sources, prior art from a title search, and
-the diff (capped by `--diff-lines`). It fetches the head with `git fetch
-origin pull/N/head`, which changes no branch. `--no-prior-art` skips the
-search; `--json` gives the raw bundle.
+check), the issues of the same repository it links, with labels, the change
+to the public Python API between the merge base and the head (defaults
+included; a renamed file is read under its old name), prior art from a
+title-word search of pull requests and issues (merged ones marked), and the
+diff (capped by `--diff-lines`). It reads only GitHub's REST API, so it
+works from a fork or outside a checkout and changes nothing; a part it
+cannot read is printed as "could not compute", never as "no change".
+`--no-prior-art` skips the search; `--json` gives the raw bundle.

@@ -91,6 +91,8 @@ def kind(path: str, shared: List[str]) -> Tuple[str, str]:
     if tool:
         return "generated", tool
     name = pathlib.PurePosixPath(path).name
+    if path.startswith(".github/"):
+        return "ci", ""
     if path.startswith("docs/source/whats_new/upcoming_changes/"):
         return "release-note", ""
     if path.startswith(("maintenances/", "upcoming_changes/")) and "/tests/" not in path:
@@ -117,18 +119,23 @@ def main(argv: Optional[List[str]] = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("pr", nargs="?", type=int, help="pull request number")
     group.add_argument("--files", nargs="+", help="paths, instead of a pull request")
-    parser.add_argument("--root", type=pathlib.Path, default=pathlib.Path("."))
+    parser.add_argument("--repo", help="OWNER/NAME, needed with a pull request number")
+    parser.add_argument("--root", type=pathlib.Path, default=pathlib.Path("."),
+                        help="the checkout whose maintenances/ decides the areas")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     if args.files:
         paths = args.files
     else:
-        result = subprocess.run(["gh", "pr", "view", str(args.pr), "--json", "files",
-                                 "--jq", ".files[].path"], capture_output=True, text=True, check=False)
+        if not args.repo or "/" not in args.repo:
+            parser.error("--repo OWNER/NAME is required with a pull request number")
+        # REST, paginated: every file (up to GitHub's 3000), not the first 100.
+        result = subprocess.run(["gh", "api", "--paginate", f"repos/{args.repo}/pulls/{args.pr}/files",
+                                 "--jq", ".[].filename"], capture_output=True, text=True, check=False)
         if result.returncode != 0:
             print(f"gh failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
-        paths = result.stdout.split()
+        paths = [line for line in result.stdout.splitlines() if line]
     grouped = table(paths, args.root)
     if args.json:
         print(json.dumps(grouped, indent=1))

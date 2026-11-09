@@ -8,12 +8,15 @@ Usage (``gh`` must be logged in)::
 
     python3 worklist.py --repo OWNER/NAME fetch            # refresh when older than a day
     python3 worklist.py --repo OWNER/NAME list --counts    # how the filter narrows the list
-    python3 worklist.py --repo OWNER/NAME pick --briefs DIR --seed 7
+    python3 worklist.py --repo OWNER/NAME --briefs DIR pick --seed 7   # options before the command
 
-The worklist is the open, non-draft pull requests that touch ``--paths`` and
-that no maintainer other than the author has commented on or reviewed: the
-ones whose worth nobody has weighed yet. A maintainer is an author
-association of ``OWNER``, ``MEMBER`` or ``COLLABORATOR``. A pull request with
+The worklist is the open, non-draft pull requests from outside contributors
+that touch ``--paths`` and that no maintainer has commented on or reviewed:
+the ones whose worth nobody has weighed yet. A maintainer is an author
+association of ``OWNER``, ``MEMBER`` or ``COLLABORATOR``; a maintainer's own
+pull request is left out (``--include-maintainers`` keeps it). A pull
+request with more files than one query returns (100) counts as touching
+``--paths``, so it is never dropped for want of data. A pull request with
 a ``Needs ...`` label is left out: its question is already recorded as open.
 A brief is a file in ``--briefs`` whose name starts with ``<number>-``;
 briefed pull requests are skipped unless ``--include-briefed`` is given.
@@ -32,9 +35,11 @@ import sys
 from typing import Iterable, List, Optional
 
 MAINTAINERS = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
-#: 25 per page: larger pages with nested comments and files exceed GitHub's
-#: node limit, which answers with an empty body rather than an error.
+#: Pull requests per query: each one also asks for up to 330 nested nodes, so
+#: small pages keep a query cheap and quick.
 PAGE = 25
+#: Files read per pull request; more than this is recorded as truncated.
+FILES = 100
 QUERY = """
 query($owner: String!, $name: String!, $after: String) {
   repository(owner: $owner, name: $name) {
@@ -44,14 +49,14 @@ query($owner: String!, $name: String!, $after: String) {
         number title url isDraft createdAt updatedAt
         author { login } authorAssociation
         labels(first: 30) { nodes { name } }
-        files(first: 100) { nodes { path } }
+        files(first: %d) { totalCount nodes { path } }
         comments(first: 100) { nodes { author { login } authorAssociation } }
         reviews(first: 100) { nodes { author { login } authorAssociation } }
       }
     }
   }
 }
-""" % PAGE
+""" % (PAGE, FILES)
 
 
 def default_cache(repo: str) -> pathlib.Path:
@@ -86,6 +91,7 @@ def flatten(node: dict) -> dict:
         "author": author, "association": node.get("authorAssociation", ""),
         "labels": _names(node.get("labels"), "name"),
         "files": _names(node.get("files"), "path"),
+        "files_truncated": ((node.get("files") or {}).get("totalCount") or 0) > FILES,
         "maintainer_engaged": bool(engaged),
     }
 
@@ -96,7 +102,9 @@ def fetch(repo: str, cache: pathlib.Path, max_age_hours: float, force: bool) -> 
     if cache.is_file() and not force:
         data = json.loads(cache.read_text(encoding="utf-8"))
         age = now - dt.datetime.fromisoformat(data["fetched"])
-        if age.total_seconds() < max_age_hours * 3600:
+        if data.get("repo") != repo:
+            print(f"cache holds {data.get('repo')!r}, not {repo!r}; refetching", file=sys.stderr)
+        elif age.total_seconds() < max_age_hours * 3600:
             print(f"cache fresh ({age.total_seconds() / 3600:.1f} h old): {cache}", file=sys.stderr)
             return data["pulls"]
     owner, name = repo.split("/", 1)
@@ -125,7 +133,8 @@ def briefed(folder: Optional[pathlib.Path]) -> set:
             if p.name.split("-", 1)[0].isdigit()}
 
 
-def worklist(pulls: Iterable[dict], paths: List[str], done: set, include_briefed: bool) -> dict:
+def worklist(pulls: Iterable[dict], paths: List[str], done: set, include_briefed: bool,
+             include_maintainers: bool = False) -> dict:
     """
     Apply the filter in stages and return each stage's pull requests.
 
@@ -133,13 +142,17 @@ def worklist(pulls: Iterable[dict], paths: List[str], done: set, include_briefed
     -------
     dict
         Stage name -> list of pull requests, in order: ``open``,
-        ``not draft``, ``touches paths``, ``no open decision``,
-        ``no maintainer yet``, ``not briefed``. The last is the worklist.
+        ``not draft``, ``from outside``, ``touches paths``,
+        ``no open decision``, ``no maintainer yet``, ``not briefed``. The
+        last is the worklist.
     """
     stages = {"open": list(pulls)}
     stages["not draft"] = [p for p in stages["open"] if not p["draft"]]
-    stages["touches paths"] = [p for p in stages["not draft"]
-                               if any(f.startswith(tuple(paths)) for f in p["files"])]
+    stages["from outside"] = [p for p in stages["not draft"]
+                              if include_maintainers or p.get("association") not in MAINTAINERS]
+    stages["touches paths"] = [p for p in stages["from outside"]
+                               if p.get("files_truncated")
+                               or any(f.startswith(tuple(paths)) for f in p["files"])]
     stages["no open decision"] = [p for p in stages["touches paths"]
                                   if not any(l.startswith("Needs") for l in p["labels"])]
     stages["no maintainer yet"] = [p for p in stages["no open decision"] if not p["maintainer_engaged"]]
@@ -157,6 +170,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                         help="path prefixes that count as the project's source")
     parser.add_argument("--briefs", type=pathlib.Path, help="folder of written briefs")
     parser.add_argument("--include-briefed", action="store_true")
+    parser.add_argument("--include-maintainers", action="store_true",
+                        help="keep pull requests a maintainer opened")
     sub = parser.add_subparsers(dest="command", required=True)
     f = sub.add_parser("fetch")
     f.add_argument("--force", action="store_true")
@@ -173,7 +188,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     pulls = fetch(args.repo, cache, args.max_age_hours, getattr(args, "force", False))
     if args.command == "fetch":
         return 0
-    stages = worklist(pulls, args.paths, briefed(args.briefs), args.include_briefed)
+    if args.command == "pick" and args.n < 1:
+        parser.error("-n must be 1 or more")
+    stages = worklist(pulls, args.paths, briefed(args.briefs), args.include_briefed,
+                      args.include_maintainers)
     work = stages["not briefed"]
     if args.command == "list":
         if args.counts:

@@ -97,6 +97,16 @@ class TestPendingReview:
         out = review["normalize"]({"path": "a.py", "start_line": 3, "line": 3, "body": "x"})
         assert "start_line" not in out and out["side"] == "RIGHT"
 
+    def test_to_post_skips_submitted_and_pending_comments(self):
+        norm = review["normalize"]
+        a = norm({"path": "a.py", "line": 3, "body": "one"})
+        b = norm({"path": "a.py", "line": 4, "body": "two"})
+        c = norm({"path": "b.py", "line": 4, "body": "two"})
+        submitted = {review["key"](a)}
+        pending = {"comments": [("a.py", "two")]}
+        assert review["to_post"]([a, b, c], submitted, pending) == [c]
+        assert review["to_post"]([a, b, c], set(), None) == [a, b, c]
+
     def test_key_ignores_surrounding_space_only(self):
         a = review["key"]({"path": "a.py", "line": 3, "body": "text\n"})
         assert a == review["key"]({"path": "a.py", "line": 3, "side": "RIGHT", "body": " text"})
@@ -106,7 +116,7 @@ class TestPendingReview:
 
 def _pr(number, **kw):
     pr = {"number": number, "draft": False, "files": ["scikitplot/x.py"], "labels": [],
-          "maintainer_engaged": False}
+          "maintainer_engaged": False, "association": "CONTRIBUTOR", "files_truncated": False}
     pr.update(kw)
     return pr
 
@@ -116,16 +126,21 @@ class TestWorklist:
         pulls = [
             _pr(1),
             _pr(2, draft=True),
+            _pr(7, association="MEMBER"),
             _pr(3, files=["docs/a.rst"]),
             _pr(4, labels=["Needs Triage"]),
             _pr(5, maintainer_engaged=True),
             _pr(6),
         ]
         stages = worklist["worklist"](pulls, ["scikitplot/"], {6}, False)
-        assert [len(v) for v in stages.values()] == [6, 5, 4, 3, 2, 1]
+        assert [len(v) for v in stages.values()] == [7, 6, 5, 4, 3, 2, 1]
         assert [p["number"] for p in stages["not briefed"]] == [1]
-        again = worklist["worklist"](pulls, ["scikitplot/"], {6}, True)
-        assert [p["number"] for p in again["not briefed"]] == [1, 6]
+        again = worklist["worklist"](pulls, ["scikitplot/"], {6}, True, include_maintainers=True)
+        assert [p["number"] for p in again["not briefed"]] == [1, 7, 6]
+
+    def test_a_truncated_file_list_is_kept(self):
+        pr = _pr(1, files=["docs/a.rst"], files_truncated=True)
+        assert worklist["worklist"]([pr], ["scikitplot/"], set(), False)["touches paths"] == [pr]
 
     def test_a_label_that_only_mentions_needs_is_kept(self):
         stages = worklist["worklist"]([_pr(1, labels=["Docs: Needs review after merge"])], ["scikitplot/"], set(), False)
@@ -136,7 +151,9 @@ class TestPrContext:
     def test_linked_issues(self):
         text = "Fixes #12, closes #3 and resolved #12. See #99; issue #7 is unrelated."
         assert context["linked_issues"](text) == [12, 3, 99]
-        assert context["linked_issues"]("https://github.com/o/r/issues/5") == [5]
+        other = "Fixes other/lib#4, see o/r#5, https://github.com/o/r/issues/6 and https://github.com/x/y/issues/8"
+        assert context["linked_issues"](other, "O/R") == [5, 6]
+        assert context["linked_issues"](other) == []
 
     def test_public_api_follows_all_when_declared(self):
         source = (
@@ -161,18 +178,37 @@ class TestPrContext:
         assert context["api_delta"](before, before) == {"added": [], "removed": [], "changed": []}
         assert context["public_api"]("") == {}
 
+    def test_a_changed_default_is_a_change(self):
+        before = context["public_api"]("def f(a, b=1, *, c=None, d=np.nan): pass\n")
+        assert before["f"] == "(a, b=1, *, c=None, d=np.nan)"
+        for after in ("def f(a, b=2, *, c=None, d=np.nan): pass\n",
+                      "def f(a, b=1, *, c=0, d=np.nan): pass\n",
+                      "def f(a, b=1, *, c=None, d=np.inf): pass\n"):
+            assert context["api_delta"](before, context["public_api"](after))["changed"] == ["f"], after
+        assert context["public_api"]("def g(a, /, b): pass\n")["g"] == "(a, /, b)"
+
 
 class TestCiRuns:
     FORECAST = {"jobs": {"a": "carries over", "b": "breaks", "c": "passes", "d": "recovers", "e": "passes", "g": "breaks"}}
 
     def test_score(self):
-        actual = {"a": "failure", "b": "success", "c": "cancelled", "d": "success", "f": "skipped"}
+        actual = {"a": "failure", "b": "success", "c": "timed_out", "d": "success", "e": "cancelled",
+                  "f": "skipped"}
         result = ci["score"](self.FORECAST, actual)
         assert result["hits"] == ["a"]
         assert result["misses"] == ["c"]
         assert result["false_alarms"] == ["b"]
         assert result["unknown"] == ["e", "g"]
         assert (result["correct"], result["total"]) == (2, 4)
+
+    def test_an_unfinished_run_is_refused(self):
+        with pytest.raises(ValueError):
+            ci["score"](self.FORECAST, {"a": "failure", "b": "pending"})
+
+    def test_a_repeated_job_name_keeps_its_worst_conclusion(self):
+        jobs = [{"name": "t", "conclusion": "success"}, {"name": "t", "conclusion": "failure"},
+                {"name": "t", "conclusion": "cancelled"}, {"name": "u", "conclusion": None}]
+        assert ci["merge_jobs"](jobs) == {"t": "failure", "u": "pending"}
 
     def test_an_unknown_outcome_is_refused(self):
         with pytest.raises(ValueError):
@@ -201,6 +237,7 @@ class TestPrPaths:
         assert kind("maintenances/_repo/_maintenance/tests/test_records.py", shared)[0] == "test"
         assert kind("scikitplot/api/tests/test_x.py", shared)[0] == "test"
         assert kind("scikitplot/api/x.py", shared)[0] == "source"
+        assert kind(".github/workflows/x.yml", shared)[0] == "ci"
         assert kind("plugins/INDEX.md", shared) == ("generated", kind("plugins/INDEX.md", shared)[1])
         assert kind("plugins/INDEX.md", shared)[1]
 

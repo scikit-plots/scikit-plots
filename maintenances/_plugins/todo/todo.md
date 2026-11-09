@@ -198,3 +198,39 @@ verbatim under `../_maintenance/history/` (created with the first one).
   overwrote the uncommitted edits in the working tree; restored from the
   dropped stash commit. Compare against main in `git worktree add`, never by
   checking main's files out over the working tree.
+- Check against reality (same day, the maintainer asked for a last check):
+  - `post_pending_review.py`: a rerun after a partial failure would have
+    posted duplicates (comments in your pending review have no line, so the
+    line-keyed dedupe missed them); the pending review and its comments are
+    now read through REST and matched on file and text; a GraphQL failure
+    stops with the list of comments already added; error numbers no longer
+    shift.
+  - `pr_context.py`: read the base and head with `git fetch origin`, wrong
+    when `origin` is a fork; compared with the base branch tip instead of the
+    merge base; reported "no API change" when the fetch failed; searched all
+    of GitHub without `--repo`; looked up `other/name#4` in this repository;
+    ignored changed defaults; and the search endpoint refuses a query
+    without `is:pr` or `is:issue` (HTTP 422), which `check=False` hid. Now
+    REST only (contents at the merge base and head, renames by their old
+    name), `--repo` required, unreadable parts printed as "could not
+    compute", merged pull requests marked.
+  - `pr_paths.py`: `gh pr view --json files` stops at 100 files; now REST,
+    paginated; a `.github/` file is kind `ci`.
+  - `ci_runs.py`: an unfinished run counted its running jobs as failures and
+    a cancelled job as a miss; now the newest completed run, cancelled jobs
+    unscored, an unfinished run refused, a repeated job name keeps its worst
+    conclusion; `--event` and `--branch`, because scikit-plots' Actions
+    history held no scheduled run on 2026-11-09 (all 97 runs listed were
+    pull_request, pull_request_target or push), though nine workflows
+    declare weekly or monthly schedules.
+  - `worklist.py`: a maintainer's own pull request is left out (the brief is
+    for outside contributions); a pull request with more than 100 files is
+    kept rather than dropped; a cache of another repository is refetched.
+  - Examples named `nightly.yml`, which scikit-plots does not have; now
+    `ci_wheels_conda.yml`.
+  - Review flow: "Before you start" (first-review reading, quick or full
+    depth, resume from each stage's visible trace).
+  - Tests: 30; eleven more mutations, each failing a test. The REST paths
+    were run against PRs 917 and 918 (`--dry-run` for the pending review);
+    the GraphQL paths (adding to a pending review, the worklist query)
+    cannot run in this session.
