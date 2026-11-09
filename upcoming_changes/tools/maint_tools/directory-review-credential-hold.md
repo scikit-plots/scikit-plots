@@ -86,19 +86,12 @@ whole-environment inline code before merging.
    request is for `2ba48c0`); delete the four `probe/*` branches of
    `scikit-plots/skills` (open item in CI-9). PR 916 (the records and the
    guard) is already merged; its build is the newest version.
-3. Then merge PR 918, not before: it adds four GitHub skills to the users'
-   plugin (CI-10), so its build reads GitHub through the user's `gh` and,
-   on request, posts a pending review. Before or with that build, update the
-   submission's Data handling answers: the plugin sends data only to GitHub,
-   through the user's own `gh` login, when a GitHub skill is asked for. The
-   README states the same, derived by `check_records.skills_using_github`.
 
 ## Verification / acceptance criteria
 
 - The plugin page shows the version approved and published.
 - The build of PR 916 (merged) scanned with no blocking finding.
 - No `probe/*` branch left in `scikit-plots/skills`.
-- PR 918 merged after the decision, with the Data handling answers updated.
 Then delete this note.
 
 ## Documentation impact

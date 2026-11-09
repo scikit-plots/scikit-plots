@@ -663,6 +663,17 @@ PREFIX = "scikitplot"
 DEV_SUFFIX = "-dev"
 #: Development skills that maintain no single path (no agent of their own).
 CROSS_CUTTING_SKILLS = ("scikitplot-engineering-rules",)
+#: Development skills for contributor and maintainer workflows (pull requests,
+#: CI), written by hand in the developers' plugin only: they maintain no single
+#: path, so they have no agent and are not preloaded into the area agents. Not
+#: in the users' plugin: using the library needs none of them.
+DEV_WORKFLOW_SKILLS = (
+    "scikitplot-ci-failure-forecast",
+    "scikitplot-pr-impact-brief",
+    "scikitplot-pr-pending-review",
+    "scikitplot-pr-review-flow",
+    "scikitplot-pr-walkthrough",
+)
 #: Plugins of other marketplaces that a plugin of the development marketplace
 #: depends on, by plugin, exactly as its marketplace entry's ``dependencies``.
 #: A third-party skill is installed from its publisher's plugin and never
@@ -1709,11 +1720,12 @@ def check_skills(root: Path) -> list[str]:
                     f"{rel}: a {DEV_SUFFIX} skill names the path it maintains in"
                     f" metadata.{MIRROR_KEY}"
                 )
-            elif skill.name not in CROSS_CUTTING_SKILLS + shared:
+            elif skill.name not in CROSS_CUTTING_SKILLS + DEV_WORKFLOW_SKILLS + shared:
                 errors.append(
                     f"{rel}: a skill without metadata.{MIRROR_KEY} is one of"
-                    f" {list(CROSS_CUTTING_SKILLS)} or a shared skill; a third-party"
-                    " skill comes from its own plugin (EXTERNAL_DEPENDENCIES)"
+                    f" {list(CROSS_CUTTING_SKILLS + DEV_WORKFLOW_SKILLS)} or a shared"
+                    " skill; a third-party skill comes from its own plugin"
+                    " (EXTERNAL_DEPENDENCIES)"
                 )
             continue
         if skill.mirror not in keys:

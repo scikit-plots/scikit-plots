@@ -878,17 +878,23 @@ class TestIndexTablesAndDisclosure:
         assert "`skill-creator`" in readme
         assert "(https://code.claude.com/docs/en/plugins)" in readme
         assert "claude-plugins-official" not in readme
-        # The GitHub skills are disclosed from their own code: three read, one writes.
-        github = records["skills_using_github"](ROOT, records["USAGE_SKILLS_DIR"])
-        assert github == {
-            "scikitplot-ci-failure-forecast": False,
-            "scikitplot-pr-impact-brief": False,
-            "scikitplot-pr-pending-review": True,
-            "scikitplot-pr-walkthrough": False,
-        }
-        assert "your GitHub CLI (`gh`)" in readme
-        assert "Also write, only after you approve the exact text: `scikitplot-pr-pending-review`" in readme
-        assert "No skill or agent makes a network call" not in readme
+        # No users' skill calls GitHub: the workflow skills are the developers' only.
+        assert records["skills_using_github"](ROOT, records["USAGE_SKILLS_DIR"]) == {}
+        assert "No skill or agent makes a network call" in readme
+
+    def test_the_workflow_skills_are_the_developers_only(self):
+        names = records["DEV_WORKFLOW_SKILLS"]
+        dev = ROOT / records["SKILLS_DIR"]
+        for name in names:
+            assert (dev / name / "SKILL.md").is_file(), name
+            assert not (ROOT / records["USAGE_SKILLS_DIR"] / name).exists(), name
+            assert not (ROOT / "plugins/_shared/skills" / name).exists(), name
+            assert not (ROOT / "plugins/scikitplot-dev/agents" / f"{name}.md").exists(), name
+        github = records["skills_using_github"](ROOT, records["SKILLS_DIR"])
+        assert github["scikitplot-pr-pending-review"] is True
+        assert github["scikitplot-pr-walkthrough"] is False
+        agent = (ROOT / "plugins/scikitplot-dev/agents/scikitplot-cli-dev.md").read_text(encoding="utf-8")
+        assert all(name not in agent for name in names)
 
     def test_a_github_call_in_a_skill_changes_the_readme(self, tree):
         path = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "SKILL.md"

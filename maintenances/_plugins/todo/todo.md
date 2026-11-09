@@ -151,28 +151,23 @@ verbatim under `../_maintenance/history/` (created with the first one).
   `probe/d-no-index-source` in `scikit-plots/skills` (the session's GitHub
   access could not).
 
-## Task: CI-10 - GitHub skills for both plugins (2026-11-09)
+## Task: CI-10 - pull-request and CI workflow skills for developers (2026-11-09)
 
 - Request (the maintainer): pull-request and CI skills, written fresh from
-  the ideas of a public BSD-3 skill collection, in both plugins.
-- Done: four shared skills under `plugins/_shared/skills/` (copied into
-  `plugins/scikitplot/` and `plugins/scikitplot-dev/` by `--write-index`;
-  a `dev-ext` or `user-ext` folder would be a third home, Rule 167):
-  `scikitplot-pr-walkthrough` (a pull request in causal order),
-  `scikitplot-pr-impact-brief` (sourced evidence on worth, no verdict),
-  `scikitplot-pr-pending-review` (approved comments as a pending review,
-  never submitted), `scikitplot-ci-failure-forecast` (scheduled CI forecast
-  from attempt 1 and changes since, scored afterwards). Markdown only: the
-  users' plugin ships no program, so `gh` commands replace scripts; every
-  shell block runs as written (Rule 170) and parses with `bash -n`.
-- Disclosure: `check_records.skills_using_github` derives from each skill's
-  shell blocks which skills read GitHub and which write; the users' README
-  says so, and a stale README fails the records check. Tests in
-  `test_records.py`, each failing under a mutation of the detection.
-- Verified: tooling tests 141 passed, records tests 138 passed; records,
-  labeler, towncrier, path lengths, test names, `libs._tools` all pass; the
-  published build validates (119 files), with no new redirect or inline
-  code that begins with `>`.
-- [ ] Merge PR 918 only after the directory review decision, and update the
-  submission's Data handling answers with it
-  (`upcoming_changes/tools/maint_tools/directory-review-credential-hold.md`).
+  the ideas of a public BSD-3 skill collection; then (same day) kept to the
+  developers' plugin, since they serve contributors and maintainers, not
+  people using the library.
+- Done: five hand-written skills in `plugins/scikitplot-dev/skills/`, listed
+  in `check_records.DEV_WORKFLOW_SKILLS` (no maintained path, no agent, not
+  preloaded into the area agents): `scikitplot-pr-review-flow` (the process:
+  orient, triage, understand, verify, findings, action, approved draft
+  review, follow-up, with its gates), `scikitplot-pr-impact-brief`,
+  `scikitplot-pr-walkthrough`, `scikitplot-pr-pending-review`,
+  `scikitplot-ci-failure-forecast`. Markdown only, `gh` commands that run as
+  written (Rule 170). Not in `plugins/_shared/` or the users' plugin, so
+  `scikit-plots/skills` and its README are unchanged and the submission's
+  Data handling answers stay true.
+- Guard: `check_records.skills_using_github` derives from shell blocks which
+  skills read or write GitHub, and the users' README states it; today the
+  users' plugin has none ("No skill or agent makes a network call"). Tests
+  in `test_records.py`, each failing under a mutation of the detection.
