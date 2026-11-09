@@ -57,3 +57,10 @@ corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
 
 --- scikit-plots/skills
 files differing from published 06b9ac4: 0 of 115
+
+--- CX-09 in the same PR (decision (a)): the README CorpusBuilder example
+tests/test__corpus_builder.py::TestReadmeExample runs the README's section 2 code on a one-file folder.
+OLD (README of main): 1 failed, RuntimeError: match_mode='hybrid' requires embeddings. Set embed=True in BuilderConfig and rebuild.
+NEW: 1 passed. Suites with all three changes, OLD against NEW, failure sets identical:
+3.9 5900 -> 5903 passed; 3.13 6030 -> 6033; 3.14t 5997 -> 6000; 3.15.0b4 5996 -> 5999.
+Gates as above; plugin build: 0 of 115 files differ from the published scikit-plots/skills.

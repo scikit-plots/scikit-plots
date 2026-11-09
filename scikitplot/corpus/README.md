@@ -70,8 +70,12 @@ builder = CorpusBuilder(
 )
 
 result = builder.build("./data/")
-hits = builder.search("financial protection")
+hits = builder.search("financial protection", match_mode="keyword")
 ```
+
+`search` defaults to `match_mode="hybrid"`, which also needs embeddings: build
+with `BuilderConfig(embed=True)` (an embedding model) to use it. Without
+embeddings, ask for `"keyword"` (BM25) as above.
 
 `CorpusBuilder` is also the better fit when a scenario intentionally focuses on
 broad multi-source orchestration and structured partial-source outcomes.

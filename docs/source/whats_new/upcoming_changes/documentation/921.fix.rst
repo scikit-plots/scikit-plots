@@ -1,0 +1,5 @@
+- The ``CorpusBuilder`` example in the ``scikitplot.corpus`` README now runs
+  as written: it raised ``RuntimeError`` because ``search`` defaults to
+  hybrid search, which needs embeddings the example's build does not make.
+  It now asks for ``match_mode="keyword"`` and says how to enable hybrid
+  search (``BuilderConfig(embed=True)``).

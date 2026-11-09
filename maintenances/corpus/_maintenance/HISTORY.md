@@ -13,6 +13,12 @@
   ordered pair of parts against the old definition, which passes on `main`
   by design; clean text not walked, which fails there); 5 mutations caught;
   suites unchanged on CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
+- **CX-09 (decision (a), same PR): the README `CorpusBuilder` example
+  raised.** Its `search` used the hybrid default on a build without
+  embeddings. The example now passes `match_mode="keyword"` and says how to
+  enable hybrid search; `tests/test__corpus_builder.py` runs the README's
+  section 2 code on a one-file folder (fails on `main` with the
+  `RuntimeError`).
 - Evidence: `evidence/round-2026-11-09-input-guard.log`.
 
 ## 2026-11-09 — research self-test round, PR 920
