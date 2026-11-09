@@ -152,12 +152,76 @@ class NormalizerBase(abc.ABC):
         return f"{self.__class__.__name__}()"
 
 
+class _TextStep(NormalizerBase):
+    """
+    A normaliser that is a function of the text alone.
+
+    Subclasses implement :meth:`normalize_text`; :meth:`normalize_doc` applies
+    it to the document's source text and stores the result in
+    ``normalized_text``.
+
+    Notes
+    -----
+    **Developer note:** Every step used to build its own frozen document, so a
+    chain of N steps built N documents per chunk. A step whose
+    ``normalize_doc`` is this class's (not overridden) reads and writes
+    ``normalized_text`` only, so :class:`NormalizationPipeline` can pass the
+    text from one such step to the next and build one document for the run
+    (finding CX-12, decision D14). The class is private while the published
+    usage skills cannot be regenerated; a subclass that overrides
+    ``normalize_doc`` is treated as any other step.
+    """
+
+    @abc.abstractmethod
+    def normalize_text(self, text: str) -> str:
+        """
+        Return ``text`` normalised.
+
+        Parameters
+        ----------
+        text : str
+            The document's ``normalized_text`` when set, else its ``text``.
+
+        Returns
+        -------
+        str
+            The new ``normalized_text``.
+        """
+
+    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:
+        """
+        Apply :meth:`normalize_text` to the document.
+
+        Parameters
+        ----------
+        doc : CorpusDocument
+            Input document.
+
+        Returns
+        -------
+        CorpusDocument
+            New instance with ``normalized_text`` updated. ``text`` is never
+            modified.
+        """
+        return doc.replace(
+            normalized_text=self.normalize_text(self._get_source_text(doc))
+        )
+
+
+def _is_text_step(step: NormalizerBase) -> bool:
+    """Return ``True`` when ``step`` only maps the text (see :class:`_TextStep`)."""
+    return (
+        isinstance(step, _TextStep)
+        and type(step).normalize_doc is _TextStep.normalize_doc
+    )
+
+
 # ===========================================================================
 # Unicode normaliser
 # ===========================================================================
 
 
-class UnicodeNormalizer(NormalizerBase):
+class UnicodeNormalizer(_TextStep):
     r"""
     Apply Unicode normalisation (NFC, NFD, NFKC, or NFKD).
 
@@ -187,21 +251,20 @@ class UnicodeNormalizer(NormalizerBase):
             )
         self.form: str = form
 
-    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
+    def normalize_text(self, text: str) -> str:
         """
-        Apply Unicode normalisation to the document text.
+        Apply Unicode normalisation to the text.
 
         Parameters
         ----------
-        doc : CorpusDocument
+        text : str
+            The text to normalise.
 
         Returns
         -------
-        CorpusDocument
+        str
         """
-        source = self._get_source_text(doc)
-        normalised = unicodedata.normalize(self.form, source)
-        return doc.replace(normalized_text=normalised)
+        return unicodedata.normalize(self.form, text)
 
     def __repr__(self) -> str:  # noqa: D105
         return f"UnicodeNormalizer(form={self.form!r})"
@@ -212,7 +275,7 @@ class UnicodeNormalizer(NormalizerBase):
 # ===========================================================================
 
 
-class WhitespaceNormalizer(NormalizerBase):
+class WhitespaceNormalizer(_TextStep):
     """
     Collapse runs of whitespace and optionally strip leading/trailing space.
 
@@ -242,30 +305,30 @@ class WhitespaceNormalizer(NormalizerBase):
         self.collapse_newlines: bool = collapse_newlines
         self.strip: bool = strip
 
-    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
+    def normalize_text(self, text: str) -> str:
         """
-        Collapse whitespace in the document text.
+        Collapse whitespace in the text.
 
         Parameters
         ----------
-        doc : CorpusDocument
+        text : str
+            The text to normalise.
 
         Returns
         -------
-        CorpusDocument
+        str
         """
-        source = self._get_source_text(doc)
 
         if self.collapse_newlines:
-            normalised = _WS_RE.sub(" ", source)
+            normalised = _WS_RE.sub(" ", text)
         else:
             # Process line by line, collapsing only within each line.
-            lines = source.splitlines()
+            lines = text.splitlines()
             normalised = "\n".join(re.sub(r"[ \t]+", " ", line) for line in lines)
 
         if self.strip:
             normalised = normalised.strip()
-        return doc.replace(normalized_text=normalised)
+        return normalised
 
     def __repr__(self) -> str:  # noqa: D105
         return (
@@ -280,7 +343,7 @@ class WhitespaceNormalizer(NormalizerBase):
 # ===========================================================================
 
 
-class HTMLStripNormalizer(NormalizerBase):
+class HTMLStripNormalizer(_TextStep):
     r"""
     Remove HTML and XML tags from the document text.
 
@@ -321,30 +384,28 @@ class HTMLStripNormalizer(NormalizerBase):
         self.parser: str = parser
         self.decode_entities: bool = decode_entities
 
-    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
+    def normalize_text(self, text: str) -> str:
         """
-        Strip HTML tags from the document text.
+        Strip HTML tags from the text.
 
         Parameters
         ----------
-        doc : CorpusDocument
+        text : str
+            The text to normalise.
 
         Returns
         -------
-        CorpusDocument
+        str
 
         Raises
         ------
         ImportError
             If ``use_beautifulsoup=True`` and ``beautifulsoup4`` is not installed.
         """
-        source = self._get_source_text(doc)
 
         if self.use_beautifulsoup:
-            normalised = self._strip_with_bs4(source)
-        else:
-            normalised = self._strip_with_regex(source)
-        return doc.replace(normalized_text=normalised)
+            return self._strip_with_bs4(text)
+        return self._strip_with_regex(text)
 
     def _strip_with_regex(self, text: str) -> str:
         """Remove tags with regex and optionally decode entities."""
@@ -382,7 +443,7 @@ class HTMLStripNormalizer(NormalizerBase):
 # ===========================================================================
 
 
-class LowercaseNormalizer(NormalizerBase):
+class LowercaseNormalizer(_TextStep):
     """
     Convert the document text to lowercase.
 
@@ -404,21 +465,20 @@ class LowercaseNormalizer(NormalizerBase):
     def __init__(self, locale_aware: bool = False) -> None:
         self.locale_aware: bool = locale_aware
 
-    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
+    def normalize_text(self, text: str) -> str:
         """
-        Lowercase the document text.
+        Lowercase the text.
 
         Parameters
         ----------
-        doc : CorpusDocument
+        text : str
+            The text to normalise.
 
         Returns
         -------
-        CorpusDocument
+        str
         """
-        source = self._get_source_text(doc)
-        normalised = source.casefold() if self.locale_aware else source.lower()
-        return doc.replace(normalized_text=normalised)
+        return text.casefold() if self.locale_aware else text.lower()
 
     def __repr__(self) -> str:  # noqa: D105
         return f"LowercaseNormalizer(locale_aware={self.locale_aware})"
@@ -429,7 +489,7 @@ class LowercaseNormalizer(NormalizerBase):
 # ===========================================================================
 
 
-class DedupLinesNormalizer(NormalizerBase):
+class DedupLinesNormalizer(_TextStep):
     r"""
     Remove exact duplicate lines while preserving first-occurrence order.
 
@@ -467,20 +527,20 @@ class DedupLinesNormalizer(NormalizerBase):
         self.ignore_whitespace: bool = ignore_whitespace
         self.min_line_length: int = min_line_length
 
-    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
+    def normalize_text(self, text: str) -> str:
         """
-        Remove duplicate lines from the document text.
+        Remove duplicate lines from the text.
 
         Parameters
         ----------
-        doc : CorpusDocument
+        text : str
+            The text to normalise.
 
         Returns
         -------
-        CorpusDocument
+        str
         """
-        source = self._get_source_text(doc)
-        lines = source.splitlines()
+        lines = text.splitlines()
         seen: set[str] = set()
         output: list[str] = []
 
@@ -497,8 +557,7 @@ class DedupLinesNormalizer(NormalizerBase):
                     continue
                 seen.add(key)
             output.append(line)
-        normalized = "\n".join(output)
-        return doc.replace(normalized_text=normalized)
+        return "\n".join(output)
 
     def __repr__(self) -> str:  # noqa: D105
         return (
@@ -651,8 +710,11 @@ class NormalizationPipeline(NormalizerBase):
     Apply a sequence of normalisers in order.
 
     Each normaliser in the pipeline receives the output of the previous
-    one. Normalisers that have no effect return the document unchanged,
-    so only modified documents incur a ``replace()`` call.
+    one. Consecutive built-in steps that only map the text (Unicode,
+    whitespace, HTML, lowercase, duplicate lines) pass the text along and
+    build one document for the run; every other step, a custom one included,
+    receives and returns a document as before. The result is the same
+    document either way.
 
     Parameters
     ----------
@@ -701,8 +763,19 @@ class NormalizationPipeline(NormalizerBase):
             Document after all normalisation stages.
         """
         current = doc
+        text: str | None = None  # the pending text of a run of text-only steps
         for norm in self.steps:
+            if _is_text_step(norm):
+                if text is None:
+                    text = norm._get_source_text(current)
+                text = norm.normalize_text(text)
+                continue
+            if text is not None:
+                current = current.replace(normalized_text=text)
+                text = None
             current = norm.normalize_doc(current)
+        if text is not None:
+            current = current.replace(normalized_text=text)
         return current
 
     def normalize_batch(  # noqa: D417

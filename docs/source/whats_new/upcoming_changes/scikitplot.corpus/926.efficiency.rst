@@ -1,0 +1,8 @@
+- ``NormalizationPipeline`` builds one document for each run of consecutive
+  built-in text-only steps (``UnicodeNormalizer``, ``WhitespaceNormalizer``,
+  ``HTMLStripNormalizer``, ``LowercaseNormalizer``, ``DedupLinesNormalizer``)
+  instead of one per step; those steps gain ``normalize_text(text)``. The
+  normalised documents are unchanged, and a custom step, a step that sets
+  another field or a subclass that overrides ``normalize_doc`` runs as
+  before. ``CorpusBuilder.build`` with its default two steps took 2.7 s
+  instead of 3.0 to 3.1 s over 64 English markdown and text files.

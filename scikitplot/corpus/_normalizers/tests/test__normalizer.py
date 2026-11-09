@@ -6,6 +6,7 @@ All langdetect calls are mocked — zero optional dependencies required.
 """
 from __future__ import annotations
 
+import itertools
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,6 +20,8 @@ from .._normalizer import (
     NormalizerBase,
     UnicodeNormalizer,
     WhitespaceNormalizer,
+    _is_text_step,
+    _TextStep,
 )
 from ..._schema import CorpusDocument
 
@@ -345,3 +348,101 @@ class TestNormalizationPipeline:
     def test_repr_includes_stage_names(self) -> None:
         pipeline = NormalizationPipeline([LowercaseNormalizer()])
         assert "LowercaseNormalizer" in repr(pipeline)
+
+
+# ===========================================================================
+# CX-12 (D14): a run of text-only steps builds one document
+# ===========================================================================
+
+
+class _Tagging(NormalizerBase):
+    """A custom step: sets another field and reads the text so far."""
+
+    def normalize_doc(self, doc):
+        seen = doc.normalized_text if doc.normalized_text is not None else doc.text
+        return doc.replace(metadata={**doc.metadata, "seen": seen})
+
+
+class _Shouting(LowercaseNormalizer):
+    """Overrides ``normalize_doc``, so it must run as written."""
+
+    def normalize_doc(self, doc):
+        return doc.replace(normalized_text=self._get_source_text(doc).upper())
+
+
+def _steps():
+    return {
+        "unicode": UnicodeNormalizer(form="NFKC"),
+        "space": WhitespaceNormalizer(),
+        "html": HTMLStripNormalizer(),
+        "lower": LowercaseNormalizer(),
+        "dedup": DedupLinesNormalizer(),
+        "tag": _Tagging(),
+        "shout": _Shouting(),
+    }
+
+
+def _one_document_per_step(steps, doc):
+    """The pipeline as defined before D14: every step builds its document."""
+    for step in steps:
+        doc = step.normalize_doc(doc)
+    return doc
+
+
+def _count_replace(monkeypatch):
+    calls = []
+    real = CorpusDocument.replace
+
+    def counting(self, **changes):
+        calls.append(sorted(changes))
+        return real(self, **changes)
+
+    monkeypatch.setattr(CorpusDocument, "replace", counting)
+    return calls
+
+
+class TestPipelineBuildsOneDocumentPerRun:
+    _TEXTS = ("Hello   <b>World</b>\nHello   <b>World</b>", "  A  b ", "x")
+
+    def test_every_chain_gives_the_step_by_step_document(self) -> None:
+        steps = _steps()
+        for size in (1, 2, 3):
+            for chain in itertools.permutations(sorted(steps), size):
+                picked = [steps[name] for name in chain]
+                pipeline = NormalizationPipeline(picked)
+                for doc in (*map(_doc, self._TEXTS), _doc("Raw", "  Already  SET ")):
+                    got = pipeline.normalize_doc(doc)
+                    want = _one_document_per_step(picked, doc)
+                    assert got.to_dict() == want.to_dict(), chain
+                    assert got.text == doc.text
+
+    def test_a_run_of_text_steps_builds_one_document(self, monkeypatch) -> None:
+        pipeline = NormalizationPipeline(
+            [UnicodeNormalizer(), HTMLStripNormalizer(), WhitespaceNormalizer(), LowercaseNormalizer()]
+        )
+        calls = _count_replace(monkeypatch)
+        result = pipeline.normalize_doc(_doc("Hello   <b>World</b>"))
+        assert result.normalized_text == "hello world"
+        assert calls == [["normalized_text"]]
+
+    def test_another_step_ends_the_run_and_sees_its_text(self, monkeypatch) -> None:
+        pipeline = NormalizationPipeline(
+            [WhitespaceNormalizer(), LowercaseNormalizer(), _Tagging(), UnicodeNormalizer()]
+        )
+        calls = _count_replace(monkeypatch)
+        result = pipeline.normalize_doc(_doc("  Hello   World "))
+        assert result.metadata["seen"] == "hello world"
+        assert calls == [["normalized_text"], ["metadata"], ["normalized_text"]]
+
+    def test_an_overriding_subclass_runs_as_written(self) -> None:
+        assert _is_text_step(LowercaseNormalizer())
+        assert not _is_text_step(_Shouting())
+        assert not _is_text_step(_Tagging())
+        assert isinstance(_Shouting(), _TextStep)
+        pipeline = NormalizationPipeline([WhitespaceNormalizer(), _Shouting()])
+        assert pipeline.normalize_doc(_doc(" a  b ")).normalized_text == "A B"
+
+    def test_a_text_step_alone_still_normalizes_a_document(self) -> None:
+        doc = _doc("Raw", "  Kept   text ")
+        assert WhitespaceNormalizer().normalize_doc(doc).normalized_text == "Kept text"
+        assert WhitespaceNormalizer().normalize_text("  a   b ") == "a b"
