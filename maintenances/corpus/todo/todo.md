@@ -388,12 +388,9 @@ everywhere, with opt-in UUIDv7).
   queries: every shape, combinations, unavailable legs, near misses such as
   `notebook`, `knot`, `sectional`) passes; 73 tests in `test__routing.py`.
 
-### PR 919: characters no FTS5 query can carry (CX-05)
-- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-09); found CX-06 to CX-10
-  (notes under `upcoming_changes/scikitplot/corpus/`) and D11 to D13.
-
-### PR 920: ASCII samples skip `detect_script`'s range tests (CX-08)
-- [x] Same results (239,275 cases on nine interpreters); ASCII 20-33x faster;
-  `CorpusBuilder.build` 6.2 s to 3.2 s on the research corpus; found CX-11,
-  CX-12 (`../_maintenance/HISTORY.md`) and D14.
-- Next: CX-09, CX-11, CX-06, CX-07, CX-10, CX-12 (part 2 waits on D14).
+### PRs 919 to 921: research self-test fixes (CX-05, CX-08, CX-11)
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-09); found CX-06, CX-07,
+  CX-09, CX-10, CX-12 (notes under `upcoming_changes/scikitplot/corpus/`)
+  and decisions D11 to D14.
+- Next: CX-09 (a choice: README only, or keyword search without
+  embeddings), then CX-06, CX-07, CX-10, CX-12.
