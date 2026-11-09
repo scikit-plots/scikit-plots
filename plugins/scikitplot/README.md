@@ -8,8 +8,14 @@ folder can also be copied into any tool that reads that format.
 
 ## What it runs and sends
 
-Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no
-MCP servers and no scripts, runs no code of its own and sends no data anywhere.
+Nothing by itself. The plugin is Markdown only: skills and agents. It has no
+hooks, no MCP servers and no scripts, and runs no code of its own.
+
+When you ask for them, some skills have Claude run your GitHub CLI (`gh`),
+under your own GitHub login, on the repository you are working in:
+
+- Read pull requests, issues and workflow runs only: `scikitplot-ci-failure-forecast`, `scikitplot-pr-impact-brief`, `scikitplot-pr-walkthrough`.
+- Also write, only after you approve the exact text: `scikitplot-pr-pending-review` (a pending review with your comments, which you submit yourself).
 
 The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,
 in the development marketplace.
@@ -19,7 +25,7 @@ in the development marketplace.
 | Question | Answer |
 |---|---|
 | Does it read or store personal data (names, emails, addresses)? | No. It has no connectors; it tells Claude how to use the scikit-plots library. |
-| Does any skill send data to a service? | No. No skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |
+| Does any skill send data to a service? | Only to GitHub, through your own `gh` login, when you ask for a GitHub skill: `scikitplot-pr-pending-review` posts a pending review with comments you approved; the others only read. No other skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |
 | How long is data received from Claude kept? | It is not kept: there is no scikit-plots service, so nothing is received from Claude. |
 | Is it intended for users under 18? | No. It is a developer tool for a Python library. |
 | What does it change on my computer? | Installing it adds files to Claude's plugin folder. Anything else happens only when Claude writes or runs code with its help, under your Claude permission settings; the helper programs above, only after Claude has asked you. |

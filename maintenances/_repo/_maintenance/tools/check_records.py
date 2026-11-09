@@ -1353,15 +1353,81 @@ def skills_with_programs(root: Path, base: str) -> dict[str, list[str]]:
     return out
 
 
+#: A command line of a fenced shell block that runs the GitHub CLI.
+_GH_COMMAND = re.compile(r"(?:^|[\s\"'(])gh\s+(?:api|pr|issue|run|repo|search|release|workflow)\b")
+#: A GitHub CLI call that changes something on GitHub.
+_GH_WRITE = re.compile(r"--method\s+(?:POST|PATCH|PUT|DELETE)\b|\bmutation\s*\(")
+_SH_BLOCK = re.compile(r"^```(?:sh|bash|shell|console)\n(.*?)^```", re.S | re.M)
+
+
+def skills_using_github(root: Path, base: str) -> dict[str, bool]:
+    """
+    Return each skill under *base* whose instructions run the GitHub CLI.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+    base : str
+        A skills folder, such as :data:`USAGE_SKILLS_DIR`.
+
+    Returns
+    -------
+    dict
+        Skill folder -> ``True`` when a shell block of its ``SKILL.md``
+        writes to GitHub (a ``--method`` other than GET, or a GraphQL
+        ``mutation``), ``False`` when it only reads; skills that never run
+        ``gh`` are left out.
+
+    Notes
+    -----
+    **Developer notes.** The README's disclosure of what the plugin sends is
+    derived from this, as :func:`skills_with_programs` is for programs, so a
+    skill that starts calling GitHub changes the README and a stale README
+    fails ``check_records.py``.
+    """
+    out: dict[str, bool] = {}
+    folder = root / base
+    if not folder.is_dir():
+        return out
+    for skill in sorted(p for p in folder.iterdir() if p.is_dir()):
+        path = skill / "SKILL.md"
+        if not path.is_file():
+            continue
+        code = "\n".join(m.group(1) for m in _SH_BLOCK.finditer(path.read_text(encoding="utf-8")))
+        if _GH_COMMAND.search(code):
+            out[skill.name] = bool(_GH_WRITE.search(code))
+    return out
+
+
 def _runs_and_sends(root: Path) -> list[str]:
     """Return the README's *What it runs and sends* and *Data handling* sections."""
     programs = skills_with_programs(root, USAGE_SKILLS_DIR)
+    github = skills_using_github(root, USAGE_SKILLS_DIR)
+    readers = ", ".join(f"`{n}`" for n, writes in github.items() if not writes)
+    writers = ", ".join(f"`{n}`" for n, writes in github.items() if writes)
     lines = ["## What it runs and sends", ""]
-    if not programs:
+    if not programs and not github:
         lines += [
             "Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no",
             "MCP servers and no scripts, runs no code of its own and sends no data anywhere.",
         ]
+    elif not programs:
+        lines += [
+            "Nothing by itself. The plugin is Markdown only: skills and agents. It has no",
+            "hooks, no MCP servers and no scripts, and runs no code of its own.",
+            "",
+            "When you ask for them, some skills have Claude run your GitHub CLI (`gh`),",
+            "under your own GitHub login, on the repository you are working in:",
+            "",
+        ]
+        if readers:
+            lines.append(f"- Read pull requests, issues and workflow runs only: {readers}.")
+        if writers:
+            lines.append(
+                f"- Also write, only after you approve the exact text: {writers}"
+                " (a pending review with your comments, which you submit yourself)."
+            )
     else:
         names = ", ".join(f"`{name}`" for name in programs)
         lines += [
@@ -1393,6 +1459,16 @@ def _runs_and_sends(root: Path) -> list[str]:
     if programs:
         lines += [
             "| Does any skill send data to a service? | Only what a program listed above sends, and only when you approve a run; the table at the top of its skill's `SKILL.md` states what. The Python examples in the other skills run only when you run them, in your own environment. |",
+        ]
+    elif github:
+        many = sum(github.values()) > 1
+        sent = (
+            f"{writers} {'post' if many else 'posts'} a pending review with comments you approved;"
+            " the others only read"
+            if writers else "they only read"
+        )
+        lines += [
+            f"| Does any skill send data to a service? | Only to GitHub, through your own `gh` login, when you ask for a GitHub skill: {sent}. No other skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |",
         ]
     else:
         lines += [

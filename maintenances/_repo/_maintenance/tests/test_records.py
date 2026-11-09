@@ -878,6 +878,34 @@ class TestIndexTablesAndDisclosure:
         assert "`skill-creator`" in readme
         assert "(https://code.claude.com/docs/en/plugins)" in readme
         assert "claude-plugins-official" not in readme
+        # The GitHub skills are disclosed from their own code: three read, one writes.
+        github = records["skills_using_github"](ROOT, records["USAGE_SKILLS_DIR"])
+        assert github == {
+            "scikitplot-ci-failure-forecast": False,
+            "scikitplot-pr-impact-brief": False,
+            "scikitplot-pr-pending-review": True,
+            "scikitplot-pr-walkthrough": False,
+        }
+        assert "your GitHub CLI (`gh`)" in readme
+        assert "Also write, only after you approve the exact text: `scikitplot-pr-pending-review`" in readme
+        assert "No skill or agent makes a network call" not in readme
+
+    def test_a_github_call_in_a_skill_changes_the_readme(self, tree):
+        path = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "SKILL.md"
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text + "\nghost text and gh in prose\n\n```sh\ngh pr view 1\n```\n", encoding="utf-8")
+        assert records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])["scikitplot-api"] is False
+        assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
+        records["write_indexes"](tree)
+        readme = (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+        assert "`scikitplot-api`" in readme.split("- Read pull requests", 1)[1].split("\n", 1)[0]
+        path.write_text(text + "\n```sh\ngh api --method POST repos/o/r/issues\n```\n", encoding="utf-8")
+        assert records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])["scikitplot-api"] is True
+
+    def test_gh_outside_a_shell_block_is_not_a_call(self, tree):
+        path = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "SKILL.md"
+        path.write_text(path.read_text(encoding="utf-8") + "\nRun gh pr view 1 yourself, or `gh pr diff 1`.\n", encoding="utf-8")
+        assert "scikitplot-api" not in records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])
 
     def test_a_new_program_in_a_skill_makes_the_readme_stale(self, tree):
         script = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "tool.py"
