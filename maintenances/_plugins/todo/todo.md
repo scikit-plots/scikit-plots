@@ -171,3 +171,30 @@ verbatim under `../_maintenance/history/` (created with the first one).
   skills read or write GitHub, and the users' README states it; today the
   users' plugin has none ("No skill or agent makes a network call"). Tests
   in `test_records.py`, each failing under a mutation of the detection.
+- Then (same day, the maintainer: newcomers and busy maintainers need the
+  helpers too): four skills ship scripts, written fresh, Python 3.8, standard
+  library plus `gh`, each optional beside the manual steps:
+  `post_pending_review.py` (checks every comment against the diff, skips
+  ones already posted, all or nothing, `--dry-run`, never submits),
+  `worklist.py` (cached open pull requests, staged filter, seeded pick),
+  `pr_context.py` (metadata, linked issues, public-API change from base to
+  head, prior art), `ci_runs.py` (attempt-1 baseline, forecast scoring),
+  `pr_paths.py` (owning area and kind of each changed file, generated files
+  with their tool). References: the impact brief's `reference.md` (scales,
+  counterfactual order, cost list) and the review flow's
+  `references/gates-by-path.md` (which section-5 gates each path needs).
+- Guard (Rule 167): `check_records.check_program_consent` fails a skill in
+  any skills folder that ships a program and does not open with
+  `## Programs (ask before each run)`. Tests: `test_records.py` (two),
+  `test_workflow_skill_scripts.py` (25; nine mutations of the scripts each
+  fail a test), run by `pr_check_records.yml`. The published build is
+  byte-identical to main's.
+- Found while testing: `pr_paths.area` gave `_plugins/todo` for a record
+  under `maintenances/_plugins/todo/`; an area is now a top folder or the
+  mirror of a package. Pre-existing, not changed here:
+  `scikitplot-plugins-dev` has a shell block with `<skills checkout>`
+  placeholders that `bash -n` rejects (developers' plugin, not published).
+- Process slip, recovered: comparing builds, `git checkout origin/main -- .`
+  overwrote the uncommitted edits in the working tree; restored from the
+  dropped stash commit. Compare against main in `git worktree add`, never by
+  checking main's files out over the working tree.

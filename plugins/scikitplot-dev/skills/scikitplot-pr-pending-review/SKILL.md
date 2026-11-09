@@ -6,6 +6,22 @@ license: BSD-3-Clause
 
 # Pending review on a pull request
 
+## Programs (ask before each run)
+
+This skill ships the programs below. Before each run, tell the user which one, what it reads, what it changes, and the exact command, and wait for their yes. Never start one unannounced or in the background. Each is optional: the steps further down do the same work by hand. Run them from the repository root; they need Python 3.8 or newer and, where noted, a logged-in `gh`.
+
+| Program | Reads | Changes |
+|---|---|---|
+| `scripts/post_pending_review.py` | the pull request's diff and comments (`gh`) | **writes to GitHub**: one pending review in the user's name, never submitted |
+
+It does steps 2 to 4 in one go: checks every comment against the diff, skips any already posted, and posts all or nothing. Always run it with `--dry-run` first and show the user the result; run it without only after a second yes. The comments file is a list of objects with `path`, `line`, `body`, and optionally `start_line`, `side` and `start_side`, written with the file tool in a scratch folder.
+
+```sh
+PR=123
+REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-pending-review/scripts/post_pending_review.py --repo "$REPO" --pr "$PR" comments.json --dry-run
+```
+
 This skill moves comments that already exist in the conversation onto the
 lines of a pull request, as a review that stays pending until the user
 submits it in the browser. It does not decide what to say, and it never

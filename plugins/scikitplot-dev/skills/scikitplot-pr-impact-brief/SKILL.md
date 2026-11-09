@@ -6,6 +6,23 @@ license: BSD-3-Clause
 
 # Pull request impact brief
 
+## Programs (ask before each run)
+
+This skill ships the programs below. Before each run, tell the user which one, what it reads, what it changes, and the exact command, and wait for their yes. Never start one unannounced or in the background. Each is optional: the steps further down do the same work by hand. Run them from the repository root; they need Python 3.8 or newer and, where noted, a logged-in `gh`.
+
+| Program | Reads | Changes |
+|---|---|---|
+| `scripts/worklist.py` | open pull requests (`gh` GraphQL) | a cache file under `~/.cache/scikitplot-pr-impact-brief/` |
+| `scripts/pr_context.py` | one pull request, its issues and prior art (`gh`); the head commit via `git fetch origin pull/N/head` | git objects only; no branch or file |
+
+`worklist.py` picks the next pull request to brief; `pr_context.py` gathers the mechanical part of steps 1 and 3, including the change to the public Python API. Neither writes to GitHub. Scales and options: `reference.md`.
+
+```sh
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/worklist.py --repo scikit-plots/scikit-plots list --counts
+PR=123
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-impact-brief/scripts/pr_context.py "$PR"
+```
+
 The question is not whether the code is right (that is a review) but whether
 the change is worth having. The brief collects evidence for that decision and
 stops before it: the maintainer decides.

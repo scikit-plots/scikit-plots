@@ -1788,6 +1788,53 @@ def check_skills(root: Path) -> list[str]:
                 for p in sorted(folder.rglob("*")) if folder.is_dir()
                 if p.is_file() and p.relative_to(root).as_posix() not in copies
             )
+    errors += check_program_consent(root)
+    return errors
+
+
+#: The heading every skill that ships programs opens with (Rule 167).
+PROGRAMS_HEADING = "## Programs (ask before each run)"
+
+
+def check_program_consent(root: Path) -> list[str]:
+    """
+    Check that each skill shipping programs opens with the consent section.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+
+    Returns
+    -------
+    list of str
+        One error per skill, in any skills folder, that ships a file listed
+        by :func:`skills_with_programs` but whose first second-level heading
+        is not :data:`PROGRAMS_HEADING`.
+
+    Notes
+    -----
+    **Developer notes.** Rule 167 asks for a marked section at the top that
+    tells Claude to explain each program and ask before every run. Checking
+    the first ``## `` heading, rather than anywhere in the file, keeps the
+    instruction where it is read before any step that could run a program.
+    """
+    errors: list[str] = []
+    for base in (SKILLS_DIR, USAGE_SKILLS_DIR, SHARED_SKILLS_DIR):
+        for name, files in skills_with_programs(root, base).items():
+            rel = f"{base}/{name}/SKILL.md"
+            path = root / rel
+            if not path.is_file():
+                continue
+            headings = [
+                line for line in path.read_text(encoding="utf-8").splitlines()
+                if line.startswith("## ")
+            ]
+            if not headings or headings[0].rstrip() != PROGRAMS_HEADING:
+                errors.append(
+                    f"{rel}: ships {', '.join(files)}; open with {PROGRAMS_HEADING!r}"
+                    " saying what each program does and to ask before every run (Rule 167)"
+                )
     return errors
 
 

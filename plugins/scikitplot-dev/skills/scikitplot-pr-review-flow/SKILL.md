@@ -44,7 +44,8 @@ Check out the branch only with the user's consent. Then, for the paths the
 change touches:
 
 - the owning area's tests, and the repository gates of section 5 of
-  `.claude/new-chat-template.md` that apply;
+  `.claude/new-chat-template.md` that apply: `references/gates-by-path.md`
+  maps each kind of changed path to its checks;
 - for a bug fix, the new test fails on the base branch and passes on the
   pull request;
 - each claim in the description checked against the code, not repeated.

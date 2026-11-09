@@ -6,6 +6,21 @@ license: BSD-3-Clause
 
 # Pull request walkthrough, in causal order
 
+## Programs (ask before each run)
+
+This skill ships the programs below. Before each run, tell the user which one, what it reads, what it changes, and the exact command, and wait for their yes. Never start one unannounced or in the background. Each is optional: the steps further down do the same work by hand. Run them from the repository root; they need Python 3.8 or newer and, where noted, a logged-in `gh`.
+
+| Program | Reads | Changes |
+|---|---|---|
+| `scripts/pr_paths.py` | the pull request's file list (`gh`), or paths given with `--files` | nothing |
+
+`pr_paths.py` gives each changed file its owning area under `maintenances/` and its kind (source, test, docs, record, release note, or generated, with the tool that writes it), which is the first cut of step 3.
+
+```sh
+PR=123
+python3 plugins/scikitplot-dev/skills/scikitplot-pr-walkthrough/scripts/pr_paths.py "$PR"
+```
+
 A diff lists files alphabetically. A reader who follows that order meets
 consequences before their cause and spends attention on lines that only
 exist because of a change further down. This skill reorders the pull request

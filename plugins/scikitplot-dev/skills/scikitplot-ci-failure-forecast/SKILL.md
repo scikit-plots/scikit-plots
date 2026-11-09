@@ -6,6 +6,21 @@ license: BSD-3-Clause
 
 # Scheduled CI failure forecast
 
+## Programs (ask before each run)
+
+This skill ships the programs below. Before each run, tell the user which one, what it reads, what it changes, and the exact command, and wait for their yes. Never start one unannounced or in the background. Each is optional: the steps further down do the same work by hand. Run them from the repository root; they need Python 3.8 or newer and, where noted, a logged-in `gh`.
+
+| Program | Reads | Changes |
+|---|---|---|
+| `scripts/ci_runs.py` | scheduled runs and their attempt-1 jobs (`gh`) | the `--out` file, when given |
+
+`baseline` records the newest scheduled run of a workflow (step 1); `score` compares a forecast file, `{"workflow": ..., "baseline_run": ..., "jobs": {"<job>": "<outcome>"}}`, with attempt 1 of the run it forecast and counts hits, misses and false alarms.
+
+```sh
+REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+python3 plugins/scikitplot-dev/skills/scikitplot-ci-failure-forecast/scripts/ci_runs.py --repo "$REPO" baseline --workflow nightly.yml
+```
+
 A scheduled run tests the default branch against the newest dependencies, so
 it breaks for two reasons: a failure that nobody fixed since the last run, or
 something new since then (a merged change, a dependency release). Both are

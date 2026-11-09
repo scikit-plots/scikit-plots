@@ -48,3 +48,4 @@ jobs:
         run: |
           python -m pip install pytest
           python -B maintenances/_repo/_maintenance/tests/test_records.py
+          python -B maintenances/_repo/_maintenance/tests/test_workflow_skill_scripts.py

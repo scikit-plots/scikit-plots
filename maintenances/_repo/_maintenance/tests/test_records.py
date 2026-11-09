@@ -919,3 +919,22 @@ class TestIndexTablesAndDisclosure:
         assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
         records["write_indexes"](tree)
         assert "`scikitplot-api`" in (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+
+    def test_a_skill_with_programs_opens_with_the_consent_section(self, tree):
+        name = "scikitplot-pr-walkthrough"
+        assert not records["check_program_consent"](tree)
+        path = tree / records["SKILLS_DIR"] / name / "SKILL.md"
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace(records["PROGRAMS_HEADING"], "## Helper programs"), encoding="utf-8")
+        errors = _failing(tree).get("skills", [])
+        assert any(name in e and "Rule 167" in e for e in errors), errors
+        # The heading anywhere but first does not count either.
+        moved = text.replace(records["PROGRAMS_HEADING"] + "\n", "", 1) + "\n" + records["PROGRAMS_HEADING"] + "\n"
+        path.write_text(moved, encoding="utf-8")
+        assert any(name in e for e in records["check_program_consent"](tree))
+
+    def test_a_new_program_needs_the_consent_section(self, tree):
+        skill = tree / records["SKILLS_DIR"] / "scikitplot-cython-dev"
+        assert not records["check_program_consent"](tree)
+        (skill / "run.sh").write_text("echo 1\n", encoding="utf-8")
+        assert any("scikitplot-cython-dev" in e and "run.sh" in e for e in records["check_program_consent"](tree))
