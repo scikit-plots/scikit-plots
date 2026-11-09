@@ -1,0 +1,42 @@
+# Research self-test round, 2026-11-09, PR 924: image reader tests skip without Pillow (CX-07)
+# Host: Linux x86-64 (2 CPUs). OLD = main at fe1bef3 (PR 923); NEW = the PR 924 branch.
+
+--- scikitplot/corpus/_readers/tests/test__image.py
+CPython 3.14.6, no Pillow:  OLD 25 failed, 29 passed | NEW 29 passed, 25 skipped
+CPython 3.13.18, Pillow:    NEW 54 passed (nothing skipped)
+CPython 3.15.0b4, Pillow:   NEW 54 passed (nothing skipped)
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9      OLD: 24 failed, 5922 passed, 127 skipped          NEW: 24 failed, 5922 passed, 127 skipped          only-OLD=0 only-NEW=0
+3.10     OLD: 23 failed, 6019 passed, 125 skipped          NEW: 23 failed, 6019 passed, 125 skipped          only-OLD=0 only-NEW=0
+3.11     OLD: 23 failed, 6019 passed, 125 skipped          NEW: 23 failed, 6019 passed, 125 skipped          only-OLD=0 only-NEW=0
+3.12     OLD: 23 failed, 6019 passed, 125 skipped          NEW: 23 failed, 6019 passed, 125 skipped          only-OLD=0 only-NEW=0
+3.13     OLD: 23 failed, 6052 passed, 92 skipped           NEW: 23 failed, 6052 passed, 92 skipped           only-OLD=0 only-NEW=0
+3.13t    OLD: 24 failed, 5922 passed, 127 skipped          NEW: 24 failed, 5922 passed, 127 skipped          only-OLD=0 only-NEW=0
+3.14     OLD: 48 failed, 6025 passed, 94 skipped           NEW: 23 failed, 6025 passed, 119 skipped          only-OLD=25 only-NEW=0
+3.14t    OLD: 23 failed, 6019 passed, 125 skipped          NEW: 23 failed, 6019 passed, 125 skipped          only-OLD=0 only-NEW=0
+3.15     OLD: 24 failed, 6018 passed, 125 skipped          NEW: 24 failed, 6018 passed, 125 skipped          only-OLD=0 only-NEW=0
+3.8-mcp  OLD: 5 failed, 227 passed, 3 skipped              NEW: 5 failed, 227 passed, 3 skipped              only-OLD=0 only-NEW=0
+(3.14 is the venv without Pillow: the 25 failures become skips; every other
+interpreter has Pillow and is unchanged)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7020, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7020, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).

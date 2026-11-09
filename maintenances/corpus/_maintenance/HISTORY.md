@@ -1,5 +1,19 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 924
+
+- **CX-07: image reader tests failed without Pillow.** 25 tests in
+  `_readers/tests/test__image.py` patch `PIL.Image.open` (which imports
+  `PIL`) or reach the reader's own Pillow import, which comes before its
+  size check; the partial distribution `scikit-plots-corpus` does not depend
+  on Pillow. They now carry `_needs_pillow`, a `skipif` with a stated reason:
+  without Pillow 29 passed and 25 skipped (25 failed on `main`); with Pillow
+  all 54 pass as before. `test_raises_import_error_when_pillow_absent`
+  already covers the reader without Pillow. Tests only: no release note.
+  Suites otherwise unchanged on CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP
+  on 3.8.
+- Evidence: `evidence/round-2026-11-09-pillow-gate.log`.
+
 ## 2026-11-09 — research self-test round, PR 923
 
 - **CX-06: a document holding a lone surrogate failed inside SQLite and
