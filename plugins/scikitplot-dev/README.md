@@ -9,6 +9,7 @@ name (Rules 164 and 165), plus skills every plugin carries:
 | Development | `plugins/scikitplot-dev/skills/scikitplot-<x>-dev/` | `plugins/scikitplot-dev/agents/scikitplot-<x>-dev.md` | working on scikit-plots in this checkout (plugin `scikitplot-dev`) |
 | Usage | `plugins/scikitplot/skills/scikitplot-<x>/` | `plugins/scikitplot/agents/scikitplot-<x>.md` | using scikit-plots in any project (plugin `scikitplot`) |
 | Shared | source `plugins/_shared/skills/<name>/`, copied into both plugins | none | any topic, both audiences (e.g. `scholarly-inquiry-cycle`) |
+| Workflow | `plugins/scikitplot-dev/skills/<name>/`, written by hand, listed in `check_records.DEV_WORKFLOW_SKILLS` | none | contributors and maintainers: pull requests and CI (`scikitplot-pr-review-flow` runs the process and calls `scikitplot-pr-impact-brief`, `scikitplot-pr-walkthrough`, `scikitplot-pr-pending-review`, `scikitplot-ci-failure-forecast`); four ship helper scripts under `scripts/`, which Claude explains and runs only after you agree; not in the users' plugin |
 
 This document explains how to select and use the development skills without
 relying on a previous chat or a memorized repository map. The authoritative

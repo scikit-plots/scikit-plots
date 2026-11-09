@@ -878,6 +878,40 @@ class TestIndexTablesAndDisclosure:
         assert "`skill-creator`" in readme
         assert "(https://code.claude.com/docs/en/plugins)" in readme
         assert "claude-plugins-official" not in readme
+        # No users' skill calls GitHub: the workflow skills are the developers' only.
+        assert records["skills_using_github"](ROOT, records["USAGE_SKILLS_DIR"]) == {}
+        assert "No skill or agent makes a network call" in readme
+
+    def test_the_workflow_skills_are_the_developers_only(self):
+        names = records["DEV_WORKFLOW_SKILLS"]
+        dev = ROOT / records["SKILLS_DIR"]
+        for name in names:
+            assert (dev / name / "SKILL.md").is_file(), name
+            assert not (ROOT / records["USAGE_SKILLS_DIR"] / name).exists(), name
+            assert not (ROOT / "plugins/_shared/skills" / name).exists(), name
+            assert not (ROOT / "plugins/scikitplot-dev/agents" / f"{name}.md").exists(), name
+        github = records["skills_using_github"](ROOT, records["SKILLS_DIR"])
+        assert github["scikitplot-pr-pending-review"] is True
+        assert github["scikitplot-pr-walkthrough"] is False
+        agent = (ROOT / "plugins/scikitplot-dev/agents/scikitplot-cli-dev.md").read_text(encoding="utf-8")
+        assert all(name not in agent for name in names)
+
+    def test_a_github_call_in_a_skill_changes_the_readme(self, tree):
+        path = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "SKILL.md"
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text + "\nghost text and gh in prose\n\n```sh\ngh pr view 1\n```\n", encoding="utf-8")
+        assert records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])["scikitplot-api"] is False
+        assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
+        records["write_indexes"](tree)
+        readme = (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+        assert "`scikitplot-api`" in readme.split("- Read pull requests", 1)[1].split("\n", 1)[0]
+        path.write_text(text + "\n```sh\ngh api --method POST repos/o/r/issues\n```\n", encoding="utf-8")
+        assert records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])["scikitplot-api"] is True
+
+    def test_gh_outside_a_shell_block_is_not_a_call(self, tree):
+        path = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "SKILL.md"
+        path.write_text(path.read_text(encoding="utf-8") + "\nRun gh pr view 1 yourself, or `gh pr diff 1`.\n", encoding="utf-8")
+        assert "scikitplot-api" not in records["skills_using_github"](tree, records["USAGE_SKILLS_DIR"])
 
     def test_a_new_program_in_a_skill_makes_the_readme_stale(self, tree):
         script = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "tool.py"
@@ -885,3 +919,22 @@ class TestIndexTablesAndDisclosure:
         assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
         records["write_indexes"](tree)
         assert "`scikitplot-api`" in (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+
+    def test_a_skill_with_programs_opens_with_the_consent_section(self, tree):
+        name = "scikitplot-pr-walkthrough"
+        assert not records["check_program_consent"](tree)
+        path = tree / records["SKILLS_DIR"] / name / "SKILL.md"
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace(records["PROGRAMS_HEADING"], "## Helper programs"), encoding="utf-8")
+        errors = _failing(tree).get("skills", [])
+        assert any(name in e and "Rule 167" in e for e in errors), errors
+        # The heading anywhere but first does not count either.
+        moved = text.replace(records["PROGRAMS_HEADING"] + "\n", "", 1) + "\n" + records["PROGRAMS_HEADING"] + "\n"
+        path.write_text(moved, encoding="utf-8")
+        assert any(name in e for e in records["check_program_consent"](tree))
+
+    def test_a_new_program_needs_the_consent_section(self, tree):
+        skill = tree / records["SKILLS_DIR"] / "scikitplot-cython-dev"
+        assert not records["check_program_consent"](tree)
+        (skill / "run.sh").write_text("echo 1\n", encoding="utf-8")
+        assert any("scikitplot-cython-dev" in e and "run.sh" in e for e in records["check_program_consent"](tree))

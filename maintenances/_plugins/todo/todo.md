@@ -139,6 +139,9 @@ verbatim under `../_maintenance/history/` (created with the first one).
   in review for the CI-8 hold. The ledger note
   `upcoming_changes/tools/maint_tools/claude-directory-refused-skills-build.md`
   is deleted (its acceptance criteria hold).
+- Waiting items are ledger notes, followed from there:
+  `upcoming_changes/tools/maint_tools/directory-review-credential-hold.md`
+  and `upcoming_changes/tools/maint_tools/directory-listing-follows-main.md`.
 - Open, for the maintainer: the submission tracks `main`, while Rule 166 and
   section 9 of `../MAINTAINING.md` intend `stable`, which exists only after
   the first release tag is built; change the tracked branch only when no
@@ -147,3 +150,87 @@ verbatim under `../_maintenance/history/` (created with the first one).
   `probe/b-plain-python-examples`, `probe/c-no-corpus-api` and
   `probe/d-no-index-source` in `scikit-plots/skills` (the session's GitHub
   access could not).
+
+## Task: CI-10 - pull-request and CI workflow skills for developers (2026-11-09)
+
+- Request (the maintainer): pull-request and CI skills, written fresh from
+  the ideas of a public BSD-3 skill collection; then (same day) kept to the
+  developers' plugin, since they serve contributors and maintainers, not
+  people using the library.
+- Done: five hand-written skills in `plugins/scikitplot-dev/skills/`, listed
+  in `check_records.DEV_WORKFLOW_SKILLS` (no maintained path, no agent, not
+  preloaded into the area agents): `scikitplot-pr-review-flow` (the process:
+  orient, triage, understand, verify, findings, action, approved draft
+  review, follow-up, with its gates), `scikitplot-pr-impact-brief`,
+  `scikitplot-pr-walkthrough`, `scikitplot-pr-pending-review`,
+  `scikitplot-ci-failure-forecast`. Markdown only, `gh` commands that run as
+  written (Rule 170). Not in `plugins/_shared/` or the users' plugin, so
+  `scikit-plots/skills` and its README are unchanged and the submission's
+  Data handling answers stay true.
+- Guard: `check_records.skills_using_github` derives from shell blocks which
+  skills read or write GitHub, and the users' README states it; today the
+  users' plugin has none ("No skill or agent makes a network call"). Tests
+  in `test_records.py`, each failing under a mutation of the detection.
+- Then (same day, the maintainer: newcomers and busy maintainers need the
+  helpers too): four skills ship scripts, written fresh, Python 3.8, standard
+  library plus `gh`, each optional beside the manual steps:
+  `post_pending_review.py` (checks every comment against the diff, skips
+  ones already posted, all or nothing, `--dry-run`, never submits),
+  `worklist.py` (cached open pull requests, staged filter, seeded pick),
+  `pr_context.py` (metadata, linked issues, public-API change from base to
+  head, prior art), `ci_runs.py` (attempt-1 baseline, forecast scoring),
+  `pr_paths.py` (owning area and kind of each changed file, generated files
+  with their tool). References: the impact brief's `reference.md` (scales,
+  counterfactual order, cost list) and the review flow's
+  `references/gates-by-path.md` (which section-5 gates each path needs).
+- Guard (Rule 167): `check_records.check_program_consent` fails a skill in
+  any skills folder that ships a program and does not open with
+  `## Programs (ask before each run)`. Tests: `test_records.py` (two),
+  `test_workflow_skill_scripts.py` (25; nine mutations of the scripts each
+  fail a test), run by `pr_check_records.yml`. The published build is
+  byte-identical to main's.
+- Found while testing: `pr_paths.area` gave `_plugins/todo` for a record
+  under `maintenances/_plugins/todo/`; an area is now a top folder or the
+  mirror of a package. Pre-existing, not changed here:
+  `scikitplot-plugins-dev` has a shell block with `<skills checkout>`
+  placeholders that `bash -n` rejects (developers' plugin, not published).
+- Process slip, recovered: comparing builds, `git checkout origin/main -- .`
+  overwrote the uncommitted edits in the working tree; restored from the
+  dropped stash commit. Compare against main in `git worktree add`, never by
+  checking main's files out over the working tree.
+- Check against reality (same day, the maintainer asked for a last check):
+  - `post_pending_review.py`: a rerun after a partial failure would have
+    posted duplicates (comments in your pending review have no line, so the
+    line-keyed dedupe missed them); the pending review and its comments are
+    now read through REST and matched on file and text; a GraphQL failure
+    stops with the list of comments already added; error numbers no longer
+    shift.
+  - `pr_context.py`: read the base and head with `git fetch origin`, wrong
+    when `origin` is a fork; compared with the base branch tip instead of the
+    merge base; reported "no API change" when the fetch failed; searched all
+    of GitHub without `--repo`; looked up `other/name#4` in this repository;
+    ignored changed defaults; and the search endpoint refuses a query
+    without `is:pr` or `is:issue` (HTTP 422), which `check=False` hid. Now
+    REST only (contents at the merge base and head, renames by their old
+    name), `--repo` required, unreadable parts printed as "could not
+    compute", merged pull requests marked.
+  - `pr_paths.py`: `gh pr view --json files` stops at 100 files; now REST,
+    paginated; a `.github/` file is kind `ci`.
+  - `ci_runs.py`: an unfinished run counted its running jobs as failures and
+    a cancelled job as a miss; now the newest completed run, cancelled jobs
+    unscored, an unfinished run refused, a repeated job name keeps its worst
+    conclusion; `--event` and `--branch`, because scikit-plots' Actions
+    history held no scheduled run on 2026-11-09 (all 97 runs listed were
+    pull_request, pull_request_target or push), though nine workflows
+    declare weekly or monthly schedules.
+  - `worklist.py`: a maintainer's own pull request is left out (the brief is
+    for outside contributions); a pull request with more than 100 files is
+    kept rather than dropped; a cache of another repository is refetched.
+  - Examples named `nightly.yml`, which scikit-plots does not have; now
+    `ci_wheels_conda.yml`.
+  - Review flow: "Before you start" (first-review reading, quick or full
+    depth, resume from each stage's visible trace).
+  - Tests: 30; eleven more mutations, each failing a test. The REST paths
+    were run against PRs 917 and 918 (`--dry-run` for the pending review);
+    the GraphQL paths (adding to a pending review, the worklist query)
+    cannot run in this session.
