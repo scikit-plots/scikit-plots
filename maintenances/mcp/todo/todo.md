@@ -62,3 +62,10 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
   line): 203 passed, 4 failed, 2 skipped; the 4 failures are the corpus
   legs, each 5170 passed and the same 14 DNS failures as 3b; the mcp part on
   Python 3.13 passed 324 (alone) and 351 (with corpus).
+
+### PR 927: postings in `InMemoryBm25Retriever` (CX-13)
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-10): same scores to the
+  last bit, searches 5 to 9 times faster over 20,000 documents, the index
+  half the size.
+- Next in this round: `_tokens` is 0.64 s of the 1.2 s profiled build
+  (not started).

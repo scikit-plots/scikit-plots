@@ -1,5 +1,30 @@
 # History
 
+## 2026-11-10 — research self-test round, PR 927
+
+The 22,034 research chunks were run through the MCP retrievers and
+`scikitplot.rank_bm25`. `rank_bm25` needs nothing (0.05 ms per `get_scores`,
+0.12 ms per `get_top_n`); the SQLite lexical leg takes 2.5 ms per search.
+
+- **CX-13: `InMemoryBm25Retriever.search` scanned every document.** For
+  each search it looked up every query term in every document (2.76 M
+  dictionary lookups for 39 searches over 20,000 documents). It now keeps a
+  postings list per term (document ids with the two document-side factors
+  as columns of doubles) and the IDF per term, and adds each document's
+  terms in query order, the order the scan added them in: scores and order
+  are equal to the last bit (`float.hex` digest over 2,184 searches on
+  generated documents and 2,196 on the research chunks, four `k1`/`b`/
+  `title_weight` settings, CPython 3.8 to 3.15.0b4, 3.13t and 3.14t). A
+  search over 20,000 documents: 10.9-21.6 ms to 1.8-2.4 ms. The index holds
+  18.7 MiB instead of 34.5 MiB (CPython 3.13; build peak unchanged at
+  35 MiB); the build takes 0.45 s instead of 0.31 s. A first version kept
+  tuples and both tables: 76 MiB peak and 43 MiB held, so it was replaced.
+  Tests: new `tests/test__demo.py`, 44 tests against BM25 by its definition
+  (2 fail on `main`, the others pass there by design); 7 mutations caught,
+  the last only after queries that repeat a term three times were added.
+- Evidence: `evidence/round-2026-11-10-demo-postings.log`,
+  `evidence/probe_demo_bm25.py`.
+
 ## 2026-09-28 — hybrid retrieval through the server (CX-04)
 
 - **CX-04 (gap).** corpus `RetrievalIndex` already fused BM25 and Annoy, but
