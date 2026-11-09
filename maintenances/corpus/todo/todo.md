@@ -59,10 +59,9 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
 | D11 | Durable agent memory (`_agentic.py` defers it until seven prerequisites exist: tenant scope, provenance, trust, TTL, delete/forget, poisoning defence, promotion review) | (a) A governed memory collection in corpus: records are `CorpusDocument`s with those seven as required fields and checks, recalled through the existing fusion; `agent` only calls it. (b) A store inside `agent`. (c) Keep deferring. |
 | D12 | Outline links in the derived graph (`StructureChunker` records `heading_path`; `DerivedGraph` builds no relation from it) | (a) Derive a section relation from `heading_path`, never stored (ADR-R08-002), so traversal can walk a document's outline. (b) Leave it to callers. |
 | D13 | Markdown sources and the default chunker (`ParagraphChunker` splits a fenced block at its blank lines and strips the first line's indentation; `StructureChunker` keeps both) | (a) `.md`/`.rst` use `StructureChunker` when no chunker is chosen. (b) Keep the chunker explicit and say so in the guide. |
-| D14 | The normalizer chain builds one frozen document per step (CX-12, part 2: 1.6 s of a profiled 8.4 s build) | (a) Compose text-only steps and build one document at the end; a step that sets another field keeps its own. (b) Keep one document per step. |
 
 Settled: D2 (fusion semantics, as recommended) and D3 ((a) 64-hex ids
-everywhere, with opt-in UUIDv7).
+everywhere, with opt-in UUIDv7). D14: (a), PR 926.
 
 ## Task: round 33 / Run 4 - structured chunking measured by the harness (R4-2, R4-3)
 
@@ -388,8 +387,8 @@ everywhere, with opt-in UUIDv7).
   queries: every shape, combinations, unavailable legs, near misses such as
   `notebook`, `knot`, `sectional`) passes; 73 tests in `test__routing.py`.
 
-### PRs 919 to 925: research self-test fixes (CX-05 to CX-11, CX-12 part 1)
-- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-09); CX-12 part 2
-  remains (note under `upcoming_changes/scikitplot/corpus/`) with decisions
-  D11 to D14. CX-06 took option (c), storage refuses as export does.
-- Next: CX-12 part 2 once D14 is settled; D11 to D13.
+### PRs 919 to 926: research self-test fixes (CX-05 to CX-12)
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-09 and 2026-11-10); the
+  round's ledger is empty. CX-06 took option (c); D14 took (a).
+- Next: decisions D11 to D13; a public text-step base once the usage skills
+  can be regenerated.

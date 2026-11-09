@@ -57,4 +57,16 @@ supported interpreter, unless the change is meant to alter results. The
 tests hold every ASCII sample to what the range tests give for it, and check
 that an ASCII sample does not go through them.
 
+## Normalizer chain lane (CX-12, D14)
+
+```sh
+python -B maintenances/corpus/_maintenance/evidence/probe_normalizer_chain.py OLD_CHECKOUT
+python -B maintenances/corpus/_maintenance/evidence/probe_normalizer_chain.py
+python -m pytest scikitplot/corpus/_normalizers/tests/test__normalizer.py -k OneDocumentPerRun
+```
+
+A change to a normalizer step or to `NormalizationPipeline` must leave the
+probe's digest unchanged against the previous checkout (pass `--texts DIR` to
+add real paragraphs), unless it is meant to alter results.
+
 `--release` remains blocked until every release gate in `REVIEW.json` is current `GREEN` in `EVIDENCE.json`.

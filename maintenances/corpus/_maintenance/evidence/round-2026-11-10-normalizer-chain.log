@@ -1,0 +1,76 @@
+# Research self-test round, 2026-11-10, PR 926: one document per run of text-only normalizer steps (CX-12 part 2, D14 (a))
+# Host: Linux x86-64 (2 CPUs). OLD = main at b62c770 (PR 925); NEW = the PR 926 branch.
+
+--- results: probe_normalizer_chain.py on OLD and NEW, --texts = the 64 research files
+3.9 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.10 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.11 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.12 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.13 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.13t chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.14 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.14t chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+3.15 chains 400 results 104220 same digest: yes 4e764a8c102e48a4
+
+--- CorpusDocument.replace calls in one CorpusBuilder.build of the research folder
+OLD: CorpusDocument.replace calls in one build: 44264
+NEW: CorpusDocument.replace calls in one build: 22132
+
+--- CorpusBuilder.build, CPython 3.13.18 (best of 3)
+round 1 build best-of-3 s: OLD 3.01 | NEW 2.70
+round 2 build best-of-3 s: OLD 3.12 | NEW 2.70
+
+--- tests: 5 new in TestPipelineBuildsOneDocumentPerRun (_normalizers/tests/test__normalizer.py); NEW 44 passed.
+OLD (the two private names shimmed, since main has neither): failed
+  test_a_run_of_text_steps_builds_one_document
+  test_another_step_ends_the_run_and_sees_its_text
+  test_an_overriding_subclass_runs_as_written
+  test_a_text_step_alone_still_normalizes_a_document
+  4 failed, 40 passed in 0.30s
+(the step-by-step equivalence test passes on OLD by design)
+--- mutations
+M1 overriding subclass composed                  -> 2 failed, 42 passed in 0.19s
+M2 run restarts from doc.text                    -> 1 failed, 43 passed in 0.16s
+M3 pending text not flushed before another step  -> 3 failed, 41 passed in 0.17s
+M4 final run not written                         -> 5 failed, 39 passed in 0.16s
+M5 pending text kept after flush                 -> 2 failed, 42 passed in 0.16s
+M6 never composed                                -> 2 failed, 42 passed in 0.32s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9      OLD: 24 failed, 5922 passed      NEW: 24 failed, 5927 passed      sets identical: yes
+3.10     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6024 passed      sets identical: yes
+3.11     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6024 passed      sets identical: yes
+3.12     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6024 passed      sets identical: yes
+3.13     OLD: 23 failed, 6052 passed      NEW: 23 failed, 6057 passed      sets identical: yes
+3.13t    OLD: 24 failed, 5922 passed      NEW: 24 failed, 5927 passed      sets identical: yes
+3.14     OLD: 23 failed, 6025 passed      NEW: 23 failed, 6030 passed      sets identical: yes
+3.14t    OLD: 23 failed, 6019 passed      NEW: 23 failed, 6024 passed      sets identical: yes
+3.15     OLD: 23 failed, 6019 passed      NEW: 23 failed, 6024 passed      sets identical: yes
+3.8-mcp  OLD: 5 failed, 227 passed        NEW: 5 failed, 227 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7020, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=1 before sync (the corpus ledger directory is gone); after `sync --apply` (its one line removed): PASS
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+plugin build: 0 of 115 files differ from published 06b9ac4
+usage-skill renderer rows/example/module text identical: True | public names: 456 -> 456

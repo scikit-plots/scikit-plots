@@ -1,5 +1,29 @@
 # Corpus maintenance history
 
+## 2026-11-10 — research self-test round, PR 926
+
+- **CX-12, part 2 (decision D14 (a)): one document per run of text-only
+  steps.** Every normalizer step built its own frozen document. The five
+  built-in steps that only map the text now implement `normalize_text` on a
+  private base, `_TextStep`; `NormalizationPipeline` passes the text through
+  consecutive ones and builds one document for the run. A step is composed
+  only when its `normalize_doc` is `_TextStep`'s own, so a custom step, a
+  step that sets another field and a subclass overriding `normalize_doc` run
+  as before. Identical documents: one SHA-256 digest over 104,220 results
+  (400 ordered chains of one to three of eight steps, fixed texts, research
+  paragraphs, a document with `normalized_text` already set) on CPython 3.9
+  to 3.15.0b4, 3.13t and 3.14t included. `replace` calls in one build of the
+  research corpus: 44,264 to 22,132; `CorpusBuilder.build` 3.01-3.12 s to
+  2.70 s (best of three). Tests: 5 new in
+  `TestPipelineBuildsOneDocumentPerRun` (4 fail on `main`; the equivalence
+  one passes there by design); 6 mutations caught. `_TextStep` stays private
+  while the usage skills cannot be regenerated here (a public name makes
+  them stale).
+- The round's ledger is empty: CX-05 to CX-12 are closed. D11 to D13 stay
+  open decisions.
+- Evidence: `evidence/round-2026-11-10-normalizer-chain.log`,
+  `evidence/probe_normalizer_chain.py`.
+
 ## 2026-11-09 — research self-test round, PR 925
 
 - **CX-10: the atomic-publication race test forked a threaded process,
