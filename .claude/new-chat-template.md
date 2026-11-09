@@ -15,7 +15,7 @@ last pull request opened, plus one; set it when a chat starts.
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `922`
+- Pull request number for new fragments: `923`
 - Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`

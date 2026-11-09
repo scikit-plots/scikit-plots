@@ -1,5 +1,23 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 923
+
+- **CX-06: a document holding a lone surrogate failed inside SQLite and
+  JSONL storage.** `CorpusDocument` accepts such text, and the export layer
+  already refuses it per format with the document and path named (JSON,
+  JSON Lines, TOML) while YAML keeps it; storage raised a bare
+  `UnicodeEncodeError` (on CPython 3.11+ SQLite could report the
+  connection's previous error). Decision (c), taken over (a) because (a)
+  would break the export contract and its tests: `_encodable_dict` refuses
+  before any write, naming the document and the path (dictionary keys
+  included), in `JSONLStorage.save` / `save_batch` and
+  `SQLiteStorage._doc_to_row`; a batch holding one such document writes
+  nothing. `InMemoryStorage` keeps it. Tests: 15 new in
+  `TestLoneSurrogateDocuments` (12 fail on `main`; the in-memory and NUL
+  ones pass there by design); 6 mutations caught; suites unchanged on
+  CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
+- Evidence: `evidence/round-2026-11-09-surrogate-storage.log`.
+
 ## 2026-11-09 — research self-test round, PR 922
 
 - **CX-12, part 1: `CorpusDocument.replace` recomputed its field names.**

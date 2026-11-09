@@ -368,6 +368,85 @@ def _doc_to_dict(doc: CorpusDocument) -> dict[str, Any]:
     return doc.to_dict(include_embedding=False)
 
 
+#: A lone surrogate (U+D800 to U+DFFF): a valid ``str`` value that UTF-8
+#: cannot encode.
+_LONE_SURROGATE = re.compile(r"[\ud800-\udfff]")
+
+
+def _lone_surrogate_path(tree: Any, path: str = "$") -> str | None:
+    """
+    Return the path of the first string holding a lone surrogate, else ``None``.
+
+    Parameters
+    ----------
+    tree : object
+        A serialised document (dicts, lists and scalars).
+    path : str, optional
+        Path of ``tree``, written as the export records write it
+        (``$.metadata.k``, ``$.tokens[3]``). Default ``"$"``.
+
+    Returns
+    -------
+    str or None
+        The path; a dictionary key holding one is named as ``path`` with
+        ``" (a key)"``.
+
+    Notes
+    -----
+    **Developer note:** The same check as ``export_problem`` makes for the
+    JSON, JSON Lines and TOML exports, plus dictionary keys, which a UTF-8
+    file or SQLite cannot encode either (finding CX-06).
+    """
+    if isinstance(tree, str):
+        return path if _LONE_SURROGATE.search(tree) else None
+    if isinstance(tree, dict):
+        for key, value in tree.items():
+            if isinstance(key, str) and _LONE_SURROGATE.search(key):
+                return f"{path}.{key!a} (a key)"
+            found = _lone_surrogate_path(value, f"{path}.{key}")
+            if found:
+                return found
+    elif isinstance(tree, (list, tuple)):
+        for index, value in enumerate(tree):
+            found = _lone_surrogate_path(value, f"{path}[{index}]")
+            if found:
+                return found
+    return None
+
+
+def _encodable_dict(doc: CorpusDocument, backend: str) -> dict[str, Any]:
+    """
+    Serialise ``doc`` for a UTF-8 backend, or refuse it before any write.
+
+    Parameters
+    ----------
+    doc : CorpusDocument
+        The document to store.
+    backend : str
+        The storage class, named in the error.
+
+    Returns
+    -------
+    dict
+        ``_doc_to_dict(doc)``.
+
+    Raises
+    ------
+    ValueError
+        If a string in the document holds a lone surrogate. The message names
+        the document and the path, as an export does; :class:`InMemoryStorage`
+        keeps such a document, as the YAML export does.
+    """
+    data = _doc_to_dict(doc)
+    path = _lone_surrogate_path(data)
+    if path is not None:
+        raise ValueError(
+            f"{backend}: document {doc.doc_id!r}: {path} holds a lone"
+            f" surrogate, which {backend} cannot encode as UTF-8"
+        )
+    return data
+
+
 def _dict_to_doc(data: dict[str, Any]) -> CorpusDocument:
     """Deserialise a dict produced by ``_doc_to_dict``."""
     return CorpusDocument.from_dict(data)
@@ -675,7 +754,7 @@ class JSONLStorage(StorageBase):
         ----------
         doc : CorpusDocument
         """
-        data = _doc_to_dict(doc)
+        data = _encodable_dict(doc, "JSONLStorage")
         with self._lock:
             if doc.doc_id in self._index:
                 # Update rewrites the whole file. Copy-on-write: build the next
@@ -717,7 +796,7 @@ class JSONLStorage(StorageBase):
             # (CORPUS-STO-002).
             new_index = dict(self._index)
             for doc in docs:
-                new_index[doc.doc_id] = _doc_to_dict(doc)
+                new_index[doc.doc_id] = _encodable_dict(doc, "JSONLStorage")
             self._rewrite(new_index)
             self._index = new_index
 
@@ -1084,7 +1163,9 @@ class SQLiteStorage(StorageBase):
             "chunk_index": doc.chunk_index,
             "char_start": doc.char_start,
             "char_end": doc.char_end,
-            "json_data": json.dumps(_doc_to_dict(doc), ensure_ascii=False),
+            "json_data": json.dumps(
+                _encodable_dict(doc, "SQLiteStorage"), ensure_ascii=False
+            ),
         }
 
     def _row_to_doc(self, row: sqlite3.Row) -> CorpusDocument:

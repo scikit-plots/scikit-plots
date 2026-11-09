@@ -1,0 +1,59 @@
+# Research self-test round, 2026-11-09, PR 923: SQLite and JSONL storage refuse lone surrogates as export does (CX-06, decision (c))
+# Host: Linux x86-64 (2 CPUs). OLD = main at e4bf61c (PR 922); NEW = the PR 923 branch.
+
+--- before (PR 919 round, main at 6734def): SQLite and JSONL save raised a bare UnicodeEncodeError
+for a lone surrogate in a document; a batch rolled back; InMemoryStorage stored it. On CPython 3.11+
+SQLite could report the connection's previous error instead (PR 919 evidence log).
+
+--- tests: 15 new in TestLoneSurrogateDocuments (_storage/tests/test__storage.py); NEW 199 passed; OLD:
+      1 12 failed, 187 passed in 0.99s
+      2 FAILED scikitplot/corpus/_storage/tests/test__storage.py::TestLoneSurrogateDocuments::test_a_batch_with_one_such_document_writes_nothing
+     10 FAILED scikitplot/corpus/_storage/tests/test__storage.py::TestLoneSurrogateDocuments::test_save_refuses_and_names_the_place
+(the in-memory and NUL tests pass on OLD by design)
+--- mutations
+M1 keys not checked        -> 2 failed, 197 passed in 0.99s
+M2 lists not walked        -> 2 failed, 197 passed in 1.06s
+M3 JSONL save unchecked    -> 5 failed, 194 passed in 1.16s
+M4 JSONL batch unchecked   -> 1 failed, 198 passed in 1.16s
+M5 SQLite unchecked        -> 6 failed, 193 passed in 1.06s
+M6 high surrogates only    -> 4 failed, 195 passed in 1.04s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9      OLD: 24 failed, 5907 passed      NEW: 24 failed, 5922 passed      sets identical: yes
+3.10     OLD: 23 failed, 6004 passed      NEW: 23 failed, 6019 passed      sets identical: yes
+3.11     OLD: 23 failed, 6004 passed      NEW: 23 failed, 6019 passed      sets identical: yes
+3.12     OLD: 23 failed, 6004 passed      NEW: 23 failed, 6019 passed      sets identical: yes
+3.13     OLD: 23 failed, 6037 passed      NEW: 23 failed, 6052 passed      sets identical: yes
+3.13t    OLD: 24 failed, 5907 passed      NEW: 24 failed, 5922 passed      sets identical: yes
+3.14     OLD: 48 failed, 6010 passed      NEW: 48 failed, 6025 passed      sets identical: yes
+3.14t    OLD: 23 failed, 6004 passed      NEW: 23 failed, 6019 passed      sets identical: yes
+3.15     OLD: 24 failed, 6003 passed      NEW: 24 failed, 6018 passed      sets identical: yes
+3.8-mcp  OLD: 5 failed, 227 passed        NEW: 5 failed, 227 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs; the export
+tests test_lone_surrogates_name_the_document and test_yaml_keeps_lone_surrogates pass on both)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7019, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7019, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+plugin build: 0 of 115 files differ from published 06b9ac4
+usage-skill renderer rows/example/module text identical: True

@@ -1,0 +1,8 @@
+- ``SQLiteStorage`` and ``JSONLStorage`` refuse a document holding a lone
+  surrogate (U+D800 to U+DFFF) before writing anything, with a
+  ``ValueError`` naming the document and the place
+  (``JSONLStorage: document '...': $.metadata.k holds a lone surrogate, which
+  JSONLStorage cannot encode as UTF-8``), as the JSON, JSON Lines and TOML
+  exports already do. They raised a bare ``UnicodeEncodeError`` instead, and
+  on CPython 3.11 and newer SQLite could report it as an earlier, unrelated
+  error. ``InMemoryStorage`` keeps such a document, as the YAML export does.
