@@ -688,3 +688,83 @@ class TestFreeTextSearch:
             found = self.store.query(StorageQuery(full_text=query, limit=5)).documents
             want = self.store.query(StorageQuery(full_text=spaced, limit=5)).documents
             assert [d.doc_id for d in found] == [d.doc_id for d in want], ascii(query)
+
+
+# ===========================================================================
+# CX-06: a lone surrogate is refused by the UTF-8 backends, before any write
+# ===========================================================================
+
+#: Where a lone surrogate can sit in a document, as a replace() and the path
+#: the refusal must name.
+_SURROGATE_PLACES = [
+    ({"text": "roc" + chr(0xDFFF) + "auc"}, "$.text"),
+    ({"raw_text": "raw" + chr(0xD800)}, "$.raw_text"),
+    ({"metadata": {"k": "a" + chr(0xDBFF) + "b"}}, "$.metadata.k"),
+    ({"metadata": {"k" + chr(0xDC00): "v"}}, "$.metadata.'k\\udc00' (a key)"),
+    ({"tokens": ["ok", "t" + chr(0xD800)]}, "$.tokens[1]"),
+]
+
+
+def _utf8_store(kind, tmp_path):
+    if kind == "sqlite":
+        return SQLiteStorage(tmp_path / "s.db")
+    return JSONLStorage(tmp_path / "s.jsonl")
+
+
+def _snapshot(store, kind, tmp_path):
+    path = tmp_path / ("s.db" if kind == "sqlite" else "s.jsonl")
+    return store.count(), path.read_bytes() if kind == "jsonl" and path.exists() else None
+
+
+class TestLoneSurrogateDocuments:
+    @pytest.mark.parametrize("kind", ["sqlite", "jsonl"])
+    @pytest.mark.parametrize(("change", "where"), _SURROGATE_PLACES)
+    def test_save_refuses_and_names_the_place(self, kind, change, where, tmp_path) -> None:
+        store = _utf8_store(kind, tmp_path)
+        try:
+            store.save(_make_doc(chunk_index=0))
+            before = _snapshot(store, kind, tmp_path)
+            bad = _make_doc(chunk_index=1).replace(**change)
+            backend = "SQLiteStorage" if kind == "sqlite" else "JSONLStorage"
+            message = (
+                f"{backend}: document {bad.doc_id!r}: {where} holds a lone surrogate,"
+                f" which {backend} cannot encode as UTF-8"
+            )
+            with pytest.raises(ValueError, match="holds a lone surrogate") as caught:
+                store.save(bad)
+            assert str(caught.value) == message
+            assert _snapshot(store, kind, tmp_path) == before
+            store.save(_make_doc(chunk_index=2))
+            assert store.count() == before[0] + 1
+        finally:
+            store.close()
+
+    @pytest.mark.parametrize("kind", ["sqlite", "jsonl"])
+    def test_a_batch_with_one_such_document_writes_nothing(self, kind, tmp_path) -> None:
+        store = _utf8_store(kind, tmp_path)
+        try:
+            store.save(_make_doc(chunk_index=0))
+            before = _snapshot(store, kind, tmp_path)
+            bad = _make_doc(chunk_index=2).replace(text="x" + chr(0xD800))
+            batch = [_make_doc(chunk_index=1), bad, _make_doc(chunk_index=3)]
+            with pytest.raises(ValueError, match=f"document {bad.doc_id!r}: \\$\\.text"):
+                store.save_batch(batch)
+            assert _snapshot(store, kind, tmp_path) == before
+        finally:
+            store.close()
+
+    def test_in_memory_storage_keeps_such_a_document(self) -> None:
+        store = InMemoryStorage()
+        doc = _make_doc().replace(metadata={"k": "a" + chr(0xD800) + "b"})
+        store.save(doc)
+        assert store.get(doc.doc_id).metadata == {"k": "a" + chr(0xD800) + "b"}
+
+    @pytest.mark.parametrize("kind", ["sqlite", "jsonl"])
+    def test_nul_is_still_stored(self, kind, tmp_path) -> None:
+        store = _utf8_store(kind, tmp_path)
+        try:
+            doc = _make_doc(text="roc\x00auc here")
+            store.save(doc)
+            assert store.get(doc.doc_id).text == "roc\x00auc here"
+        finally:
+            store.close()
