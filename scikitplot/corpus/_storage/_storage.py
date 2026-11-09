@@ -118,9 +118,10 @@ class StorageQuery:
     full_text : str or None, optional
         Full-text search string, matched as a whole: native FTS5 phrase
         matching on ``SQLiteStorage``, a case-insensitive substring scan
-        elsewhere (reported as ``EMULATED``). Never read as FTS5 syntax. For
-        ranked retrieval by any of the words, use
-        :meth:`SQLiteStorage.search_text`. Default: ``None``.
+        elsewhere (reported as ``EMULATED``). Never read as FTS5 syntax; on
+        ``SQLiteStorage`` a NUL character or a lone surrogate, which no FTS5
+        query can carry, matches as a space. For ranked retrieval by any of
+        the words, use :meth:`SQLiteStorage.search_text`. Default: ``None``.
     limit : int, optional
         Maximum number of results to return. Default: ``100``.
     offset : int, optional
@@ -864,8 +865,15 @@ WHERE rowid NOT IN (
 """
 
 
+#: What no FTS5 query can carry: SQLite ends a string at a NUL, and a lone
+#: surrogate is not a character, so it cannot be encoded for SQLite at all.
+#: Every other code point can stand inside an FTS5 string (all were checked).
+#: Neither is a token character, so each becomes a separating space.
+_FTS5_UNREPRESENTABLE = re.compile(r"[\x00\ud800-\udfff]")
+
+
 def _fts5_phrase(text: str) -> str:
-    """
+    r"""
     Return ``text`` as one FTS5 phrase string, safe to pass to ``MATCH``.
 
     Parameters
@@ -878,7 +886,8 @@ def _fts5_phrase(text: str) -> str:
     str
         ``text`` in double quotes, inner quotes doubled — the FTS5 string
         literal. FTS5 tokenises it with the table's tokenizer, so it matches
-        the same token sequence anywhere in a document.
+        the same token sequence anywhere in a document. A NUL character or a
+        lone surrogate becomes a space.
 
     Notes
     -----
@@ -890,12 +899,23 @@ def _fts5_phrase(text: str) -> str:
     message failed (finding CX-01). A quoted phrase can never be a syntax
     error, and a phrase with no token characters simply matches nothing.
 
+    A quoted phrase still could not carry a NUL or a lone surrogate (U+D800
+    to U+DFFF), and a JSON request can hold either (finding CX-05). A NUL made
+    SQLite raise ``OperationalError: unterminated string``; a lone surrogate
+    raised ``UnicodeEncodeError`` before SQLite saw the query, which CPython
+    3.11 and newer report as the connection's previous error when an earlier
+    statement failed. Every other code point can stand inside an FTS5 string
+    (all 1,114,112 were checked). Neither is a token character, and FTS5
+    already splits stored text at a NUL, so each becomes a space.
+
     Examples
     --------
     >>> _fts5_phrase('a "b" c')
     '"a ""b"" c"'
+    >>> _fts5_phrase("a\x00b")
+    '"a b"'
     """
-    return '"' + text.replace('"', '""') + '"'
+    return '"' + _FTS5_UNREPRESENTABLE.sub(" ", text).replace('"', '""') + '"'
 
 
 #: What FTS5's default ``unicode61`` tokenizer keeps as token characters:
@@ -904,7 +924,7 @@ _FTS5_TOKEN = re.compile(r"[^\W_]+")
 
 
 def _fts5_any(text: str) -> str | None:
-    """
+    r"""
     Return an FTS5 expression matching any word of ``text``, ranked by BM25.
 
     Parameters
@@ -920,18 +940,21 @@ def _fts5_any(text: str) -> str | None:
         of its parts. A document need not contain every term; one containing
         more, rarer terms scores higher, and one containing a compound in its
         exact order also matches its phrase, so it outranks one holding the
-        parts elsewhere. ``None`` when ``text`` has no word.
+        parts elsewhere. A NUL character or a lone surrogate separates words
+        like whitespace (finding CX-05). ``None`` when ``text`` has no word.
 
     Examples
     --------
     >>> _fts5_any("what is roc_auc_score()")
     '"what" OR "is" OR "roc_auc_score()" OR "roc" OR "auc" OR "score"'
+    >>> _fts5_any("roc\x00auc")
+    '"roc" OR "auc"'
     >>> _fts5_any("   ") is None
     True
     """
     terms: list[str] = []
     seen: set[str] = set()
-    for word in text.split():
+    for word in _FTS5_UNREPRESENTABLE.sub(" ", text).split():
         parts = _FTS5_TOKEN.findall(word)
         for term in ([word] if parts != [word] else []) + parts:
             key = term.casefold()
@@ -1185,7 +1208,8 @@ class SQLiteStorage(StorageBase):
         ----------
         text : str
             Free text: a question, an identifier, an error message. Never
-            interpreted as FTS5 syntax.
+            interpreted as FTS5 syntax. A NUL character or a lone surrogate,
+            which no FTS5 query can carry, separates words like a space.
         limit : int, optional
             Most results to return; must be a positive integer. Default ``10``.
         collection_id : str or None, optional

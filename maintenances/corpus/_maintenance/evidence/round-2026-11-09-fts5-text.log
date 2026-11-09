@@ -1,0 +1,157 @@
+# Research self-test round, 2026-11-09: characters no FTS5 query can carry (CX-05, PR 919)
+# Host: Linux x86-64. OLD = main at 6734def (PR 918); NEW = the PR 919 branch.
+# Corpus floor 3.9 (libs/corpus/pyproject.toml); MCP floor 3.8 (libs/mcp).
+# Suites ran in a stand-in parent package (empty scikitplot/__init__.py; corpus,
+# mcp, rank_bm25, logging and _distributions linked) with the repository's
+# pytest.ini; only --maxfail and verbosity overridden; pytest-xdist -n 4.
+
+--- research self-test: 64 text files of collected research through corpus and mcp
+files 64; chunks 22034; pipeline failures 0; duplicates 0
+CorpusBuilder.build 23.4 s, traced peak 165.6 MiB; quality {"mcp.Bm25(sqlite)": {"known_items": 55, "recall@5": 1.0, "mrr": 0.9909}}
+non-deterministic repeat searches: 0
+
+--- reproduction on OLD: probe_fts5_text.py, CPython 3.13.18, a fresh store per query
+root=<OLD checkout>
+'\x00'                   search_text RAISE OperationalError: unterminated string full_text RAISE OperationalError: unterminated string
+                         mcp leg failed   strict RAISE OperationalError: unterminated string
+'\x00null'               search_text RAISE OperationalError: unterminated string full_text RAISE OperationalError: unterminated string
+                         mcp leg failed   strict RAISE OperationalError: unterminated string
+'roc\x00auc'             search_text RAISE OperationalError: unterminated string full_text RAISE OperationalError: unterminated string
+                         mcp leg failed   strict RAISE OperationalError: unterminated string
+'roc_auc_score()\x00'    search_text RAISE OperationalError: unterminated string full_text RAISE OperationalError: unterminated string
+                         mcp leg failed   strict RAISE OperationalError: unterminated string
+'\ud800'                 search_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\ud800' in position 1: full_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\ud800' in position 1:
+                         mcp leg failed   strict RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\ud800' in position 1:
+'roc\udfffauc'           search_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udfff' in position 4: full_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udfff' in position 4:
+                         mcp leg failed   strict RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udfff' in position 4:
+'\udc80null'             search_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udc80' in position 1: full_text RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udc80' in position 1:
+                         mcp leg failed   strict RAISE UnicodeEncodeError: 'utf-8' codec can't encode character '\udc80' in position 1:
+'\x01roc'                search_text ok ['d0', 'd2']                            full_text ok ['d0', 'd2']
+                         mcp leg success  strict ok 2
+'\x7froc'                search_text ok ['d0', 'd2']                            full_text ok ['d0', 'd2']
+                         mcp leg success  strict ok 2
+'\x1croc'                search_text ok ['d0', 'd2']                            full_text ok ['d0', 'd2']
+                         mcp leg success  strict ok 2
+'\ufeffroc'              search_text ok ['d0', 'd2']                            full_text ok ['d0', 'd2']
+                         mcp leg success  strict ok 2
+'\uffffroc'              search_text ok ['d0', 'd2']                            full_text ok ['d0', 'd2']
+                         mcp leg success  strict ok 2
+'roc auc'                search_text ok ['d2', 'd0']                            full_text ok ['d2', 'd0']
+                         mcp leg success  strict ok 2
+FAILED: 28
+
+--- probe_fts5_text.py per interpreter (corpus imports from 3.9)
+3.9    OLD FAILED: 28  NEW FAILED: 0
+3.10   OLD FAILED: 28  NEW FAILED: 0
+3.11   OLD FAILED: 28  NEW FAILED: 0
+3.12   OLD FAILED: 28  NEW FAILED: 0
+3.13   OLD FAILED: 28  NEW FAILED: 0
+3.13t  OLD FAILED: 28  NEW FAILED: 0
+3.14   OLD FAILED: 28  NEW FAILED: 0
+3.14t  OLD FAILED: 28  NEW FAILED: 0
+3.15   OLD FAILED: 28  NEW FAILED: 0
+
+--- probe_fts5_sqlite.py: the checkout's helpers against each interpreter's SQLite
+3.8    python 3.8.20    gil=on  sqlite 3.46.0  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.9    python 3.9.25    gil=on  sqlite 3.50.4  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.10   python 3.10.20   gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.11   python 3.11.15   gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.12   python 3.12.13   gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.13   python 3.13.18   gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.13t  python 3.13.14   gil=off sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.14   python 3.14.6    gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.14t  python 3.14.6    gil=off sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+3.15   python 3.15.0b4  gil=on  sqlite 3.53.1  OLD FAILED: 60  NEW FAILED: 0  rejected by SQLite: U+0000, U+D800, U+DBFF, U+DC00, U+DFFF
+
+--- every code point (0x110000) in a raw FTS5 phrase
+python 3.8.20 sqlite 3.46.0: scanned 0x110000 code points in 4.6s; rejected: U+0000 (OperationalError), U+D800-U+DFFF (UnicodeEncodeError)
+python 3.9.25 sqlite 3.50.4: scanned 0x110000 code points in 4.2s; rejected: U+0000 (OperationalError), U+D800-U+DFFF (UnicodeEncodeError)
+python 3.13.18 sqlite 3.53.1: scanned 0x110000 code points in 2.3s; rejected: U+0000 (OperationalError), U+D800-U+DFFF (UnicodeEncodeError)
+
+--- how CPython reports a lone surrogate (same connection, after a failed NUL query)
+3.8.20     gil=on  sqlite 3.46.0: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> UnicodeEncodeError
+3.9.25     gil=on  sqlite 3.50.4: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> UnicodeEncodeError
+3.10.20    gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> UnicodeEncodeError
+3.11.15    gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.12.13    gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.13.18    gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.13.14    gil=off sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.14.6     gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.14.6     gil=off sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+3.15.0b4   gil=on  sqlite 3.53.1: lone surrogate on a fresh connection -> UnicodeEncodeError; after a failed NUL query -> OperationalError: unterminated string
+
+--- tests: TestFreeTextSearch gains 81 (scikitplot/corpus/_storage/tests/test__storage.py)
+NEW: 184 passed. OLD behaviour (the constant added, OLD helpers unchanged): 66 failed, 118 passed;
+the 15 that pass pin the class (exactly U+0000 and U+D800-U+DFFF) and the characters kept.
+--- mutations of the fix (each must fail the tests)
+M1 phrase keeps the character -> 62 failed, 122 passed in 1.01s
+M2 any splits raw text       -> 44 failed, 140 passed in 0.98s
+M3 NUL only                  -> 54 failed, 130 passed in 0.70s
+M4 deleted, not spaced       -> 22 failed, 162 passed in 0.85s
+M5 high surrogates only      -> 29 failed, 155 passed in 0.73s
+M6 all C0 controls too       -> 3 failed, 181 passed in 0.81s
+M7 low edge U+D7FF           -> 2 failed, 182 passed in 0.92s
+M8 high edge U+E000          -> 2 failed, 182 passed in 0.88s
+M9 NUL forgotten             -> 17 failed, 167 passed in 0.71s
+M10 astral too               -> 5 failed, 179 passed in 0.99s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8): failure sets and their causes
+3.8-mcp  OLD 5 failed, 227 passed, 3 skipped          NEW 5 failed, 227 passed, 3 skipped          sets identical: True
+            12 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+             4 corpus needs Python 3.9
+3.9      OLD 24 failed, 5806 passed, 127 skipped      NEW 24 failed, 5887 passed, 127 skipped      sets identical: True
+             8 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.10     OLD 23 failed, 5903 passed, 125 skipped      NEW 23 failed, 5984 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.11     OLD 23 failed, 5903 passed, 125 skipped      NEW 23 failed, 5984 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.12     OLD 23 failed, 5903 passed, 125 skipped      NEW 23 failed, 5984 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.13     OLD 23 failed, 5936 passed, 92 skipped       NEW 23 failed, 6017 passed, 92 skipped       sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.13t    OLD 24 failed, 5806 passed, 127 skipped      NEW 24 failed, 5887 passed, 127 skipped      sets identical: True
+             8 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.14     OLD 48 failed, 5909 passed, 94 skipped       NEW 48 failed, 5990 passed, 94 skipped       sets identical: True
+            25 Pillow absent in this venv (CX-07)
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.14t    OLD 23 failed, 5903 passed, 125 skipped      NEW 23 failed, 5984 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.15     OLD 24 failed, 5902 passed, 125 skipped      NEW 24 failed, 5983 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+             1 fork of a threaded process warns on 3.15 (CX-10)
+
+--- lint against OLD (ruff 0.17.3, black 26.10.1): added findings by rule
+scikitplot/corpus/_storage/_storage.py: OLD 0 NEW 0 added 0
+scikitplot/corpus/_storage/tests/test__storage.py: OLD 24 NEW 24 added 0
+maintenances/corpus/_maintenance/evidence/probe_fts5_text.py: OLD 0 NEW 0 added 0
+maintenances/corpus/_maintenance/evidence/probe_fts5_sqlite.py: OLD 0 NEW 0 added 0
+black: _storage.py and both probes clean; test__storage.py was not black-clean before and is left unformatted.
+grammar: ast.parse(feature_version=(3, 8)) ok for every changed .py; new text ASCII (HISTORY.md heading em dash by convention).
+
+--- repository gates (NEW, changes staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=1 before sync (new ledger directory); after `sync --apply` (one line, upcoming_changes/scikitplot/corpus/**/*): PASS
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (stale inventories; open decision D6).
+
+--- scikit-plots/skills
+differences from published 06b9ac4: 0 files of 115 (build_skills_repo.py build --unversioned)
+usage-skill renderer (module_api) OLD against NEW: scikitplot.corpus rendered rows identical: True | example identical: True | module doc identical: True ; scikitplot.mcp rendered rows identical: True | example identical: True | module doc identical: True
+ci_claude_plugins_publish.yml: a branch push whose tree is unchanged exits 'already current' without a commit.

@@ -1,5 +1,46 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round (PR 919)
+
+64 text files of collected research (3.35 M characters, 22,034 paragraph
+chunks) were run through corpus and MCP: every file through
+`CorpusPipeline`, `CorpusBuilder`, `SQLiteStorage` and both MCP lexical
+retrievers, with timing, peak memory, repeat-run determinism and edge-case
+queries. Every file processed; known-item recall@5 1.00 on the FTS5 leg;
+no non-deterministic result.
+
+- **CX-05: NUL and lone surrogates broke FTS5 free text.** CX-01 quoted
+  every query as FTS5 strings, but no string can carry a NUL (SQLite:
+  `OperationalError: unterminated string`) or a lone surrogate, U+D800 to
+  U+DFFF (not encodable: `UnicodeEncodeError`, which CPython 3.11 and newer
+  report as the connection's previous error when an earlier statement
+  failed). `search_text` and `StorageQuery.full_text` raised for 7 of the 13
+  probe queries, and the MCP lexical leg reported `failed`, so hybrid search
+  lost its keyword leg; a JSON request can carry either character. Both now
+  separate words like a space (`_FTS5_UNREPRESENTABLE`, applied in
+  `_fts5_phrase` and before `_fts5_any` splits); FTS5 already splits stored
+  text at a NUL. Every one of the 1,114,112 code points was checked on the
+  three SQLite builds below: only these are refused. Tests: 81 in
+  `TestFreeTextSearch` (66 fail on `main`; the other 15 pin the class and
+  the characters kept, so a wider or shifted class fails); 10 mutations each
+  caught. Verified on CPython 3.8 to 3.15.0b4, free-threaded 3.13t and
+  3.14t, SQLite 3.46.0, 3.50.4 and 3.53.1 (corpus suites from its 3.9 floor;
+  MCP from 3.8): identical failure sets before and after.
+- **Recorded, not changed** (each a ledger note under
+  `upcoming_changes/scikitplot/corpus/`): CX-06 a document holding a lone
+  surrogate is accepted, then refused by SQLite and JSONL storage; CX-07
+  image reader tests fail instead of skipping without Pillow; CX-08
+  `detect_script` tests Latin last, 30% of `CorpusBuilder.build` on English
+  text; CX-09 the README `CorpusBuilder` example raises (hybrid search,
+  no embeddings); CX-10 on CPython 3.15 the atomic-publication test forks a
+  threaded process, and the fork warning fails it.
+- Known, not new: on Python 3.8 `scikitplot.corpus` does not import
+  (`dict[str, Any]` at run time in `_types.py`); the partial distribution
+  declares 3.9 and the root `>=3.8` was recorded in
+  `maintenances/_repo/_maintenance/history/partial_distributions.md`.
+- Evidence: `evidence/round-2026-11-09-fts5-text.log`,
+  `evidence/probe_fts5_text.py`, `evidence/probe_fts5_sqlite.py`.
+
 ## 2026-09-28 — lexical retrieval review (cross-subsystem round)
 
 Reviewed with MCP after a reading of current hybrid-retrieval practice (BM25 +

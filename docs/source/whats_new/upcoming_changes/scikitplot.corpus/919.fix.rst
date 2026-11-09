@@ -1,0 +1,7 @@
+- ``SQLiteStorage.search_text`` and ``StorageQuery(full_text=...)`` on
+  ``SQLiteStorage`` no longer raise for text holding a NUL character
+  (``sqlite3.OperationalError: unterminated string``) or a lone surrogate,
+  U+D800 to U+DFFF (``UnicodeEncodeError``), which a JSON request can carry.
+  The ``scikitplot.mcp`` lexical leg (``Bm25Retriever``) reported such a
+  query as a failed search, so hybrid search ran without its keyword
+  results. Each such character now separates words like a space.

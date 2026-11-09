@@ -56,6 +56,9 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
 | D8 | `regex` as a test dependency (3d: the script tests skip without it) | (a) Add it to the corpus test extra. (b) Keep it optional. |
 | D9 | `scikitplot.agent` as a partial distribution (5a ships it in the full distribution only, untested by the partial-distribution harness) | (a) Add `scikit-plots-agent` (standard library only; test extra `jsonschema`) after Run 5. (b) Keep it in the full distribution. |
 | D10 | Echo the server's retrieval scope in `search_docs` responses (5c: the scope is server configuration and responses do not report it; the corpus `filter_capability`, every operator EMULATED, is dropped too) | (a) Add a `scope` object to `structuredContent` (a wire-contract change, with its tests). (b) Keep it in the server's configuration and logs only. |
+| D11 | Durable agent memory (`_agentic.py` defers it until seven prerequisites exist: tenant scope, provenance, trust, TTL, delete/forget, poisoning defence, promotion review) | (a) A governed memory collection in corpus: records are `CorpusDocument`s with those seven as required fields and checks, recalled through the existing fusion; `agent` only calls it. (b) A store inside `agent`. (c) Keep deferring. |
+| D12 | Outline links in the derived graph (`StructureChunker` records `heading_path`; `DerivedGraph` builds no relation from it) | (a) Derive a section relation from `heading_path`, never stored (ADR-R08-002), so traversal can walk a document's outline. (b) Leave it to callers. |
+| D13 | Markdown sources and the default chunker (`ParagraphChunker` splits a fenced block at its blank lines and strips the first line's indentation; `StructureChunker` keeps both) | (a) `.md`/`.rst` use `StructureChunker` when no chunker is chosen. (b) Keep the chunker explicit and say so in the guide. |
 
 Settled: D2 (fusion semantics, as recommended) and D3 ((a) 64-hex ids
 everywhere, with opt-in UUIDv7).
@@ -383,3 +386,12 @@ everywhere, with opt-in UUIDv7).
 - Acceptance: the labelled routing set (`tests/data/routing_set.json`, 45
   queries: every shape, combinations, unavailable legs, near misses such as
   `notebook`, `knot`, `sectional`) passes; 73 tests in `test__routing.py`.
+
+### PR 919: characters no FTS5 query can carry (CX-05)
+- [x] A NUL or a lone surrogate in `search_text` / `full_text` raised; the
+  MCP lexical leg failed (probe: 28 on `main`, 0 after). Now a space; 81
+  tests (66 fail on `main`), 10 mutations caught; CPython 3.8 to 3.15.0b4
+  unchanged otherwise (`../_maintenance/HISTORY.md`, log of 2026-11-09).
+- [x] Found, not fixed: CX-06 to CX-10 (notes under
+  `upcoming_changes/scikitplot/corpus/`); D11 to D13 in the table above.
+- Next: CX-08, CX-09, CX-06, CX-07, CX-10.

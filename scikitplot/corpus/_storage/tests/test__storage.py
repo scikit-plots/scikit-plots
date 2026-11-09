@@ -17,6 +17,9 @@ from .._storage import (  # noqa: F401
     QueryResult,
     SQLiteStorage,
     StorageQuery,
+    _FTS5_UNREPRESENTABLE,
+    _fts5_any,
+    _fts5_phrase,
 )
 from ..._schema import CorpusDocument, SourceType
 
@@ -515,6 +518,44 @@ _FORMERLY_BROKEN = [
     "roc*",
 ]
 
+#: Characters no FTS5 string can hold (finding CX-05): NUL, and lone
+#: surrogates at both ends of the high and the low range.
+_UNREPRESENTABLE = ["\x00", "\ud800", "\udbff", "\udc00", "\udfff"]
+_UNREPRESENTABLE_IDS = ["U+0000", "U+D800", "U+DBFF", "U+DC00", "U+DFFF"]
+
+#: Where the character sits: alone, repeated, before a word, inside a
+#: compound, after an identifier, and between quoted words.
+_UNREPRESENTABLE_QUERIES = [
+    "{c}",
+    "{c}{c}",
+    "{c}null",
+    "roc{c}auc",
+    "roc_auc_score(){c}",
+    'dtype("float64"){c}"x"',
+]
+
+#: Characters an FTS5 string can hold, which must reach SQLite unchanged: the
+#: neighbours of the surrogate range, controls, separators, a BOM,
+#: noncharacters and the astral planes.
+_KEPT = [
+    chr(c)
+    for c in (
+        *(0x01, 0x1F, 0x7F, 0x80, 0x9F, 0x2028, 0xD7FF, 0xE000),
+        *(0xFDD0, 0xFEFF, 0xFFFF, 0x1F600, 0x20000, 0x10FFFF),
+    )
+]
+
+#: Parts of queries: words, FTS5 syntax, quotes, the spaced characters (a
+#: surrogate pair written as two code points among them) and kept ones. Every
+#: part alone and every ordered pair is checked, so each character meets
+#: every neighbour.
+_PAIR_PARTS = (
+    *("roc", "auc", "score", "C++", "AND", "OR", "NOT", "NEAR", "*", "^", ":"),
+    *('"', "(", ")", "_", ".", "-", " ", "  "),
+    *(chr(c) for c in (0x00, 0xD800, 0xDBFF, 0xDC00, 0xDFFF, 0xD83D, 0xDE00)),
+    *(chr(c) for c in (0x01, 0x1F, 0x2028, 0xFEFF, 0x1F600)),
+)
+
 
 class TestFreeTextSearch:
     def teardown_method(self) -> None:
@@ -576,3 +617,74 @@ class TestFreeTextSearch:
         self.store._has_fts5 = False
         with pytest.raises(RuntimeError, match="FTS5"):
             self.store.search_text("x", 1)
+
+    # -- CX-05: characters no FTS5 string can hold ---------------------------
+    # SQLite raised "unterminated string" for a NUL or a lone surrogate on both
+    # paths. Each must now behave exactly as a space does.
+
+    @pytest.mark.parametrize("char", _UNREPRESENTABLE, ids=_UNREPRESENTABLE_IDS)
+    @pytest.mark.parametrize("template", _UNREPRESENTABLE_QUERIES)
+    def test_fts5_terms_treat_the_character_as_a_space(self, char, template) -> None:
+        query = template.format(c=char)
+        spaced = template.format(c=" ")
+        assert _fts5_phrase(query) == _fts5_phrase(spaced)
+        assert _fts5_any(query) == _fts5_any(spaced)
+
+    @pytest.mark.parametrize("char", _UNREPRESENTABLE, ids=_UNREPRESENTABLE_IDS)
+    @pytest.mark.parametrize("template", _UNREPRESENTABLE_QUERIES)
+    def test_search_matches_the_spaced_query(self, char, template) -> None:
+        query = template.format(c=char)
+        spaced = template.format(c=" ")
+        ranked = [(doc.doc_id, score) for doc, score in self.store.search_text(query, 5)]
+        assert ranked == [(doc.doc_id, score) for doc, score in self.store.search_text(spaced, 5)]
+        found = self.store.query(StorageQuery(full_text=query, limit=10)).documents
+        expected = self.store.query(StorageQuery(full_text=spaced, limit=10)).documents
+        assert [d.doc_id for d in found] == [d.doc_id for d in expected]
+
+    def test_a_separated_identifier_finds_the_documents_of_its_words(self) -> None:
+        found = {doc.doc_id for doc, _ in self.store.search_text("roc\x00auc\udfffscore", 5)}
+        assert {self.docs[0].doc_id, self.docs[4].doc_id} <= found
+
+    def test_the_class_is_exactly_nul_and_the_surrogates(self) -> None:
+        every = "".join(map(chr, range(0x110000)))
+        spaced = [ord(c) for c in _FTS5_UNREPRESENTABLE.findall(every)]
+        assert spaced == [0x0000, *range(0xD800, 0xE000)]
+
+    @pytest.mark.parametrize("char", _KEPT, ids=[f"U+{ord(c):04X}" for c in _KEPT])
+    def test_characters_fts5_can_hold_are_kept(self, char) -> None:
+        assert _fts5_phrase(f"a{char}b") == f'"a{char}b"'
+        self.store.search_text(f"roc{char}auc", 5)
+        self.store.query(StorageQuery(full_text=f"roc{char}auc", limit=10))
+
+    def test_a_surrogate_pair_written_as_two_code_points_is_two_spaces(self) -> None:
+        pair = chr(0xD83D) + chr(0xDE00)
+        assert _fts5_any(f"roc{pair}auc") == _fts5_any("roc  auc")
+        assert _fts5_phrase(f"roc{chr(0x1F600)}auc") == f'"roc{chr(0x1F600)}auc"'
+
+    def test_one_connection_survives_every_failure_mode_in_turn(self) -> None:
+        """CPython 3.11+ reported a surrogate after a failed NUL query as the NUL error."""
+        for query in ["\x00", "\ud800", "roc\x00auc", "roc\udfffauc"]:
+            self.store.search_text(query, 3)
+            self.store.query(StorageQuery(full_text=query, limit=3))
+        ranked = self.store.search_text("roc_auc_score()", 3)
+        assert ranked[0][0].doc_id == self.docs[0].doc_id
+
+    @pytest.mark.parametrize("char", ["\x00", "\ud800"], ids=["U+0000", "U+D800"])
+    def test_long_runs_are_one_separator(self, char) -> None:
+        run = char * 100_000
+        assert _fts5_any(run) is None
+        assert self.store.search_text(run, 3) == []
+        ranked = self.store.search_text(f"{run}roc_auc_score(){run}", 3)
+        assert ranked == self.store.search_text("roc_auc_score()", 3)
+
+    def test_every_part_and_pair_of_parts_matches_the_spaced_query(self) -> None:
+        queries = list(_PAIR_PARTS) + [a + b for a in _PAIR_PARTS for b in _PAIR_PARTS]
+        for query in queries:
+            spaced = _FTS5_UNREPRESENTABLE.sub(" ", query)
+            assert _fts5_any(query) == _fts5_any(spaced), ascii(query)
+            assert _fts5_phrase(query) == _fts5_phrase(spaced), ascii(query)
+            got = [(d.doc_id, s) for d, s in self.store.search_text(query, 5)]
+            assert got == [(d.doc_id, s) for d, s in self.store.search_text(spaced, 5)]
+            found = self.store.query(StorageQuery(full_text=query, limit=5)).documents
+            want = self.store.query(StorageQuery(full_text=spaced, limit=5)).documents
+            assert [d.doc_id for d in found] == [d.doc_id for d in want], ascii(query)
