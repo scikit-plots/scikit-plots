@@ -139,6 +139,9 @@ verbatim under `../_maintenance/history/` (created with the first one).
   in review for the CI-8 hold. The ledger note
   `upcoming_changes/tools/maint_tools/claude-directory-refused-skills-build.md`
   is deleted (its acceptance criteria hold).
+- Waiting items are ledger notes, followed from there:
+  `upcoming_changes/tools/maint_tools/directory-review-credential-hold.md`
+  and `upcoming_changes/tools/maint_tools/directory-listing-follows-main.md`.
 - Open, for the maintainer: the submission tracks `main`, while Rule 166 and
   section 9 of `../MAINTAINING.md` intend `stable`, which exists only after
   the first release tag is built; change the tracked branch only when no
