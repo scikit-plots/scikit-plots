@@ -19,6 +19,7 @@ import json
 import math
 import os
 import re
+from array import array
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -82,9 +83,9 @@ class InMemoryBm25Retriever(DocsRetriever):
     """A compact BM25 implementation suitable for demos and small corpora.
 
     The index is immutable after construction, making concurrent reads safe.
-    Search complexity is linear in the number of documents; production-scale
-    deployments should use FTS5, a dedicated search engine, or the hybrid
-    corpus/Annoy adapters instead.
+    A search visits the documents that hold a query term (postings), not every
+    document; production-scale deployments should still use FTS5, a dedicated
+    search engine, or the hybrid corpus/Annoy adapters instead.
     """
 
     def __init__(  # ruff: ignore[too-many-branches]
@@ -160,13 +161,34 @@ class InMemoryBm25Retriever(DocsRetriever):
             raise ValueError("at least one non-empty document is required")
 
         self._documents = table
-        self._term_frequencies = term_frequencies
-        self._lengths = lengths
-        self._document_frequency = document_frequency
         self._document_count = len(table)
-        self._average_length = sum(lengths.values()) / self._document_count
         self._k1 = float(k1)
         self._b = float(b)
+        average_length = sum(lengths.values()) / self._document_count
+
+        # Postings: for each term, the documents holding it (in corpus order)
+        # with the two document-side factors of its BM25 term as parallel
+        # columns of doubles. A search then visits only documents that hold a
+        # query term (finding CX-13). Each document's term table is released
+        # as its postings are written, so the build holds one copy.
+        postings: dict[str, tuple[list[str], array, array]] = {}
+        for doc_id in list(term_frequencies):
+            frequencies = term_frequencies.pop(doc_id)
+            length_norm = 1.0 - self._b + self._b * (lengths[doc_id] / average_length)
+            for term, term_frequency in frequencies.items():
+                if term_frequency <= 0:
+                    continue
+                entry = postings.get(term)
+                if entry is None:
+                    entry = postings[term] = ([], array("d"), array("d"))
+                entry[0].append(doc_id)
+                entry[1].append(term_frequency * (self._k1 + 1.0))
+                entry[2].append(term_frequency + self._k1 * length_norm)
+        self._postings = postings
+        self._idf = {
+            term: math.log(1.0 + (self._document_count - df + 0.5) / (df + 0.5))
+            for term, df in document_frequency.items()
+        }
 
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         if not isinstance(query, str) or not query.strip():
@@ -176,29 +198,27 @@ class InMemoryBm25Retriever(DocsRetriever):
             return []
         limit = _bounded_int(k, low=1, high=_MAX_RETRIEVAL_K)
 
-        scored: list[tuple[float, str]] = []
-        for doc_id, frequencies in self._term_frequencies.items():
-            score = 0.0
-            doc_len = self._lengths[doc_id]
-            length_norm = 1.0 - self._b + self._b * (doc_len / self._average_length)
-            for term, query_frequency in query_terms.items():
-                term_frequency = frequencies.get(term, 0)
-                if term_frequency <= 0:
-                    continue
-                df = self._document_frequency[term]
-                inverse_document_frequency = math.log(
-                    1.0 + (self._document_count - df + 0.5) / (df + 0.5)
-                )
-                numerator = term_frequency * (self._k1 + 1.0)
-                denominator = term_frequency + self._k1 * length_norm
-                score += (
+        # Each document's score is the sum of its terms in query order, the
+        # order a scan of every document adds them in, so scores are equal to
+        # the last bit.
+        scores: dict[str, float] = {}
+        for term, query_frequency in query_terms.items():
+            entry = self._postings.get(term)
+            if entry is None:
+                continue
+            inverse_document_frequency = self._idf[term]
+            for doc_id, numerator, denominator in zip(*entry):
+                scores[doc_id] = scores.get(doc_id, 0.0) + (
                     inverse_document_frequency
                     * numerator
                     / denominator
                     * query_frequency
                 )
-            if score > 0 and math.isfinite(score):
-                scored.append((score, doc_id))
+        scored: list[tuple[float, str]] = [
+            (score, doc_id)
+            for doc_id, score in scores.items()
+            if score > 0 and math.isfinite(score)
+        ]
 
         scored.sort(key=lambda item: (-item[0], item[1]))
         output: list[RetrievedChunk] = []

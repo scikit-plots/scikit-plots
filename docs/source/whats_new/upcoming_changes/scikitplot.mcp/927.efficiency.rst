@@ -1,0 +1,5 @@
+- ``InMemoryBm25Retriever.search`` visits only the documents that hold a
+  query term (a postings list per term) instead of every document, with
+  scores and order unchanged to the last bit. Over 20,000 documents a search
+  took 1.8 to 2.4 ms instead of 11 to 22 ms, and the index holds about
+  19 MiB instead of 35 MiB; building it takes about 0.15 s longer.

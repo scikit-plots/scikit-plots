@@ -1,0 +1,86 @@
+# Research self-test round, 2026-11-10, PR 927: postings in InMemoryBm25Retriever (CX-13)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 2b1d0dc (PR 926); NEW = the PR 927 branch.
+
+--- self-test before the change: the 22,034 research chunks through the MCP retrievers and rank_bm25 (CPython 3.13.18)
+chunks 22034 queries 13 python 3.13.18
+mcp.InMemoryBm25Retriever: build 0.44s peak 34.6MiB | search median 8.68 ms max 10.77 ms
+mcp.SearchCoordinator(in-memory): search median 8.39 ms max 11.50 ms
+mcp.Bm25Retriever(sqlite): search median 2.52 ms max 7.64 ms
+rank_bm25.BM25Okapi: build 0.12s peak 12.7MiB | get_scores median 0.05 ms | get_top_n first 2.10 ms, then median 0.12 ms max 0.15 ms
+rank_bm25.BM25L: build 0.10s peak 12.7MiB | get_scores median 0.05 ms | get_top_n first 0.20 ms, then median 0.12 ms max 0.14 ms
+rank_bm25.BM25Plus: build 0.12s peak 12.7MiB | get_scores median 0.05 ms | get_top_n first 0.19 ms, then median 0.12 ms max 0.13 ms
+--- profile of 39 in-memory searches before the change
+--- profile mem_search
+       39    0.779    0.020    1.375    0.035 scikitplot/mcp/_demo.py:171(search)
+  2760000    0.470    0.000    0.470    0.000 {method 'get' of 'dict' objects}
+
+--- results: probe_demo_bm25.py on OLD and NEW (document id and float.hex of every hit)
+3.8    generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 16.152 NEW 2.396
+3.9    generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 14.373 NEW 2.156
+3.10   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 15.264 NEW 2.162
+3.11   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 12.647 NEW 1.902
+3.12   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 11.429 NEW 1.865
+3.13   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 11.389 NEW 1.765
+3.13t  generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 21.558 NEW 2.389
+3.14   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 10.905 NEW 1.752
+3.14t  generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 14.407 NEW 1.987
+3.15   generated (searches 2184 hits 40096): same=yes | research (documents 20000 searches 2196 hits 36836): same=yes ms/search OLD 11.727 NEW 1.954
+
+--- build over the first 20,000 research chunks (best of 5; tracemalloc)
+3.9 OLD: build 0.361 s | held after build 41.5 MiB | peak 41.7 MiB || NEW: build 0.562 s | held after build 19.0 MiB | peak 41.9 MiB
+3.13 OLD: build 0.309 s | held after build 34.5 MiB | peak 34.6 MiB || NEW: build 0.450 s | held after build 18.7 MiB | peak 35.0 MiB
+3.15 OLD: build 0.309 s | held after build 34.5 MiB | peak 34.6 MiB || NEW: build 0.477 s | held after build 18.9 MiB | peak 35.0 MiB
+(a first version with tuples and both tables kept: peak 76.3 MiB, held 43.0 MiB on 3.13; replaced)
+
+--- tests: new scikitplot/mcp/tests/test__demo.py, 44 tests; NEW 44 passed; OLD failed:
+  test_postings_hold_only_the_documents_with_the_term
+  test_a_title_only_term_without_weight_is_not_indexed
+  2 failed, 42 passed in 0.21s
+(the others compare with BM25 by its definition and pass on OLD by design)
+--- mutations
+M1 zero-weight terms indexed       -> 2 failed, 42 passed in 0.18s
+M2 length norm dropped             -> 27 failed, 17 passed in 0.21s
+M3 query frequency ignored         -> 12 failed, 32 passed in 0.18s
+M4 score replaces, not adds        -> 29 failed, 15 passed in 0.19s
+M5 idf of another form             -> 28 failed, 16 passed in 0.21s
+M6 ties in posting order           -> 33 failed, 11 passed in 0.21s
+M7 multiply before divide swapped  -> 7 failed, 37 passed in 0.19s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9           OLD: 24 failed, 5927 passed      NEW: 24 failed, 5971 passed      sets identical: yes
+3.10          OLD: 23 failed, 6024 passed      NEW: 23 failed, 6068 passed      sets identical: yes
+3.11          OLD: 23 failed, 6024 passed      NEW: 23 failed, 6068 passed      sets identical: yes
+3.12          OLD: 23 failed, 6024 passed      NEW: 23 failed, 6068 passed      sets identical: yes
+3.13          OLD: 23 failed, 6057 passed      NEW: 23 failed, 6101 passed      sets identical: yes
+3.13t         OLD: 24 failed, 5927 passed      NEW: 24 failed, 5971 passed      sets identical: yes
+3.14          OLD: 23 failed, 6030 passed      NEW: 23 failed, 6074 passed      sets identical: yes
+3.14t         OLD: 23 failed, 6024 passed      NEW: 23 failed, 6068 passed      sets identical: yes
+3.15          OLD: 23 failed, 6024 passed      NEW: 23 failed, 6068 passed      sets identical: yes
+3.8    mcp    OLD: 5 failed, 227 passed        NEW: 5 failed, 271 passed        sets identical: yes
+(the failures are the environmental ones named in the corpus PR 919 and PR 920 logs)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7022, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7025, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+plugin build: 0 of 115 files differ from published 06b9ac4
+usage-skill renderer rows/example/module text identical: True
