@@ -1,0 +1,7 @@
+- ``detect_script`` decides an ASCII sample without testing its characters
+  against every script's code-point ranges, which reached Latin last: in
+  ASCII only ``A-Z`` and ``a-z`` count, and only as Latin, so every result is
+  unchanged. On English text such samples are 20 to 33 times faster. The
+  sentence, word, paragraph, fixed-window and semantic chunkers run it on
+  every chunk: ``CorpusBuilder.build`` over 64 English markdown and text
+  files took 3.2 s instead of 6.2 s.

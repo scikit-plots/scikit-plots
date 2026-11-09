@@ -43,4 +43,18 @@ exactly NUL and U+D800 to U+DFFF and holds every query to the result of the
 same query with a space in their place. Run both probes on every supported
 interpreter when the quoting or SQLite changes.
 
+## Script detection lane (CX-08)
+
+```sh
+python -B maintenances/corpus/_maintenance/evidence/probe_detect_script.py OLD_CHECKOUT
+python -B maintenances/corpus/_maintenance/evidence/probe_detect_script.py
+python -m pytest scikitplot/corpus/_chunkers/tests/test__custom_tokenizer.py -k TestDetectScript
+```
+
+A change to `detect_script` must leave the probe's digest unchanged against
+the previous checkout (pass `--texts DIR` to add real paragraphs) on every
+supported interpreter, unless the change is meant to alter results. The
+tests hold every ASCII sample to what the range tests give for it, and check
+that an ASCII sample does not go through them.
+
 `--release` remains blocked until every release gate in `REVIEW.json` is current `GREEN` in `EVIDENCE.json`.

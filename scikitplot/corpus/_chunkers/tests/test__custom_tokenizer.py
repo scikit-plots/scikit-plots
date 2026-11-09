@@ -24,9 +24,11 @@ Covers:
 from __future__ import annotations
 
 import re
+import string
 
 import pytest
 
+from .. import _custom_tokenizer
 from .._custom_tokenizer import (
     MULTI_SCRIPT_SENTENCE_RE_PATTERN,
     CustomTokenizerRegistry,
@@ -384,6 +386,31 @@ class TestScriptType:
         assert len(values) == len(set(values))
 
 
+#: U+00A0 (no-break space): non-ASCII, and in no range detect_script counts.
+_UNCOUNTED = chr(0xA0)
+
+#: Thresholds at and around the decisions: the lowest, the default, exactly
+#: one, above one, and NaN (no comparison holds).
+_THRESHOLDS = (0.0, 0.55, 1.0, 1.01, float("nan"))
+
+#: ASCII samples of at most 500 characters (one default sample): every ASCII
+#: character alone and filling the sample, a letter at either end of a sample
+#: of non-letters, and runs of letters, digits, punctuation and controls.
+_ASCII_SAMPLES = (
+    *map(chr, range(0x80)),
+    *(chr(c) * 500 for c in range(0x80)),
+    "",
+    "1" * 499 + "a",
+    "a" + "1" * 499,
+    "Z" + "_" * 498 + "a",
+    "Hello world, this is English text.",
+    "12345 67890",
+    "[\\]^_`{|}~@",
+    "\t\n\x0b\x0c\r \x00\x7f",
+    "ABC_123 def-456",
+)
+
+
 # ===========================================================================
 # detect_script — one test per ScriptType branch
 # ===========================================================================
@@ -515,6 +542,66 @@ class TestDetectScript:
         r_zero = detect_script(text, majority_threshold=0.0)
         # r_zero must be a non-MIXED specific script
         assert r_zero != ScriptType.MIXED
+
+    # -- CX-08: an ASCII sample skips the range tests --------------------------
+    # Every ASCII case must give what the range tests give for the same
+    # sample; adding one character no script counts (U+00A0) sends the sample
+    # through them.
+
+    def test_isalpha_marks_exactly_the_ascii_letters(self) -> None:
+        letters = "".join(c for c in map(chr, range(0x80)) if c.isalpha())
+        assert letters == string.ascii_uppercase + string.ascii_lowercase
+
+    def test_the_marker_is_counted_by_no_script(self) -> None:
+        assert detect_script(_UNCOUNTED) is ScriptType.UNKNOWN
+
+    @pytest.mark.parametrize("threshold", _THRESHOLDS, ids=str)
+    def test_an_ascii_sample_matches_the_range_tests(self, threshold) -> None:
+        for text in _ASCII_SAMPLES:
+            fast = detect_script(text, majority_threshold=threshold)
+            ranged = detect_script(
+                text + _UNCOUNTED,
+                sample_size=len(text) + 1,
+                majority_threshold=threshold,
+            )
+            assert fast is ranged, (ascii(text[:12]), len(text), threshold)
+
+    def test_an_ascii_sample_skips_the_range_tests(self, monkeypatch) -> None:
+        seen = []
+
+        def counting_ord(char):
+            seen.append(char)
+            return ord(char)
+
+        monkeypatch.setattr(_custom_tokenizer, "ord", counting_ord, raising=False)
+        assert detect_script("Hello world " * 50) is ScriptType.LATIN
+        assert seen == []
+        text = "Hello " + chr(0xE9)
+        assert detect_script(text) is ScriptType.LATIN
+        assert len(seen) == len(text)
+
+    def test_the_sample_boundary_decides_an_ascii_text(self) -> None:
+        assert detect_script("1" * 499 + "a") is ScriptType.LATIN
+        assert detect_script("1" * 500 + "a") is ScriptType.UNKNOWN
+        assert detect_script("1" * 500 + "a" + chr(0xE9)) is ScriptType.UNKNOWN
+        assert detect_script("a" * 500 + chr(0x4E2D)) is ScriptType.LATIN
+        assert detect_script("abc", sample_size=0) is ScriptType.UNKNOWN
+
+    @pytest.mark.parametrize(
+        ("threshold", "expected"),
+        [
+            (0.0, ScriptType.LATIN),
+            (1.0, ScriptType.LATIN),
+            (1.01, ScriptType.MIXED),
+            (float("nan"), ScriptType.MIXED),
+        ],
+        ids=["0", "1", "above-1", "nan"],
+    )
+    def test_an_ascii_text_meets_every_threshold_up_to_one(
+        self, threshold, expected
+    ) -> None:
+        assert detect_script("abc 123", majority_threshold=threshold) is expected
+        assert detect_script("123 !?", majority_threshold=threshold) is ScriptType.UNKNOWN
 
 
 # ===========================================================================

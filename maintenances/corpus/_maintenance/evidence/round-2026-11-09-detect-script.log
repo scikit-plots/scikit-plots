@@ -1,0 +1,128 @@
+# Research self-test round, 2026-11-09, PR 920: ASCII samples skip detect_script's range tests (CX-08)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 05bd18f (PR 919); NEW = the PR 920 branch.
+# Suites: stand-in parent package with the repository's pytest.ini (see the PR 919 log).
+
+--- results: probe_detect_script.py on OLD and NEW, --texts = the 64 research files
+# cases = edges x 6 sample sizes x 5 thresholds + (20,000 generated + paragraphs) x 5 thresholds
+3.9    python 3.9.25    cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  231.87 NEW   7.08  other OLD  229.03 NEW  230.09
+3.10   python 3.10.20   cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  229.13 NEW   7.79  other OLD  231.59 NEW  223.68
+3.11   python 3.11.15   cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  109.91 NEW   6.15  other OLD  116.87 NEW  116.67
+3.12   python 3.12.13   cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  123.49 NEW   5.02  other OLD  132.22 NEW  143.26
+3.13   python 3.13.18   cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  182.19 NEW   5.24  other OLD  195.19 NEW  192.53
+3.13t  python 3.13.14   cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  195.08 NEW   6.78  other OLD  206.16 NEW  223.76
+3.14   python 3.14.6    cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  114.98 NEW   4.47  other OLD  130.96 NEW  123.61
+3.14t  python 3.14.6    cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  119.51 NEW   5.48  other OLD  129.48 NEW  157.30
+3.15   python 3.15.0b4  cases 239275 digest equal: True (536ec4eef7409951...)  ASCII us/call OLD  103.39 NEW   4.58  other OLD  122.55 NEW  114.84
+
+--- other (non-ASCII) samples, controlled: copies at one location, min of 5 per round, 10 paired rounds
+3.13 non-ASCII, 10 paired rounds: OLD median 208.6 us (range 202.5-212.0) | NEW median 205.7 us (range 198.5-214.3) | paired change median -0.2% (range -6.0% to +4.1%), NEW faster in 5 of 10
+3.14t non-ASCII, 10 paired rounds: OLD median 154.2 us (range 149.3-162.4) | NEW median 152.2 us (range 147.6-176.0) | paired change median -0.4% (range -6.1% to +11.2%), NEW faster in 5 of 10
+--- the same, four variants (OLD, NEW, helper only, fast path inlined), min of 7
+3.13 round 1 (us/call, min of 7): V0_old=199.19 V1_new=200.99 V2_helper_only=199.65 V3_inline_fastpath=200.57
+3.13 round 2 (us/call, min of 7): V0_old=207.96 V1_new=201.57 V2_helper_only=199.81 V3_inline_fastpath=206.78
+3.14t round 1 (us/call, min of 7): V0_old=149.29 V1_new=161.17 V2_helper_only=152.73 V3_inline_fastpath=162.21
+3.14t round 2 (us/call, min of 7): V0_old=156.22 V1_new=157.23 V2_helper_only=155.44 V3_inline_fastpath=149.81
+
+--- CorpusBuilder(BuilderConfig(chunker='paragraph', build_index=True)).build(research folder), CPython 3.13.18
+round 1: CorpusBuilder.build best-of-3 seconds: OLD 6.35 | NEW 3.24
+round 2: CorpusBuilder.build best-of-3 seconds: OLD 6.17 | NEW 3.25
+
+--- profile of NEW's build (cProfile, own time; supports CX-11 and CX-12)
+         18981258 function calls (18980881 primitive calls) in 8.356 seconds
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    24609    0.588    0.000    0.938    0.000 scikitplot/corpus/_chunkers/_custom_tokenizer.py:1044(detect_script)
+  3997289    0.554    0.000    0.560    0.000 {built-in method builtins.getattr}
+       69    0.550    0.008    0.842    0.012 scikitplot/corpus/_chunkers/_sentence.py:175(_validate_text_input)
+    22197    0.345    0.000    5.242    0.000 scikitplot/corpus/_base.py:1215(get_documents)
+  3784717    0.336    0.000    0.336    0.000 {built-in method builtins.ord}
+   482736    0.208    0.000    0.335    0.000 scikitplot/corpus/_chunkers/_multilang_mixin.py:418(_ml_grapheme_count)
+    24609    0.204    0.000    2.015    0.000 scikitplot/corpus/_chunkers/_multilang_mixin.py:581(_ml_build_meta)
+        1    0.195    0.195    0.421    0.421 scikitplot/corpus/_similarity/_similarity.py:449(build)
+  1211975    0.185    0.000    0.185    0.000 {method 'get' of 'dict' objects}
+    44264    0.183    0.000    2.554    0.000 scikitplot/corpus/_schema.py:2284(replace)
+    24609    0.161    0.000    0.334    0.000 scikitplot/corpus/_schema.py:1644(validate)
+--- callees of CorpusDocument.replace
+scikitplot/corpus/_schema.py:2284(replace)  ->   44264    0.030    0.046  copy.py:62(copy)
+dataclasses.py:1629(replace)  ->   68873    0.028    0.038  dataclasses.py:1375(_is_dataclass_instance)
+
+--- tests: 13 new in TestDetectScript (scikitplot/corpus/_chunkers/tests/test__custom_tokenizer.py)
+NEW: 129 passed. OLD: 1 failed (test_an_ascii_sample_skips_the_range_tests), 128 passed;
+results cannot differ, so the other 12 pass on OLD by design.
+--- mutations of the change (each must fail the tests)
+M1 digits counted (isalnum)      -> 11 failed, 118 passed in 0.34s
+M2 whole text counted            -> 1 failed, 128 passed in 0.62s
+M3 uppercase only (isupper)      -> 13 failed, 116 passed in 0.26s
+M4 threshold skipped             -> 4 failed, 125 passed in 0.47s
+M5 every sample fast             -> 12 failed, 117 passed in 0.28s
+M6 strict > in decision          -> 1 failed, 128 passed in 0.62s
+M7 fast path removed             -> 1 failed, 128 passed in 0.94s
+M8 empty ASCII sample is LATIN   -> 20 failed, 109 passed in 0.30s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8): failure sets and their causes
+3.8-mcp  OLD 5 failed, 227 passed, 3 skipped          NEW 5 failed, 227 passed, 3 skipped          sets identical: True
+            12 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+             4 corpus needs Python 3.9
+3.9      OLD 24 failed, 5887 passed, 127 skipped      NEW 24 failed, 5900 passed, 127 skipped      sets identical: True
+             8 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.10     OLD 23 failed, 5984 passed, 125 skipped      NEW 23 failed, 5997 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.11     OLD 23 failed, 5984 passed, 125 skipped      NEW 23 failed, 5997 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.12     OLD 23 failed, 5984 passed, 125 skipped      NEW 23 failed, 5997 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.13     OLD 23 failed, 6017 passed, 92 skipped       NEW 23 failed, 6030 passed, 92 skipped       sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.13t    OLD 24 failed, 5887 passed, 127 skipped      NEW 24 failed, 5900 passed, 127 skipped      sets identical: True
+             8 mcp tests need pydantic (not in this venv); on 3.8 also 3.9+ typing
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.14     OLD 48 failed, 5990 passed, 94 skipped       NEW 48 failed, 6003 passed, 94 skipped       sets identical: True
+            25 Pillow absent in this venv (CX-07)
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.14t    OLD 23 failed, 5984 passed, 125 skipped      NEW 23 failed, 5997 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+3.15     OLD 24 failed, 5983 passed, 125 skipped      NEW 24 failed, 5996 passed, 125 skipped      sets identical: True
+            14 no DNS in the sandbox (example.com)
+             9 scikitplot.levenshtein needs the compiled build
+             1 fork of a threaded process warns on 3.15 (CX-10)
+
+--- lint against OLD (ruff 0.17.3, black 26.10.1): added findings by rule
+scikitplot/corpus/_chunkers/_custom_tokenizer.py: OLD 0 NEW 0 added 0
+scikitplot/corpus/_chunkers/tests/test__custom_tokenizer.py: OLD 14 NEW 14 added 0
+maintenances/corpus/_maintenance/evidence/probe_detect_script.py: OLD 0 NEW 0 added 0
+black: _custom_tokenizer.py and the probe clean; test__custom_tokenizer.py was not black-clean before and is left unformatted.
+grammar: ast.parse(feature_version=(3, 8)) ok for every changed .py; new text ASCII (HISTORY.md heading em dash by convention).
+
+--- repository gates (OLD, then NEW with changes staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7011, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7014, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (stale inventories; open decision D6).
+
+--- scikit-plots/skills
+build_skills_repo.py build --unversioned: files differing from published: 0 (published 06b9ac4, 115 files)
+usage-skill renderer (module_api) OLD against NEW: scikitplot.corpus rendered rows identical: True | example identical: True | source: scikitplot.corpus | module doc identical: True ; own docstrings changed: ['detect_script'] ; scikitplot.mcp rendered rows identical: True | example identical: True | source: scikitplot.mcp.server_capabilities | module doc identical: True ; own docstrings changed: []
