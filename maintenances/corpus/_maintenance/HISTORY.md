@@ -1,5 +1,26 @@
 # Corpus maintenance history
 
+## 2026-11-09 — research self-test round, PR 921
+
+- **CX-11: the chunkers' input guard scanned for surrogates in Python.**
+  `_validate_text_input` (`_chunkers/_sentence.py`) walked every character
+  through `enumerate` and `ord`; it now runs one compiled search
+  (`_LONE_SURROGATE`), which reports the same first surrogate and position,
+  so the same texts are refused with the same message. Over the 64 research
+  files (3.35 M characters): 120-197 ms to 14-16 ms on CPython 3.9, 3.13,
+  3.14t and 3.15.0b4; `CorpusBuilder.build` unchanged within noise (about
+  0.1 s of 3.2 s). Tests: 2 new in `TestValidateTextInput` (every part and
+  ordered pair of parts against the old definition, which passes on `main`
+  by design; clean text not walked, which fails there); 5 mutations caught;
+  suites unchanged on CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
+- **CX-09 (decision (a), same PR): the README `CorpusBuilder` example
+  raised.** Its `search` used the hybrid default on a build without
+  embeddings. The example now passes `match_mode="keyword"` and says how to
+  enable hybrid search; `tests/test__corpus_builder.py` runs the README's
+  section 2 code on a one-file folder (fails on `main` with the
+  `RuntimeError`).
+- Evidence: `evidence/round-2026-11-09-input-guard.log`.
+
 ## 2026-11-09 — research self-test round, PR 920
 
 - **CX-08: `detect_script` tested Latin last.** Each character of a chunk's

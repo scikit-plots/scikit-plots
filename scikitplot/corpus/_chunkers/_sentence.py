@@ -172,6 +172,11 @@ _SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = _SENTENCE_BOUNDARY_RE_LATIN
 # ---------------------------------------------------------------------------
 
 
+#: A lone surrogate (U+D800 to U+DFFF): a valid ``str`` value, never Unicode
+#: text. ``_validate_text_input`` finds the first one in C (finding CX-11).
+_LONE_SURROGATE = re.compile(r"[\ud800-\udfff]")
+
+
 def _validate_text_input(text: str, caller: str) -> None:
     r"""Validate chunker text input for NUL bytes and lone surrogates.
 
@@ -207,6 +212,8 @@ def _validate_text_input(text: str, caller: str) -> None:
     uses Unicode Private Use Area codepoints that never appear in natural
     language.  This guard correctly ignores PUA codepoints because it only
     tests for NUL (``\x00``) and surrogates (U+D800-U+DFFF).
+    The surrogate search is one compiled pattern, done in C; it reports the
+    same first surrogate and position as a scan of every character.
 
     Examples
     --------
@@ -222,15 +229,15 @@ def _validate_text_input(text: str, caller: str) -> None:
             "NUL bytes corrupt spaCy, SQLite FTS5, and JSONL output. "
             "Strip them before calling: text.replace('\\x00', '')."
         )
-    for i, ch in enumerate(text):
-        cp = ord(ch)
-        if 0xD800 <= cp <= 0xDFFF:  # noqa: PLR2004
-            raise ValueError(
-                f"{caller}: text contains a lone Unicode surrogate "
-                f"(U+{cp:04X}) at codepoint position {i}. "
-                "Re-decode the source bytes with errors='replace' or "
-                "errors='surrogatepass' before passing to the chunker."
-            )
+    surrogate = _LONE_SURROGATE.search(text)
+    if surrogate is not None:
+        raise ValueError(
+            f"{caller}: text contains a lone Unicode surrogate "
+            f"(U+{ord(surrogate.group()):04X}) at codepoint position "
+            f"{surrogate.start()}. "
+            "Re-decode the source bytes with errors='replace' or "
+            "errors='surrogatepass' before passing to the chunker."
+        )
 
 
 # ---------------------------------------------------------------------------

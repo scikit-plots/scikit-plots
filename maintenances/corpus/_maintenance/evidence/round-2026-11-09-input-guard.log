@@ -1,0 +1,66 @@
+# Research self-test round, 2026-11-09, PR 921: the chunkers' input guard searches in C (CX-11)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 99dd511 (PR 920); NEW = the PR 921 branch.
+
+--- _validate_text_input over the 64 research files (best of 5)
+3.9 OLD: 64 documents, 3354241 chars: 196.6 ms | NEW: 64 documents, 3354241 chars: 15.6 ms
+3.13 OLD: 64 documents, 3354241 chars: 136.1 ms | NEW: 64 documents, 3354241 chars: 14.5 ms
+3.14t OLD: 64 documents, 3354241 chars: 126.3 ms | NEW: 64 documents, 3354241 chars: 13.9 ms
+3.15 OLD: 64 documents, 3354241 chars: 120.5 ms | NEW: 64 documents, 3354241 chars: 13.9 ms
+
+--- CorpusBuilder.build over the research folder, CPython 3.13.18 (best of 3)
+round 1: build best-of-3 s: OLD 3.31 | NEW 3.10
+round 2: build best-of-3 s: OLD 3.18 | NEW 3.17
+
+--- tests: 2 new in TestValidateTextInput (test__sentence.py); NEW 46 passed; OLD: the
+clean-text test fails, the equivalence test passes by design.
+--- mutations
+M1 high surrogates only      -> 1 failed, 45 passed in 0.17s
+M2 off by one (U+D7FF)       -> 1 failed, 45 passed in 0.17s
+M3 position = end            -> 1 failed, 45 passed in 0.18s
+M4 search disabled           -> 1 failed, 45 passed in 0.16s
+M5 last surrogate reported   -> 1 failed, 45 passed in 0.18s
+restored: True
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.8-mcp  OLD 5 failed, 227 passed       NEW 5 failed, 227 passed       failure sets identical: True
+3.9      OLD 24 failed, 5900 passed     NEW 24 failed, 5902 passed     failure sets identical: True
+3.10     OLD 23 failed, 5997 passed     NEW 23 failed, 5999 passed     failure sets identical: True
+3.11     OLD 23 failed, 5997 passed     NEW 23 failed, 5999 passed     failure sets identical: True
+3.12     OLD 23 failed, 5997 passed     NEW 23 failed, 5999 passed     failure sets identical: True
+3.13     OLD 23 failed, 6030 passed     NEW 23 failed, 6032 passed     failure sets identical: True
+3.13t    OLD 24 failed, 5900 passed     NEW 24 failed, 5902 passed     failure sets identical: True
+3.14     OLD 48 failed, 6003 passed     NEW 48 failed, 6005 passed     failure sets identical: True
+3.14t    OLD 23 failed, 5997 passed     NEW 23 failed, 5999 passed     failure sets identical: True
+3.15     OLD 24 failed, 5996 passed     NEW 24 failed, 5998 passed     failure sets identical: True
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- gates (OLD, then NEW staged)
+=== old
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7015, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+=== scikit-plots
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7015, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+files differing from published 06b9ac4: 0 of 115
+
+--- CX-09 in the same PR (decision (a)): the README CorpusBuilder example
+tests/test__corpus_builder.py::TestReadmeExample runs the README's section 2 code on a one-file folder.
+OLD (README of main): 1 failed, RuntimeError: match_mode='hybrid' requires embeddings. Set embed=True in BuilderConfig and rebuild.
+NEW: 1 passed. Suites with all three changes, OLD against NEW, failure sets identical:
+3.9 5900 -> 5903 passed; 3.13 6030 -> 6033; 3.14t 5997 -> 6000; 3.15.0b4 5996 -> 5999.
+Gates as above; plugin build: 0 of 115 files differ from the published scikit-plots/skills.

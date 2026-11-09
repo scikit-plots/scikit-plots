@@ -1,0 +1,6 @@
+- The input check that the sentence, word, paragraph, fixed-window, semantic
+  and recursive chunkers run before chunking finds a lone surrogate with one
+  compiled search instead of a Python loop over every character. It refuses
+  the same texts with the same message, and over 64 English markdown and
+  text files (3.35 M characters) it took 14 to 16 ms instead of 120 to
+  197 ms.

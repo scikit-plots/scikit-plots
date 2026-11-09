@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from .. import _sentence
 from .._sentence import (
     SentenceBackend,
     SentenceChunker,
@@ -14,6 +15,7 @@ from .._sentence import (
     _protect_abbreviations,
     _restore_abbreviations,
     _split_regex,
+    _validate_text_input,
 )
 from ..._types import Chunk, ChunkResult
 
@@ -94,6 +96,64 @@ class TestChunkInputValidation:
 # ---------------------------------------------------------------------------
 # Regex backend — functional
 # ---------------------------------------------------------------------------
+
+
+#: Parts of guard inputs: words, NUL, lone surrogates at both ends of each
+#: range, a surrogate pair written as two code points, private use (the
+#: abbreviation placeholder's U+E000) and astral characters.
+_GUARD_PARTS = (
+    "Hello",
+    " ",
+    "",
+    *(chr(c) for c in (0x00, 0xD800, 0xDBFF, 0xDC00, 0xDFFF, 0xD83D, 0xDE00)),
+    *(chr(c) for c in (0xD7FF, 0xE000, 0x1F600, 0x10FFFF)),
+)
+
+
+def _guard_by_definition(text, caller):
+    """The guard as defined before CX-11: NUL first, then every character."""
+    if "\x00" in text:
+        return "nul"
+    for i, ch in enumerate(text):
+        cp = ord(ch)
+        if 0xD800 <= cp <= 0xDFFF:  # noqa: PLR2004
+            return (
+                f"{caller}: text contains a lone Unicode surrogate "
+                f"(U+{cp:04X}) at codepoint position {i}. "
+                "Re-decode the source bytes with errors='replace' or "
+                "errors='surrogatepass' before passing to the chunker."
+            )
+    return None
+
+
+class TestValidateTextInput:
+    """CX-11: the surrogate search is one compiled pattern, same outcome."""
+
+    def test_every_part_and_pair_of_parts_matches_the_definition(self) -> None:
+        texts = list(_GUARD_PARTS) + [a + b for a in _GUARD_PARTS for b in _GUARD_PARTS]
+        texts += ["x" * 10_000 + chr(0xDC00), chr(0xD800) + "x" * 10_000]
+        for text in texts:
+            want = _guard_by_definition(text, "C.chunk")
+            if want is None:
+                assert _validate_text_input(text, "C.chunk") is None
+                continue
+            with pytest.raises(ValueError, match=r"NUL bytes|lone Unicode surrogate") as caught:
+                _validate_text_input(text, "C.chunk")
+            if want == "nul":
+                assert "NUL bytes" in str(caught.value), ascii(text)
+            else:
+                assert str(caught.value) == want, ascii(text)
+
+    def test_clean_text_is_not_walked_character_by_character(self, monkeypatch) -> None:
+        seen = []
+
+        def counting_ord(char):
+            seen.append(char)
+            return ord(char)
+
+        monkeypatch.setattr(_sentence, "ord", counting_ord, raising=False)
+        assert _validate_text_input("Hello world. " * 1000, "C.chunk") is None
+        assert seen == []
 
 
 class TestSentenceChunkerRegex:
