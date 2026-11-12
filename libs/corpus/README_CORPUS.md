@@ -25,7 +25,7 @@ pip install scikit-plots-skinny scikit-plots-corpus
 
 Optional extras:
 
-- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus[corpus] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"`: `lxml`, `pypdf`, `pdfminer`, `pdfminer.six`, `langdetect`, `gensim`, `nltk`, `spacy`, `datasets`, `sentence-transformers`, `langchain-core`, `openai-whisper`, `faster-whisper`, `pytesseract`, `youtube-transcript-api`, `krippendorff`
+- `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus[corpus] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus"`: `lxml`, `pypdf`, `pdfminer.six`, `langdetect`, `gensim`, `nltk`, `spacy`, `datasets`, `sentence-transformers`, `langchain-core`, `openai-whisper`, `faster-whisper`, `pytesseract`, `youtube-transcript-api`, `krippendorff`
 - `pip install "scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny" "scikit-plots-corpus[annoy] @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus" "scikit-plots-annoy @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy"`: `scikit-plots-annoy>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_corpus` installs it too.

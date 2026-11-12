@@ -1,0 +1,8 @@
+- The ``corpus`` extra no longer requires ``pdfminer`` next to
+  ``pdfminer.six``. The two distributions install the same ``pdfminer``
+  package; installed together they could leave one that cannot import
+  ``pdfminer.high_level``, which ``PDFReader`` needs. ``PDFReader`` now
+  reports such an install by name, with the commands that repair it, instead
+  of reading with pypdf without a word; if you installed the extra before,
+  run ``pip uninstall pdfminer pdfminer.six`` and then
+  ``pip install pdfminer.six``.

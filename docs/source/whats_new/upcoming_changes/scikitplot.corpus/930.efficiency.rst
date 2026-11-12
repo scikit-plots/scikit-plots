@@ -1,0 +1,5 @@
+- ``PDFReader`` reads a file in one pass per backend instead of opening it
+  again for every page: pdfminer.six walks the page tree once, and pypdf
+  parses and decrypts the file once. A 277-page PDF takes 7 s instead of
+  75 s with pdfminer.six and 5 s instead of 33 s with pypdf; the text of
+  each page is unchanged.

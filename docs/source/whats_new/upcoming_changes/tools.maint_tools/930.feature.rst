@@ -1,0 +1,6 @@
+- ``tools/maint_tools/check_refused_requirements.py`` fails when a
+  requirement list (``pyproject.toml``, ``libs/*/pyproject.toml``,
+  ``requirements/*.txt``) names a distribution that must not be required,
+  and says which one to require instead and why. Its first entry is
+  ``pdfminer``, which installs the same package as ``pdfminer.six``. It runs
+  in CI and as a pre-push hook.

@@ -38,11 +38,20 @@ Python compatibility:
 
 Python 3.8-3.15. Zero runtime imports at module level. ``pdfminer.six`` and
 ``pypdf`` are optional lazy imports.
+
+Caution for maintainers:
+
+The distribution to require is ``pdfminer.six``. Do not add ``pdfminer``, even
+though that is the import name: it is a different, older distribution that
+installs the same package, and the two overwrite each other (see
+``_pdfminer_import_error``). ``tools/maint_tools/check_refused_requirements.py``
+enforces this in CI.
 """  # noqa: D205, D400
 
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import dataclass, field
 from typing import (  # noqa: F401
     Any,
@@ -52,6 +61,7 @@ from typing import (  # noqa: F401
     Generator,
     Iterator,
     List,
+    Mapping,
     Optional,
 )
 
@@ -75,129 +85,366 @@ _PDF_DEFAULT_MAX_FILE_BYTES: int = 2 * 1024 * 1024 * 1024  # 2 GB
 # ---------------------------------------------------------------------------
 
 
-def _extract_page_text_pdfminer(pdf_path: Any, page_number: int) -> str | None:
+class _IncompletePdfminerError(ImportError):
+    """The package ``pdfminer`` is installed but cannot be imported whole."""
+
+
+def _pdfminer_import_error(exc: ImportError) -> ImportError:
     """
-    Extract text from a single PDF page using pdfminer.six.
+    Return the error to raise when pdfminer.six cannot be imported.
 
     Parameters
     ----------
-    pdf_path : pathlib.Path
-        Path to the PDF file.
-    page_number : int
-        Zero-based page index to extract.
+    exc : ImportError
+        What importing ``pdfminer.high_level`` or ``pdfminer.layout`` raised.
 
     Returns
     -------
-    str or None
-        Extracted text, or ``None`` if pdfminer could not open the file.
-
-    Raises
-    ------
     ImportError
-        If ``pdfminer`` is not installed.
+        An install hint when the package ``pdfminer`` is absent; an
+        ``_IncompletePdfminerError`` when it is present but a module or a
+        name in it is missing.
+
+    Notes
+    -----
+    **Developer note:** Two distributions install the import package
+    ``pdfminer``: ``pdfminer.six``, which this reader needs, and
+    ``pdfminer``, an older project without ``pdfminer.high_level``.
+    Installed together they overwrite each other's files, and uninstalling
+    one removes files of the other. The usual symptoms are ``cannot import
+    name 'HOCRConverter' from 'pdfminer.converter'`` and ``No module named
+    'pdfminer.converter'``. Never add ``pdfminer`` to a requirement list:
+    ``tools/maint_tools/check_refused_requirements.py`` fails if it is.
     """
-    try:
-        from pdfminer.high_level import extract_pages  # type: ignore[] # noqa: PLC0415
-        from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415, F401
-            LTAnno,
-            LTChar,
-            LTTextContainer,
-        )
-    except ImportError as exc:
-        raise ImportError(
+    if isinstance(exc, ModuleNotFoundError) and exc.name == "pdfminer":
+        return ImportError(
             "pdfminer.six is required for PDFReader (primary backend)."
             " Install it with:\n  pip install pdfminer.six"
-        ) from exc
-
-    try:
-        # extract_pages yields one LTPage per page; page_numbers is 0-based list
-        pages = list(extract_pages(str(pdf_path), page_numbers=[page_number]))
-    except Exception as exc:  # noqa: BLE001
-        # Broad catch: pdfminer can raise PDFSyntaxError, PDFEncryptionError,
-        # PDFPasswordIncorrect, PDFPageCountError, UnicodeDecodeError, OSError,
-        # and more depending on the PDF's internal structure and pdfminer version.
-        # All are equally unrecoverable for this page — log and return None so
-        # the caller falls through to the pypdf backup path.
-        logger.debug(
-            "PDFReader: pdfminer failed on page %d of %s: %s",
-            page_number,
-            pdf_path.name,
-            exc,
         )
-        return None
-
-    if not pages:
-        return None
-
-    lines: list[str] = [
-        element.get_text()
-        for element in pages[0]
-        if isinstance(element, LTTextContainer)
-    ]
-
-    return "".join(lines)
+    return _IncompletePdfminerError(
+        f"PDFReader: the installed package 'pdfminer' is incomplete ({exc})."
+        " The distributions 'pdfminer' and 'pdfminer.six' both install it and"
+        " must not be installed together. Reinstall pdfminer.six alone:\n"
+        "  pip uninstall pdfminer pdfminer.six\n"
+        "  pip install pdfminer.six"
+    )
 
 
-def _extract_page_text_pypdf(
-    pdf_path: Any, page_number: int, password: str
-) -> str | None:
+class _PdfminerPages:
     """
-    Extract text from a single PDF page using pypdf.
+    The text of a PDF's pages from one pass of pdfminer.six over the file.
 
     Parameters
     ----------
     pdf_path : pathlib.Path
         Path to the PDF file.
-    page_number : int
-        Zero-based page index.
-    password : str
+    password : str, optional
+        Decryption password. Empty string for unencrypted PDFs.
+    kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``. A
+        mapping under ``"laparams"`` is turned into a
+        ``pdfminer.layout.LAParams``.
+
+    Notes
+    -----
+    **Developer note:** ``pdfminer.high_level.extract_pages`` opens the file
+    and walks the page tree from the first page on every call, so one call
+    per page costs pages times pages. One iterator is kept open instead and
+    advanced a page at a time; only the page being read is held. Asking for
+    any page but the next one, or for a page after one that failed, opens a
+    new iterator at that page.
+    """
+
+    def __init__(
+        self,
+        pdf_path: Any,
+        password: str = "",
+        kwargs: Mapping[str, Any] | None = None,
+    ) -> None:
+        self._path = pdf_path
+        self._password = password
+        self._kwargs = kwargs
+        self._pages: Any = None
+        # Index of the page the open iterator yields next.
+        self._at = 0
+
+    def text(self, page_number: int) -> str | None:
+        """
+        Return the text of one page.
+
+        Parameters
+        ----------
+        page_number : int
+            Zero-based page index.
+
+        Returns
+        -------
+        str or None
+            Extracted text, or ``None`` if pdfminer could not read the page
+            or the file has no such page.
+
+        Raises
+        ------
+        ImportError
+            If ``pdfminer`` is not installed.
+        ValueError
+            If pdfminer does not accept the keyword arguments.
+        """
+        try:
+            from pdfminer.high_level import extract_pages  # type: ignore[] # noqa: PLC0415
+            from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
+                LAParams,
+                LTTextContainer,
+            )
+        except ImportError as exc:
+            raise _pdfminer_import_error(exc) from exc
+
+        if self._pages is None or page_number != self._at:
+            self.close()
+            options = dict(self._kwargs or {})
+            if isinstance(options.get("laparams"), Mapping):
+                try:
+                    options["laparams"] = LAParams(**options["laparams"])
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        "PDFReader: pdfminer_kwargs['laparams'] is not accepted"
+                        f" by pdfminer.layout.LAParams: {exc}"
+                    ) from exc
+            try:
+                # page_numbers is a container of 0-based indices; None is all.
+                self._pages = extract_pages(
+                    str(self._path),
+                    password=self._password,
+                    page_numbers=(
+                        range(page_number, sys.maxsize) if page_number else None
+                    ),
+                    **options,
+                )
+            except TypeError as exc:
+                # A generator function binds its arguments when it is called.
+                raise ValueError(
+                    "PDFReader: pdfminer_kwargs is not accepted by"
+                    f" pdfminer.high_level.extract_pages: {exc}"
+                ) from exc
+            self._at = page_number
+        try:
+            page = next(self._pages, None)
+        except Exception as exc:  # noqa: BLE001
+            # Broad catch: pdfminer can raise PDFSyntaxError, PDFEncryptionError,
+            # PDFPasswordIncorrect, UnicodeDecodeError, OSError, and more
+            # depending on the PDF's internal structure and pdfminer version.
+            # All are equally unrecoverable for this page -- log and return
+            # None so the caller falls through to the pypdf backup path. The
+            # iterator is finished after raising; the next call opens one.
+            logger.debug(
+                "PDFReader: pdfminer failed on page %d of %s: %s",
+                page_number,
+                self._path.name,
+                exc,
+            )
+            self.close()
+            return None
+        self._at = page_number + 1
+        if page is None:
+            return None
+        return "".join(
+            element.get_text()
+            for element in page
+            if isinstance(element, LTTextContainer)
+        )
+
+    def close(self) -> None:
+        """Close the open iterator, and with it the file."""
+        if self._pages is not None:
+            self._pages.close()
+            self._pages = None
+
+
+class _PypdfPages:
+    """
+    The text of a PDF's pages from one pypdf reader.
+
+    Parameters
+    ----------
+    pdf_path : pathlib.Path
+        Path to the PDF file.
+    password : str, optional
         Decryption password. Empty string for unencrypted PDFs.
 
-    Returns
-    -------
-    str or None
-        Extracted text, or ``None`` on error.
-
-    Raises
-    ------
-    ImportError
-        If ``pypdf`` is not installed.
+    Notes
+    -----
+    **Developer note:** The file is opened, and decrypted, on the first page
+    asked for and once only; a file that cannot be opened or decrypted is
+    not tried again.
     """
-    try:
-        from pypdf import PdfReader as _PdfReader  # type: ignore[] # noqa: PLC0415
-    except ImportError as exc:
-        raise ImportError(
-            "pypdf is required for PDFReader (fallback backend)."
-            " Install it with:\n  pip install pypdf"
-        ) from exc
 
-    try:
-        reader = _PdfReader(str(pdf_path))
-        if reader.is_encrypted:
-            result = reader.decrypt(password)
-            if result == 0:
-                logger.warning(
-                    "PDFReader: failed to decrypt %s (wrong password?).",
-                    pdf_path.name,
-                )
-                return None
-        if page_number >= len(reader.pages):
+    def __init__(self, pdf_path: Any, password: str = "") -> None:
+        self._path = pdf_path
+        self._password = password
+        self._reader: Any = None
+        self._n_pages = 0
+        self._unreadable = False
+
+    def text(self, page_number: int) -> str | None:
+        """
+        Return the text of one page.
+
+        Parameters
+        ----------
+        page_number : int
+            Zero-based page index.
+
+        Returns
+        -------
+        str or None
+            Extracted text, or ``None`` on error or if the file has no such
+            page.
+
+        Raises
+        ------
+        ImportError
+            If ``pypdf`` is not installed.
+        """
+        try:
+            from pypdf import PdfReader as _PdfReader  # type: ignore[] # noqa: PLC0415
+        except ImportError as exc:
+            raise ImportError(
+                "pypdf is required for PDFReader (fallback backend)."
+                " Install it with:\n  pip install pypdf"
+            ) from exc
+
+        if self._unreadable:
             return None
-        return reader.pages[page_number].extract_text() or ""
-    except Exception as exc:  # noqa: BLE001
-        # Broad catch: pypdf raises PdfReadError, PdfStreamError, AssertionError,
-        # DependencyError, and others across versions for malformed or encrypted pages.
-        # Return None so the caller falls through to the next extraction strategy.
-        logger.debug(
-            "PDFReader: pypdf failed on page %d of %s: %s",
-            page_number,
-            pdf_path.name,
-            exc,
-        )
-        return None
+        try:
+            if self._reader is None:
+                reader = _PdfReader(str(self._path))
+                if reader.is_encrypted and reader.decrypt(self._password) == 0:
+                    logger.warning(
+                        "PDFReader: failed to decrypt %s (wrong password?).",
+                        self._path.name,
+                    )
+                    self._unreadable = True
+                    return None
+                self._n_pages = len(reader.pages)
+                self._reader = reader
+            if page_number >= self._n_pages:
+                return None
+            return self._reader.pages[page_number].extract_text() or ""
+        except Exception as exc:  # noqa: BLE001
+            # Broad catch: pypdf raises PdfReadError, PdfStreamError, AssertionError,
+            # DependencyError, and others across versions for malformed or encrypted pages.
+            # Return None so the caller falls through to the next extraction strategy.
+            logger.debug(
+                "PDFReader: pypdf failed on page %d of %s: %s",
+                page_number,
+                self._path.name,
+                exc,
+            )
+            if self._reader is None:
+                self._unreadable = True
+            return None
+
+    def close(self) -> None:
+        """Drop the reader, and with it the file's bytes."""
+        self._reader = None
 
 
-def _count_pdf_pages_pdfminer(pdf_path: Any) -> int | None:
+class _PageTexts:
+    """
+    The text of a PDF's pages from the backend a reader is configured for.
+
+    Parameters
+    ----------
+    pdf_path : pathlib.Path
+        Path to the PDF file.
+    password : str
+        Decryption password. Empty string for unencrypted PDFs.
+    prefer_backend : str or None
+        ``"pdfminer"``, ``"pypdf"``, or ``None`` for pdfminer with a
+        per-page fallback to pypdf.
+    pdfminer_kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``.
+    """
+
+    def __init__(
+        self,
+        pdf_path: Any,
+        password: str,
+        prefer_backend: str | None,
+        pdfminer_kwargs: Mapping[str, Any] | None = None,
+    ) -> None:
+        self._prefer_backend = prefer_backend
+        self._pdfminer = _PdfminerPages(pdf_path, password, pdfminer_kwargs)
+        self._warned = False
+        self._pypdf = _PypdfPages(pdf_path, password)
+
+    def text(self, page_idx: int) -> str | None:
+        """
+        Return the text of page ``page_idx``.
+
+        Parameters
+        ----------
+        page_idx : int
+            Zero-based page index.
+
+        Returns
+        -------
+        str or None
+            Extracted text, or ``None`` if both backends failed or the
+            page index is out of range.
+
+        Raises
+        ------
+        ImportError
+            If the configured backend, or in auto mode every backend, is not
+            installed.
+        """
+        if self._prefer_backend == "pypdf":
+            return self._pypdf.text(page_idx)
+
+        if self._prefer_backend == "pdfminer":
+            return self._pdfminer.text(page_idx)
+
+        # Auto mode: pdfminer primary, pypdf fallback per-page
+        try:
+            text = self._pdfminer.text(page_idx)
+        except ImportError as exc:
+            # Absent pdfminer.six is an ordinary reason to use pypdf; a
+            # damaged install is not, so it is said once per read.
+            if isinstance(exc, _IncompletePdfminerError) and not self._warned:
+                self._warned = True
+                logger.warning(
+                    "PDFReader: reading with pypdf, because pdfminer could not"
+                    " be imported. %s",
+                    exc,
+                )
+            text = None
+
+        if text and text.strip():
+            return text
+
+        # pdfminer returned empty or failed -- try pypdf
+        try:
+            fallback = self._pypdf.text(page_idx)
+        except ImportError as e:
+            if text is None:
+                raise ImportError(
+                    "Neither pdfminer.six nor pypdf is installed."
+                    " Install at least one:\n"
+                    "  pip install pdfminer.six\n"
+                    "  pip install pypdf"
+                ) from e
+            fallback = None
+
+        return fallback if fallback is not None else text
+
+    def close(self) -> None:
+        """Close both backends."""
+        self._pdfminer.close()
+        self._pypdf.close()
+
+
+def _count_pdf_pages_pdfminer(pdf_path: Any, password: str = "") -> int | None:
     """Return page count using pdfminer, or ``None`` on failure."""
     try:
         from pdfminer.pdfdocument import PDFDocument  # type: ignore[] # noqa: PLC0415
@@ -208,7 +455,7 @@ def _count_pdf_pages_pdfminer(pdf_path: Any) -> int | None:
     try:
         with open(pdf_path, "rb") as fh:  # noqa: PTH123
             parser = PDFParser(fh)
-            doc = PDFDocument(parser)
+            doc = PDFDocument(parser, password=password)
             return sum(1 for _ in PDFPage.create_pages(doc))
     except Exception as exc:  # noqa: BLE001
         # Broad catch: pdfminer page-count raises same variety of errors as
@@ -269,6 +516,14 @@ class PDFReader(DocumentReader):
         Force a specific extraction backend. One of ``"pdfminer"``,
         ``"pypdf"``, or ``None`` (auto: try pdfminer first). Default:
         ``None``.
+    pdfminer_kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``, used
+        when pdfminer.six reads a page; pypdf ignores them. A mapping under
+        ``"laparams"`` is turned into a ``pdfminer.layout.LAParams``, so
+        the layout analysis can be set without importing pdfminer.
+        ``password``, ``page_numbers`` and ``maxpages`` are set by the
+        reader and are not accepted. ``None`` uses pdfminer's defaults. See
+        the Notes for a reproducible read. Default: ``None``.
     chunker : ChunkerBase or None, optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
     filter_ : FilterBase or None, optional
@@ -315,6 +570,14 @@ class PDFReader(DocumentReader):
     * ``"page_number"`` — zero-based page index (int).
     * ``"section_type"`` — always ``SectionType.TEXT``.
 
+    **Reproducible text:** pdfminer.six orders text boxes that are equally
+    far apart by their address in memory, so the text of a page with many
+    such boxes (a figure with repeated labels, a grid) can come out in a
+    different order on another read of the same file.
+    ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders the boxes
+    by position instead: the same text on every read, without pdfminer's
+    grouping of boxes into columns.
+
     **Encrypted PDFs:** Supply ``password`` when constructing the reader.
     If the password is wrong, affected pages are skipped with a warning.
 
@@ -355,6 +618,12 @@ class PDFReader(DocumentReader):
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
 
+    # extract_pages arguments the reader passes itself. maxpages is among
+    # them because the reader reads every page and may open the file again.
+    _PDFMINER_RESERVED: ClassVar[frozenset[str]] = frozenset(
+        {"password", "page_numbers", "maxpages"}
+    )
+
     password: str = field(default="")
     """Decryption password for encrypted PDFs. Empty string means unencrypted."""
 
@@ -368,6 +637,12 @@ class PDFReader(DocumentReader):
     Default: ``None``.
 
     When ``"custom"``, :attr:`custom_extractor` **must** be provided.
+    """
+
+    pdfminer_kwargs: Mapping[str, Any] | None = field(default=None)
+    """
+    Keyword arguments for ``pdfminer.high_level.extract_pages``; ``None``
+    uses pdfminer's defaults. Default: ``None``.
     """
 
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
@@ -390,6 +665,11 @@ class PDFReader(DocumentReader):
             If ``custom_extractor`` is not callable (and not ``None``).
         ValueError
             If ``max_file_bytes <= 0``.
+        TypeError
+            If ``pdfminer_kwargs`` is not a mapping with ``str`` keys (and
+            not ``None``).
+        ValueError
+            If ``pdfminer_kwargs`` holds an argument the reader sets itself.
         """
         super().__post_init__()
         if (
@@ -422,6 +702,24 @@ class PDFReader(DocumentReader):
             raise ValueError(
                 f"PDFReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."
             )
+        if self.pdfminer_kwargs is not None:
+            if not (
+                isinstance(self.pdfminer_kwargs, Mapping)
+                and all(isinstance(key, str) for key in self.pdfminer_kwargs)
+            ):
+                raise TypeError(
+                    "PDFReader: pdfminer_kwargs must be a mapping of"
+                    " pdfminer.high_level.extract_pages argument names to"
+                    f" values, or None; got {self.pdfminer_kwargs!r}."
+                )
+            reserved = sorted(
+                self._PDFMINER_RESERVED.intersection(self.pdfminer_kwargs)
+            )
+            if reserved:
+                raise ValueError(
+                    f"PDFReader: pdfminer_kwargs must not hold {reserved}; the"
+                    " reader sets these arguments itself."
+                )
 
     # ------------------------------------------------------------------
     # DocumentReader contract
@@ -455,6 +753,8 @@ class PDFReader(DocumentReader):
         ------
         ValueError
             If the file exceeds ``max_file_bytes``.
+        ValueError
+            If pdfminer.six does not accept ``pdfminer_kwargs``.
         ImportError
             If neither pdfminer.six nor pypdf is installed (built-in path).
         RuntimeError
@@ -491,29 +791,39 @@ class PDFReader(DocumentReader):
         )
 
         pages_yielded = 0
-        for page_idx in range(n_pages):
-            text = self._extract_page(page_idx)
-            if text is None:
-                # Sentinel exceeded or both backends failed — stop
-                break
-            stripped = text.strip()
-            if not stripped:
-                logger.debug(
-                    "PDFReader: page %d of %s has no extractable text; skipping.",
-                    page_idx,
-                    self.file_name,
-                )
-                continue
-            yield {
-                "text": stripped,
-                # raw_text: backend extraction result before leading/trailing
-                # whitespace removal — preserves original page boundary spacing
-                # for before/after comparison against the normalised form.
-                "raw_text": text,
-                "section_type": SectionType.TEXT.value,
-                "page_number": page_idx,
-            }
-            pages_yielded += 1
+        pages = _PageTexts(
+            self.input_path,
+            self.password,
+            self.prefer_backend,
+            self.pdfminer_kwargs,
+        )
+        try:
+            for page_idx in range(n_pages):
+                text = pages.text(page_idx)
+                if text is None:
+                    # Sentinel exceeded or both backends failed -- stop
+                    break
+                stripped = text.strip()
+                if not stripped:
+                    logger.debug(
+                        "PDFReader: page %d of %s has no extractable text; skipping.",
+                        page_idx,
+                        self.file_name,
+                    )
+                    continue
+                yield {
+                    "text": stripped,
+                    # raw_text: backend extraction result before leading/trailing
+                    # whitespace removal -- preserves original page boundary spacing
+                    # for before/after comparison against the normalised form.
+                    "raw_text": text,
+                    "section_type": SectionType.TEXT.value,
+                    "page_number": page_idx,
+                }
+                pages_yielded += 1
+        finally:
+            # Also reached when the consumer stops early.
+            pages.close()
 
         logger.info(
             "PDFReader: finished %s — %d page(s) yielded text.",
@@ -529,54 +839,7 @@ class PDFReader(DocumentReader):
         """Return total page count using the best available backend."""
         if self.prefer_backend == "pypdf":
             return _count_pdf_pages_pypdf(self.input_path, self.password)
-        count = _count_pdf_pages_pdfminer(self.input_path)
+        count = _count_pdf_pages_pdfminer(self.input_path, self.password)
         if count is None:
             count = _count_pdf_pages_pypdf(self.input_path, self.password)
         return count
-
-    def _extract_page(self, page_idx: int) -> str | None:
-        """
-        Extract text from page ``page_idx`` using the configured backend.
-
-        Parameters
-        ----------
-        page_idx : int
-            Zero-based page index.
-
-        Returns
-        -------
-        str or None
-            Extracted text, or ``None`` if both backends failed or the
-            page index is out of range.
-        """
-        if self.prefer_backend == "pypdf":
-            return _extract_page_text_pypdf(self.input_path, page_idx, self.password)
-
-        if self.prefer_backend == "pdfminer":
-            return _extract_page_text_pdfminer(self.input_path, page_idx)
-
-        # Auto mode: pdfminer primary, pypdf fallback per-page
-        try:
-            text = _extract_page_text_pdfminer(self.input_path, page_idx)
-        except ImportError:
-            text = None
-
-        if text and text.strip():
-            return text
-
-        # pdfminer returned empty or failed — try pypdf
-        try:
-            fallback = _extract_page_text_pypdf(
-                self.input_path, page_idx, self.password
-            )
-        except ImportError as e:
-            if text is None:
-                raise ImportError(
-                    "Neither pdfminer.six nor pypdf is installed."
-                    " Install at least one:\n"
-                    "  pip install pdfminer.six\n"
-                    "  pip install pypdf"
-                ) from e
-            fallback = None
-
-        return fallback if fallback is not None else text

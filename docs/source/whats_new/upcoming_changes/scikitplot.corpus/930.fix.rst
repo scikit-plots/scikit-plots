@@ -1,0 +1,4 @@
+- ``PDFReader`` passes ``password`` to pdfminer.six. An encrypted PDF read
+  with ``prefer_backend="pdfminer"`` and the right password gave no
+  documents, and in the default mode its text came from the pypdf fallback
+  only.

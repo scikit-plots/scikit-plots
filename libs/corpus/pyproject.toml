@@ -70,7 +70,6 @@ dependencies = [
 corpus = [
   "lxml",
   "pypdf",
-  "pdfminer",
   "pdfminer.six",
   "langdetect",
   "gensim",

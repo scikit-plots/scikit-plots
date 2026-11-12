@@ -1,5 +1,74 @@
 # Corpus maintenance history
 
+## 2026-11-12 — PDF pages in one pass, layout parameters, PR 930
+
+- **CX-14: `PDFReader` reads a file once per backend.** The reader called
+  `pdfminer.high_level.extract_pages(path, page_numbers=[n])` for every
+  page, and each call opened the file and walked the page tree from the
+  first page; the pypdf path built a new `PdfReader`, which reads the whole
+  file, for every page. Three private classes replace the two per-page
+  functions: `_PdfminerPages` keeps one `extract_pages` iterator and
+  advances it a page at a time (a page out of order, or the page after one
+  that failed, opens a new iterator at that page), `_PypdfPages` keeps one
+  reader and decrypts once, `_PageTexts` holds the backend choice that
+  `PDFReader._extract_page` held. The iterator is closed when the read ends
+  or the consumer stops early. On the 277-page PDF: 74.9 s to 7.2 s (auto
+  and pdfminer), 33.1 s to 4.6 s (pypdf), peak RSS 121 to 77 MiB. On 8 PDFs
+  and 3 backends, 22 of 24 runs gave identical text for every page; the
+  other 2 differ on one page, for the reason in CX-16.
+- **Fixed with it: `password` reaches pdfminer.** It was passed to pypdf
+  only, so an encrypted file with `prefer_backend="pdfminer"` and the right
+  password gave no documents. It is now passed to `extract_pages` and to the
+  pdfminer page count.
+- The profile's 554 `extract_pages` calls for 277 pages were the profiler
+  counting each resume of the generator, not a second read.
+- Tests: `test__pdf.py` is new (the built-in PDF backends had no tests): 38
+  tests for the one-pass read, most on stand-ins for the two libraries so they run without them
+  and count opens; 29 of the first 37 fail on `main`. 19 mutations caught, 4
+  of them only after the tests were strengthened.
+- **CX-16 (a): `PDFReader.pdfminer_kwargs`.** pdfminer.six keeps candidate
+  pairs of text boxes in a heap ordered by distance and then by `id()`, so
+  boxes that tie come out in an order that depends on memory addresses: 2 to
+  4 pages of the 277 differed over 4 reads; the other 7 PDFs (180 pages) had
+  none. `pdfminer_kwargs`, keyword arguments for
+  `pdfminer.high_level.extract_pages`, is passed on every open; a mapping
+  under `"laparams"` becomes an `LAParams`. A non-mapping is a `TypeError`
+  and `password`, `page_numbers` or `maxpages` a `ValueError` at
+  construction; an argument pdfminer rejects is a `ValueError` at the read.
+  With `{"laparams": {"boxes_flow": None}}` no page of the 8 files differed
+  over 4 reads. The default is unchanged and still not reproducible on such
+  pages: the ledger note stays open for that decision. 19 more tests (57 in
+  the file); 30 mutations caught in all.
+- **Rule added: options for a named backend** (`maintenances/MAINTAINING.md`,
+  one line in the chat template's standing rules). An option only one
+  backend understands travels in `<backend>_kwargs` (or one nested
+  `backend_kwargs`), never in a flat parameter. The field was first written
+  as `laparams` and renamed under the rule before merge.
+- **CX-17: the `corpus` extra required `pdfminer` and `pdfminer.six`.** Both
+  install the import package `pdfminer`. In a fresh CPython 3.12 environment
+  `uv pip install pdfminer pdfminer.six` left a package that cannot import
+  `pdfminer.high_level` (the 2019 release's `converter.py` over the newer
+  one), so `PDFReader` fell back to pypdf or failed; uninstalling `pdfminer`
+  then removed modules of pdfminer.six as well. With `--target` installs
+  (pip in either order, uv) the modules were those of pdfminer.six with 149
+  stray files, so the outcome depends on the installer. The bare name is
+  removed from `pyproject.toml`, `libs/corpus/pyproject.toml` and the
+  generated `requirements/corpus.txt` and `libs/corpus/README_CORPUS.md`.
+- **CX-17, so it does not come back.** (1) A caution above `pdfminer.six` in
+  `pyproject.toml` and in `_pdf.py`'s module docstring. (2)
+  `tools/maint_tools/check_refused_requirements.py`: reads every requirement
+  list (`pyproject.toml`, `libs/*/pyproject.toml`, `requirements/*.txt`) and
+  fails on a distribution in its `REFUSED` table, saying what to require
+  instead and why; it fails on `main` at the three places this PR changed.
+  CI workflow `pr_check_refused_requirements.yml`, a pre-push hook, 10 tool
+  tests, 15 mutations caught. (3) `PDFReader` tells a damaged `pdfminer`
+  package from an absent one: absent keeps the install hint; damaged raises
+  an `ImportError` that names the two distributions and the reinstall
+  commands, and in the default mode, where pypdf takes over, the same text
+  is logged as one warning per read (before: silent). Checked against the
+  real damaged install. 6 more tests (63 in `test__pdf.py`), 6 mutations.
+- Evidence: `evidence/round-2026-11-12-pdf-one-pass.log`.
+
 ## 2026-11-12 — second research self-test, PR 928
 
 A second, larger research set (95 text files, 8 PDFs, a slide deck, 322

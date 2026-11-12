@@ -15,7 +15,7 @@ last pull request opened, plus one; set it when a chat starts.
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `928`
+- Pull request number for new fragments: `930`
 - Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`
@@ -141,6 +141,9 @@ one line.
 - Rewrite tests to the corrected contract; never delete a test to make a
   change pass.
 - Deterministic logic only: no heuristics, guesses or "best effort".
+- An option only one backend understands goes in `<backend>_kwargs` (or one
+  nested `backend_kwargs`), never in a flat parameter of its own: see "API
+  convention: options for a named backend" in `maintenances/MAINTAINING.md`.
 - Every summary to me ends with:
   "This pull request includes code written with the assistance of AI. The
   code has **not yet been reviewed** by a human."
@@ -180,6 +183,7 @@ one line.
     when a directory under `upcoming_changes/` appears or disappears)
   - `tools/maint_tools/check_path_lengths.py check`
   - `tools/maint_tools/check_test_module_names.py`
+  - `tools/maint_tools/check_refused_requirements.py`
   - `python -m libs._tools check`
   - each touched submodule's `_maintenance/check_trackers.py`
   - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`
