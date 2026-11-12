@@ -1,0 +1,6 @@
+- ``ImageReader`` reads the frames of a multi-frame image one at a time
+  instead of copying all of them before the first OCR call, and stops at the
+  new ``max_frames`` (default 64; ``None`` reads every frame). When a file
+  holds more, a warning names the file, its frame count and the frames left
+  unread. A 280-frame GIF took about 1 GiB before any text was produced and
+  now takes about 60 MiB.

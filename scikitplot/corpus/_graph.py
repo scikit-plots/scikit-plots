@@ -54,6 +54,7 @@ scikitplot.corpus._hierarchy : validation and traversal of the same relation.
 from __future__ import annotations
 
 import dataclasses
+import json
 import time
 from collections import defaultdict
 from enum import unique
@@ -90,6 +91,13 @@ class NodeKind(_StrEnumBase):
 
     SECTION = "section"
     """A ``CorpusDocument`` with ``parent_doc_id`` set."""
+
+    HEADING = "heading"
+    """A heading of a source's outline, from ``metadata["heading_path"]``.
+
+    One node per source and heading path, so two sections of one source with
+    the same titles all the way down share a node.
+    """
 
     SOURCE = "source"
     """An ``input_path`` + ``source_type`` pair: the physical origin.
@@ -289,10 +297,44 @@ class GraphResponse:
 G0_PRODUCER = "corpus.g0/1"
 
 
+#: Evidence recorded on every outline edge.
+_OUTLINE = "metadata.heading_path"
+
+
 def _source_node_id(doc: Any) -> str:
     """Return the node id for a document's physical origin."""
     source_type = getattr(getattr(doc, "source_type", None), "value", "unknown")
     return f"source:{source_type}:{getattr(doc, 'input_path', '')}"
+
+
+def _heading_path(doc: Any) -> tuple[str, ...]:
+    """Return a document's heading path, or ``()`` when it has none.
+
+    Parameters
+    ----------
+    doc : object
+        A document; ``metadata["heading_path"]`` is read when ``metadata`` is
+        a mapping.
+
+    Returns
+    -------
+    tuple of str
+        The titles from the outermost heading inwards, as ``StructureChunker``
+        records them. Anything but a list or tuple of non-empty strings is
+        not a heading path and gives ``()``.
+    """
+    metadata = getattr(doc, "metadata", None)
+    path = metadata.get("heading_path") if isinstance(metadata, dict) else None
+    if not isinstance(path, (list, tuple)) or not path:
+        return ()
+    if not all(isinstance(title, str) and title for title in path):
+        return ()
+    return tuple(path)
+
+
+def _heading_node_id(source_id: str, path: tuple[str, ...]) -> str:
+    """Return the node id of heading ``path`` in ``source_id`` (JSON: no clash)."""
+    return f"heading:{source_id}:{json.dumps(list(path), ensure_ascii=True)}"
 
 
 def _order_key(doc: Any) -> tuple[int, int, int]:
@@ -488,7 +530,7 @@ def derive_graph(
 
     Notes
     -----
-    Four relations are derived, each from fields Corpus already stores:
+    These are derived, each from fields Corpus already stores:
 
     ``contains`` / ``parent_of``
         from ``parent_doc_id``.  **Empty on today's corpora** -- no producer sets
@@ -498,6 +540,14 @@ def derive_graph(
     ``precedes``
         from ``chunk_index`` / ``paragraph_index`` / ``frame_index`` within one
         parent.
+
+    the outline
+        from ``metadata["heading_path"]``, which ``StructureChunker`` records
+        on every chunk: one ``heading`` node per source and heading path,
+        ``contains`` / ``parent_of`` between a heading and its sub-headings
+        and between the innermost heading and the document, and
+        ``same_source`` from each top heading to its source. A document
+        without a heading path adds nothing.
 
     ``references`` is *not* derived: ``CorpusDocument`` has a single ``url``
     field -- its own source URL, not outbound links -- so true reference edges
@@ -545,6 +595,31 @@ def derive_graph(
         if doc_id and parent_id and parent_id in nodes:
             _edge(parent_id, doc_id, RelationType.CONTAINS, "parent_doc_id")
             _edge(doc_id, parent_id, RelationType.PARENT_OF, "parent_doc_id")
+
+    # The outline: source <- heading -> sub-heading -> document, from the
+    # heading path each structure chunk records (decision D12). Derived like
+    # every G0 edge, never stored.
+    for doc in docs:
+        doc_id = getattr(doc, "doc_id", None)
+        path = _heading_path(doc)
+        if not doc_id or not path:
+            continue
+        source_id = _source_node_id(doc)
+        parent_node: str | None = None
+        for depth in range(1, len(path) + 1):
+            heading_id = _heading_node_id(source_id, path[:depth])
+            if heading_id not in nodes:
+                nodes[heading_id] = GraphNode(
+                    node_id=heading_id, kind=NodeKind.HEADING, label=path[depth - 1]
+                )
+                if parent_node is None:
+                    _edge(heading_id, source_id, RelationType.SAME_SOURCE, _OUTLINE)
+                else:
+                    _edge(parent_node, heading_id, RelationType.CONTAINS, _OUTLINE)
+                    _edge(heading_id, parent_node, RelationType.PARENT_OF, _OUTLINE)
+            parent_node = heading_id
+        _edge(parent_node, doc_id, RelationType.CONTAINS, _OUTLINE)
+        _edge(doc_id, parent_node, RelationType.PARENT_OF, _OUTLINE)
 
     for group in by_parent.values():
         ordered = sorted(group, key=_order_key)

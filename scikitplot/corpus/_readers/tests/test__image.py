@@ -41,6 +41,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import pytest
 
 # Now import the module under test using its package path
+from .. import _image  # noqa: E402
 from .._image import (  # noqa: E402
     ImageReader,
     _BACKEND_EASYOCR,
@@ -1016,3 +1017,92 @@ class TestPreprocessGrayscale:
             assert call.args[0] != "L", (
                 "frame.convert('L') called on a frame already in 'L' mode."
             )
+
+
+# ---------------------------------------------------------------------------
+# CX-15: frames are read on demand, at most max_frames of them
+# ---------------------------------------------------------------------------
+
+
+def _real_image(tmp_path: pathlib.Path, name: str, frames: int) -> pathlib.Path:
+    """Write a real image whose frame ``i`` is filled with grey level ``i * 40``."""
+    pil_image = pytest.importorskip("PIL.Image")
+    images = [pil_image.new("L", (8, 6), color=i * 40) for i in range(frames)]
+    path = tmp_path / name
+    if frames == 1:
+        images[0].save(path)
+    else:
+        images[0].save(path, save_all=True, append_images=images[1:])
+    return path
+
+
+@_needs_pillow
+class TestFramesOnDemand:
+    @pytest.mark.parametrize(
+        ("name", "frames"),
+        [("one.png", 1), ("anim.gif", 5), ("pages.tiff", 3), ("one.gif", 1)],
+    )
+    def test_the_frames_are_those_of_the_file_in_order(self, tmp_path, name, frames) -> None:
+        pil_image = pytest.importorskip("PIL.Image")
+        path = _real_image(tmp_path, name, frames)
+        reader = _make_reader(tmp_path)
+        with pil_image.open(path) as img:
+            lazy = reader._extract_frames(img)
+            assert len(lazy) == frames
+            levels = [frame.convert("L").getpixel((0, 0)) for frame in lazy]
+            assert levels == [i * 40 for i in range(frames)]
+            # A second pass gives the same frames.
+            assert [f.convert("L").getpixel((0, 0)) for f in lazy] == levels
+
+    def _read(self, tmp_path, monkeypatch, **options):
+        path = _real_image(tmp_path, "anim.gif", 5)
+        warnings: list[tuple] = []
+        monkeypatch.setattr(_image.logger, "warning", lambda *args: warnings.append(args))
+        seen: list[int] = []
+
+        def ocr(self, frame):
+            seen.append(frame.convert("L").getpixel((0, 0)))
+            return f"text {len(seen)}", 0.9
+
+        monkeypatch.setattr(ImageReader, "_run_ocr", ocr)
+        chunks = list(ImageReader(input_path=path, **options).get_raw_chunks())
+        return chunks, seen, warnings
+
+    def test_frames_past_the_limit_are_not_read_and_are_reported(self, tmp_path, monkeypatch) -> None:
+        chunks, seen, warnings = self._read(tmp_path, monkeypatch, max_frames=2)
+        assert seen == [0, 40]
+        assert [c["page_number"] for c in chunks] == [0, 1]
+        assert {c["total_frames"] for c in chunks} == {5}
+        assert len(warnings) == 1
+        assert warnings[0][1:] == ("anim.gif", 5, 2, 2, 3)
+
+    @pytest.mark.parametrize("limit", [None, 5, 64])
+    def test_within_the_limit_every_frame_is_read_without_a_warning(
+        self, tmp_path, monkeypatch, limit
+    ) -> None:
+        chunks, seen, warnings = self._read(tmp_path, monkeypatch, max_frames=limit)
+        assert seen == [0, 40, 80, 120, 160]
+        assert len(chunks) == len(seen)
+        assert warnings == []
+
+    def test_the_default_limit_is_64(self, tmp_path) -> None:
+        assert _make_reader(tmp_path).max_frames == 64  # noqa: PLR2004
+
+    @pytest.mark.parametrize("bad", [0, -1, True, 1.5, "3"])
+    def test_a_limit_must_be_a_positive_int_or_none(self, tmp_path, bad) -> None:
+        img = tmp_path / "x.png"
+        img.write_bytes(b"x")
+        with pytest.raises(ValueError, match="max_frames must be a positive int or None"):
+            ImageReader(input_path=img, max_frames=bad)
+
+    def test_one_frame_is_copied_at_a_time(self, tmp_path) -> None:
+        pil_image = pytest.importorskip("PIL.Image")
+        path = _real_image(tmp_path, "anim.gif", 5)
+        with pil_image.open(path) as img:
+            copies = []
+            real_copy = img.copy
+            img.copy = lambda: copies.append(1) or real_copy()
+            frames = iter(_make_reader(tmp_path)._extract_frames(img))
+            assert copies == []
+            next(frames)
+            assert len(copies) == 1

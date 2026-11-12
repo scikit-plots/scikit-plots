@@ -1,5 +1,54 @@
 # Corpus maintenance history
 
+## 2026-11-12 — second research self-test, PR 928
+
+A second, larger research set (95 text files, 8 PDFs, a slide deck, 322
+images and 3 videos) was run through corpus and MCP. Text: every file
+processed, known-item recall@5 1.00 (MRR 0.988) on the FTS5 leg, no
+non-deterministic result.
+
+- **D12 (a): the outline in the derived graph.** `StructureChunker` records
+  `heading_path` on every chunk, but `derive_graph` built nothing from it.
+  It now derives one `heading` node per source and heading path
+  (`NodeKind.HEADING`), `contains` / `parent_of` between a heading and its
+  sub-headings and between the innermost heading and the document, and
+  `same_source` from each top heading to its source; evidence
+  `metadata.heading_path`; nothing stored (ADR-R08-002). A document without
+  a heading path adds nothing, and anything but a list or tuple of non-empty
+  titles is not a path. Limit: two sections of one source with the same
+  titles all the way down share a node. On the set's 84 markdown files:
+  13,395 documents, 8,163 headings, 42,399 outline edges, derived in 0.23 s.
+  Tests: 16 new in `TestOutline` (15 fail on `main`); 8 mutations caught,
+  one only after the separator test was corrected; suites unchanged on
+  CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
+- **CX-15 (a): `ImageReader` reads frames on demand, up to `max_frames`.**
+  It copied every frame of the file into a list before the first OCR call
+  and then ran OCR on all of them, without a bound (a 280-frame GIF did not
+  finish in 60 s). A private `_LazyFrames` now counts the frames by seeking
+  and copies one frame at a time; the new field `max_frames` (default 64,
+  `None` for no limit; a positive int, `bool` refused) stops the read, and a
+  warning names the file, its frame count, the frames read and the frames
+  left unread. On the 280-frame GIF (800 x 1111) with OCR stubbed: peak RSS
+  1006 MiB before, 62 MiB with the default, 64 MiB with `max_frames=None`.
+  Tests: 15 new in `TestFramesOnDemand` (all fail on `main`); 9 mutations
+  caught.
+- **Outside corpus, in the same PR (its CI was red):** Sphinx Design 0.8
+  gave `card` a `header` option and deprecated the `^^^` separator
+  (`design.card_legacy`). The gallery grid's test that `header` is not a
+  card option failed, and every card with a header warned. The grid now
+  writes a `card-header` directive where Sphinx Design has it and the
+  separator where it does not (`_header_block`); a MyST header gets a fence
+  longer than any it holds. Tests pass with Sphinx Design 0.7.0 and 0.8.0
+  on CPython 3.12; 5 mutations caught.
+- **Recorded, not changed** (ledger note): CX-14 `PDFReader` reopens the
+  file and walks the page tree for every page (a 277-page PDF: 75 s against
+  7.9 s in one pass).
+- Measured, not changed: MCP's `_tokens` (131 ms for 22,034 chunks; two exact
+  rewrites reached 105-122 ms, not worth a change). `.pptx` has no reader
+  (a clear error); pages or frames whose text the default filter omits are
+  counted in `n_omitted` and logged, a video without subtitles warns.
+- Evidence: `evidence/round-2026-11-12-outline.log`.
+
 ## 2026-11-10 — research self-test round, PR 926
 
 - **CX-12, part 2 (decision D14 (a)): one document per run of text-only

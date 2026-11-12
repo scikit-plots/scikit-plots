@@ -416,6 +416,51 @@ def _card_option_names() -> frozenset[str]:
         return _FALLBACK_CARD_OPTIONS
 
 
+@lru_cache(maxsize=1)
+def _has_card_header_directive() -> bool:
+    """
+    Return whether the installed Sphinx Design has the ``card-header`` directive.
+
+    Returns
+    -------
+    bool
+        ``True`` from Sphinx Design 0.8, which added ``card-header`` and
+        deprecated the ``^^^`` separator (it warns ``design.card_legacy``,
+        an error in a build that treats warnings as errors). ``False`` for an
+        older Sphinx Design, where the separator is the only form.
+    """
+    try:
+        from sphinx_design import cards  # ruff: ignore[import-outside-top-level]
+    except ImportError:  # pragma: no cover - Sphinx Design is a requirement
+        return False
+    return hasattr(cards, "CardHeaderDirective")
+
+
+def _header_block(header: Any, *, rst: bool) -> str:
+    """
+    Return a card's header as source for the card's body.
+
+    Parameters
+    ----------
+    header : object
+        The item's ``header`` value.
+    rst : bool
+        ``True`` for reStructuredText, ``False`` for MyST.
+
+    Returns
+    -------
+    str
+        A ``card-header`` directive where Sphinx Design has it (0.8 and
+        newer), else the header followed by the ``^^^`` separator.
+    """
+    if not _has_card_header_directive():
+        return f"{header}\n\n^^^\n" if rst else f"{header}  \n^^^  \n"
+    if rst:
+        return f".. card-header::\n\n{_indent(str(header))}\n"
+    fence = _fence_for(str(header), 3)
+    return f"{fence}{{card-header}}\n{header}\n{fence}\n\n"
+
+
 #: Item keys this directive consumes itself, before options are built.
 _METADATA_ONLY_KEY = "_sk_collection_metadata_only"
 _BROWSER_TITLE_KEY = "_sk_collection_browser_title"
@@ -778,7 +823,7 @@ class GalleryGridDirective(SphinxDirective):
         if rst:
             body_parts = []
             if header:
-                body_parts.append(f"{header}\n\n^^^\n")
+                body_parts.append(_header_block(header, rst=True))
             if image:
                 body_parts.append(f".. image:: {image}\n")
             if content:
@@ -789,7 +834,7 @@ class GalleryGridDirective(SphinxDirective):
 
         body_parts = []
         if header:
-            body_parts.append(f"{header}  \n^^^  \n")
+            body_parts.append(_header_block(header, rst=False))
         if image:
             body_parts.append(f"![image]({image})  \n")
         if content:

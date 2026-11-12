@@ -56,6 +56,7 @@ all optional runtime dependencies.
 
 from __future__ import annotations
 
+import itertools
 import logging
 from dataclasses import dataclass, field
 from typing import (  # noqa: F401
@@ -255,6 +256,46 @@ def _ocr_easyocr(
     return text, mean_conf, reader_obj
 
 
+class _LazyFrames:
+    """
+    The frames of an open image as a sized iterable, copied one at a time.
+
+    Parameters
+    ----------
+    img : PIL.Image.Image
+        Open image object; it must stay open while the frames are read.
+
+    Notes
+    -----
+    **Developer note:** Frames are found the way the eager list found them:
+    ``seek`` to the next frame until ``EOFError``; an image without ``seek``
+    has one frame. Counting seeks without copying a frame.
+    """
+
+    def __init__(self, img: Any) -> None:
+        self._img = img
+        self._count: int | None = None
+
+    def __len__(self) -> int:
+        if self._count is None:
+            count = 1
+            try:
+                while True:
+                    self._img.seek(count)
+                    count += 1
+            except (EOFError, AttributeError):
+                pass
+            self._count = count
+        return self._count
+
+    def __iter__(self) -> Generator[Any, None, None]:
+        for index in range(len(self)):
+            if index or self._count != 1:
+                self._img.seek(index)
+            # Copy the frame so it stays valid after the next seek.
+            yield self._img.copy()
+
+
 @dataclass
 class ImageReader(DocumentReader):
     """
@@ -290,6 +331,10 @@ class ImageReader(DocumentReader):
     max_file_bytes : int, optional
         Maximum file size in bytes. Files larger than this limit raise
         ``ValueError`` before any bytes are read. Default: 100 MB.
+    max_frames : int or None, optional
+        Largest number of frames read from one file. Frames past the
+        limit are not decoded, and a warning says how many were left
+        unread. ``None`` reads every frame. Default: 64.
     preprocess_grayscale : bool, optional
         When ``True``, convert each frame to grayscale (``"L"`` mode)
         before OCR. This often improves Tesseract accuracy on coloured
@@ -388,6 +433,12 @@ class ImageReader(DocumentReader):
     compressed image bytes (JPEG/PNG/etc.) — useful for
     ``tf.io.decode_image`` or CV2 ``imdecode``.  Default: ``False``."""
 
+    max_frames: int | None = field(default=64)
+    """Most frames read from one multi-frame image (animated GIF, WebP or
+    PNG, multi-page TIFF). Frames past it are not decoded or OCRed; a warning
+    names how many were left, and ``total_frames`` in each chunk still gives
+    the file's count. ``None`` reads every frame. Default: ``64``."""
+
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
     # dataclass __init__ field order (subclass fields come after base fields
@@ -424,6 +475,15 @@ class ImageReader(DocumentReader):
         if self.max_file_bytes <= 0:
             raise ValueError(
                 f"ImageReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."
+            )
+        if self.max_frames is not None and (
+            isinstance(self.max_frames, bool)
+            or not isinstance(self.max_frames, int)
+            or self.max_frames < 1
+        ):
+            raise ValueError(
+                "ImageReader: max_frames must be a positive int or None;"
+                f" got {self.max_frames!r}."
             )
 
     # ------------------------------------------------------------------
@@ -514,8 +574,20 @@ class ImageReader(DocumentReader):
             frames = self._extract_frames(img)
             total = len(frames)
             logger.debug("ImageReader: %d frame(s) in %s.", total, self.file_name)
+            limit = total if self.max_frames is None else min(total, self.max_frames)
+            if limit < total:
+                logger.warning(
+                    "ImageReader: %s has %d frames; reading the first %d"
+                    " (max_frames=%d) and leaving %d unread. Pass max_frames=None"
+                    " to read them all.",
+                    self.file_name,
+                    total,
+                    limit,
+                    self.max_frames,
+                    total - limit,
+                )
 
-            for page_idx, frame in enumerate(frames):
+            for page_idx, frame in enumerate(itertools.islice(frames, limit)):
                 if self.preprocess_grayscale and frame.mode != "L":
                     frame = frame.convert("L")  # noqa: PLW2901
                 elif frame.mode not in ("RGB", "RGBA", "L"):
@@ -612,16 +684,16 @@ class ImageReader(DocumentReader):
         logger.info(
             "ImageReader: finished %s — %d frame(s) processed.",
             self.file_name,
-            total,
+            limit,
         )
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _extract_frames(self, img: Any) -> list[Any]:
+    def _extract_frames(self, img: Any) -> _LazyFrames:
         """
-        Extract all frames from a potentially multi-frame image.
+        Return the frames of a potentially multi-frame image, read on demand.
 
         Parameters
         ----------
@@ -630,22 +702,12 @@ class ImageReader(DocumentReader):
 
         Returns
         -------
-        list of PIL.Image.Image
-            One entry per frame/page. For single-frame formats,
-            returns a list with one element.
+        sized iterable of PIL.Image.Image
+            ``len()`` is the number of frames/pages (one for a single-frame
+            format); iterating copies one frame at a time, so the frames of
+            an animation are never all held in memory (finding CX-15).
         """
-        frames = []
-        try:
-            while True:
-                # Copy frame so it remains valid after the context exits
-                frames.append(img.copy())
-                img.seek(img.tell() + 1)
-        except EOFError:
-            pass  # Reached end of frames — expected
-        except AttributeError:
-            # Format doesn't support seek (single-frame)
-            frames = [img.copy()]
-        return frames
+        return _LazyFrames(img)
 
     def _run_ocr(self, frame: Any) -> tuple[str, float]:
         """
