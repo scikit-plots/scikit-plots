@@ -1,5 +1,34 @@
 # Corpus maintenance history
 
+## 2026-11-12 — PDF files and pages that cannot be read, PR 931
+
+- **CX-18: `PDFReader` lost unreadable files and pages without a word.** A
+  file that is not a PDF, an empty or truncated file, and an encrypted file
+  with the wrong password all gave zero documents and a successful result;
+  the backends' reasons were logged at DEBUG only, and with
+  `prefer_backend="pdfminer"` a wrong password produced no message about the
+  password at all. A page no backend could read ended the read, so every
+  page after it was dropped. A file of scanned pages gave nothing and an
+  INFO line. `ImageReader` raises for a file it cannot identify.
+  - No page read by any backend, and a backend reported why: `ValueError`
+    naming the file and each backend's first reason. `run_batch` already
+    turns a reader error into a "skipping" warning.
+  - Page count known: a page no backend can read is skipped and reading
+    goes on; one warning after the last page names the skipped pages and the
+    reasons. Page count unknown: the first such page is still the end.
+  - Pages read, none with text: one warning that the file probably holds
+    scanned images and that `PDFReader` does not run OCR.
+  - The 10,000-page sentinel for an unknown page count is gone; reading
+    ends at the first page that cannot be read.
+- Text of readable files is unchanged: 8 PDFs on 3 backends, 22 of 24 runs
+  identical page by page; the other 2 are the 277-page file with pdfminer,
+  which differs between two reads of `main` as well (CX-16).
+- Tests: 22 more in `test__pdf.py` (85), 3 rewritten to the corrected
+  contract; 23 fail on `main`. 20 mutations caught.
+- **Recorded, not changed** (ledger note): 3 of the 8 research PDFs are
+  scanned pages or slide images and give no text; a PDF has no OCR path.
+- Evidence: `evidence/round-2026-11-12-pdf-nothing-silent.log`.
+
 ## 2026-11-12 — PDF pages in one pass, layout parameters, PR 930
 
 - **CX-14: `PDFReader` reads a file once per backend.** The reader called

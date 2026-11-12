@@ -1,0 +1,140 @@
+# PDF files and pages that cannot be read, 2026-11-12, PR 931 (CX-18)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 47a97c7 (PR 930); NEW = the PR 931 branch.
+# CPython 3.13.18, pdfminer.six 20260107, pypdf 6.17.0.
+
+--- PDFReader on files it cannot read (each backend), OLD
+every case below: 0 documents, no error; WARNING "could not determine page count ... Attempting page-by-page
+extraction until first failure"; wrong password with prefer_backend="pdfminer": no message about the password
+
+--- the same, NEW (ValueError message, shortened)
+not a PDF (240 bytes of text)   auto: cannot read garbage.pdf: no backend could read a page (pdfminer: PDFSyntaxError:
+                                No /Root object! ...; pypdf: PdfStreamError: Stream has ended unexpectedly)
+truncated (first 20,000 bytes)  auto: (pdfminer: PSEOF: Unexpected EOF; pypdf: PdfStreamError: ...)
+empty file                      pypdf: (pypdf: EmptyFileError: Cannot read an empty file)
+wrong password                  auto: (pdfminer: PDFPasswordIncorrect; pypdf: the password does not decrypt the file)
+                                pdfminer: (pdfminer: PDFPasswordIncorrect)
+
+--- research PDFs whose pages hold no text, NEW
+f02.pdf (51 pages): 0 chunks; WARNING none of the 51 page(s) read from f02.pdf has extractable text. The file probably
+holds scanned images; PDFReader does not run OCR.        (OLD: INFO "finished f02.pdf - 0 page(s) yielded text")
+f05.pdf (27 pages): the same with 27
+f01.pdf (9 pages): 8 chunks of 6 characters (page labels): no warning, not detectable as a scan (recorded, CX-19)
+
+--- CorpusPipeline.run_batch([garbage.pdf, empty.pdf, plain.pdf, f05.pdf])
+OLD: 4 results (0, 0, 2 read, 0 read); only the two page-count warnings
+NEW: 2 results (plain.pdf, f05.pdf); WARNING CorpusPipeline.run_batch: skipping garbage.pdf - ValueError: ...;
+     the same for empty.pdf; the scanned-pages warning for f05.pdf
+
+--- every page of 8 PDFs, 3 backends, OLD against NEW (sha256 of each page's raw_text)
+new f07.pdf auto     chunks=  10 chars=    4575 seconds=   0.19 peak_rss_mib=59
+old f07.pdf auto     chunks=  10 chars=    4575 seconds=   0.17 peak_rss_mib=59
+   identical: yes
+new f07.pdf pdfminer chunks=  10 chars=    4575 seconds=   0.17 peak_rss_mib=59
+old f07.pdf pdfminer chunks=  10 chars=    4575 seconds=   0.18 peak_rss_mib=59
+   identical: yes
+new f07.pdf pypdf    chunks=  10 chars=    4581 seconds=   0.14 peak_rss_mib=64
+old f07.pdf pypdf    chunks=  10 chars=    4581 seconds=   0.14 peak_rss_mib=64
+   identical: yes
+new f06.pdf auto     chunks=  42 chars=  105194 seconds=   3.34 peak_rss_mib=67
+old f06.pdf auto     chunks=  42 chars=  105194 seconds=   3.07 peak_rss_mib=67
+   identical: yes
+new f06.pdf pdfminer chunks=  42 chars=  105194 seconds=   2.85 peak_rss_mib=67
+old f06.pdf pdfminer chunks=  42 chars=  105194 seconds=   3.11 peak_rss_mib=67
+   identical: yes
+new f06.pdf pypdf    chunks=  42 chars=  104604 seconds=   1.65 peak_rss_mib=71
+old f06.pdf pypdf    chunks=  42 chars=  104604 seconds=   1.60 peak_rss_mib=71
+   identical: yes
+new f03.pdf auto     chunks=  31 chars=   14948 seconds=   1.38 peak_rss_mib=64
+old f03.pdf auto     chunks=  31 chars=   14948 seconds=   1.51 peak_rss_mib=64
+   identical: yes
+new f03.pdf pdfminer chunks=  31 chars=   14948 seconds=   1.38 peak_rss_mib=64
+old f03.pdf pdfminer chunks=  31 chars=   14948 seconds=   1.32 peak_rss_mib=64
+   identical: yes
+new f03.pdf pypdf    chunks=  31 chars=   14971 seconds=   0.85 peak_rss_mib=76
+old f03.pdf pypdf    chunks=  31 chars=   14971 seconds=   0.72 peak_rss_mib=76
+   identical: yes
+new f04.pdf auto     chunks= 277 chars=  738791 seconds=  11.04 peak_rss_mib=78
+old f04.pdf auto     chunks= 277 chars=  738791 seconds=  10.51 peak_rss_mib=77
+   identical: NO
+new f04.pdf pdfminer chunks= 277 chars=  738791 seconds=  10.75 peak_rss_mib=78
+old f04.pdf pdfminer chunks= 277 chars=  738791 seconds=  10.66 peak_rss_mib=77
+   identical: NO
+new f04.pdf pypdf    chunks= 277 chars=  738044 seconds=   6.69 peak_rss_mib=89
+old f04.pdf pypdf    chunks= 277 chars=  738044 seconds=   7.04 peak_rss_mib=89
+   identical: yes
+new f05.pdf auto     chunks=   0 chars=       0 seconds=   0.18 peak_rss_mib=80
+old f05.pdf auto     chunks=   0 chars=       0 seconds=   0.19 peak_rss_mib=80
+   identical: yes
+new f05.pdf pdfminer chunks=   0 chars=       0 seconds=   0.07 peak_rss_mib=61
+old f05.pdf pdfminer chunks=   0 chars=       0 seconds=   0.06 peak_rss_mib=61
+   identical: yes
+new f05.pdf pypdf    chunks=   0 chars=       0 seconds=   0.14 peak_rss_mib=72
+old f05.pdf pypdf    chunks=   0 chars=       0 seconds=   0.12 peak_rss_mib=72
+   identical: yes
+new f00.pdf auto     chunks=   9 chars=    2051 seconds=   2.75 peak_rss_mib=96
+old f00.pdf auto     chunks=   9 chars=    2051 seconds=   2.50 peak_rss_mib=96
+   identical: yes
+new f00.pdf pdfminer chunks=   9 chars=    2051 seconds=   2.43 peak_rss_mib=77
+old f00.pdf pdfminer chunks=   9 chars=    2051 seconds=   2.48 peak_rss_mib=77
+   identical: yes
+new f00.pdf pypdf    chunks=   9 chars=    6491 seconds=   1.23 peak_rss_mib=81
+old f00.pdf pypdf    chunks=   9 chars=    6491 seconds=   1.28 peak_rss_mib=81
+   identical: yes
+new f02.pdf auto     chunks=   0 chars=       0 seconds=   0.22 peak_rss_mib=113
+old f02.pdf auto     chunks=   0 chars=       0 seconds=   0.21 peak_rss_mib=113
+   identical: yes
+new f02.pdf pdfminer chunks=   0 chars=       0 seconds=   0.12 peak_rss_mib=73
+old f02.pdf pdfminer chunks=   0 chars=       0 seconds=   0.09 peak_rss_mib=73
+   identical: yes
+new f02.pdf pypdf    chunks=   0 chars=       0 seconds=   0.13 peak_rss_mib=92
+old f02.pdf pypdf    chunks=   0 chars=       0 seconds=   0.14 peak_rss_mib=92
+   identical: yes
+new f01.pdf auto     chunks=   8 chars=      48 seconds=   0.20 peak_rss_mib=113
+old f01.pdf auto     chunks=   8 chars=      48 seconds=   0.18 peak_rss_mib=113
+   identical: yes
+new f01.pdf pdfminer chunks=   8 chars=      48 seconds=   0.10 peak_rss_mib=81
+old f01.pdf pdfminer chunks=   8 chars=      48 seconds=   0.10 peak_rss_mib=81
+   identical: yes
+new f01.pdf pypdf    chunks=   8 chars=      48 seconds=   0.15 peak_rss_mib=104
+old f01.pdf pypdf    chunks=   8 chars=      48 seconds=   0.15 peak_rss_mib=104
+   identical: yes
+f04 with pdfminer differs between two reads of OLD as well (CX-16, PR 930 log)
+
+--- tests: scikitplot/corpus/_readers/tests/test__pdf.py (85; 22 new, 3 rewritten to the corrected contract)
+OLD with the new file: 23 failed, 62 passed
+NEW: 85 passed on CPython 3.9, 3.12, 3.13, 3.13t, 3.14, 3.15
+mutations: 20 of 20 caught (unreadable file not raised; raised whenever nothing read; raised on any error; failed page
+ends the read; failed page not recorded; without a count a failed page skipped; skipped pages not warned; scan not
+warned; scan warned without pages; scan warned always; pdfminer reason not kept; pypdf reason not kept; last reason
+kept; wrong password without reason; pages not counted; every page counted; reason without type; capped at 10000;
+zero count treated as known; backend order in the message)
+
+--- lint (ruff 0.17.3, black 26.10.1)
+_pdf.py: OLD 0 findings, NEW 0; black clean. test__pdf.py: 0 findings; black clean.
+
+--- suites, corpus and MCP (failed, passed)
+3.9         OLD: 24 failed, 6065 passed      NEW: 24 failed, 6087 passed      sets identical: yes
+3.10        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6184 passed      sets identical: yes
+3.11        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6184 passed      sets identical: yes
+3.12        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6184 passed      sets identical: yes
+3.13        OLD: 23 failed, 6195 passed      NEW: 23 failed, 6217 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6065 passed      NEW: 24 failed, 6087 passed      sets identical: yes
+3.14        OLD: 23 failed, 6153 passed      NEW: 23 failed, 6175 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6162 passed      NEW: 23 failed, 6184 passed      sets identical: yes
+3.15        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6184 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- usage-skill generator rows for scikitplot.corpus and scikitplot.mcp: identical to OLD
+
+--- gates (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7044, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).

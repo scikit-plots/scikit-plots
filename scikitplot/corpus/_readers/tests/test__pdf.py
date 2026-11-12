@@ -347,14 +347,23 @@ class TestPdfminerOnePass:
         (warning,) = logged["warning"]
         assert "could not determine page count for doc.pdf" in warning
 
-    def test_a_page_pdfminer_fails_on_ends_a_pdfminer_only_read(
-        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    def test_a_page_pdfminer_fails_on_is_skipped_and_named(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
     ) -> None:
         fake = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
         fake.install(monkeypatch)
         reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
-        assert _texts(reader) == [(0, "a")]
+        assert _texts(reader) == [(0, "a"), (2, "c")]
         assert fake.open_now == 0
+        assert logged["warning"] == [
+            (
+                "PDFReader: 1 of 3 page(s) of doc.pdf could not be read and are"
+                " skipped (pages 1; pdfminer: ValueError: bad page)."
+            )
+        ]
 
     def test_missing_pdfminer_is_an_import_error(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -454,6 +463,129 @@ class TestPdfminerPages:
         pages = _pdf._PdfminerPages(pdf_path)
         pages.close()
         pages.close()
+
+
+# ===========================================================================
+# Files and pages that cannot be read, or hold no text
+# ===========================================================================
+
+
+class TestNothingSilent:
+    def test_a_file_pdfminer_cannot_open_is_a_value_error_with_the_reason(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([KeyError("No /Root object")])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pdfminer")
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        message = str(info.value)
+        assert "(pdfminer: KeyError: 'No /Root object')" in message
+        assert "complete PDF" in message
+        assert "'password'" in message
+        assert fake.open_now == 0
+
+    def test_both_backends_are_named_when_neither_can_open_the_file(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([ValueError()]).install(monkeypatch)
+        _FakePypdf(["A"], open_error=OSError("truncated")).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None)
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        assert "(pdfminer: ValueError; pypdf: OSError: truncated)" in str(info.value)
+
+    def test_a_wrong_password_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePypdf(["A"], password=_KEY).install(monkeypatch)
+        reader = _reader(
+            pdf_path, monkeypatch, None, prefer_backend="pypdf", password=_OTHER_KEY
+        )
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        assert "pypdf: the password does not decrypt the file" in str(info.value)
+
+    def test_every_page_failing_with_a_known_count_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([ValueError("one"), ValueError("two")]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 2, prefer_backend="pdfminer")
+        with pytest.raises(ValueError, match="pdfminer: ValueError: one"):
+            list(reader.get_raw_chunks())
+
+    def test_pages_without_text_are_one_warning_and_no_error(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Figure()], [_Box(" \n")], []]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
+        assert _texts(reader) == []
+        assert logged["warning"] == [
+            (
+                "PDFReader: none of the 3 page(s) read from doc.pdf has extractable"
+                " text. The file probably holds scanned images; PDFReader does not"
+                " run OCR."
+            )
+        ]
+
+    def test_one_page_with_text_is_no_warning(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Figure()], [_Box("b")], []]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
+        assert _texts(reader) == [(1, "b")]
+        assert logged["warning"] == []
+
+    def test_a_file_without_pages_is_neither_an_error_nor_a_scan(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 0, prefer_backend="pdfminer")
+        assert _texts(reader) == []
+        (warning,) = logged["warning"]
+        assert "could not determine page count" in warning
+
+    def test_without_a_count_a_failed_page_ends_the_read_without_a_warning(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "a")]
+        (warning,) = logged["warning"]
+        assert "could not determine page count" in warning
+
+    def test_without_a_count_reading_is_not_cut_at_a_fixed_number_of_pages(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        n_pages = 10_050
+        _FakePypdf(["x"] * n_pages).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pypdf")
+        assert sum(1 for _ in reader.get_raw_chunks()) == n_pages
+
+    def test_stopping_early_on_a_readable_file_raises_nothing(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")], ValueError("bad page")])
+        fake.install(monkeypatch)
+        chunks = _reader(
+            pdf_path, monkeypatch, 2, prefer_backend="pdfminer"
+        ).get_raw_chunks()
+        assert next(chunks)["text"] == "a"
+        chunks.close()
+        assert fake.open_now == 0
 
 
 # ===========================================================================
@@ -737,14 +869,26 @@ class TestAutoMode:
         assert len(miner.opens) == _TWICE
         assert miner.open_now == 0
 
-    def test_a_page_neither_backend_can_read_ends_the_read(
-        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    def test_a_page_neither_backend_can_read_is_skipped_and_named(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
     ) -> None:
-        miner = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
+        miner = _FakePdfminer(
+            [[_Box("a")], ValueError("bad page"), [_Box("c")], KeyError("font")]
+        )
         miner.install(monkeypatch)
-        backup = _FakePypdf(["A", ValueError("bad page"), "C"])
+        backup = _FakePypdf(["A", OSError("bad stream"), "C", OSError("later")])
         backup.install(monkeypatch)
-        assert _texts(_reader(pdf_path, monkeypatch, 3)) == [(0, "a")]
+        assert _texts(_reader(pdf_path, monkeypatch, 4)) == [(0, "a"), (2, "c")]
+        assert logged["warning"] == [
+            (
+                "PDFReader: 2 of 4 page(s) of doc.pdf could not be read and are"
+                " skipped (pages 1, 3; pdfminer: ValueError: bad page;"
+                " pypdf: OSError: bad stream)."
+            )
+        ]
 
     def test_without_pdfminer_every_page_comes_from_pypdf(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -950,4 +1094,33 @@ class TestRealLibraries:
         reader = PDFReader(input_path=path, prefer_backend=backend, password=_KEY)
         assert _texts(reader) == list(self.EXPECTED)
         wrong = PDFReader(input_path=path, prefer_backend=backend, password=_OTHER_KEY)
-        assert _texts(wrong) == []
+        with pytest.raises(ValueError, match=r"cannot read locked\.pdf") as info:
+            list(wrong.get_raw_chunks())
+        assert "'password'" in str(info.value)
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer", "pypdf"])
+    @pytest.mark.parametrize(
+        "content", [b"", b"this is not a PDF\n" * 20, b"%PDF-1.4\n1 0 obj\n<< /Type"]
+    )
+    def test_a_file_that_is_not_a_complete_pdf_is_a_value_error(
+        self, tmp_path: pathlib.Path, backend: str | None, content: bytes
+    ) -> None:
+        pytest.importorskip("pypdf" if backend == "pypdf" else "pdfminer.high_level")
+        path = tmp_path / "broken.pdf"
+        path.write_bytes(content)
+        reader = PDFReader(input_path=path, prefer_backend=backend)
+        with pytest.raises(ValueError, match=r"cannot read broken\.pdf"):
+            list(reader.get_raw_chunks())
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer", "pypdf"])
+    def test_a_file_of_blank_pages_is_a_warning_not_an_error(
+        self,
+        tmp_path: pathlib.Path,
+        backend: str | None,
+        logged: dict[str, list[str]],
+    ) -> None:
+        pytest.importorskip("pypdf" if backend == "pypdf" else "pdfminer.high_level")
+        path = _write_pdf(tmp_path / "scan.pdf", ["", "", ""])
+        assert _texts(PDFReader(input_path=path, prefer_backend=backend)) == []
+        (warning,) = logged["warning"]
+        assert "none of the 3 page(s) read from scan.pdf" in warning

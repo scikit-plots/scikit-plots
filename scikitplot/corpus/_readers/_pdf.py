@@ -50,6 +50,7 @@ enforces this in CI.
 
 from __future__ import annotations
 
+import itertools
 import logging
 import sys
 from dataclasses import dataclass, field
@@ -130,6 +131,12 @@ def _pdfminer_import_error(exc: ImportError) -> ImportError:
     )
 
 
+def _reason(exc: BaseException) -> str:
+    """Return an exception as ``Type: message``, or ``Type`` without one."""
+    message = str(exc).strip()
+    return f"{type(exc).__name__}: {message}" if message else type(exc).__name__
+
+
 class _PdfminerPages:
     """
     The text of a PDF's pages from one pass of pdfminer.six over the file.
@@ -165,6 +172,8 @@ class _PdfminerPages:
         self._password = password
         self._kwargs = kwargs
         self._pages: Any = None
+        #: Why the first page that failed could not be read, if any did.
+        self.error: str | None = None
         # Index of the page the open iterator yields next.
         self._at = 0
 
@@ -242,6 +251,8 @@ class _PdfminerPages:
                 self._path.name,
                 exc,
             )
+            if self.error is None:
+                self.error = _reason(exc)
             self.close()
             return None
         self._at = page_number + 1
@@ -284,6 +295,8 @@ class _PypdfPages:
         self._reader: Any = None
         self._n_pages = 0
         self._unreadable = False
+        #: Why the first page that failed could not be read, if any did.
+        self.error: str | None = None
 
     def text(self, page_number: int) -> str | None:
         """
@@ -324,6 +337,7 @@ class _PypdfPages:
                         self._path.name,
                     )
                     self._unreadable = True
+                    self.error = "the password does not decrypt the file"
                     return None
                 self._n_pages = len(reader.pages)
                 self._reader = reader
@@ -340,6 +354,8 @@ class _PypdfPages:
                 self._path.name,
                 exc,
             )
+            if self.error is None:
+                self.error = _reason(exc)
             if self._reader is None:
                 self._unreadable = True
             return None
@@ -376,6 +392,8 @@ class _PageTexts:
         self._prefer_backend = prefer_backend
         self._pdfminer = _PdfminerPages(pdf_path, password, pdfminer_kwargs)
         self._warned = False
+        #: Number of pages a backend returned text (possibly empty) for.
+        self.n_read = 0
         self._pypdf = _PypdfPages(pdf_path, password)
 
     def text(self, page_idx: int) -> str | None:
@@ -399,6 +417,18 @@ class _PageTexts:
             If the configured backend, or in auto mode every backend, is not
             installed.
         """
+        text = self._backend_text(page_idx)
+        if text is not None:
+            self.n_read += 1
+        return text
+
+    def errors(self) -> list[str]:
+        """Return the first failure of each backend, as ``backend: reason``."""
+        found = (("pdfminer", self._pdfminer.error), ("pypdf", self._pypdf.error))
+        return [f"{name}: {reason}" for name, reason in found if reason]
+
+    def _backend_text(self, page_idx: int) -> str | None:
+        """Return the text of page ``page_idx`` from the configured backend."""
         if self._prefer_backend == "pypdf":
             return self._pypdf.text(page_idx)
 
@@ -737,6 +767,11 @@ class PDFReader(DocumentReader):
         pages where pdfminer returns no text.  Pages with no extractable
         text are skipped.
 
+        A page no backend can read is skipped, and the skipped pages are
+        named in one warning after the last page. A file whose pages are
+        read but hold no text (scanned images) gives no chunk and one
+        warning.
+
         Yields
         ------
         dict
@@ -753,6 +788,9 @@ class PDFReader(DocumentReader):
         ------
         ValueError
             If the file exceeds ``max_file_bytes``.
+        ValueError
+            If no backend can read any page: the file is not a complete
+            PDF, or it is encrypted and ``password`` is wrong.
         ValueError
             If pdfminer.six does not accept ``pdfminer_kwargs``.
         ImportError
@@ -773,24 +811,24 @@ class PDFReader(DocumentReader):
                 f" Increase max_file_bytes or split the PDF before ingestion."
             )
 
-        # Determine total page count — needed for the iteration loop.
-        n_pages = self._count_pages()
-        if n_pages is None or n_pages == 0:
+        # The page count tells a page that failed from the end of the file.
+        n_pages = self._count_pages() or None
+        if n_pages is None:
             logger.warning(
                 "PDFReader: could not determine page count for %s."
-                " Attempting page-by-page extraction until first failure.",
+                " Reading page by page until a page cannot be read.",
                 self.file_name,
             )
-            n_pages = 10_000  # large sentinel; loop breaks on None text
 
         logger.info(
-            "PDFReader: opening %s (%d page(s), backend=%s).",
+            "PDFReader: opening %s (%s page(s), backend=%s).",
             self.file_name,
-            n_pages,
+            "unknown" if n_pages is None else n_pages,
             self.prefer_backend or "auto",
         )
 
         pages_yielded = 0
+        unreadable: list[int] = []
         pages = _PageTexts(
             self.input_path,
             self.password,
@@ -798,11 +836,14 @@ class PDFReader(DocumentReader):
             self.pdfminer_kwargs,
         )
         try:
-            for page_idx in range(n_pages):
+            for page_idx in itertools.count() if n_pages is None else range(n_pages):
                 text = pages.text(page_idx)
                 if text is None:
-                    # Sentinel exceeded or both backends failed -- stop
-                    break
+                    if n_pages is None:
+                        # Without a count, the first such page is the end.
+                        break
+                    unreadable.append(page_idx)
+                    continue
                 stripped = text.strip()
                 if not stripped:
                     logger.debug(
@@ -825,10 +866,37 @@ class PDFReader(DocumentReader):
             # Also reached when the consumer stops early.
             pages.close()
 
+        errors = "; ".join(pages.errors())
+        if pages.n_read == 0 and errors:
+            raise ValueError(
+                f"PDFReader: cannot read {self.file_name}: no backend could read"
+                f" a page ({errors}). Check that the file is a complete PDF and,"
+                " if it is encrypted, that 'password' is right."
+            )
+        if unreadable:
+            logger.warning(
+                "PDFReader: %d of %d page(s) of %s could not be read and are"
+                " skipped (pages %s; %s).",
+                len(unreadable),
+                n_pages,
+                self.file_name,
+                ", ".join(str(index) for index in unreadable),
+                errors or "no backend reported a reason",
+            )
+        if pages.n_read and pages_yielded == 0:
+            logger.warning(
+                "PDFReader: none of the %d page(s) read from %s has extractable"
+                " text. The file probably holds scanned images; PDFReader does"
+                " not run OCR.",
+                pages.n_read,
+                self.file_name,
+            )
+
         logger.info(
-            "PDFReader: finished %s — %d page(s) yielded text.",
+            "PDFReader: finished %s -- %d of %d page(s) read yielded text.",
             self.file_name,
             pages_yielded,
+            pages.n_read,
         )
 
     # ------------------------------------------------------------------
