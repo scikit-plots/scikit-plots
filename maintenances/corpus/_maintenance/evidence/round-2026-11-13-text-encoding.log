@@ -1,0 +1,71 @@
+# Text files: encoding from the whole file, binary refused, 2026-11-13, PR 932 (CX-20)
+# Host: Linux x86-64 (2 CPUs). OLD = main at 6918e2e (PR 931); NEW = the PR 932 branch.
+# chardet: installed in the system CPython 3.13.18, absent from the other interpreters.
+
+--- every local reader on broken and re-encoded files, OLD (CPython 3.13, chardet present)
+binary.txt/.md/.rst (10 KiB of bytes 0-255): 1 document of control characters; WARNING falling back to 'latin-1'
+cp1252.txt/.md/.rst: 'Cafe naive resume \x97 100 \x80' (em dash and euro sign as C1 controls); WARNING latin-1
+utf16.txt/.md/.rst (with BOM): text starts with U+FEFF; no warning
+empty.txt/.md/.rst: 0 documents, WARNING empty   (unchanged)
+empty/garbage .png .gif: UnidentifiedImageError; .xml: XMLSyntaxError; .zip: BadZipFile   (unchanged)
+empty.wav, empty.mp3: 0 documents, no message   (unchanged; noted)
+
+--- the 8 KiB prefix
+zh.txt, 4,800 Chinese characters (14,400 bytes), byte 8192 a continuation byte:
+  OLD with chardet (3.13): correct, rescued by chardet after strict UTF-8 failed on the prefix
+  OLD without chardet (3.12, 3.9): 14,400 chars, '\u00e8\u00a8\x98\u00e6\x86\u00b6\u00e8\x88\x87\u00e5\x9b\x9e', not the file's text
+  NEW (3.13 and 3.12): 4,800 chars, correct
+late_latin1.txt, 9,450 bytes ASCII then 'caf\xe9': OLD UnicodeDecodeError at position 9453; NEW 'caf\u00e9' (cp1252, warning)
+
+--- NEW on the same files (3.13 and 3.12 identical)
+binary.*: ValueError "binary.txt is not a text file: it holds a NUL byte at offset 0 and no byte-order mark. ..."
+cp1252.*: 'Caf\u00e9 na\u00efve r\u00e9sum\u00e9 \u2014 100 \u20ac \u00f1.'; WARNING decoding as 'cp1252'
+utf16.*: 'Caf\u00e9 na\u00efve r\u00e9sum\u00e9 \u2014 100 \u20ac \u00f1.' (no U+FEFF)
+members.zip without chardet (3.12): win.txt '\u201cQuoted\u201d memory \u2013 ...'; blob.txt "failed to read member ... not
+a text file"; OLD: win.txt '\x93Quoted\x94 ...' and blob.txt as a document of control characters
+
+--- the 95 research text files, OLD against NEW (sha256 of the text)
+first NEW version: 85 of 95 identical; the 10 that differed are exactly the 10 with CRLF line endings
+(read_text translated them, bytes.decode did not); after restoring universal newlines: 95 of 95 identical
+
+--- found, not changed
+CX-22: zh.txt gives 1 raw chunk and 0 documents on OLD and NEW: DefaultFilter counts whitespace tokens
+(min_words=3), and the Chinese text has none; the zh.md member of a ZIP disappears the same way
+CX-21: chardet is reached only for files that are neither marked nor UTF-8; there, the text depends on whether
+it is installed
+
+--- tests: test__text_and_zip.py (103; 30 new or rewritten: the old TestDetectEncoding accepted any answer)
+OLD with the new file: 28 failed, 70 passed (on 3.13 with chardet and 3.12 without); NEW: 103 passed on CPython
+3.9, 3.12, 3.13, 3.13t, 3.14, 3.15. Doctests of _text.py: the 3 class examples that read missing files fail on
+OLD and NEW alike; the 4 new _detect_encoding examples pass
+mutations: 16 of 16 caught (utf-16 keeps the mark; utf-32 keeps the mark; utf-16 before utf-32; no binary check;
+binary after utf-8; detect on an 8 KiB prefix; latin-1 always; cp1252 always; chardet trusted without decoding;
+chardet confidence ignored; unknown codec raises; binary file read anyway; fallback silent; UTF-8 mark ignored;
+no newline translation; lone CR kept)
+usage-skill generator rows: only TextReader's docstring differs from OLD; its first paragraph is unchanged
+
+--- suites, corpus and MCP (failed, passed)
+3.9         OLD: 24 failed, 6152 passed      NEW: 24 failed, 6185 passed      sets identical: yes
+3.10        OLD: 23 failed, 6249 passed      NEW: 23 failed, 6282 passed      sets identical: yes
+3.11        OLD: 23 failed, 6249 passed      NEW: 23 failed, 6282 passed      sets identical: yes
+3.12        OLD: 23 failed, 6250 passed      NEW: 23 failed, 6283 passed      sets identical: yes
+3.13        OLD: 23 failed, 6283 passed      NEW: 23 failed, 6316 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6152 passed      NEW: 24 failed, 6185 passed      sets identical: yes
+3.14        OLD: 23 failed, 6240 passed      NEW: 23 failed, 6273 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6249 passed      NEW: 23 failed, 6282 passed      sets identical: yes
+3.15        OLD: 23 failed, 6250 passed      NEW: 23 failed, 6283 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- gates (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7049, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)
+pre_commit exit=0 :: 17 hooks passed
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).

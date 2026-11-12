@@ -19,10 +19,11 @@ configuration.
 
 Original issues fixed (from remarx ``text_input.py``):
 
-1. **Hard-coded UTF-8** — replaced by a three-stage encoding detection
-   chain: BOM → chardet (if installed) → Latin-1 last resort.
-2. **BOM character leaking** — BOM bytes are stripped before returning
-   text by using ``utf-8-sig`` when a UTF-8 BOM is detected.
+1. **Hard-coded UTF-8** -- replaced by an encoding detection chain over
+   the whole file: byte-order mark, UTF-8, chardet (if installed), cp1252,
+   latin-1; a binary file raises ``ValueError``.
+2. **BOM character leaking** -- the byte-order mark is not kept in the
+   text: ``utf-8-sig``, ``utf-16`` and ``utf-32`` consume it.
 3. **No file-size guard** — ``max_file_bytes`` parameter allows callers
    to reject unexpectedly large files before reading into memory.
 4. **No section_type in yielded dict** — every chunk now includes
@@ -66,34 +67,47 @@ _CHARDET_MIN_CONFIDENCE: float = 0.80
 _SNIFF_BYTES: int = 8192
 
 
-def _detect_encoding(raw: bytes) -> str:  # noqa: PLR0911
+def _detect_encoding(raw: bytes) -> str | None:  # noqa: PLR0911
     r"""
-    Detect the encoding of ``raw`` bytes using a priority chain.
+    Return the codec that decodes ``raw``, or ``None`` if it is not text.
 
     Priority order
     --------------
-    1. BOM markers (definitive, no false positives).
-    2. Strict UTF-8 decode (most common case for modern corpora).
-    3. chardet library (if installed, confidence >= 0.80).
-    4. Latin-1 fallback (accepts every byte value; never raises).
+    1. A byte-order mark: ``utf-8-sig``, ``utf-32`` or ``utf-16``. These
+       codecs read the byte order from the mark and drop it.
+    2. ``None`` when ``raw`` holds a NUL byte: without a byte-order mark,
+       text files do not contain NUL; binary files nearly always do. This
+       comes before UTF-8 because NUL is valid UTF-8 (U+0000), and UTF-16
+       text without a mark is valid UTF-8 full of NULs.
+    3. Strict UTF-8 of all of ``raw``.
+    4. chardet (if installed, confidence at least 0.80), when the codec it
+       names decodes all of ``raw``.
+    5. ``cp1252`` when it decodes all of ``raw``, else ``latin-1``.
 
     Parameters
     ----------
     raw : bytes
-        Raw bytes to inspect (need not be the entire file; a head
-        sample of several kilobytes is sufficient).
+        The whole file. A prefix is not enough: a multi-byte character cut
+        at its end fails strict UTF-8, and a non-UTF-8 byte after it is
+        missed.
 
     Returns
     -------
-    str
-        Python codec name suitable for ``bytes.decode(enc)``.
+    str or None
+        Python codec name suitable for ``bytes.decode(enc)``, or ``None``
+        for binary content.
 
     Notes
     -----
-    Latin-1 as the final fallback is intentional: every byte in
-    [0x00, 0xFF] is a valid Latin-1 code point, so it never raises
-    ``UnicodeDecodeError``. The decoded text may contain mojibake for
-    genuinely non-Latin-1 files, but that is preferable to a crash.
+    **cp1252 before latin-1:** the two agree except on bytes 0x80 to 0x9F,
+    which latin-1 maps to C1 control characters that real text does not
+    use and cp1252 maps to punctuation such as the dash and the euro sign.
+    The WHATWG Encoding Standard decodes text labelled ISO-8859-1 as
+    windows-1252 for the same reason. latin-1 remains for the five bytes
+    cp1252 leaves undefined; it decodes every byte, so step 5 never fails.
+
+    **chardet** is a statistical guess and optional, so a file that is not
+    UTF-8 can decode differently with and without it installed.
 
     Examples
     --------
@@ -101,50 +115,64 @@ def _detect_encoding(raw: bytes) -> str:  # noqa: PLR0911
     'utf-8-sig'
     >>> _detect_encoding(b"Hello world")
     'utf-8'
+    >>> _detect_encoding(b"caf\xe9 \x97 \x805")  # cafe, em dash, euro sign
+    'cp1252'
+    >>> _detect_encoding(b"\x89PNG\r\n\x1a\n\x00\x00") is None
+    True
     """
-    # --- Stage 1: BOM markers ---
+    # --- Stage 1: BOM markers (UTF-32 first: its LE mark starts with UTF-16's) ---
     if raw.startswith(b"\xef\xbb\xbf"):
         return "utf-8-sig"
-    if raw.startswith(b"\xff\xfe\x00\x00"):
-        return "utf-32-le"
-    if raw.startswith(b"\x00\x00\xfe\xff"):
-        return "utf-32-be"
-    if raw.startswith(b"\xff\xfe"):
-        return "utf-16-le"
-    if raw.startswith(b"\xfe\xff"):
-        return "utf-16-be"
+    if raw.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+        return "utf-32"
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return "utf-16"
 
-    # --- Stage 2: Strict UTF-8 ---
+    # --- Stage 2: binary (before UTF-8: NUL is valid UTF-8, U+0000) ---
+    if b"\x00" in raw:
+        return None
+
+    # --- Stage 3: Strict UTF-8 ---
     try:
         raw.decode("utf-8")
         return "utf-8"
     except UnicodeDecodeError:
         pass
 
-    # --- Stage 3: chardet (optional dependency) ---
+    # --- Stage 4: chardet (optional dependency) ---
     try:
         import chardet  # type: ignore[] # noqa: PLC0415
-
+    except ImportError:
+        chardet = None
+    if chardet is not None:
         result = chardet.detect(raw[:_SNIFF_BYTES])
         confidence = result.get("confidence") or 0.0
         enc = result.get("encoding")
-        if enc and confidence >= _CHARDET_MIN_CONFIDENCE:
+        if enc and confidence >= _CHARDET_MIN_CONFIDENCE and _decodes(raw, enc):
             logger.debug(
                 "TextReader: chardet detected encoding %r (confidence=%.2f).",
                 enc,
                 confidence,
             )
             return enc
-    except ImportError:
-        pass  # chardet not installed; continue to fallback
 
-    # --- Stage 4: Latin-1 fallback (never raises) ---
+    # --- Stage 5: cp1252, then latin-1 (never fails) ---
+    fallback = "cp1252" if _decodes(raw, "cp1252") else "latin-1"
     logger.warning(
-        "TextReader: could not confidently detect encoding; "
-        "falling back to 'latin-1'. Install chardet for better detection: "
-        "pip install chardet"
+        "TextReader: the file is not UTF-8 and its encoding is unknown;"
+        " decoding as %r. Pass encoding=... if that is wrong.",
+        fallback,
     )
-    return "latin-1"
+    return fallback
+
+
+def _decodes(raw: bytes, encoding: str) -> bool:
+    """Return whether ``raw`` decodes strictly with the codec ``encoding``."""
+    try:
+        raw.decode(encoding)
+    except (UnicodeDecodeError, LookupError):
+        return False
+    return True
 
 
 @dataclass
@@ -169,8 +197,9 @@ class TextReader(DocumentReader):
     input_path : pathlib.Path
         Path to the ``.txt`` file.
     encoding : str or None, optional
-        Explicit encoding override. When ``None`` (default), encoding is
-        detected automatically via BOM → chardet → Latin-1.
+        Explicit encoding override. When ``None`` (default), the encoding is
+        detected from the whole file: byte-order mark, UTF-8, chardet (if
+        installed), cp1252, latin-1. See the Notes.
     max_file_bytes : int, optional
         Maximum file size in bytes. Files larger than this limit raise
         ``ValueError`` before any bytes are read. Default: 500 MB.
@@ -195,9 +224,12 @@ class TextReader(DocumentReader):
     ------
     ValueError
         If the file exceeds ``max_file_bytes``.
+    ValueError
+        If ``encoding`` is ``None`` and the file is binary (a NUL byte and
+        no byte-order mark).
     UnicodeDecodeError
-        Should never occur (Latin-1 fallback handles all byte values),
-        but may be raised if an explicit ``encoding`` override is wrong.
+        If an explicit ``encoding`` is set and the file is not valid in it.
+        Detected encodings always decode the file.
 
     See Also
     --------
@@ -206,11 +238,12 @@ class TextReader(DocumentReader):
 
     Notes
     -----
-    **Encoding detection** uses the ``_detect_encoding()`` helper which
-    reads at most ``_SNIFF_BYTES`` (8 KB) for the chardet probe, then
-    reads the full file with the detected codec. This means large files
-    are read twice from disk only in the chardet path; the UTF-8 BOM and
-    strict-UTF-8 paths read the full file only once.
+    **Encoding detection** (``encoding=None``) inspects the whole file,
+    read once: a byte-order mark (UTF-8, UTF-16, UTF-32; the mark is not
+    kept in the text), then strict UTF-8, then chardet if installed, then
+    ``cp1252``, then ``latin-1``. A file with a NUL byte and no byte-order
+    mark is binary and raises ``ValueError``. Only chardet's step depends
+    on what is installed; it is reached only for files that are not UTF-8.
 
     **Memory:** The entire file is read into a single Python ``str``. For
     files larger than a few hundred MB, consider splitting before ingestion
@@ -281,6 +314,8 @@ class TextReader(DocumentReader):
         ------
         ValueError
             If the file size exceeds ``max_file_bytes``.
+        ValueError
+            If ``encoding`` is ``None`` and the file is binary.
         OSError
             If the file cannot be opened or read.
         UnicodeDecodeError
@@ -303,24 +338,34 @@ class TextReader(DocumentReader):
                 f" Increase max_file_bytes or split the file before ingestion."
             )
 
-        # Determine encoding
+        raw = self.input_path.read_bytes()
         if self.encoding is not None:
-            # Caller supplied explicit encoding — use directly
+            # Caller supplied explicit encoding -- use directly
             enc = self.encoding
             logger.debug(
                 "TextReader: using explicit encoding %r for %s.", enc, self.file_name
             )
         else:
-            # Auto-detect from head bytes
-            with self.input_path.open("rb") as fh:
-                head_bytes = fh.read(_SNIFF_BYTES)
-            enc = _detect_encoding(head_bytes)
+            # Detected from the whole file: a prefix can end inside a
+            # multi-byte character or miss a later non-UTF-8 byte.
+            detected = _detect_encoding(raw)
+            if detected is None:
+                offset = raw.index(b"\x00")
+                raise ValueError(
+                    f"TextReader: {self.file_name} is not a text file: it holds"
+                    f" a NUL byte at offset {offset} and no byte-order mark. If"
+                    " it is UTF-16 or UTF-32 without a byte-order mark, pass"
+                    " encoding='utf-16-le' (or the matching codec)."
+                )
+            enc = detected
             logger.debug(
                 "TextReader: detected encoding %r for %s.", enc, self.file_name
             )
 
-        # Read full file with detected/explicit encoding
-        text = self.input_path.read_text(encoding=enc)
+        # Universal newlines, as ``Path.read_text`` gives: "\r\n" and "\r"
+        # become "\n", so line endings do not depend on the platform that
+        # wrote the file.
+        text = raw.decode(enc).replace("\r\n", "\n").replace("\r", "\n")
 
         if not text.strip():
             logger.warning(

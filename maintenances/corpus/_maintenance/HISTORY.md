@@ -1,5 +1,39 @@
 # Corpus maintenance history
 
+## 2026-11-13 — text files: encoding from the whole file, binary refused, PR 932
+
+Every local reader was run on empty, binary, truncated and differently
+encoded files. `TextReader` (`.txt`, `.md`, `.rst`, and ZIP members of those
+types) had four defects:
+
+- **CX-20: encoding from an 8 KiB prefix.** `_detect_encoding` saw the first
+  8 KiB and the whole file was decoded with its answer. A UTF-8 file with a
+  multi-byte character across byte 8192 failed strict UTF-8 on the prefix
+  and, without chardet, decoded as latin-1: 4,800 Chinese characters came
+  out as 14,400 characters of mojibake. A file whose first non-UTF-8 byte
+  came after 8 KiB raised `UnicodeDecodeError`. The detector now takes the
+  whole file, read once.
+- **The byte-order mark stayed in UTF-16 and UTF-32 text.** `utf-16-le`,
+  `utf-16-be`, `utf-32-le` and `utf-32-be` keep a BOM as U+FEFF; now
+  `utf-16` and `utf-32`, which read the order from the mark and drop it.
+- **Binary files became documents.** With no UTF-8, the latin-1 fallback
+  decoded any bytes. A NUL byte without a BOM now raises `ValueError` with
+  its offset, checked before UTF-8 because NUL is valid UTF-8 and UTF-16
+  without a mark is valid UTF-8 full of NULs.
+- **Windows-1252 punctuation became C1 controls.** The fallback is now
+  `cp1252` when it decodes the file (the WHATWG mapping for text labelled
+  latin-1), else latin-1.
+- chardet's guess is used only if it decodes the whole file. Line endings
+  are translated as `read_text` did; a first version without that changed
+  the 10 research files with CRLF, caught by comparing all 95 with `main`.
+- Text unchanged: the 95 research text files, identical to `main`.
+- Tests: 30 new or rewritten in `test__text_and_zip.py` (old ones accepted
+  any answer); 28 fail on `main`. 16 mutations caught.
+- **Recorded, not changed** (ledger notes): CX-21 a file that is not UTF-8
+  decodes differently with and without chardet; CX-22 `DefaultFilter` drops
+  text written without spaces between words (Chinese, Japanese, Thai).
+- Evidence: `evidence/round-2026-11-13-text-encoding.log`.
+
 ## 2026-11-12 — PDF files and pages that cannot be read; OCR of scanned pages, PR 931
 
 - **CX-18: `PDFReader` lost unreadable files and pages without a word.** A
