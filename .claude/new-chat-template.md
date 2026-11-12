@@ -183,6 +183,7 @@ one line.
     when a directory under `upcoming_changes/` appears or disappears)
   - `tools/maint_tools/check_path_lengths.py check`
   - `tools/maint_tools/check_test_module_names.py`
+  - `tools/maint_tools/check_refused_requirements.py`
   - `python -m libs._tools check`
   - each touched submodule's `_maintenance/check_trackers.py`
   - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`

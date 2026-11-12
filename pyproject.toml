@@ -621,6 +621,11 @@ ipymagic = [
 corpus = [
   "lxml",
   "pypdf",
+  ## CAUTION: require "pdfminer.six" only. Never add "pdfminer" (the import
+  ## name): it is another, older distribution that installs the same package.
+  ## Installed together the two overwrite each other and
+  ## `import pdfminer.high_level` fails, which breaks corpus.PDFReader.
+  ## Enforced by tools/maint_tools/check_refused_requirements.py (CI).
   "pdfminer.six",
 
   "langdetect",

@@ -38,6 +38,14 @@ Python compatibility:
 
 Python 3.8-3.15. Zero runtime imports at module level. ``pdfminer.six`` and
 ``pypdf`` are optional lazy imports.
+
+Caution for maintainers:
+
+The distribution to require is ``pdfminer.six``. Do not add ``pdfminer``, even
+though that is the import name: it is a different, older distribution that
+installs the same package, and the two overwrite each other (see
+``_pdfminer_import_error``). ``tools/maint_tools/check_refused_requirements.py``
+enforces this in CI.
 """  # noqa: D205, D400
 
 from __future__ import annotations
@@ -75,6 +83,51 @@ _PDF_DEFAULT_MAX_FILE_BYTES: int = 2 * 1024 * 1024 * 1024  # 2 GB
 # ---------------------------------------------------------------------------
 # Backend helpers
 # ---------------------------------------------------------------------------
+
+
+class _IncompletePdfminerError(ImportError):
+    """The package ``pdfminer`` is installed but cannot be imported whole."""
+
+
+def _pdfminer_import_error(exc: ImportError) -> ImportError:
+    """
+    Return the error to raise when pdfminer.six cannot be imported.
+
+    Parameters
+    ----------
+    exc : ImportError
+        What importing ``pdfminer.high_level`` or ``pdfminer.layout`` raised.
+
+    Returns
+    -------
+    ImportError
+        An install hint when the package ``pdfminer`` is absent; an
+        ``_IncompletePdfminerError`` when it is present but a module or a
+        name in it is missing.
+
+    Notes
+    -----
+    **Developer note:** Two distributions install the import package
+    ``pdfminer``: ``pdfminer.six``, which this reader needs, and
+    ``pdfminer``, an older project without ``pdfminer.high_level``.
+    Installed together they overwrite each other's files, and uninstalling
+    one removes files of the other. The usual symptoms are ``cannot import
+    name 'HOCRConverter' from 'pdfminer.converter'`` and ``No module named
+    'pdfminer.converter'``. Never add ``pdfminer`` to a requirement list:
+    ``tools/maint_tools/check_refused_requirements.py`` fails if it is.
+    """
+    if isinstance(exc, ModuleNotFoundError) and exc.name == "pdfminer":
+        return ImportError(
+            "pdfminer.six is required for PDFReader (primary backend)."
+            " Install it with:\n  pip install pdfminer.six"
+        )
+    return _IncompletePdfminerError(
+        f"PDFReader: the installed package 'pdfminer' is incomplete ({exc})."
+        " The distributions 'pdfminer' and 'pdfminer.six' both install it and"
+        " must not be installed together. Reinstall pdfminer.six alone:\n"
+        "  pip uninstall pdfminer pdfminer.six\n"
+        "  pip install pdfminer.six"
+    )
 
 
 class _PdfminerPages:
@@ -144,10 +197,7 @@ class _PdfminerPages:
                 LTTextContainer,
             )
         except ImportError as exc:
-            raise ImportError(
-                "pdfminer.six is required for PDFReader (primary backend)."
-                " Install it with:\n  pip install pdfminer.six"
-            ) from exc
+            raise _pdfminer_import_error(exc) from exc
 
         if self._pages is None or page_number != self._at:
             self.close()
@@ -325,6 +375,7 @@ class _PageTexts:
     ) -> None:
         self._prefer_backend = prefer_backend
         self._pdfminer = _PdfminerPages(pdf_path, password, pdfminer_kwargs)
+        self._warned = False
         self._pypdf = _PypdfPages(pdf_path, password)
 
     def text(self, page_idx: int) -> str | None:
@@ -357,7 +408,16 @@ class _PageTexts:
         # Auto mode: pdfminer primary, pypdf fallback per-page
         try:
             text = self._pdfminer.text(page_idx)
-        except ImportError:
+        except ImportError as exc:
+            # Absent pdfminer.six is an ordinary reason to use pypdf; a
+            # damaged install is not, so it is said once per read.
+            if isinstance(exc, _IncompletePdfminerError) and not self._warned:
+                self._warned = True
+                logger.warning(
+                    "PDFReader: reading with pypdf, because pdfminer could not"
+                    " be imported. %s",
+                    exc,
+                )
             text = None
 
         if text and text.strip():

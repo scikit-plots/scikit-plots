@@ -166,6 +166,21 @@ name. The check runs on every pull request (`pr_check_path_lengths.yml`).
 Module-specific maintenance instructions may impose stronger checks. Follow the
 stronger rule when it does not conflict with repository policy.
 
+### Requirements that must not be added
+
+A distribution's name is not always its import name. `pdfminer.six` installs
+the package `pdfminer`; a separate, older distribution is itself called
+`pdfminer` and installs the same package. Requiring both, or the wrong one,
+leaves a `pdfminer` that cannot import the modules `scikitplot.corpus` uses.
+
+`tools/maint_tools/check_refused_requirements.py` holds the list of such
+names (`REFUSED`), each with the distribution to require instead and the
+observed reason, and fails when any requirement list names one. It runs on
+every pull request (`pr_check_refused_requirements.yml`). When a dependency
+problem turns out to be two distributions sharing one import package, add the
+wrong name to that table with what was reproduced, and put a short caution
+comment above the right name in `pyproject.toml`.
+
 ## API convention: options for a named backend
 
 Applies to every class or function that does its work through one of several

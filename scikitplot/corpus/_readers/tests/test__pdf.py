@@ -181,10 +181,36 @@ class _FakePypdf:
         monkeypatch.setitem(sys.modules, "pypdf", module)
 
 
+class _Absent:
+    """A meta path finder for which the named top-level packages do not exist."""
+
+    def __init__(self, names: Sequence[str]) -> None:
+        self._names = tuple(names)
+
+    def find_spec(self, fullname: str, path: Any = None, target: Any = None) -> None:
+        top = fullname.partition(".")[0]
+        if top in self._names:
+            # What Python raises when no distribution provides the package.
+            raise ModuleNotFoundError(f"No module named {top!r}", name=top)
+
+
 def _missing(monkeypatch: pytest.MonkeyPatch, *names: str) -> None:
-    """Make importing each of ``names`` raise ImportError."""
+    """
+    Make each of ``names`` an absent package or a missing module.
+
+    A name without a dot is a package that is not installed: importing it or
+    anything under it raises ``ModuleNotFoundError`` for the top-level name.
+    A dotted name is a module missing from a package that is there.
+    """
+    absent = [name for name in names if "." not in name]
+    for name in absent:
+        for loaded in [k for k in sys.modules if k == name or k.startswith(name + ".")]:
+            monkeypatch.delitem(sys.modules, loaded)
+    if absent:
+        monkeypatch.setattr(sys, "meta_path", [_Absent(absent), *sys.meta_path])
     for name in names:
-        monkeypatch.setitem(sys.modules, name, None)
+        if "." in name:
+            monkeypatch.setitem(sys.modules, name, None)
 
 
 @pytest.fixture
@@ -333,10 +359,46 @@ class TestPdfminerOnePass:
     def test_missing_pdfminer_is_an_import_error(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _missing(monkeypatch, "pdfminer", "pdfminer.high_level", "pdfminer.layout")
+        _missing(monkeypatch, "pdfminer")
         reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
         with pytest.raises(ImportError, match=r"pdfminer\.six is required"):
             list(reader.get_raw_chunks())
+
+
+class TestDamagedPdfminer:
+    @pytest.mark.parametrize("module", ["pdfminer.high_level", "pdfminer.layout"])
+    def test_a_package_without_one_of_its_modules_is_named_as_incomplete(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, module: str
+    ) -> None:
+        _FakePdfminer([[_Box("a")]]).install(monkeypatch)
+        monkeypatch.setitem(sys.modules, module, None)
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        with pytest.raises(ImportError, match="is incomplete") as info:
+            list(reader.get_raw_chunks())
+        message = str(info.value)
+        assert module in message
+        assert "must not be installed together" in message
+        assert "pip install pdfminer.six" in message
+        assert isinstance(info.value.__cause__, ImportError)
+
+    def test_a_module_without_a_name_is_named_as_incomplete(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([[_Box("a")]]).install(monkeypatch)
+        monkeypatch.delattr(sys.modules["pdfminer.layout"], "LAParams")
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        with pytest.raises(ImportError, match="is incomplete") as info:
+            list(reader.get_raw_chunks())
+        assert "LAParams" in str(info.value)
+
+    def test_an_absent_package_is_an_install_hint_only(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _missing(monkeypatch, "pdfminer")
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        with pytest.raises(ImportError, match=r"pdfminer\.six is required") as info:
+            list(reader.get_raw_chunks())
+        assert "incomplete" not in str(info.value)
 
 
 class TestPdfminerPages:
@@ -527,7 +589,7 @@ class TestPdfminerKwargs:
     def test_pypdf_ignores_pdfminer_kwargs(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _missing(monkeypatch, "pdfminer", "pdfminer.high_level", "pdfminer.layout")
+        _missing(monkeypatch, "pdfminer")
         fake = _FakePypdf(["A"])
         fake.install(monkeypatch)
         reader = _reader(
@@ -687,11 +749,38 @@ class TestAutoMode:
     def test_without_pdfminer_every_page_comes_from_pypdf(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _missing(monkeypatch, "pdfminer", "pdfminer.high_level", "pdfminer.layout")
+        _missing(monkeypatch, "pdfminer")
         backup = _FakePypdf(["A", "B"])
         backup.install(monkeypatch)
         assert _texts(_reader(pdf_path, monkeypatch, 2)) == [(0, "A"), (1, "B")]
         assert backup.opens == 1
+
+    def test_a_damaged_pdfminer_is_said_once_and_pypdf_reads(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([]).install(monkeypatch)
+        monkeypatch.setitem(sys.modules, "pdfminer.high_level", None)
+        backup = _FakePypdf(["A", "B"])
+        backup.install(monkeypatch)
+        assert _texts(_reader(pdf_path, monkeypatch, 2)) == [(0, "A"), (1, "B")]
+        (warning,) = logged["warning"]
+        assert "reading with pypdf" in warning
+        assert "the installed package 'pdfminer' is incomplete" in warning
+        assert "pip uninstall pdfminer pdfminer.six" in warning
+
+    def test_a_missing_pdfminer_is_not_a_warning(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _missing(monkeypatch, "pdfminer")
+        _FakePypdf(["A"]).install(monkeypatch)
+        assert _texts(_reader(pdf_path, monkeypatch, 1)) == [(0, "A")]
+        assert logged["warning"] == []
 
     def test_without_pypdf_a_page_without_text_is_skipped(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -704,9 +793,7 @@ class TestAutoMode:
     def test_without_either_library_the_error_names_both(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _missing(
-            monkeypatch, "pdfminer", "pdfminer.high_level", "pdfminer.layout", "pypdf"
-        )
+        _missing(monkeypatch, "pdfminer", "pypdf")
         reader = _reader(pdf_path, monkeypatch, 1)
         with pytest.raises(ImportError, match=r"Neither pdfminer\.six nor pypdf"):
             list(reader.get_raw_chunks())

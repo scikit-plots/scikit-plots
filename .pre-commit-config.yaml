@@ -74,6 +74,14 @@ repos:
         always_run: true
         pass_filenames: false
 
+      - id: check-refused-requirements
+        name: Run check refused requirements
+        entry: python -I -B tools/maint_tools/check_refused_requirements.py
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
       - id: check-pr-labeler
         name: Run check pr labeler
         entry: python -I -B tools/maint_tools/generate_pr_labeler.py check

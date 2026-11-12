@@ -348,6 +348,35 @@ pytest's `prepend` mode does (dotted package path when the directory has
 a file is renamed, delete the old one, or this check fails on the clash.
 
 
+## Refused requirements (`check_refused_requirements.py`)
+
+Some distributions must never be required, because they cannot be installed
+next to the one the code needs: two distributions that ship the same import
+package overwrite each other's files, and the result depends on the installer.
+The wrong name is usually the import name, so it gets added again in good
+faith.
+
+```bash
+python tools/maint_tools/check_refused_requirements.py
+```
+
+The check reads every requirement list (`pyproject.toml`,
+`libs/*/pyproject.toml`: build requirements, dependencies, extras and
+dependency groups; `requirements/*.txt`) and fails when one names a
+distribution in the tool's `REFUSED` table, printing what to require instead
+and the recorded reason. Names are compared after PEP 503 normalization, so
+`pdfminer.six` is not `pdfminer`. CI runs it in
+`pr_check_refused_requirements.yml`.
+
+Current entries:
+
+| Refused | Require instead | Why |
+|---|---|---|
+| `pdfminer` | `pdfminer.six` | Both install the package `pdfminer`. Installed together they left one that cannot import `pdfminer.high_level`, which `scikitplot.corpus.PDFReader` needs. |
+
+Add an entry only with a reproduced reason, and write what was observed into
+its `reason`.
+
 ## Labeler generator (`generate_pr_labeler.py`)
 
 Three files drive labeling, all checked by one tool and by CI

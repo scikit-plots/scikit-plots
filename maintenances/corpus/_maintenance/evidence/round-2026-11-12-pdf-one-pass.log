@@ -222,3 +222,47 @@ test_module_names exit=0 :: ok scikitplot: every test module name is unique
 libs_tools exit=0 :: Generated files are up to date.
 corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
 mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
+
+=== safeguards for CX-17 (so the requirement does not come back)
+
+--- tools/maint_tools/check_refused_requirements.py (CPython 3.13.18)
+NEW: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)   (exit 0)
+OLD (main at f30de99): exit 1, 3 refused requirement(s):
+  pyproject.toml: project.optional-dependencies.corpus: 'pdfminer'
+  libs/corpus/pyproject.toml: project.optional-dependencies.corpus: 'pdfminer'
+  requirements/corpus.txt: line 6: 'pdfminer'
+tool tests: 10 passed on CPython 3.11, 3.13, 3.15 (python -m unittest); mutations: 15 of 15 caught, after a branch
+two mutations showed to be redundant was removed
+libs/corpus/pyproject.toml is generated (python -m libs._tools generate), so the caution comment is in the root
+pyproject.toml only
+
+--- a damaged pdfminer package, the real one (uv pip install pdfminer.six pdfminer, CPython 3.12)
+default mode: WARNING PDFReader: reading with pypdf, because pdfminer could not be imported. PDFReader: the installed
+  package 'pdfminer' is incomplete (cannot import name 'HOCRConverter' from 'pdfminer.converter' ...). The
+  distributions 'pdfminer' and 'pdfminer.six' both install it and must not be installed together. Reinstall
+  pdfminer.six alone: pip uninstall pdfminer pdfminer.six / pip install pdfminer.six      -> 2 documents from pypdf
+prefer_backend="pdfminer": ImportError with the same text. OLD: default mode read with pypdf without a message.
+test__pdf.py: 63 passed on CPython 3.9, 3.12, 3.13, 3.13t, 3.14, 3.15; mutations: 6 more caught (36 for _pdf.py in all)
+
+--- suites after these changes (failed, passed; OLD = main at f30de99)
+3.9         OLD: 24 failed, 6002 passed      NEW: 24 failed, 6065 passed      sets identical: yes
+3.10        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6162 passed      sets identical: yes
+3.11        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6162 passed      sets identical: yes
+3.12        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6162 passed      sets identical: yes
+3.13        OLD: 23 failed, 6132 passed      NEW: 23 failed, 6195 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6002 passed      NEW: 24 failed, 6065 passed      sets identical: yes
+3.14        OLD: 23 failed, 6090 passed      NEW: 23 failed, 6153 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6099 passed      NEW: 23 failed, 6162 passed      sets identical: yes
+3.15        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6162 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- gates after these changes (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7041, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin

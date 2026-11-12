@@ -54,6 +54,19 @@
   stray files, so the outcome depends on the installer. The bare name is
   removed from `pyproject.toml`, `libs/corpus/pyproject.toml` and the
   generated `requirements/corpus.txt` and `libs/corpus/README_CORPUS.md`.
+- **CX-17, so it does not come back.** (1) A caution above `pdfminer.six` in
+  `pyproject.toml` and in `_pdf.py`'s module docstring. (2)
+  `tools/maint_tools/check_refused_requirements.py`: reads every requirement
+  list (`pyproject.toml`, `libs/*/pyproject.toml`, `requirements/*.txt`) and
+  fails on a distribution in its `REFUSED` table, saying what to require
+  instead and why; it fails on `main` at the three places this PR changed.
+  CI workflow `pr_check_refused_requirements.yml`, a pre-push hook, 10 tool
+  tests, 15 mutations caught. (3) `PDFReader` tells a damaged `pdfminer`
+  package from an absent one: absent keeps the install hint; damaged raises
+  an `ImportError` that names the two distributions and the reinstall
+  commands, and in the default mode, where pypdf takes over, the same text
+  is logged as one warning per read (before: silent). Checked against the
+  real damaged install. 6 more tests (63 in `test__pdf.py`), 6 mutations.
 - Evidence: `evidence/round-2026-11-12-pdf-one-pass.log`.
 
 ## 2026-11-12 — second research self-test, PR 928
