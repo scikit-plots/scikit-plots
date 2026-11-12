@@ -1,6 +1,6 @@
 # Corpus maintenance history
 
-## 2026-11-13 — text files: encoding from the whole file, binary refused, PR 932
+## 2026-11-13 — text encoding as a policy; script-aware word count; reader snapshots, PR 932
 
 Every local reader was run on empty, binary, truncated and differently
 encoded files. `TextReader` (`.txt`, `.md`, `.rst`, and ZIP members of those
@@ -27,11 +27,41 @@ types) had four defects:
   are translated as `read_text` did; a first version without that changed
   the 10 research files with CRLF, caught by comparing all 95 with `main`.
 - Text unchanged: the 95 research text files, identical to `main`.
-- Tests: 30 new or rewritten in `test__text_and_zip.py` (old ones accepted
-  any answer); 28 fail on `main`. 16 mutations caught.
-- **Recorded, not changed** (ledger notes): CX-21 a file that is not UTF-8
-  decodes differently with and without chardet; CX-22 `DefaultFilter` drops
-  text written without spaces between words (Chinese, Japanese, Thai).
+- Tests: `test__text_and_zip.py` 142 (69 new or rewritten; the old encoding
+  tests accepted any answer), `test__default_filter.py` 51 (new). 16
+  mutations caught for the detection; more below.
+- **CX-21 (a) and (b): the encoding is a policy, and it is recorded.**
+  chardet, an optional statistical guesser, decided the text of files that
+  are not UTF-8 wherever it happened to be installed. `encoding=None` now
+  follows fixed rules only (mark, binary, UTF-8, cp1252, latin-1); other
+  policies are explicit: a codec name (strict), a list of candidate codecs
+  (the first that decodes the whole file; a mark comes first; `ValueError`
+  if none does), `"chardet"` (the guess, on request; `ImportError` without
+  it), or a callable `(raw) -> codec`. Every chunk records the codec used in
+  its `encoding` metadata. Codec names are checked at construction.
+- **CX-22 (a): `DefaultFilter(word_count=...)`.** `min_words` counted
+  `str.split()` tokens, so text in scripts written without spaces between
+  words was one word and dropped. The default, `"script"`, counts one word
+  per character of Han, Hiragana, Katakana, Thai, Lao, Khmer, Myanmar and
+  Tibetan (Unicode block ranges), and whitespace tokens otherwise, so spaced
+  text counts exactly as before; `"whitespace"` keeps the old count; a
+  callable `(text) -> int` counts in its own way (a segmenter).
+- **Process: `reader_snapshot.py`** (corpus maintenance tools). Reads every
+  file of a folder twice and records result, counts, a digest of the texts
+  and of whole chunks, error and warnings; `compare` lists every file that
+  changed and every file whose two reads differ. Documented in
+  `maintenances/corpus/MAINTAINING.md` as the step for reader and filter
+  changes, and in the chat template's verification list. 16 tool tests,
+  standard library only, Python 3.8 and newer. First runs (95 research files
+  and 26 broken files, old and new tree, CPython 3.13 with chardet and lxml
+  and 3.12 without): the 95 research files keep their text; on `main` the
+  Chinese file was one document of mojibake without chardet and no document
+  with it (decoded, then filtered), on the branch one correct document on
+  both; XML errors differ by interpreter (CX-23); a ZIP member's warning
+  names a random temporary path, so the tool judges stability on data only.
+- **Recorded, not changed** (ledger note): CX-23 `XMLReader` raises
+  `XMLSyntaxError` with lxml and `ValueError` without it, as its docstring
+  says it should; a decision.
 - Evidence: `evidence/round-2026-11-13-text-encoding.log`.
 
 ## 2026-11-12 — PDF files and pages that cannot be read; OCR of scanned pages, PR 931

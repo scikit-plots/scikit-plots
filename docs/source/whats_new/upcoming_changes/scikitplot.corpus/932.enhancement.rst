@@ -1,0 +1,6 @@
+- ``DefaultFilter`` no longer drops text in scripts written without spaces
+  between words (Chinese, Japanese, Thai, Lao, Khmer, Myanmar, Tibetan):
+  with the new default ``word_count="script"``, ``min_words`` counts one
+  word per character of those scripts and counts other text as before.
+  ``word_count="whitespace"`` restores the old count, and a callable
+  ``(text) -> int`` (a word segmenter, for example) counts in its own way.

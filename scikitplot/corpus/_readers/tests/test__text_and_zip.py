@@ -132,7 +132,8 @@ class TestDetectEncoding:
         chardet = MagicMock()
         chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.95}
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding(raw) == "KOI8-R"
+            assert _detect_encoding(raw, use_chardet=True) == "KOI8-R"
+            assert _detect_encoding(raw) == "cp1252"
 
     @pytest.mark.parametrize(
         "guess",
@@ -147,7 +148,7 @@ class TestDetectEncoding:
         chardet = MagicMock()
         chardet.detect.return_value = guess
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding(b"caf\xe9") == "cp1252"
+            assert _detect_encoding(b"caf\xe9", use_chardet=True) == "cp1252"
 
     def test_nul_is_binary_even_where_the_bytes_are_valid_utf8(self) -> None:
         assert b"text\x00more".decode("utf-8") == "text\x00more"
@@ -157,9 +158,20 @@ class TestDetectEncoding:
         chardet = MagicMock()
         chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.99}
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding("\u00e9".encode("utf-8")) == "utf-8"
-            assert _detect_encoding(b"\xe9\x00") is None
+            assert _detect_encoding(b"\xc3\xa9", use_chardet=True) == "utf-8"
+            assert _detect_encoding(b"\xe9\x00", use_chardet=True) is None
+            assert _detect_encoding(b"caf\xe9") == "cp1252"
         chardet.detect.assert_not_called()
+
+    def test_use_chardet_without_chardet_is_an_import_error(self) -> None:
+        with pytest.raises(ImportError, match="pip install chardet"):
+            _detect_encoding(b"caf\xe9", use_chardet=True)
+
+
+#: "pamyat" (memory) in KOI8-R: not UTF-8, decodable as cp1252.
+KOI8 = bytes([0xD0, 0xC1, 0xCD, 0xD1, 0xD4, 0xD8, 0x20])
+#: The same word as text.
+PAMYAT = "".join(chr(c) for c in (0x043F, 0x0430, 0x043C, 0x044F, 0x0442, 0x044C)) + " "
 
 
 def _decodes_prefix(raw: bytes, size: int) -> bool:
@@ -263,6 +275,15 @@ class TestTextReaderEncoding:
         with pytest.raises(UnicodeDecodeError):
             list(TextReader(input_path=f, encoding="utf-8").get_raw_chunks())
 
+    def test_the_default_ignores_an_installed_chardet(self, tmp_path: Path) -> None:
+        f = tmp_path / "ru.txt"
+        f.write_bytes(KOI8 * 20)
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.99}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert self._text(f) == KOI8.decode("cp1252") * 20
+        chardet.detect.assert_not_called()
+
     def test_the_same_text_with_chardet_present_for_a_utf8_file(
         self, tmp_path: Path
     ) -> None:
@@ -274,6 +295,175 @@ class TestTextReaderEncoding:
         with patch.dict("sys.modules", {"chardet": chardet}):
             assert self._text(f) == text
         assert self._text(f) == text
+
+
+class TestTextReaderEncodingPolicy:
+    """encoding=: a codec, candidates, 'chardet', a callable; codec recorded."""
+
+    @pytest.fixture(autouse=True)
+    def _no_chardet(self):
+        with patch.dict("sys.modules", {"chardet": None}):
+            yield
+
+    def _chunk(self, path: Path, **kwargs) -> dict:
+        (chunk,) = list(TextReader(input_path=path, **kwargs).get_raw_chunks())
+        return chunk
+
+    def _file(self, tmp_path: Path, raw: bytes, name: str = "doc.txt") -> Path:
+        f = tmp_path / name
+        f.write_bytes(raw)
+        return f
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (b"plain", "utf-8"),
+            (b"\xef\xbb\xbfmarked", "utf-8-sig"),
+            (b"\xff\xfem\x00", "utf-16"),
+            (b"caf\xe9", "cp1252"),
+            (b"caf\xe9\x81", "latin-1"),
+        ],
+    )
+    def test_the_codec_used_is_recorded(self, tmp_path: Path, raw, expected) -> None:
+        assert self._chunk(self._file(tmp_path, raw))["encoding"] == expected
+
+    def test_the_codec_reaches_the_document_metadata(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"caf\xe9 au lait, and more words here")
+        (doc,) = list(TextReader(input_path=f).get_documents())
+        assert doc.metadata["encoding"] == "cp1252"
+
+    def test_a_codec_name_decodes_strictly(self, tmp_path: Path) -> None:
+        chunk = self._chunk(self._file(tmp_path, KOI8), encoding="koi8_r")
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+
+    def test_the_first_candidate_that_decodes_wins(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, KOI8)
+        chunk = self._chunk(f, encoding=["utf-8", "koi8_r", "cp1252"])
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+        assert self._chunk(f, encoding=("utf-8", "cp1252", "koi8_r"))["encoding"] == (
+            "cp1252"
+        )
+
+    def test_a_byte_order_mark_comes_before_the_candidates(
+        self, tmp_path: Path
+    ) -> None:
+        f = self._file(tmp_path, "memory".encode("utf-16"))
+        chunk = self._chunk(f, encoding=["latin-1"])
+        assert (chunk["text"], chunk["encoding"]) == ("memory", "utf-16")
+
+    def test_candidates_read_utf16_without_a_mark_in_the_order_given(
+        self, tmp_path: Path
+    ) -> None:
+        # No binary check under candidates: the caller's order decides.
+        f = self._file(tmp_path, "memory".encode("utf-16-le"))
+        chunk = self._chunk(f, encoding=["utf-16-le"])
+        assert (chunk["text"], chunk["encoding"]) == ("memory", "utf-16-le")
+        # These bytes are also valid UTF-8 (with NULs), so order matters.
+        assert self._chunk(f, encoding=["utf-8", "utf-16-le"])["encoding"] == "utf-8"
+
+    def test_no_candidate_that_decodes_is_a_value_error(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"caf\xe9")
+        with pytest.raises(ValueError, match="none of the encoding candidates") as info:
+            list(TextReader(input_path=f, encoding=["utf-8", "ascii"]).get_raw_chunks())
+        assert "['utf-8', 'ascii']" in str(info.value)
+        assert "latin-1" in str(info.value)
+        assert self._chunk(f, encoding=["utf-8", "latin-1"])["encoding"] == "latin-1"
+
+    def test_chardet_on_request(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, KOI8 * 20)
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.95}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            chunk = self._chunk(f, encoding="chardet")
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT * 20, "KOI8-R")
+
+    def test_chardet_on_request_without_chardet_is_an_import_error(
+        self, tmp_path: Path
+    ) -> None:
+        f = self._file(tmp_path, b"caf\xe9")
+        with pytest.raises(ImportError, match="pip install chardet"):
+            list(TextReader(input_path=f, encoding="chardet").get_raw_chunks())
+
+    def test_chardet_on_request_still_refuses_binary(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"\x00\x01binary")
+        with pytest.raises(ValueError, match="not a text file"):
+            list(TextReader(input_path=f, encoding="chardet").get_raw_chunks())
+
+    def test_a_callable_gets_the_bytes_and_names_the_codec(
+        self, tmp_path: Path
+    ) -> None:
+        seen = []
+
+        def policy(raw: bytes) -> str:
+            seen.append(raw)
+            return "koi8_r"
+
+        chunk = self._chunk(self._file(tmp_path, KOI8), encoding=policy)
+        assert seen == [KOI8]
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+
+    def test_a_callable_is_not_asked_when_the_file_has_a_mark(
+        self, tmp_path: Path
+    ) -> None:
+        def policy(raw: bytes) -> str:
+            raise AssertionError("not called")
+
+        f = self._file(tmp_path, b"\xef\xbb\xbfmarked")
+        assert self._chunk(f, encoding=policy)["encoding"] == "utf-8-sig"
+
+    @pytest.mark.parametrize("returned", [None, 3, "no-such-codec", b"utf-8"])
+    def test_a_callable_returning_no_codec_is_a_type_error(
+        self, tmp_path: Path, returned
+    ) -> None:
+        reader = TextReader(
+            input_path=self._file(tmp_path, b"text"), encoding=lambda raw: returned
+        )
+        with pytest.raises(TypeError, match="must return a codec name"):
+            list(reader.get_raw_chunks())
+
+    def test_a_callable_naming_a_codec_that_fails_is_a_value_error(
+        self, tmp_path: Path
+    ) -> None:
+        reader = TextReader(
+            input_path=self._file(tmp_path, b"caf\xe9"), encoding=lambda raw: "utf-8"
+        )
+        with pytest.raises(ValueError, match="chose 'utf-8', which does not decode"):
+            list(reader.get_raw_chunks())
+
+    @pytest.mark.parametrize(
+        ("bad", "error"),
+        [
+            ("no-such-codec", ValueError),
+            (["utf-8", "no-such-codec"], ValueError),
+            (["utf-8", 3], ValueError),
+            ([], TypeError),
+            ((), TypeError),
+            (3, TypeError),
+            ({"utf-8"}, TypeError),
+            (b"utf-8", TypeError),
+        ],
+    )
+    def test_a_policy_outside_the_documented_ones_is_refused(
+        self, tmp_path: Path, bad, error
+    ) -> None:
+        with pytest.raises(error, match="encoding"):
+            TextReader(input_path=self._file(tmp_path, b"text"), encoding=bad)
+
+    @pytest.mark.parametrize(
+        "good",
+        [
+            None,
+            "utf-8",
+            "UTF8",
+            "latin_1",
+            ["utf-8"],
+            ("cp1252", "latin-1"),
+            "chardet",
+            len,
+        ],
+    )
+    def test_the_documented_policies_are_accepted(self, tmp_path: Path, good) -> None:
+        TextReader(input_path=self._file(tmp_path, b"text"), encoding=good)
 
 
 # ===========================================================================

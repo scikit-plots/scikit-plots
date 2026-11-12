@@ -174,6 +174,11 @@ one line.
   (a stand-in parent package is fine), with and without optional tiers.
 - The submodule's probes under `_maintenance/evidence/`, and a check that
   default output is byte-identical when the change is opt-in.
+- A change to a corpus reader or filter: snapshot a real folder of files
+  with the old tree and the new one, and compare
+  (`maintenances/corpus/_maintenance/tools/reader_snapshot.py`; see
+  `maintenances/corpus/MAINTAINING.md`). Every file that changes is
+  explained or fixed; a file reported unstable is a finding.
 - Lint compared against the previous tree: only reformat files that were
   black-clean before; no new suppressions without a reason.
 - Repository gates, all green (or a pre-existing failure named):

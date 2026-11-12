@@ -69,3 +69,64 @@ libs_tools exit=0 :: Generated files are up to date.
 corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
 mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
 corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+=== added to PR 932 afterwards: CX-21 and CX-22 as policies; reader_snapshot.py
+
+--- CX-22: DefaultFilter word count (test__default_filter.py, 51 tests, new)
+Chinese 11 chars, Japanese 12, Thai 12: counted 11, 12, 12 words with "script", 1 with "whitespace" (dropped)
+spaced scripts (English, Cyrillic, Korean, accented Latin, punctuation tokens): _count_words == len(str.split())
+mutations: 13 of 13 caught (default whitespace; script counts tokens; unspaced char counts once per token; pending
+run dropped; trailing run dropped; punctuation run counts; Thai not unspaced; kana not unspaced; CJK punctuation
+unspaced; callable result unchecked; bad policy accepted; min_words 0 still counts; extension B missing)
+
+--- CX-21: TextReader(encoding=...) policy; codec recorded (test__text_and_zip.py, 142 tests)
+None: BOM, binary, UTF-8, cp1252, latin-1 (no chardet); codec name: strict; list: first that decodes, a mark first;
+"chardet": on request (ImportError without it); callable (raw) -> codec, checked. chunk["encoding"] = codec used.
+mutations: 13 of 13 caught (chardet by default; chardet never; chardet missing silent; candidates ignore the mark;
+last candidate wins; no candidate falls back; callable result unchecked; callable codec not tried; codec not
+recorded; bad codec accepted; empty list accepted; unknown candidate accepted; UTF-32 mark read as UTF-16)
+the 16 detection mutations above: 16 of 16 still caught (E6 repointed to the new call)
+
+--- reader_snapshot.py: 121 files (95 research, 26 broken), old and new tree, CPython 3.13 (chardet, lxml) and
+--- 3.12 (neither); raw chunks and documents after the default filter
+old-3.13-raw: 121 file(s): 7 error(s), 0 unstable
+old-3.12-raw: 121 file(s): 7 error(s), 0 unstable
+new-3.13-raw: 121 file(s): 9 error(s), 0 unstable
+new-3.12-raw: 121 file(s): 9 error(s), 0 unstable
+main, 3.13 vs 3.12 (text only):
+  changed: broken/broken.xml: error 'XMLSyntaxError: Premature end of data in tag b line 1, line 1, column 67 (<string>, line 1)' -> 'ValueError: XMLR
+  changed: broken/chinese.txt: chars 4800 -> 14400
+  changed: broken/chinese.txt: text_digest 'fe3730eaac09f7fe165b39c01cff2a156e4f4122b1304ae29c238bf4cb70f5c6' -> 'ed5ec83d99f1c29651f3bd737adb38733a7e
+  changed: broken/empty.xml: error 'XMLSyntaxError: Document is empty, line 1, column 1 (<string>, line 1)' -> 'ValueError: XMLReader: could not parse
+  changed: broken/garbage.xml: error "XMLSyntaxError: Start tag expected, '<' not found, line 1, column 1 (<string>, line 1)" -> 'ValueError: XMLReade
+  5 difference(s).
+branch, 3.13 vs 3.12 (text only):
+  changed: broken/broken.xml: error 'XMLSyntaxError: Premature end of data in tag b line 1, line 1, column 67 (<string>, line 1)' -> 'ValueError: XMLR
+  changed: broken/empty.xml: error 'XMLSyntaxError: Document is empty, line 1, column 1 (<string>, line 1)' -> 'ValueError: XMLReader: could not parse
+  changed: broken/garbage.xml: error "XMLSyntaxError: Start tag expected, '<' not found, line 1, column 1 (<string>, line 1)" -> 'ValueError: XMLReade
+  3 difference(s).
+main vs branch, 3.12, text only, research files changed: 0
+main vs branch, 3.12, text only, files changed:  broken/binary.md  broken/binary.rst  broken/binary.txt  broken/chinese.txt  broken/cp1252.md  broken/cp1252.rst  broken/cp1252.txt  broken/late_latin1.txt  broken/utf16.md  broken/utf16.rst  broken/utf16.txt
+chinese.txt documents, old-3.12-docs: 1 document(s), 14400 chars
+chinese.txt documents, old-3.13-docs: 0 document(s), 0 chars
+chinese.txt documents, new-3.12-docs: 1 document(s), 4800 chars
+chinese.txt documents, new-3.13-docs: 1 document(s), 4800 chars
+mixed.zip: the image member's warning names a random temporary path (/tmp/tmpXXXX/img.png), on main and the branch;
+  stability is judged on data fields only for that reason
+
+--- published usage skill
+DefaultFilter's API row gains word_count; plugins/scikitplot/skills/scikitplot-corpus/references/API.md updated by
+  hand to the generator's row; the generator's render() code over the stand-in tree gives the committed file byte
+  for byte (462 lines). TextReader: only its docstring differs; its summary line is unchanged.
+
+--- suites after all changes (failed, passed; OLD = main at 6918e2e)
+3.9         OLD: 24 failed, 6152 passed      NEW: 24 failed, 6275 passed      sets identical: yes
+3.10        OLD: 23 failed, 6249 passed      NEW: 23 failed, 6372 passed      sets identical: yes
+3.11        OLD: 23 failed, 6249 passed      NEW: 23 failed, 6372 passed      sets identical: yes
+3.12        OLD: 23 failed, 6250 passed      NEW: 23 failed, 6373 passed      sets identical: yes
+3.13        OLD: 23 failed, 6283 passed      NEW: 23 failed, 6406 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6152 passed      NEW: 24 failed, 6275 passed      sets identical: yes
+3.14        OLD: 23 failed, 6240 passed      NEW: 23 failed, 6363 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6249 passed      NEW: 23 failed, 6372 passed      sets identical: yes
+3.15        OLD: 23 failed, 6250 passed      NEW: 23 failed, 6373 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes

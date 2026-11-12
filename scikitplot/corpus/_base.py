@@ -135,6 +135,101 @@ _NO_LETTER_RE: re.Pattern[str] = re.compile(r"^[^\w]*$", re.UNICODE)
 # \w matches letters, digits, and underscore; we want letter-only check
 _LETTER_RE: re.Pattern[str] = re.compile(r"[^\W\d_]", re.UNICODE)
 
+#: Code-point ranges of the scripts written without spaces between words,
+#: from the Unicode Standard's blocks: Thai, Lao, Tibetan, Myanmar, Khmer,
+#: CJK radicals, the ideographic iteration and number marks, Hiragana,
+#: Katakana (with its phonetic extensions and halfwidth forms), and Han
+#: (unified ideographs, extensions A to I, compatibility ideographs).
+#: CJK punctuation (U+3000 to U+3004, U+3008 to U+3020) is not in it.
+_UNSPACED_RANGES: tuple[tuple[int, int], ...] = (
+    (0x0E01, 0x0E7F),
+    (0x0E80, 0x0EFF),
+    (0x0F00, 0x0FFF),
+    (0x1000, 0x109F),
+    (0x1780, 0x17FF),
+    (0x2E80, 0x2FDF),
+    (0x3005, 0x3007),
+    (0x3021, 0x3029),
+    (0x3038, 0x303B),
+    (0x3041, 0x309F),
+    (0x30A0, 0x30FF),
+    (0x31F0, 0x31FF),
+    (0x3400, 0x4DBF),
+    (0x4E00, 0x9FFF),
+    (0xF900, 0xFAFF),
+    (0xFF66, 0xFF9F),
+    (0x20000, 0x2FA1F),
+    (0x30000, 0x323AF),
+)
+
+#: Values of ``DefaultFilter(word_count=...)`` other than a callable.
+_WORD_COUNTS: tuple[str, ...] = ("script", "whitespace")
+
+
+def _is_unspaced(char: str) -> bool:
+    """Return whether *char* belongs to a script written without word spaces."""
+    code = ord(char)
+    return any(low <= code <= high for low, high in _UNSPACED_RANGES)
+
+
+def _count_words(text: str) -> int:
+    """
+    Count the words of *text*, in scripts with and without word spaces.
+
+    Parameters
+    ----------
+    text : str
+        Any text.
+
+    Returns
+    -------
+    int
+        For each whitespace-separated token: 1 when it holds no character
+        of a script written without word spaces (Chinese, Japanese, Thai,
+        Lao, Khmer, Myanmar, Tibetan); otherwise one per such character,
+        plus one per run of other characters in it that holds a letter or
+        a digit.
+
+    Notes
+    -----
+    **User note:** Text in scripts that separate words with spaces is
+    counted exactly as ``len(text.split())``. Chinese and Japanese have no
+    word separator, and a character is the closest unit to a word that can
+    be found without a dictionary, so each character counts as one. Thai,
+    Lao, Khmer and Myanmar words are several characters long, so their count
+    is higher than the number of words; it is used as a lower bound for
+    "is this more than noise", not as a word count to report.
+
+    **Developer note:** The ranges are Unicode blocks, not the Unicode
+    Script property, which the standard library does not expose. A block
+    can hold a few characters of another script; for this use the
+    difference is immaterial.
+
+    Examples
+    --------
+    >>> _count_words("Memory and recollection.")
+    3
+    >>> _count_words("\u8a18\u61b6\u8207\u56de\u61b6")  # five Han characters
+    5
+    >>> _count_words("GPT\u6a21\u578b v2")  # "GPT", two Han characters, "v2"
+    4
+    """
+    total = 0
+    for token in text.split():
+        if not any(_is_unspaced(char) for char in token):
+            total += 1
+            continue
+        run_has_word = False
+        for char in token:
+            if _is_unspaced(char):
+                total += 1 + run_has_word
+                run_has_word = False
+            elif char.isalnum():
+                run_has_word = True
+        total += run_has_word
+    return total
+
+
 # TypeVar for Self-like returns in classmethods (Python 3.8+ compatible)
 _R = TypeVar("_R", bound="DocumentReader")  # noqa: PYI018
 _C = TypeVar("_C", bound="ChunkerBase")  # noqa: PYI018
@@ -532,15 +627,25 @@ class DefaultFilter(FilterBase):
     Rejects a document when **any** of the following is true:
 
     1. The text contains no Unicode letter characters (punctuation/digit-only).
-    2. The whitespace-delimited token count is less than ``min_words``.
+    2. The word count is less than ``min_words``.
     3. The character count (after stripping) is less than ``min_chars``.
 
     Parameters
     ----------
     min_words : int, optional
-        Minimum number of whitespace-delimited tokens. Default: ``3``.
+        Minimum number of words, counted as ``word_count`` says. Default:
+        ``3``.
     min_chars : int, optional
         Minimum number of non-whitespace characters. Default: ``10``.
+    word_count : {"script", "whitespace"} or callable, optional
+        How words are counted. ``"script"`` uses :func:`_count_words`: the
+        whitespace tokens of scripts that separate words with spaces, and
+        one word per character of Chinese, Japanese, Thai, Lao, Khmer,
+        Myanmar and Tibetan, which do not. ``"whitespace"`` counts
+        ``str.split()`` tokens, so a document in those scripts counts as
+        one word and is dropped. A callable ``word_count(text) -> int``
+        counts in its own way (a word segmenter, for example). Default:
+        ``"script"``.
 
     Notes
     -----
@@ -564,6 +669,7 @@ class DefaultFilter(FilterBase):
         self,
         min_words: int = 3,
         min_chars: int = 10,
+        word_count: str | Callable[[str], int] = "script",
     ) -> None:
         """
         Filter.
@@ -571,16 +677,44 @@ class DefaultFilter(FilterBase):
         Parameters
         ----------
         min_words : int, optional
-            Minimum whitespace-delimited tokens.  Default: 3.
+            Minimum word count.  Default: 3.
         min_chars : int, optional
             Minimum character count.  Default: 10.
+        word_count : {"script", "whitespace"} or callable, optional
+            How words are counted.  Default: ``"script"``.
+
+        Raises
+        ------
+        ValueError
+            If ``min_words`` or ``min_chars`` is negative, or ``word_count``
+            is neither a known name nor callable.
         """
         if min_words < 0:
             raise ValueError(f"DefaultFilter.min_words must be >= 0; got {min_words!r}")
         if min_chars < 0:
             raise ValueError(f"DefaultFilter.min_chars must be >= 0; got {min_chars!r}")
+        if not (callable(word_count) or word_count in _WORD_COUNTS):
+            raise ValueError(
+                f"DefaultFilter.word_count must be one of {_WORD_COUNTS} or a"
+                f" callable (text) -> int; got {word_count!r}."
+            )
         self.min_words: int = min_words
         self.min_chars: int = min_chars
+        self.word_count: str | Callable[[str], int] = word_count
+
+    def _words(self, text: str) -> int:
+        """Return the word count of *text* under :attr:`word_count`."""
+        if self.word_count == "script":
+            return _count_words(text)
+        if self.word_count == "whitespace":
+            return len(text.split())
+        count = self.word_count(text)  # type: ignore[operator]
+        if not (isinstance(count, int) and not isinstance(count, bool) and count >= 0):
+            raise TypeError(
+                "DefaultFilter.word_count must return a non-negative int;"
+                f" got {count!r}."
+            )
+        return count
 
     def include(self, doc: CorpusDocument) -> bool:
         """
@@ -608,8 +742,8 @@ class DefaultFilter(FilterBase):
         if not _LETTER_RE.search(stripped):
             return False
 
-        # Guard: too few whitespace tokens
-        if len(stripped.split()) < self.min_words:
+        # Guard: too few words
+        if self.min_words and self._words(stripped) < self.min_words:
             return False
 
         # Guard: too few non-whitespace characters
@@ -619,7 +753,10 @@ class DefaultFilter(FilterBase):
         return True
 
     def __repr__(self) -> str:  # noqa: D105
-        return f"DefaultFilter(min_words={self.min_words}, min_chars={self.min_chars})"
+        return (
+            f"DefaultFilter(min_words={self.min_words}, min_chars={self.min_chars},"
+            f" word_count={self.word_count!r})"
+        )
 
 
 # ===========================================================================

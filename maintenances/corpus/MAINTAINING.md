@@ -26,6 +26,32 @@ release_status      -> whether all declared runtime/test/integration evidence is
 
 For this supplied archive the expected truth is `maintenance=PASS`, `runtime=FAIL`, `release=BLOCKED`. Do not use `--update` to bless an incomplete runtime.
 
+## Reader and filter changes: snapshot before and after
+
+Unit tests check the cases someone thought of. A change to a reader, the
+default filter or encoding detection can alter files nobody wrote a test
+for (line endings, an encoding, page order). Before such a change is
+delivered, read a real folder of files with the old tree and the new one
+and compare:
+
+```sh
+T=maintenances/corpus/_maintenance/tools/reader_snapshot.py
+PYTHONPATH=<old tree> python -B $T snapshot FOLDER --out before.json
+PYTHONPATH=<new tree> python -B $T snapshot FOLDER --out after.json
+python -B $T compare before.json after.json             # everything
+python -B $T compare before.json after.json --text-only # text and errors
+```
+
+Add `--documents` to both snapshots to include the default filter, and
+`--reader-kwargs '{"ocr": "auto"}'` for options. Every file that changes is
+either the intended change or a regression to fix; record the result in the
+round's evidence log. Each file is read twice, and `unstable` means two
+reads of the same bytes gave different data: a finding in itself. Running
+the same tree under two interpreters (one with an optional library, one
+without) shows results that depend on what is installed.
+
+Tool tests: `python -B maintenances/corpus/_maintenance/tests/test_reader_snapshot.py`.
+
 ## Core Corpus rule
 
 Never let an operation succeed on partial evidence. If an operation can partially fail, the public result must carry explicit status/error evidence; otherwise it raises. Prefer `UNKNOWN`, `REJECTED`, or `DEGRADED` to a confident guess.
