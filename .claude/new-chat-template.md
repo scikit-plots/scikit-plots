@@ -184,6 +184,9 @@ one line.
   - `tools/maint_tools/check_path_lengths.py check`
   - `tools/maint_tools/check_test_module_names.py`
   - `tools/maint_tools/check_refused_requirements.py`
+  - `pre-commit run --files <every file the change touches>` (the hooks CI
+    runs: codespell, ruff format, ruff check and more; black alone accepts
+    formatting that `ruff format` rewrites)
   - `python -m libs._tools check`
   - each touched submodule's `_maintenance/check_trackers.py`
   - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`

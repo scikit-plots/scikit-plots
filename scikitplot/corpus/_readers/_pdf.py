@@ -1345,8 +1345,7 @@ class PDFReader(DocumentReader):
             self._warn_ocr(ocr)
         if pages.n_read and pages_yielded == 0:
             logger.warning(
-                "PDFReader: none of the %d page(s) read from %s has extractable"
-                " text%s",
+                "PDFReader: none of the %d page(s) read from %s has extractable text%s",
                 pages.n_read,
                 self.file_name,
                 (

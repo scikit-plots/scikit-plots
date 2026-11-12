@@ -153,7 +153,7 @@ f05 {'ocr': 'auto'}                               chunks= 26 ocr= 26 chars=  639
 f01 {'ocr': 'auto'}                               chunks=  9 ocr=  1 chars=   700 conf=[0.9116]   3.5s rss=270MiB
      page 8 'Page q/4 1. The Bottom Line e Master these & you. go from building AI chatbots to building Al agents that reme'
 f01 {'ocr': 'auto', 'ocr_min_chars': 20}          chunks=  9 ocr=  9 chars=  3988 conf=[0.9251, 0.8505, 0.7496]  29.6s rss=332MiB
-     page 0 "7 TYPES OF AGENT MEMORY Al agent engineering is about to be the highest-paid skill in tech. Everyone's buildin"
+     page 0 "7 TYPES OF AGENT MEMORY Al agent engineering is about to be the highest-paid skill in tech. Everyone's"
 f02 {'ocr': 'auto', 'ocr_max_pages': 5}           chunks=  5 ocr=  5 chars=  5025 conf=[0.8307, 0.9051, 0.9379]  16.4s rss=333MiB
      page 0 'THE COMPLETE GUIDE TO BUILDING AI AGENTS FROM ZERO TO PRODUCTION'
      W: PDFReader: 46 more page(s) of f02.pdf needed OCR after ocr_max_pages=5 was reached (pages 5-50); their text layer is used. Pass ocr_max_pages=None to read them all.
