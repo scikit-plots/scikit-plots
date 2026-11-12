@@ -1,5 +1,37 @@
 # Corpus maintenance history
 
+## 2026-11-12 — PDF pages in one pass, PR 930
+
+- **CX-14: `PDFReader` reads a file once per backend.** The reader called
+  `pdfminer.high_level.extract_pages(path, page_numbers=[n])` for every
+  page, and each call opened the file and walked the page tree from the
+  first page; the pypdf path built a new `PdfReader`, which reads the whole
+  file, for every page. Three private classes replace the two per-page
+  functions: `_PdfminerPages` keeps one `extract_pages` iterator and
+  advances it a page at a time (a page out of order, or the page after one
+  that failed, opens a new iterator at that page), `_PypdfPages` keeps one
+  reader and decrypts once, `_PageTexts` holds the backend choice that
+  `PDFReader._extract_page` held. The iterator is closed when the read ends
+  or the consumer stops early. On the 277-page PDF: 74.9 s to 7.2 s (auto
+  and pdfminer), 33.1 s to 4.6 s (pypdf), peak RSS 121 to 77 MiB. On 8 PDFs
+  and 3 backends, 22 of 24 runs gave identical text for every page; the
+  other 2 differ on one page, for the reason in CX-16.
+- **Fixed with it: `password` reaches pdfminer.** It was passed to pypdf
+  only, so an encrypted file with `prefer_backend="pdfminer"` and the right
+  password gave no documents. It is now passed to `extract_pages` and to the
+  pdfminer page count.
+- The profile's 554 `extract_pages` calls for 277 pages were the profiler
+  counting each resume of the generator, not a second read.
+- Tests: `test__pdf.py` is new (the built-in PDF backends had no tests): 38
+  tests, most on stand-ins for the two libraries so they run without them
+  and count opens; 29 of the first 37 fail on `main`. 19 mutations caught, 4
+  of them only after the tests were strengthened.
+- **Recorded, not changed** (ledger notes): CX-16 pdfminer orders text boxes
+  that tie by `id()`, so one page of the 277 gave 4 different texts in 6
+  identical reads; CX-17 the `corpus` extra requires `pdfminer` and
+  `pdfminer.six`, two distributions of one import package.
+- Evidence: `evidence/round-2026-11-12-pdf-one-pass.log`.
+
 ## 2026-11-12 — second research self-test, PR 928
 
 A second, larger research set (95 text files, 8 PDFs, a slide deck, 322
