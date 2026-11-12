@@ -51,8 +51,18 @@
     PDF renders nothing. Two reads with OCR: identical text.
   - `pypdfium2` added to the `corpus` extra (wheels for CPython 3.8 to 3.15
     and the free-threaded builds).
-  - Tests: 60 more (145); 30 mutations caught. One test runs pypdfium2 and
-    Tesseract on a scan made with Pillow (CPython 3.12, 3.13, 3.15).
+  - Found in review, before merge: (1) PDFium is not thread-safe, and
+    `CorpusBuilder(max_workers>1)` runs readers in threads. Eight readers
+    with OCR in threads: a segmentation fault (3.13), a trap (3.13t), and
+    runs that finished with different text per thread. Every pypdfium2 call
+    now holds one module lock; OCR runs outside it. 10 of 10 runs clean
+    after. (2) `PdfBitmap.to_pil` shares the bitmap's buffer for `L`, `RGBA`
+    and `RGBX` (a `grayscale` render), and the bitmap was closed, which
+    frees that buffer, before OCR read the image; shown by writing into the
+    buffer. The image is now copied or converted before the bitmap closes.
+  - Tests: 66 more (151); 33 mutations caught, among them no lock, a lock
+    per reader and an uncopied image. One test runs pypdfium2 and Tesseract
+    on a scan made with Pillow (CPython 3.12, 3.13, 3.15).
 - Evidence: `evidence/round-2026-11-12-pdf-nothing-silent.log`.
 
 ## 2026-11-12 — PDF pages in one pass, layout parameters, PR 930

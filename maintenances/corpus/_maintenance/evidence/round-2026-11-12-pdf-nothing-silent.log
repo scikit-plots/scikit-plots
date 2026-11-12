@@ -198,3 +198,49 @@ refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s
 libs_tools exit=0 :: Generated files are up to date.
 corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
 mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
+
+=== review of PR 931 before merge: two defects in the OCR path, fixed
+
+--- (1) PDFium is not thread-safe; CorpusBuilder(max_workers>1) runs readers in threads
+8 threads, each PDFReader(prefer_backend="pypdf", ocr="always", ocr_dpi=100, pypdfium2_kwargs={"grayscale": True}) on
+the 31-page f03.pdf, engine = sha256 of the image bytes (so threads spend their time inside PDFium)
+before the fix, CPython 3.13:  run 1 exit 139 (Segmentation fault); run 2 exit 0, threads NOT identical; run 3 identical
+before the fix, CPython 3.13t: run 1 identical; run 2 exit 133 (Trace/breakpoint trap); run 3 exit 0, NOT identical
+after (one module lock around every pypdfium2 call; OCR outside it): 5 of 5 runs on 3.13 and 5 of 5 on 3.13t exit 0,
+all threads identical
+
+--- (2) PdfBitmap.to_pil shares the bitmap buffer for L, RGBA, RGBX; the bitmap was closed before OCR read the image
+grayscale render, 2160 x 2700, stride 2160: writing one byte into the PDFium buffer changed pixel (0, 0) of the PIL
+image from 124 to 7, so the image IS the buffer; PdfBitmap.close -> FPDFBitmap_Destroy frees it
+(not shown corrupting text here: the allocator did not reuse the block in two attempts)
+after: the image is copied (RGB, L) or converted (other modes) before the bitmap is closed
+
+--- end to end: CorpusPipeline(reader_kwargs={"ocr": "auto"}).run(scan.pdf), the Pillow-made scan
+1 document: 'SCANNED PAGE 42', page_number 0, ocr_engine tesseract, confidence 0.9645; with OCR off: 0 documents
+
+--- tests after the review: test__pdf.py 151 (6 new: the image outlives the bitmap in 5 modes; two readers in threads
+never render together, held by a barrier); mutations for OCR 33 of 33 (3 new: no lock, a lock per call, uncopied
+image); the 20 for CX-18 still caught
+
+--- suites after the review (failed, passed; OLD = main at 47a97c7)
+3.9         OLD: 24 failed, 6065 passed      NEW: 24 failed, 6152 passed      sets identical: yes
+3.10        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6249 passed      sets identical: yes
+3.11        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6249 passed      sets identical: yes
+3.12        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6250 passed      sets identical: yes
+3.13        OLD: 23 failed, 6195 passed      NEW: 23 failed, 6283 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6065 passed      NEW: 24 failed, 6152 passed      sets identical: yes
+3.14        OLD: 23 failed, 6153 passed      NEW: 23 failed, 6240 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6162 passed      NEW: 23 failed, 6249 passed      sets identical: yes
+3.15        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6250 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- gates after the review (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7045, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin

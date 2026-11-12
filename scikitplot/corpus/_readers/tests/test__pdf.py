@@ -14,8 +14,10 @@ is skipped where they are not installed.
 
 from __future__ import annotations
 
+import contextlib
 import pathlib
 import sys
+import threading
 import types
 from typing import Any, Sequence
 
@@ -594,14 +596,28 @@ class TestNothingSilent:
 
 
 class _FakeImage:
-    """A rendered page as the engine sees it."""
+    """
+    A rendered page as the engine sees it.
+
+    Like ``PdfBitmap.to_pil`` for ``L``, ``RGBA`` and ``RGBX``, an image made
+    by the bitmap shares its pixels: ``freed`` becomes true when the bitmap
+    is closed. ``copy`` and ``convert`` give an image that owns its pixels.
+    """
 
     def __init__(self, page: int, mode: str = "RGB") -> None:
         self.page = page
         self.mode = mode
+        self.freed = False
 
     def convert(self, mode: str) -> _FakeImage:
+        if self.freed:
+            raise AssertionError("converted after its bitmap was closed")
         return _FakeImage(self.page, mode)
+
+    def copy(self) -> _FakeImage:
+        if self.freed:
+            raise AssertionError("copied after its bitmap was closed")
+        return _FakeImage(self.page, self.mode)
 
 
 class _FakePdfium:
@@ -635,6 +651,24 @@ class _FakePdfium:
         self.renders: list[dict[str, Any]] = []
         self.open_now = 0
         self.pages_open = 0
+        self.inside = 0
+        self.most_inside = 0
+        self._count_lock = threading.Lock()
+        #: Set to a barrier to hold each render until another thread arrives.
+        self.barrier: threading.Barrier | None = None
+
+    def enter(self) -> None:
+        with self._count_lock:
+            self.inside += 1
+            self.most_inside = max(self.most_inside, self.inside)
+        if self.barrier is not None:
+            # Broken when the other thread cannot arrive: it waits for the lock.
+            with contextlib.suppress(threading.BrokenBarrierError):
+                self.barrier.wait(timeout=0.5)
+
+    def leave(self) -> None:
+        with self._count_lock:
+            self.inside -= 1
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
         fake = self
@@ -642,12 +676,16 @@ class _FakePdfium:
         class _Bitmap:
             def __init__(self, page: int) -> None:
                 self._page = page
+                self._images: list[_FakeImage] = []
 
             def to_pil(self) -> _FakeImage:
-                return _FakeImage(self._page, fake.mode)
+                image = _FakeImage(self._page, fake.mode)
+                self._images.append(image)
+                return image
 
             def close(self) -> None:
-                pass
+                for image in self._images:
+                    image.freed = True
 
         class _Page:
             def __init__(self, index: int) -> None:
@@ -655,6 +693,13 @@ class _FakePdfium:
                 fake.pages_open += 1
 
             def render(self, scale: float = 1, **kwargs: Any) -> _Bitmap:
+                fake.enter()
+                try:
+                    return self._render(scale, **kwargs)
+                finally:
+                    fake.leave()
+
+            def _render(self, scale: float, **kwargs: Any) -> _Bitmap:
                 fake.renders.append({"page": self._index, "scale": scale, **kwargs})
                 if "no_such_option" in kwargs:
                     raise TypeError("render() got an unexpected keyword argument")
@@ -920,6 +965,61 @@ class TestOcrRendering:
         pdfium.mode = "L"
         list(reader.get_raw_chunks())
         assert modes == ["RGB", "RGB", "L", "L"]
+
+    @pytest.mark.parametrize("mode", ["RGB", "L", "RGBA", "RGBX", "BGRA"])
+    def test_the_engine_gets_an_image_that_outlives_the_bitmap(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, mode: str
+    ) -> None:
+        seen: list[_FakeImage] = []
+
+        def engine(image: _FakeImage) -> str:
+            seen.append(image)
+            return "x"
+
+        _FakePdfminer([[], []]).install(monkeypatch)
+        _FakePdfium(2, mode=mode).install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            2,
+            prefer_backend="pdfminer",
+            ocr="auto",
+            ocr_engine=engine,
+        )
+        assert _texts(reader) == [(0, "x"), (1, "x")]
+        assert [image.freed for image in seen] == [False, False]
+        assert {image.mode for image in seen} == (
+            {mode} if mode in ("RGB", "L") else {"RGB"}
+        )
+
+    def test_readers_in_threads_never_render_at_the_same_time(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([[], [], []]).install(monkeypatch)
+        pdfium = _FakePdfium(3)
+        pdfium.install(monkeypatch)
+        # Without the lock the barrier lets two renders be inside together.
+        pdfium.barrier = threading.Barrier(2)
+        monkeypatch.setattr(PDFReader, "_count_pages", lambda self: 3)
+        results: dict[int, list[tuple[int, str]]] = {}
+
+        def work(key: int) -> None:
+            reader = PDFReader(
+                input_path=pdf_path,
+                prefer_backend="pdfminer",
+                ocr="auto",
+                ocr_engine=_engine,
+            )
+            results[key] = _texts(reader)
+
+        threads = [threading.Thread(target=work, args=(key,)) for key in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        expected = [(i, f"ocr text of page {i}") for i in range(3)]
+        assert results == {0: expected, 1: expected}
+        assert pdfium.most_inside == 1
 
     def test_an_option_pypdfium2_rejects_is_a_value_error(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch

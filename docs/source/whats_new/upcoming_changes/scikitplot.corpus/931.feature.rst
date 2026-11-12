@@ -5,5 +5,6 @@
   ``(page_number, text) -> bool`` decides per page. ``ocr_engine`` also
   takes a callable, ``ocr_dpi`` sets the resolution, ``pypdfium2_kwargs``
   passes rendering options, and ``ocr_max_pages`` (default 64) bounds the
-  work, with a warning for the pages left. The default, ``ocr="off"``,
-  reads as before.
+  work, with a warning for the pages left. Readers in parallel threads
+  render one page at a time, since PDFium is not thread-safe. The default,
+  ``ocr="off"``, reads as before.

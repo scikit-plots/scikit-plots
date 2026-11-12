@@ -36,8 +36,8 @@ Design notes:
 
 Python compatibility:
 
-Python 3.8-3.15. Zero runtime imports at module level. ``pdfminer.six`` and
-``pypdf`` are optional lazy imports.
+Python 3.8-3.15. Zero runtime imports at module level. ``pdfminer.six``,
+``pypdf`` and ``pypdfium2`` (OCR only) are optional lazy imports.
 
 Caution for maintainers:
 
@@ -53,6 +53,7 @@ from __future__ import annotations
 import itertools
 import logging
 import sys
+import threading
 from dataclasses import dataclass, field
 from typing import (  # noqa: F401
     Any,
@@ -538,6 +539,12 @@ _OCR_MAX_DPI: int = 1200
 #: pypdfium2 ``PdfPage.render`` arguments the reader sets itself.
 _PYPDFIUM2_RESERVED: frozenset[str] = frozenset({"scale"})
 
+#: PDFium is not thread-safe: two threads inside it at once can crash the
+#: process or corrupt each other's pages (reproduced with eight readers in a
+#: ``ThreadPoolExecutor``, as ``CorpusBuilder(max_workers=8)`` runs them).
+#: Every call into pypdfium2 holds this lock; the OCR engine does not.
+_PDFIUM_LOCK = threading.Lock()
+
 
 def _page_ranges(pages: Sequence[int]) -> str:
     """
@@ -599,7 +606,9 @@ class _PageOcr:
     Notes
     -----
     **Developer note:** The document is opened on the first page that needs
-    OCR and closed by :meth:`close`. Rendering failures are per page: the
+    OCR and closed by :meth:`close`. Every call into pypdfium2 holds
+    ``_PDFIUM_LOCK``, because PDFium is not thread-safe; the engine runs
+    outside it. Rendering failures are per page: the
     page keeps its text layer and is named in :attr:`failed`. A file that
     pypdfium2 cannot open fails every page the same way. Errors from the
     engine are not caught: a missing Tesseract binary or a bug in a custom
@@ -705,6 +714,7 @@ class _PageOcr:
         if image is None:
             return None
         self.n_read += 1
+        # Outside _PDFIUM_LOCK: OCR is the slow part and runs in parallel.
         return self._recognise(image)
 
     def _render(self, page_number: int) -> Any:
@@ -719,45 +729,59 @@ class _PageOcr:
                 "pypdfium2 is required for PDFReader with ocr other than 'off'"
                 " (it renders the pages). Install it with:\n  pip install pypdfium2"
             ) from exc
-        if self._doc is None:
+        with _PDFIUM_LOCK:
+            if self._doc is None:
+                try:
+                    self._doc = pypdfium2.PdfDocument(
+                        str(self._path), password=self._password or None
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    # Broad catch: pypdfium2 raises PdfiumError, OSError and
+                    # others for a file it cannot open; each page then keeps
+                    # its text layer.
+                    self._open_error = _reason(exc)
+                    self.failed.append((page_number, self._open_error))
+                    return None
             try:
-                self._doc = pypdfium2.PdfDocument(
-                    str(self._path), password=self._password or None
-                )
+                return self._render_locked(page_number)
+            except ValueError:
+                raise
             except Exception as exc:  # noqa: BLE001
-                # Broad catch: pypdfium2 raises PdfiumError, OSError and others
-                # for a file it cannot open; each page then keeps its text layer.
-                self._open_error = _reason(exc)
-                self.failed.append((page_number, self._open_error))
+                # Broad catch: a damaged page raises PdfiumError, IndexError or
+                # MemoryError depending on the file; the page keeps its text
+                # layer.
+                self.failed.append((page_number, _reason(exc)))
                 return None
+
+    def _render_locked(self, page_number: int) -> Any:
+        """
+        Render one page; the caller holds ``_PDFIUM_LOCK``.
+
+        The image returned owns its pixels. ``PdfBitmap.to_pil`` shares the
+        bitmap's buffer for ``L``, ``RGBA`` and ``RGBX`` bitmaps (a
+        ``grayscale`` render, for one), and closing the bitmap frees that
+        buffer, so the image is copied, or converted, before it is closed.
+        """
+        page = self._doc[page_number]
         try:
-            page = self._doc[page_number]
             try:
-                try:
-                    bitmap = page.render(scale=self._dpi / 72, **self._render_kwargs)
-                except TypeError as exc:
-                    if not self._render_kwargs:
-                        raise
-                    raise ValueError(
-                        "PDFReader: pypdfium2_kwargs is not accepted by"
-                        f" pypdfium2's PdfPage.render: {exc}"
-                    ) from exc
-                try:
-                    image = bitmap.to_pil()
-                finally:
-                    bitmap.close()
+                bitmap = page.render(scale=self._dpi / 72, **self._render_kwargs)
+            except TypeError as exc:
+                if not self._render_kwargs:
+                    raise
+                raise ValueError(
+                    "PDFReader: pypdfium2_kwargs is not accepted by"
+                    f" pypdfium2's PdfPage.render: {exc}"
+                ) from exc
+            try:
+                image = bitmap.to_pil()
+                if image.mode in ("RGB", "L"):
+                    return image.copy()
+                return image.convert("RGB")
             finally:
-                page.close()
-        except ValueError:
-            raise
-        except Exception as exc:  # noqa: BLE001
-            # Broad catch: a damaged page raises PdfiumError, IndexError or
-            # MemoryError depending on the file; the page keeps its text layer.
-            self.failed.append((page_number, _reason(exc)))
-            return None
-        if image.mode not in ("RGB", "L"):
-            image = image.convert("RGB")
-        return image
+                bitmap.close()
+        finally:
+            page.close()
 
     def _recognise(self, image: Any) -> tuple[str, float | None]:
         """Run the engine on one image."""
@@ -792,7 +816,8 @@ class _PageOcr:
     def close(self) -> None:
         """Close the document."""
         if self._doc is not None:
-            self._doc.close()
+            with _PDFIUM_LOCK:
+                self._doc.close()
             self._doc = None
 
 
@@ -915,7 +940,9 @@ class PDFReader(DocumentReader):
     seconds per page at 300 dpi with Tesseract, hence ``ocr_max_pages``. With
     ``ocr="off"`` a file whose pages hold no text gives one warning that
     names the option. The images a page lists as resources are not used: a
-    page can list images it does not draw.
+    page can list images it does not draw. PDFium is not thread-safe, so
+    readers running in parallel threads (``CorpusBuilder(max_workers=...)``)
+    render one page at a time; the OCR engine runs in parallel.
 
     **Reproducible text:** pdfminer.six orders text boxes that are equally
     far apart by their address in memory, so the text of a page with many
