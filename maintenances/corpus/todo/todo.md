@@ -392,7 +392,6 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - Next: decisions D11 to D13; a public text-step base once the usage skills
   can be regenerated.
 
-### PRs 928 to 931: D12 outline, CX-14, CX-15 (a), CX-16 (a), CX-17, CX-18
+### PRs 928 to 931: D12, CX-14, CX-15 (a), CX-16 (a), CX-17, CX-18, CX-19
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-12).
-- Next: CX-16's default and OCR for scanned PDFs (ledger notes: choices),
-  D11, D13.
+- Next: CX-16's default (ledger note: a choice), D11, D13.

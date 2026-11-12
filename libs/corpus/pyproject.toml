@@ -71,6 +71,7 @@ corpus = [
   "lxml",
   "pypdf",
   "pdfminer.six",
+  "pypdfium2",
   "langdetect",
   "gensim",
   "nltk",

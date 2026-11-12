@@ -138,3 +138,63 @@ libs_tools exit=0 :: Generated files are up to date.
 corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
 mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
 corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+=== added to PR 931 afterwards: CX-19, OCR of scanned pages (opt-in)
+
+--- image source: the images a page lists (pypdf) or the rendered page (pypdfium2 5.15.2, 300 dpi), Tesseract
+f02 (51-page scan): 1 image per page; embedded 615 x 867, 0.9 s, 1134 chars; rendered 2563 x 3613, 0.13 s + 1.8 s, 1137 chars
+f05 (27-page scan): pypdf lists 27 images on EVERY page (shared resources, not what the page draws); rendered page 0.5 s
+f01 (9 pages, 6-character labels): 1 image per page; rendered page 1.6 s, 405 chars
+=> pages are rendered; the listed images are not used
+
+--- PDFReader with OCR on the research PDFs (CPython 3.13.18, Tesseract via pytesseract, one process)
+f05 {'ocr': 'auto'}                               chunks= 26 ocr= 26 chars=  6397 conf=[0.537, 0.8127, 0.5373]  44.8s rss=169MiB
+     page 0 'oe a a4 a ullz - au ao ear d. m ax eg) ciiK 340: Canguage _ ? ulture Morphology Wy)'
+f01 {'ocr': 'auto'}                               chunks=  9 ocr=  1 chars=   700 conf=[0.9116]   3.5s rss=270MiB
+     page 8 'Page q/4 1. The Bottom Line e Master these & you. go from building AI chatbots to building Al agents that reme'
+f01 {'ocr': 'auto', 'ocr_min_chars': 20}          chunks=  9 ocr=  9 chars=  3988 conf=[0.9251, 0.8505, 0.7496]  29.6s rss=332MiB
+     page 0 "7 TYPES OF AGENT MEMORY Al agent engineering is about to be the highest-paid skill in tech. Everyone's buildin"
+f02 {'ocr': 'auto', 'ocr_max_pages': 5}           chunks=  5 ocr=  5 chars=  5025 conf=[0.8307, 0.9051, 0.9379]  16.4s rss=333MiB
+     page 0 'THE COMPLETE GUIDE TO BUILDING AI AGENTS FROM ZERO TO PRODUCTION'
+     W: PDFReader: 46 more page(s) of f02.pdf needed OCR after ocr_max_pages=5 was reached (pages 5-50); their text layer is used. Pass ocr_max_pages=None to read them all.
+f07 {'ocr': 'auto'}                               chunks= 10 ocr=  0 chars=  4575 conf=[]   0.2s rss=333MiB
+f05 {'ocr': 'callable', 'ocr_dpi': 150}           chunks=  3 ocr=  3 chars=   469 conf=[0.9504, 0.728, 0.702]   2.7s rss=333MiB
+     page 0 'Morphology'
+two reads with OCR identical: True 6
+(f05 is handwriting: confidence about 0.5. f07 is a text PDF: nothing rendered.)
+
+--- tests: test__pdf.py 145 (60 new for OCR); the scan test (Pillow -> PDF -> pypdfium2 -> Tesseract) ran on
+CPython 3.12, 3.13, 3.15; it skips without pytesseract or pypdfium2 (3.9, 3.13t, 3.14 here)
+145 passed on 3.13; 144 passed, 1 skipped on 3.9, 3.12, 3.13t, 3.14, 3.15 before pytesseract was added to 3.12, 3.15
+mutations for OCR: 30 of 30 caught (auto uses <=, always means auto, policy result unchecked, limit off by one,
+over-limit unrecorded, failed render counted, open retried, dpi unused, kwargs dropped, bad kwargs not wrapped, page
+not closed, mode not converted, L converted, confidence bounds open, bool confidence, easyocr reader not kept, lang
+dropped, empty password not None, document not closed, empty OCR replaces layer, confidence dropped, engine name
+dropped, off still builds OCR, scan hint always, dpi bound, scale not reserved, lang unchecked, bool counts, ranges
+merge gaps, render failure propagates); the 20 mutations above still caught
+pypdfium2 5.15.2 installs from wheels on CPython 3.8, 3.9, 3.12, 3.13t, 3.14t, 3.15 (uv, --only-binary)
+usage-skill generator rows: only PDFReader's docstring differs from OLD (Parameters and Notes); its first sentence,
+which the published skill shows, is unchanged
+
+--- suites after OCR (failed, passed; OLD = main at 47a97c7)
+3.9         OLD: 24 failed, 6065 passed      NEW: 24 failed, 6146 passed      sets identical: yes
+3.10        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6243 passed      sets identical: yes
+3.11        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6243 passed      sets identical: yes
+3.12        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6244 passed      sets identical: yes
+3.13        OLD: 23 failed, 6195 passed      NEW: 23 failed, 6277 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6065 passed      NEW: 24 failed, 6146 passed      sets identical: yes
+3.14        OLD: 23 failed, 6153 passed      NEW: 23 failed, 6234 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6162 passed      NEW: 23 failed, 6243 passed      sets identical: yes
+3.15        OLD: 23 failed, 6162 passed      NEW: 23 failed, 6244 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- gates after OCR (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7045, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+refused_requirements exit=0 :: ok: no refused requirement in 10 pyproject file(s) and 32 requirement file(s)
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin

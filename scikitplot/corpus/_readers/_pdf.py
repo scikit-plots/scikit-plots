@@ -64,6 +64,7 @@ from typing import (  # noqa: F401
     List,
     Mapping,
     Optional,
+    Sequence,
 )
 
 from .._base import DocumentReader
@@ -521,6 +522,281 @@ def _count_pdf_pages_pypdf(pdf_path: Any, password: str) -> int | None:
 
 
 # ---------------------------------------------------------------------------
+# OCR of rendered pages
+# ---------------------------------------------------------------------------
+
+#: Values of ``PDFReader.ocr`` other than a callable.
+_OCR_POLICIES: tuple[str, ...] = ("off", "auto", "always")
+
+#: Values of ``PDFReader.ocr_engine`` other than a callable.
+_OCR_ENGINES: tuple[str, ...] = ("tesseract", "easyocr")
+
+#: Highest ``ocr_dpi``. An A4 page at 1200 dpi is about 140 million pixels,
+#: some 400 MiB as RGB; above that one page can exhaust a worker's memory.
+_OCR_MAX_DPI: int = 1200
+
+#: pypdfium2 ``PdfPage.render`` arguments the reader sets itself.
+_PYPDFIUM2_RESERVED: frozenset[str] = frozenset({"scale"})
+
+
+def _page_ranges(pages: Sequence[int]) -> str:
+    """
+    Return ascending page numbers as ranges, such as ``"1, 3-5, 9"``.
+
+    Parameters
+    ----------
+    pages : sequence of int
+        Ascending, distinct page numbers.
+
+    Returns
+    -------
+    str
+    """
+    parts: list[str] = []
+    start = previous = None
+    for page in [*pages, None]:
+        if previous is not None and page == previous + 1:
+            previous = page
+            continue
+        if start is not None:
+            parts.append(str(start) if start == previous else f"{start}-{previous}")
+        start = previous = page
+    return ", ".join(parts)
+
+
+def _is_positive_int(value: Any) -> bool:
+    """Return whether *value* is an ``int`` (not ``bool``) of at least 1."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+class _PageOcr:
+    """
+    OCR of the pages of one PDF, rendered with pypdfium2.
+
+    Parameters
+    ----------
+    pdf_path : pathlib.Path
+        Path to the PDF file.
+    password : str
+        Decryption password. Empty string for unencrypted PDFs.
+    policy : str or callable
+        ``"auto"``, ``"always"``, or ``policy(page_number, text) -> bool``.
+    min_chars : int
+        Under ``"auto"``, a page whose text layer has fewer characters than
+        this is read with OCR.
+    max_pages : int or None
+        Most pages read with OCR; ``None`` for no limit.
+    engine : str or callable
+        ``"tesseract"``, ``"easyocr"``, or ``engine(image)`` returning the
+        text or ``(text, confidence)``.
+    lang : str or None
+        Language hint for a built-in engine.
+    dpi : int
+        Resolution pages are rendered at.
+    pypdfium2_kwargs : Mapping or None
+        Keyword arguments for pypdfium2's ``PdfPage.render``.
+
+    Notes
+    -----
+    **Developer note:** The document is opened on the first page that needs
+    OCR and closed by :meth:`close`. Rendering failures are per page: the
+    page keeps its text layer and is named in :attr:`failed`. A file that
+    pypdfium2 cannot open fails every page the same way. Errors from the
+    engine are not caught: a missing Tesseract binary or a bug in a custom
+    engine is not a property of one page.
+    """
+
+    def __init__(  # noqa: PLR0913
+        self,
+        pdf_path: Any,
+        password: str,
+        *,
+        policy: str | Callable[[int, str], bool],
+        min_chars: int,
+        max_pages: int | None,
+        engine: str | Callable[[Any], Any],
+        lang: str | None,
+        dpi: int,
+        pypdfium2_kwargs: Mapping[str, Any] | None,
+    ) -> None:
+        self._path = pdf_path
+        self._password = password
+        self._policy = policy
+        self._min_chars = min_chars
+        self._max_pages = max_pages
+        self._engine = engine
+        self._lang = lang
+        self._dpi = dpi
+        self._render_kwargs = dict(pypdfium2_kwargs or {})
+        self._doc: Any = None
+        self._open_error: str | None = None
+        self._easyocr_reader: Any = None
+        #: The value recorded as each OCR chunk's ``ocr_engine``.
+        self.engine_name = engine if isinstance(engine, str) else "custom"
+        #: Number of pages read with OCR.
+        self.n_read = 0
+        #: Pages that needed OCR after ``max_pages`` was reached.
+        self.over_limit: list[int] = []
+        #: ``(page, reason)`` for each page that could not be rendered.
+        self.failed: list[tuple[int, str]] = []
+
+    def wants(self, page_number: int, text: str) -> bool:
+        """
+        Return whether a page is read with OCR.
+
+        Parameters
+        ----------
+        page_number : int
+            Zero-based page index.
+        text : str
+            The page's text layer, stripped.
+
+        Returns
+        -------
+        bool
+
+        Raises
+        ------
+        TypeError
+            If a policy callable returns anything but a ``bool``.
+        """
+        if self._policy == "always":
+            return True
+        if self._policy == "auto":
+            return len(text) < self._min_chars
+        decision = self._policy(page_number, text)  # type: ignore[operator]
+        if not isinstance(decision, bool):
+            raise TypeError(
+                "PDFReader: an ocr policy must return a bool; got"
+                f" {type(decision).__name__!r} for page {page_number}."
+            )
+        return decision
+
+    def read(self, page_number: int) -> tuple[str, float | None] | None:
+        """
+        Return the OCR text of one page and its confidence.
+
+        Parameters
+        ----------
+        page_number : int
+            Zero-based page index.
+
+        Returns
+        -------
+        tuple of (str, float or None), or None
+            The text and the engine's confidence in ``[0.0, 1.0]`` (``None``
+            when the engine gives none). ``None`` when ``max_pages`` is
+            reached or the page cannot be rendered.
+
+        Raises
+        ------
+        ImportError
+            If pypdfium2 or the engine's library is not installed.
+        ValueError
+            If pypdfium2 does not accept ``pypdfium2_kwargs``.
+        TypeError
+            If a custom engine returns something other than a text or a
+            ``(text, confidence)`` pair.
+        """
+        if self._max_pages is not None and self.n_read >= self._max_pages:
+            self.over_limit.append(page_number)
+            return None
+        image = self._render(page_number)
+        if image is None:
+            return None
+        self.n_read += 1
+        return self._recognise(image)
+
+    def _render(self, page_number: int) -> Any:
+        """Return one page as a PIL image, or ``None`` if it cannot be rendered."""
+        if self._open_error is not None:
+            self.failed.append((page_number, self._open_error))
+            return None
+        try:
+            import pypdfium2  # type: ignore[] # noqa: PLC0415
+        except ImportError as exc:
+            raise ImportError(
+                "pypdfium2 is required for PDFReader with ocr other than 'off'"
+                " (it renders the pages). Install it with:\n  pip install pypdfium2"
+            ) from exc
+        if self._doc is None:
+            try:
+                self._doc = pypdfium2.PdfDocument(
+                    str(self._path), password=self._password or None
+                )
+            except Exception as exc:  # noqa: BLE001
+                # Broad catch: pypdfium2 raises PdfiumError, OSError and others
+                # for a file it cannot open; each page then keeps its text layer.
+                self._open_error = _reason(exc)
+                self.failed.append((page_number, self._open_error))
+                return None
+        try:
+            page = self._doc[page_number]
+            try:
+                try:
+                    bitmap = page.render(scale=self._dpi / 72, **self._render_kwargs)
+                except TypeError as exc:
+                    if not self._render_kwargs:
+                        raise
+                    raise ValueError(
+                        "PDFReader: pypdfium2_kwargs is not accepted by"
+                        f" pypdfium2's PdfPage.render: {exc}"
+                    ) from exc
+                try:
+                    image = bitmap.to_pil()
+                finally:
+                    bitmap.close()
+            finally:
+                page.close()
+        except ValueError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            # Broad catch: a damaged page raises PdfiumError, IndexError or
+            # MemoryError depending on the file; the page keeps its text layer.
+            self.failed.append((page_number, _reason(exc)))
+            return None
+        if image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
+        return image
+
+    def _recognise(self, image: Any) -> tuple[str, float | None]:
+        """Run the engine on one image."""
+        if self._engine == "tesseract":
+            from ._image import _ocr_tesseract  # noqa: PLC0415
+
+            return _ocr_tesseract(image, self._lang)
+        if self._engine == "easyocr":
+            from ._image import _ocr_easyocr  # noqa: PLC0415
+
+            text, confidence, self._easyocr_reader = _ocr_easyocr(
+                image, self._lang, self._easyocr_reader
+            )
+            return text, confidence
+        result = self._engine(image)  # type: ignore[operator]
+        if isinstance(result, str):
+            return result, None
+        if (
+            isinstance(result, tuple)
+            and len(result) == 2  # noqa: PLR2004
+            and isinstance(result[0], str)
+            and isinstance(result[1], (int, float))
+            and not isinstance(result[1], bool)
+            and 0.0 <= result[1] <= 1.0
+        ):
+            return result[0], float(result[1])
+        raise TypeError(
+            "PDFReader: an ocr_engine callable must return a str or a"
+            f" (str, confidence in [0, 1]) pair; got {result!r:.80}."
+        )
+
+    def close(self) -> None:
+        """Close the document."""
+        if self._doc is not None:
+            self._doc.close()
+            self._doc = None
+
+
+# ---------------------------------------------------------------------------
 # PDFReader dataclass
 # ---------------------------------------------------------------------------
 
@@ -554,6 +830,37 @@ class PDFReader(DocumentReader):
         ``password``, ``page_numbers`` and ``maxpages`` are set by the
         reader and are not accepted. ``None`` uses pdfminer's defaults. See
         the Notes for a reproducible read. Default: ``None``.
+    ocr : {"off", "auto", "always"} or callable, optional
+        Which pages are rendered and read with OCR. ``"off"`` reads the text
+        layer only. ``"auto"`` reads a page with OCR when its text layer has
+        fewer than ``ocr_min_chars`` characters: scanned pages, slides
+        exported as pictures. ``"always"`` reads every page with OCR. A
+        callable ``policy(page_number, text) -> bool`` decides per page from
+        the zero-based page number and the stripped text layer. The OCR text
+        replaces the text layer when it is not empty. Default: ``"off"``.
+    ocr_min_chars : int, optional
+        Under ``ocr="auto"``, a text layer shorter than this is not trusted.
+        Raise it for scans that carry only a page label as text. Default: 1
+        (only pages with no text).
+    ocr_max_pages : int or None, optional
+        Most pages read with OCR per file. Pages past the limit keep their
+        text layer and are named in one warning. ``None`` for no limit.
+        Default: 64.
+    ocr_engine : {"tesseract", "easyocr"} or callable, optional
+        OCR engine, as in :class:`ImageReader`, or a callable taking a PIL
+        image and returning its text or ``(text, confidence)`` with the
+        confidence in ``[0, 1]``. Recorded in each OCR chunk's
+        ``ocr_engine`` (``"custom"`` for a callable). Default:
+        ``"tesseract"``.
+    ocr_lang : str or None, optional
+        Language hint for a built-in engine (``"eng"``, ``"eng+deu"`` for
+        Tesseract; ``"en"`` for easyocr). Default: ``None``.
+    ocr_dpi : int, optional
+        Resolution pages are rendered at, from 1 to 1200. Default: 300.
+    pypdfium2_kwargs : Mapping or None, optional
+        Keyword arguments for pypdfium2's ``PdfPage.render``, which renders
+        pages for OCR (for example ``{"grayscale": True}``). ``scale`` is set
+        from ``ocr_dpi`` and is not accepted. Default: ``None``.
     chunker : ChunkerBase or None, optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
     filter_ : FilterBase or None, optional
@@ -599,6 +906,16 @@ class PDFReader(DocumentReader):
 
     * ``"page_number"`` — zero-based page index (int).
     * ``"section_type"`` — always ``SectionType.TEXT``.
+
+    **Scanned pages (OCR):** A PDF of scanned pages has no text layer, and
+    one exported from slides may carry only page labels. With ``ocr="auto"``
+    such pages are rendered with pypdfium2 (``pip install pypdfium2``) and
+    read by the OCR engine. A chunk read with OCR carries ``ocr_engine`` and,
+    from the built-in engines, ``confidence``. OCR takes about one to two
+    seconds per page at 300 dpi with Tesseract, hence ``ocr_max_pages``. With
+    ``ocr="off"`` a file whose pages hold no text gives one warning that
+    names the option. The images a page lists as resources are not used: a
+    page can list images it does not draw.
 
     **Reproducible text:** pdfminer.six orders text boxes that are equally
     far apart by their address in memory, so the text of a page with many
@@ -675,6 +992,34 @@ class PDFReader(DocumentReader):
     uses pdfminer's defaults. Default: ``None``.
     """
 
+    ocr: str | Callable[[int, str], bool] = field(default="off")
+    """
+    Which pages are read with OCR: ``"off"``, ``"auto"`` (pages whose text
+    layer has fewer than :attr:`ocr_min_chars` characters), ``"always"``, or
+    ``policy(page_number, text) -> bool``. Default: ``"off"``.
+    """
+
+    ocr_min_chars: int = field(default=1)
+    """Under ``ocr="auto"``, the text layer length below which OCR runs. Default: 1."""
+
+    ocr_max_pages: int | None = field(default=64)
+    """Most pages read with OCR per file; ``None`` for no limit. Default: 64."""
+
+    ocr_engine: str | Callable[[Any], Any] = field(default="tesseract")
+    """``"tesseract"``, ``"easyocr"``, or ``engine(image)``. Default: ``"tesseract"``."""
+
+    ocr_lang: str | None = field(default=None)
+    """Language hint for a built-in OCR engine. Default: ``None``."""
+
+    ocr_dpi: int = field(default=300)
+    """Resolution pages are rendered at for OCR, 1 to 1200. Default: 300."""
+
+    pypdfium2_kwargs: Mapping[str, Any] | None = field(default=None)
+    """
+    Keyword arguments for pypdfium2's ``PdfPage.render``, used for OCR;
+    ``scale`` is set from :attr:`ocr_dpi`. Default: ``None``.
+    """
+
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
     # dataclass __init__ field order (subclass fields come after base fields
@@ -698,6 +1043,13 @@ class PDFReader(DocumentReader):
         TypeError
             If ``pdfminer_kwargs`` is not a mapping with ``str`` keys (and
             not ``None``).
+        ValueError
+            If an ``ocr`` field is outside its documented values.
+        TypeError
+            If ``ocr_lang`` is not a ``str`` or ``None``, or
+            ``pypdfium2_kwargs`` is not a mapping with ``str`` keys.
+        ValueError
+            If ``pypdfium2_kwargs`` holds ``scale``.
         ValueError
             If ``pdfminer_kwargs`` holds an argument the reader sets itself.
         """
@@ -751,6 +1103,56 @@ class PDFReader(DocumentReader):
                     " reader sets these arguments itself."
                 )
 
+        self._validate_ocr()
+
+    def _validate_ocr(self) -> None:
+        """Validate the OCR fields; see :meth:`__post_init__`."""
+        if not (callable(self.ocr) or self.ocr in _OCR_POLICIES):
+            raise ValueError(
+                f"PDFReader: ocr must be one of {_OCR_POLICIES} or a callable"
+                f" (page_number, text) -> bool; got {self.ocr!r}."
+            )
+        if not (callable(self.ocr_engine) or self.ocr_engine in _OCR_ENGINES):
+            raise ValueError(
+                f"PDFReader: ocr_engine must be one of {_OCR_ENGINES} or a"
+                f" callable taking an image; got {self.ocr_engine!r}."
+            )
+        if not _is_positive_int(self.ocr_min_chars):
+            raise ValueError(
+                "PDFReader: ocr_min_chars must be a positive int;"
+                f" got {self.ocr_min_chars!r}."
+            )
+        if self.ocr_max_pages is not None and not _is_positive_int(self.ocr_max_pages):
+            raise ValueError(
+                "PDFReader: ocr_max_pages must be a positive int or None;"
+                f" got {self.ocr_max_pages!r}."
+            )
+        if not (_is_positive_int(self.ocr_dpi) and self.ocr_dpi <= _OCR_MAX_DPI):
+            raise ValueError(
+                f"PDFReader: ocr_dpi must be an int from 1 to {_OCR_MAX_DPI};"
+                f" got {self.ocr_dpi!r}."
+            )
+        if self.ocr_lang is not None and not isinstance(self.ocr_lang, str):
+            raise TypeError(
+                f"PDFReader: ocr_lang must be a str or None; got {self.ocr_lang!r}."
+            )
+        if self.pypdfium2_kwargs is not None:
+            if not (
+                isinstance(self.pypdfium2_kwargs, Mapping)
+                and all(isinstance(key, str) for key in self.pypdfium2_kwargs)
+            ):
+                raise TypeError(
+                    "PDFReader: pypdfium2_kwargs must be a mapping of pypdfium2"
+                    " PdfPage.render argument names to values, or None;"
+                    f" got {self.pypdfium2_kwargs!r}."
+                )
+            reserved = sorted(_PYPDFIUM2_RESERVED.intersection(self.pypdfium2_kwargs))
+            if reserved:
+                raise ValueError(
+                    f"PDFReader: pypdfium2_kwargs must not hold {reserved}; the"
+                    " reader sets the scale from ocr_dpi."
+                )
+
     # ------------------------------------------------------------------
     # DocumentReader contract
     # ------------------------------------------------------------------
@@ -795,6 +1197,9 @@ class PDFReader(DocumentReader):
             If pdfminer.six does not accept ``pdfminer_kwargs``.
         ImportError
             If neither pdfminer.six nor pypdf is installed (built-in path).
+        ImportError
+            If ``ocr`` is not ``"off"``, a page needs OCR, and pypdfium2 or
+            the engine's library is not installed.
         RuntimeError
             If ``prefer_backend="custom"`` and the extractor raises.
         """
@@ -821,10 +1226,11 @@ class PDFReader(DocumentReader):
             )
 
         logger.info(
-            "PDFReader: opening %s (%s page(s), backend=%s).",
+            "PDFReader: opening %s (%s page(s), backend=%s, ocr=%s).",
             self.file_name,
             "unknown" if n_pages is None else n_pages,
             self.prefer_backend or "auto",
+            self.ocr if isinstance(self.ocr, str) else "custom",
         )
 
         pages_yielded = 0
@@ -835,6 +1241,7 @@ class PDFReader(DocumentReader):
             self.prefer_backend,
             self.pdfminer_kwargs,
         )
+        ocr = self._page_ocr()
         try:
             for page_idx in itertools.count() if n_pages is None else range(n_pages):
                 text = pages.text(page_idx)
@@ -844,27 +1251,51 @@ class PDFReader(DocumentReader):
                         break
                     unreadable.append(page_idx)
                     continue
-                stripped = text.strip()
-                if not stripped:
+                chunk = self._page_chunk(page_idx, text, ocr)
+                if chunk is None:
                     logger.debug(
                         "PDFReader: page %d of %s has no extractable text; skipping.",
                         page_idx,
                         self.file_name,
                     )
                     continue
-                yield {
-                    "text": stripped,
-                    # raw_text: backend extraction result before leading/trailing
-                    # whitespace removal -- preserves original page boundary spacing
-                    # for before/after comparison against the normalised form.
-                    "raw_text": text,
-                    "section_type": SectionType.TEXT.value,
-                    "page_number": page_idx,
-                }
+                yield chunk
                 pages_yielded += 1
         finally:
             # Also reached when the consumer stops early.
             pages.close()
+            if ocr is not None:
+                ocr.close()
+
+        self._report(pages, ocr, unreadable, n_pages, pages_yielded)
+
+        logger.info(
+            "PDFReader: finished %s -- %d of %d page(s) read yielded text.",
+            self.file_name,
+            pages_yielded,
+            pages.n_read,
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _report(
+        self,
+        pages: _PageTexts,
+        ocr: _PageOcr | None,
+        unreadable: list[int],
+        n_pages: int | None,
+        pages_yielded: int,
+    ) -> None:
+        """
+        Raise for a file no page was read from; warn about what was skipped.
+
+        Raises
+        ------
+        ValueError
+            If no backend read any page and a backend reported why.
+        """
 
         errors = "; ".join(pages.errors())
         if pages.n_read == 0 and errors:
@@ -880,28 +1311,92 @@ class PDFReader(DocumentReader):
                 len(unreadable),
                 n_pages,
                 self.file_name,
-                ", ".join(str(index) for index in unreadable),
+                _page_ranges(unreadable),
                 errors or "no backend reported a reason",
             )
+        if ocr is not None:
+            self._warn_ocr(ocr)
         if pages.n_read and pages_yielded == 0:
             logger.warning(
                 "PDFReader: none of the %d page(s) read from %s has extractable"
-                " text. The file probably holds scanned images; PDFReader does"
-                " not run OCR.",
+                " text%s",
                 pages.n_read,
                 self.file_name,
+                (
+                    ". The file probably holds scanned images; pass ocr='auto'"
+                    " to read them with OCR."
+                    if ocr is None
+                    else ", with OCR as configured."
+                ),
             )
 
-        logger.info(
-            "PDFReader: finished %s -- %d of %d page(s) read yielded text.",
-            self.file_name,
-            pages_yielded,
-            pages.n_read,
+    def _page_ocr(self) -> _PageOcr | None:
+        """Return the OCR of this read, or ``None`` when ``ocr="off"``."""
+        if self.ocr == "off":
+            return None
+        return _PageOcr(
+            self.input_path,
+            self.password,
+            policy=self.ocr,
+            min_chars=self.ocr_min_chars,
+            max_pages=self.ocr_max_pages,
+            engine=self.ocr_engine,
+            lang=self.ocr_lang,
+            dpi=self.ocr_dpi,
+            pypdfium2_kwargs=self.pypdfium2_kwargs,
         )
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
+    def _page_chunk(
+        self, page_idx: int, text: str, ocr: _PageOcr | None
+    ) -> dict[str, Any] | None:
+        """
+        Return the raw chunk of one page, or ``None`` if it has no text.
+
+        The OCR text replaces the text layer when the policy asks for OCR
+        and OCR finds text; otherwise the text layer is kept.
+        """
+        stripped = text.strip()
+        chunk: dict[str, Any] = {
+            "text": stripped,
+            # raw_text: backend extraction result before leading/trailing
+            # whitespace removal -- preserves original page boundary spacing
+            # for before/after comparison against the normalised form.
+            "raw_text": text,
+            "section_type": SectionType.TEXT.value,
+            "page_number": page_idx,
+        }
+        if ocr is not None and ocr.wants(page_idx, stripped):
+            result = ocr.read(page_idx)
+            if result is not None and result[0].strip():
+                ocr_text, confidence = result
+                chunk["text"] = ocr_text.strip()
+                chunk["raw_text"] = ocr_text
+                chunk["ocr_engine"] = ocr.engine_name
+                if confidence is not None:
+                    chunk["confidence"] = round(confidence, 4)
+        return chunk if chunk["text"] else None
+
+    def _warn_ocr(self, ocr: _PageOcr) -> None:
+        """Warn about pages OCR was asked for and did not read."""
+        if ocr.over_limit:
+            logger.warning(
+                "PDFReader: %d more page(s) of %s needed OCR after"
+                " ocr_max_pages=%d was reached (pages %s); their text layer is"
+                " used. Pass ocr_max_pages=None to read them all.",
+                len(ocr.over_limit),
+                self.file_name,
+                self.ocr_max_pages,
+                _page_ranges(ocr.over_limit),
+            )
+        if ocr.failed:
+            logger.warning(
+                "PDFReader: %d page(s) of %s could not be rendered for OCR"
+                " (pages %s; %s); their text layer is used.",
+                len(ocr.failed),
+                self.file_name,
+                _page_ranges([index for index, _ in ocr.failed]),
+                ocr.failed[0][1],
+            )
 
     def _count_pages(self) -> int | None:
         """Return total page count using the best available backend."""
