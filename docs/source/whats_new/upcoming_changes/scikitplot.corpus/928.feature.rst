@@ -1,0 +1,8 @@
+- ``derive_graph`` derives a document's outline from the ``heading_path``
+  that ``StructureChunker`` records on every chunk: one ``heading`` node
+  (``NodeKind.HEADING``) per source and heading path, ``contains`` and
+  ``parent_of`` edges between a heading, its sub-headings and the documents
+  directly under it, and ``same_source`` from each top heading to its
+  source. A traversal can therefore walk from a chunk to its section, its
+  sibling chunks and the rest of the outline. Nothing is stored, and
+  documents without a heading path give the same graph as before.

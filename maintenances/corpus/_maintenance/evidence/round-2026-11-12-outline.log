@@ -1,0 +1,57 @@
+# Second research self-test, 2026-11-12, PR 928: the outline in the derived graph (D12 (a))
+# Host: Linux x86-64 (2 CPUs). OLD = main at c6886f7 (PR 927); NEW = the PR 928 branch.
+
+--- self-test of the second research set (CPython 3.13.18, NEW)
+text: 95 files through CorpusPipeline, CorpusBuilder, SQLiteStorage and the MCP lexical leg: 0 pipeline failures,
+known-item recall@5 1.0, MRR 0.9881 (84 titled files), 0 non-deterministic repeat searches
+PDF, 8 files: 5 give text (9 to 277 documents); 3 slide decks give 0 documents, their pages counted in n_omitted
+PDF, 277 pages, 2.1 MiB: 75.0 s through CorpusPipeline; pdfminer in one pass 7.9 s; one page alone 0.28 s (CX-14)
+GIF, 280 frames of 800 x 1111: stopped by a 60 s limit inside _ocr_tesseract; one frame 0.2-0.9 s (CX-15)
+the set's 83 GIFs: 11,257 frames, median 147, most 390
+JPG: 1 document; PNG: 0 documents, 1 omitted; MP4 without subtitles: warning, 0 documents; PPTX: ValueError, no reader
+mcp _tokens over 22,034 chunks: 131 ms; exact rewrites 122 ms and 105 ms: not changed
+
+--- the outline on real files
+84 markdown files of the second research zip, StructureChunker: 13395 documents (13386 under a heading)
+derive_graph 0.23 s: nodes {'document': 13395, 'source': 84, 'heading': 8163}; edges 69105 (42399 outline)
+
+--- tests: 16 new in TestOutline (tests/test__graph.py); NEW 40 passed; OLD: 15 failed, 25 passed in 0.39s
+--- mutations
+M1 id without the source                 -> 1 failed, 39 passed in 0.16s
+M2 id joins titles                       -> 1 failed, 39 passed in 0.18s
+M3 empty titles accepted                 -> 2 failed, 38 passed in 0.17s
+M4 strings accepted as paths             -> 1 failed, 39 passed in 0.16s
+M5 document under the top heading        -> 2 failed, 38 passed in 0.16s
+M6 heading edges repeated per document   -> 1 failed, 39 passed in 0.17s
+M7 no link to the source                 -> 1 failed, 39 passed in 0.17s
+M8 no reverse edge to the heading        -> 3 failed, 37 passed in 0.18s
+restored: True
+(M2 survived the first tests; the separator test was corrected and catches it)
+
+--- suites, OLD against NEW (corpus + mcp; mcp only on 3.8)
+3.9         OLD: 24 failed, 5971 passed      NEW: 24 failed, 5987 passed      sets identical: yes
+3.10        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6084 passed      sets identical: yes
+3.11        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6084 passed      sets identical: yes
+3.12        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6084 passed      sets identical: yes
+3.13        OLD: 23 failed, 6101 passed      NEW: 23 failed, 6117 passed      sets identical: yes
+3.13t       OLD: 24 failed, 5971 passed      NEW: 24 failed, 5987 passed      sets identical: yes
+3.14        OLD: 23 failed, 6074 passed      NEW: 23 failed, 6090 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6068 passed      NEW: 23 failed, 6084 passed      sets identical: yes
+3.15        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6084 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+(the failures are the environmental ones named in the PR 919 and PR 920 logs)
+
+--- gates (NEW staged; labeler regenerated for the ledger directory)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7029, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc': 0, 'test_files': 0, 'te
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin_json_files': 17, 'inte
+corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
+
+--- scikit-plots/skills
+usage-skill renderer rows/example/module text identical: True
+plugin build: 0 of 115 files differ from published 06b9ac4

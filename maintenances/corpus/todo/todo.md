@@ -57,11 +57,10 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
 | D9 | `scikitplot.agent` as a partial distribution (5a ships it in the full distribution only, untested by the partial-distribution harness) | (a) Add `scikit-plots-agent` (standard library only; test extra `jsonschema`) after Run 5. (b) Keep it in the full distribution. |
 | D10 | Echo the server's retrieval scope in `search_docs` responses (5c: the scope is server configuration and responses do not report it; the corpus `filter_capability`, every operator EMULATED, is dropped too) | (a) Add a `scope` object to `structuredContent` (a wire-contract change, with its tests). (b) Keep it in the server's configuration and logs only. |
 | D11 | Durable agent memory (`_agentic.py` defers it until seven prerequisites exist: tenant scope, provenance, trust, TTL, delete/forget, poisoning defence, promotion review) | (a) A governed memory collection in corpus: records are `CorpusDocument`s with those seven as required fields and checks, recalled through the existing fusion; `agent` only calls it. (b) A store inside `agent`. (c) Keep deferring. |
-| D12 | Outline links in the derived graph (`StructureChunker` records `heading_path`; `DerivedGraph` builds no relation from it) | (a) Derive a section relation from `heading_path`, never stored (ADR-R08-002), so traversal can walk a document's outline. (b) Leave it to callers. |
 | D13 | Markdown sources and the default chunker (`ParagraphChunker` splits a fenced block at its blank lines and strips the first line's indentation; `StructureChunker` keeps both) | (a) `.md`/`.rst` use `StructureChunker` when no chunker is chosen. (b) Keep the chunker explicit and say so in the guide. |
 
 Settled: D2 (fusion semantics, as recommended) and D3 ((a) 64-hex ids
-everywhere, with opt-in UUIDv7). D14: (a), PR 926.
+everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 
 ## Task: round 33 / Run 4 - structured chunking measured by the harness (R4-2, R4-3)
 
@@ -392,3 +391,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926.
   round's ledger is empty. CX-06 took option (c); D14 took (a).
 - Next: decisions D11 to D13; a public text-step base once the usage skills
   can be regenerated.
+
+### PR 928: the outline in the derived graph (D12); second research self-test
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-12).
+- Next: CX-14 (PDF pages, exact), CX-15 (image frames: a choice of limit),
+  D11, D13.

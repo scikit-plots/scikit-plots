@@ -238,3 +238,128 @@ class TestBudgets:
             GraphQuery(seeds=[docs[0].doc_id], min_trust=EdgeTrust.DERIVED)
         )
         assert all(e.trust is EdgeTrust.DERIVED for e in response.edges)
+
+
+# ===========================================================================
+# D12: the outline, derived from metadata["heading_path"]
+# ===========================================================================
+
+
+def _headed(index, path, source="guide.md"):
+    doc = CorpusDocument.create(input_path=source, chunk_index=index, text=f"text {index}")
+    return dataclasses.replace(doc, metadata={"heading_path": path})
+
+
+def _edges(graph):
+    return sorted(
+        (e.source, e.relation.value, e.target, e.evidence)
+        for node_id in graph._nodes
+        for e in graph.neighbors(node_id)
+    )
+
+
+def _heading(graph, label):
+    found = [n for n in graph._nodes.values() if n.kind is NodeKind.HEADING and n.label == label]
+    assert len(found) == 1, label
+    return found[0].node_id
+
+
+class TestOutline:
+    def test_documents_without_a_heading_path_add_nothing(self, docs) -> None:
+        plain = derive_graph(docs)
+        assert not [n for n in plain._nodes.values() if n.kind is NodeKind.HEADING]
+        assert all(e[3] != "metadata.heading_path" for e in _edges(plain))
+
+    def test_the_tree_is_source_heading_subheading_document(self) -> None:
+        docs = [
+            _headed(0, ["Guide"]),
+            _headed(1, ["Guide", "Install"]),
+            _headed(2, ["Guide", "Install"]),
+            _headed(3, ["Notes"]),
+        ]
+        graph = derive_graph(docs)
+        guide, install, notes = (_heading(graph, t) for t in ("Guide", "Install", "Notes"))
+        source = next(n.node_id for n in graph._nodes.values() if n.kind is NodeKind.SOURCE)
+        outline = [e[:3] for e in _edges(graph) if e[3] == "metadata.heading_path"]
+        ids = [d.doc_id for d in docs]
+        want = [
+            (guide, "same_source", source),
+            (notes, "same_source", source),
+            (guide, "contains", install),
+            (install, "parent_of", guide),
+            (guide, "contains", ids[0]),
+            (ids[0], "parent_of", guide),
+            (install, "contains", ids[1]),
+            (ids[1], "parent_of", install),
+            (install, "contains", ids[2]),
+            (ids[2], "parent_of", install),
+            (notes, "contains", ids[3]),
+            (ids[3], "parent_of", notes),
+        ]
+        assert outline == sorted(want)
+        assert sum(n.kind is NodeKind.HEADING for n in graph._nodes.values()) == len(
+            {"Guide", "Install", "Notes"}
+        )
+
+    def test_the_same_titles_in_two_sources_are_two_headings(self) -> None:
+        graph = derive_graph([_headed(0, ["Intro"], "a.md"), _headed(0, ["Intro"], "b.md")])
+        headings = [n for n in graph._nodes.values() if n.kind is NodeKind.HEADING]
+        assert [n.label for n in headings] == ["Intro", "Intro"]
+        assert len({n.node_id for n in headings}) == len(headings)
+
+    def test_a_title_holding_separators_does_not_merge_paths(self) -> None:
+        docs = [_headed(0, ["a, b"]), _headed(1, ['a", "b']), _headed(2, ["a", "b"])]
+        graph = derive_graph(docs)
+        labels = sorted(n.label for n in graph._nodes.values() if n.kind is NodeKind.HEADING)
+        assert labels == ["a", 'a", "b', "a, b", "b"]
+
+    @pytest.mark.parametrize(
+        "path", ["Guide", [], [""], ["ok", ""], [1], ("a", None), None, {"a": 1}],
+        ids=repr,
+    )
+    def test_anything_but_a_sequence_of_titles_is_not_a_heading_path(self, path) -> None:
+        graph = derive_graph([_headed(0, path)])
+        assert not [n for n in graph._nodes.values() if n.kind is NodeKind.HEADING]
+
+    def test_a_tuple_path_and_a_list_path_are_one_heading(self) -> None:
+        graph = derive_graph([_headed(0, ("A", "B")), _headed(1, ["A", "B"])])
+        assert sum(n.kind is NodeKind.HEADING for n in graph._nodes.values()) == len(("A", "B"))
+
+    def test_traversal_reaches_a_sibling_through_its_heading(self) -> None:
+        docs = [_headed(0, ["Guide", "Install"]), _headed(5, ["Guide", "Install"])]
+        graph = derive_graph(docs)
+        query = GraphQuery(
+            seeds=(docs[0].doc_id,),
+            max_hops=2,
+            allowed_relation_types=(RelationType.CONTAINS, RelationType.PARENT_OF),
+        )
+        reached = {n.node_id for n in graph.traverse(query).nodes}
+        assert docs[1].doc_id in reached
+
+    def test_deriving_twice_gives_the_same_graph(self) -> None:
+        docs = [_headed(i, ["G", f"S{i % 3}"]) for i in range(9)]
+        first, second = derive_graph(docs), derive_graph(docs)
+        assert list(first._nodes) == list(second._nodes)
+        assert _edges(first) == _edges(second)
+
+    def test_structure_chunks_carry_their_outline(self, tmp_path) -> None:
+        from .._chunkers._structure import StructureChunker  # noqa: PLC0415
+        from .._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        page = tmp_path / "page.md"
+        page.write_text("# Guide\n\nIntro.\n\n## Install\n\nRun it.\n\n## Use\n\nCall it.\n", "utf-8")
+        docs = CorpusPipeline(chunker=StructureChunker()).run(page).documents
+        graph = derive_graph(docs)
+        for doc in docs:
+            path = doc.metadata.get("heading_path")
+            if not path:
+                continue
+            parents = [
+                graph.node(e.target).label
+                for e in graph.neighbors(doc.doc_id)
+                if e.relation is RelationType.PARENT_OF
+            ]
+            assert parents == [path[-1]]
+        assert {"Guide", "Install", "Use"} <= {
+            n.label for n in graph._nodes.values() if n.kind is NodeKind.HEADING
+        }
