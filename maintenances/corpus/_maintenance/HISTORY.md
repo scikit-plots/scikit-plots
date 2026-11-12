@@ -1,6 +1,6 @@
 # Corpus maintenance history
 
-## 2026-11-12 — PDF pages in one pass, PR 930
+## 2026-11-12 — PDF pages in one pass, layout parameters, PR 930
 
 - **CX-14: `PDFReader` reads a file once per backend.** The reader called
   `pdfminer.high_level.extract_pages(path, page_numbers=[n])` for every
@@ -23,13 +23,29 @@
 - The profile's 554 `extract_pages` calls for 277 pages were the profiler
   counting each resume of the generator, not a second read.
 - Tests: `test__pdf.py` is new (the built-in PDF backends had no tests): 38
-  tests, most on stand-ins for the two libraries so they run without them
+  tests for the one-pass read, most on stand-ins for the two libraries so they run without them
   and count opens; 29 of the first 37 fail on `main`. 19 mutations caught, 4
   of them only after the tests were strengthened.
-- **Recorded, not changed** (ledger notes): CX-16 pdfminer orders text boxes
-  that tie by `id()`, so one page of the 277 gave 4 different texts in 6
-  identical reads; CX-17 the `corpus` extra requires `pdfminer` and
-  `pdfminer.six`, two distributions of one import package.
+- **CX-16 (a): `PDFReader.laparams`.** pdfminer.six keeps candidate pairs
+  of text boxes in a heap ordered by distance and then by `id()`, so boxes
+  that tie come out in an order that depends on memory addresses: 2 to 4
+  pages of the 277 differed over 4 reads; the other 7 PDFs (180 pages) had
+  none. `laparams`, a mapping of `LAParams` keyword arguments, is passed to
+  pdfminer on every open; a non-mapping is a `TypeError` at construction, an
+  argument pdfminer rejects a `ValueError` at the read. With
+  `{"boxes_flow": None}` no page of the 8 files differed over 4 reads. The
+  default is unchanged and still not reproducible on such pages: the ledger
+  note stays open for that decision. 13 more tests, 8 more mutations caught.
+- **CX-17: the `corpus` extra required `pdfminer` and `pdfminer.six`.** Both
+  install the import package `pdfminer`. In a fresh CPython 3.12 environment
+  `uv pip install pdfminer pdfminer.six` left a package that cannot import
+  `pdfminer.high_level` (the 2019 release's `converter.py` over the newer
+  one), so `PDFReader` fell back to pypdf or failed; uninstalling `pdfminer`
+  then removed modules of pdfminer.six as well. With `--target` installs
+  (pip in either order, uv) the modules were those of pdfminer.six with 149
+  stray files, so the outcome depends on the installer. The bare name is
+  removed from `pyproject.toml`, `libs/corpus/pyproject.toml` and the
+  generated `requirements/corpus.txt` and `libs/corpus/README_CORPUS.md`.
 - Evidence: `evidence/round-2026-11-12-pdf-one-pass.log`.
 
 ## 2026-11-12 — second research self-test, PR 928

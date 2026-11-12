@@ -125,3 +125,64 @@ corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
 
 --- scikit-plots/skills
 usage-skill generator rows for scikitplot.corpus and scikitplot.mcp: identical to OLD (no public name, signature or docstring changed)
+
+=== added to PR 930 afterwards: CX-16 (a) and CX-17
+
+--- CX-16: repeated reads (CPython 3.13.18, pdfminer.six 20260107; sha256 of each page's text, 4 reads per file)
+f00.pdf default          pages= 10 unstable_in_4_reads=0 []
+f00.pdf boxes_flow=None  pages= 10 unstable_in_4_reads=0 []
+f01.pdf default          pages=  9 unstable_in_4_reads=0 []
+f01.pdf boxes_flow=None  pages=  9 unstable_in_4_reads=0 []
+f02.pdf default          pages= 51 unstable_in_4_reads=0 []
+f02.pdf boxes_flow=None  pages= 51 unstable_in_4_reads=0 []
+f03.pdf default          pages= 31 unstable_in_4_reads=0 []
+f03.pdf boxes_flow=None  pages= 31 unstable_in_4_reads=0 []
+f04.pdf default          pages=277 unstable_in_4_reads=2 [18, 36]
+f04.pdf boxes_flow=None  pages=277 unstable_in_4_reads=0 []
+f05.pdf default          pages= 27 unstable_in_4_reads=0 []
+f05.pdf boxes_flow=None  pages= 27 unstable_in_4_reads=0 []
+f06.pdf default          pages= 42 unstable_in_4_reads=0 []
+f06.pdf boxes_flow=None  pages= 42 unstable_in_4_reads=0 []
+f07.pdf default          pages= 10 unstable_in_4_reads=0 []
+f07.pdf boxes_flow=None  pages= 10 unstable_in_4_reads=0 []
+through PDFReader(prefer_backend="pdfminer"), the 277-page file, 4 reads:
+PDFReader default          pages=277 chars_per_read=738791 unstable_in_4_reads=[16, 18, 36, 96] seconds_per_read=10.5
+PDFReader boxes_flow=None  pages=277 chars_per_read=738791 unstable_in_4_reads=[] seconds_per_read=9.5
+cause: LTLayoutContainer.group_textboxes orders its heap by (idx, dist, id(obj1), id(obj2), ...)
+tests: 13 more in test__pdf.py (51 in all); 51 passed on CPython 3.9, 3.12, 3.13, 3.13t, 3.14, 3.15
+mutations: 8 more (laparams not passed, never built, error not wrapped, reader does not hand it down, non-str keys
+accepted, non-mapping accepted, empty mapping treated as None, page texts drop it): 27 of 27 caught in all
+
+--- CX-17: pdfminer and pdfminer.six together
+fresh CPython 3.12 environment, uv pip install pdfminer pdfminer.six (pdfminer 20191125, pdfminer.six 20260107):
+  import pdfminer.high_level -> ImportError: cannot import name 'HOCRConverter' from 'pdfminer.converter'
+  then uv pip uninstall pdfminer: pdfminer-six still listed; import pdfminer.high_level -> No module named 'pdfminer.converter'
+--target installs (pip, either order; uv): Python modules equal to pdfminer.six alone, plus 149 files of the 2019
+  release (rijndael.py, 148 character maps); pdfminer.high_level imports
+pdfminer 20191125 has no wheel and no pdfminer/high_level.py
+files changed: pyproject.toml, libs/corpus/pyproject.toml; generated: requirements/corpus.txt (the one line; the
+  generator's new timestamps in the other 31 requirement files were not kept), libs/corpus/README_CORPUS.md
+
+--- usage-skill generator rows after these changes: one difference from OLD, the docstring of PDFReader (laparams)
+
+--- suites after all changes (failed, passed; OLD = main at f30de99)
+3.9         OLD: 24 failed, 6002 passed      NEW: 24 failed, 6053 passed      sets identical: yes
+3.10        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6150 passed      sets identical: yes
+3.11        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6150 passed      sets identical: yes
+3.12        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6150 passed      sets identical: yes
+3.13        OLD: 23 failed, 6132 passed      NEW: 23 failed, 6183 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6002 passed      NEW: 24 failed, 6053 passed      sets identical: yes
+3.14        OLD: 23 failed, 6090 passed      NEW: 23 failed, 6141 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6099 passed      NEW: 23 failed, 6150 passed      sets identical: yes
+3.15        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6150 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- gates after all changes (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7037, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin

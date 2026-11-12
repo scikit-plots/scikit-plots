@@ -1,0 +1,4 @@
+- The ``corpus`` extra no longer requires ``pdfminer`` next to
+  ``pdfminer.six``. The two distributions install the same ``pdfminer``
+  package; installed together they could leave one that cannot import
+  ``pdfminer.high_level``, which ``PDFReader`` needs.

@@ -621,7 +621,6 @@ ipymagic = [
 corpus = [
   "lxml",
   "pypdf",
-  "pdfminer",
   "pdfminer.six",
 
   "langdetect",

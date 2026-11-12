@@ -50,6 +50,13 @@ class _Figure:
     """A layout element that is not text."""
 
 
+class _Params:
+    """Stand-in for ``pdfminer.layout.LAParams``: it knows two arguments."""
+
+    def __init__(self, boxes_flow: Any = 0.5, line_margin: float = 0.5) -> None:
+        self.given = {"boxes_flow": boxes_flow, "line_margin": line_margin}
+
+
 class _FakePdfminer:
     """
     Stand-in for ``pdfminer.high_level`` and ``pdfminer.layout``.
@@ -70,10 +77,19 @@ class _FakePdfminer:
         self._iterators: list[Any] = []
 
     def extract_pages(
-        self, pdf_file: str, password: str = "", page_numbers: Any = None
+        self,
+        pdf_file: str,
+        password: str = "",
+        page_numbers: Any = None,
+        laparams: Any = None,
     ) -> Any:
         self.opens.append(
-            {"file": pdf_file, "password": password, "page_numbers": page_numbers}
+            {
+                "file": pdf_file,
+                "password": password,
+                "page_numbers": page_numbers,
+                "laparams": laparams,
+            }
         )
         iterator = self._walk(page_numbers)
         self._iterators.append(iterator)
@@ -97,6 +113,7 @@ class _FakePdfminer:
         high_level.extract_pages = self.extract_pages
         layout = types.ModuleType("pdfminer.layout")
         layout.LTTextContainer = _Box
+        layout.LAParams = _Params
         package = types.ModuleType("pdfminer")
         monkeypatch.setitem(sys.modules, "pdfminer", package)
         monkeypatch.setitem(sys.modules, "pdfminer.high_level", high_level)
@@ -376,6 +393,100 @@ class TestPdfminerPages:
 
 
 # ===========================================================================
+# pdfminer: layout parameters
+# ===========================================================================
+
+
+class TestLaparams:
+    def test_without_laparams_pdfminer_gets_none(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")]])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1)
+        assert reader.laparams is None
+        assert _texts(reader) == [(0, "a")]
+        assert fake.opens[0]["laparams"] is None
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer"])
+    def test_laparams_reach_pdfminer_as_layout_parameters(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        backend: str | None,
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")]])
+        fake.install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            1,
+            prefer_backend=backend,
+            laparams={"boxes_flow": None},
+        )
+        assert _texts(reader) == [(0, "a")]
+        (opened,) = fake.opens
+        assert isinstance(opened["laparams"], _Params)
+        assert opened["laparams"].given == {"boxes_flow": None, "line_margin": 0.5}
+
+    def test_laparams_are_used_again_when_the_file_is_reopened(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
+        fake.install(monkeypatch)
+        pages = _pdf._PdfminerPages(pdf_path, "", {"line_margin": 0.25})
+        assert [pages.text(i) for i in range(3)] == ["a", None, "c"]
+        assert [o["laparams"].given["line_margin"] for o in fake.opens] == [
+            0.25,
+            0.25,
+        ]
+
+    def test_an_argument_pdfminer_does_not_know_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")]])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, laparams={"box_flow": None})
+        with pytest.raises(ValueError, match="laparams is not accepted") as info:
+            list(reader.get_raw_chunks())
+        assert "box_flow" in str(info.value)
+        assert isinstance(info.value.__cause__, TypeError)
+        assert fake.opens == []
+
+    @pytest.mark.parametrize(
+        "bad", [["boxes_flow"], "boxes_flow=None", 0.5, {1: None}, {None: 1}]
+    )
+    def test_anything_but_a_mapping_of_names_is_a_type_error(
+        self, pdf_path: pathlib.Path, bad: Any
+    ) -> None:
+        with pytest.raises(TypeError, match="laparams must be a mapping"):
+            PDFReader(input_path=pdf_path, laparams=bad)
+
+    def test_an_empty_mapping_asks_for_explicit_default_parameters(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")]])
+        fake.install(monkeypatch)
+        assert _texts(_reader(pdf_path, monkeypatch, 1, laparams={})) == [(0, "a")]
+        assert isinstance(fake.opens[0]["laparams"], _Params)
+
+    def test_pypdf_ignores_laparams(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _missing(monkeypatch, "pdfminer", "pdfminer.high_level", "pdfminer.layout")
+        fake = _FakePypdf(["A"])
+        fake.install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            1,
+            prefer_backend="pypdf",
+            laparams={"no_such_argument": 1},
+        )
+        assert _texts(reader) == [(0, "A")]
+
+
+# ===========================================================================
 # pypdf: one reader
 # ===========================================================================
 
@@ -640,6 +751,17 @@ class TestRealLibraries:
         reader = PDFReader(input_path=path, prefer_backend="pdfminer")
         assert _texts(reader) == list(self.EXPECTED)
         assert opens == [None]
+
+    def test_pdfminer_reads_with_layout_parameters(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        path = _write_pdf(tmp_path / "doc.pdf", self.TEXTS)
+        reader = PDFReader(input_path=path, laparams={"boxes_flow": None})
+        assert _texts(reader) == list(self.EXPECTED)
+        unknown = PDFReader(input_path=path, laparams={"no_such_argument": 1})
+        with pytest.raises(ValueError, match="no_such_argument"):
+            list(unknown.get_raw_chunks())
 
     def test_pdfminer_reads_a_page_out_of_order(self, tmp_path: pathlib.Path) -> None:
         pytest.importorskip("pdfminer.high_level")
