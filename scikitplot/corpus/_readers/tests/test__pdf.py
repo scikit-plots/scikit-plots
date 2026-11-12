@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
+import shutil
 import sys
 import threading
 import types
@@ -1747,7 +1748,10 @@ class TestRealLibraries:
         self, tmp_path: pathlib.Path
     ) -> None:
         pytest.importorskip("pypdfium2")
-        pytest.importorskip("pytesseract")
+        pytesseract = pytest.importorskip("pytesseract")
+        # pytesseract installs without the Tesseract program it runs.
+        if shutil.which(pytesseract.pytesseract.tesseract_cmd) is None:
+            pytest.skip("the Tesseract program is not on PATH")
         pil_image = pytest.importorskip("PIL.Image")
         pil_draw = pytest.importorskip("PIL.ImageDraw")
         pil_font = pytest.importorskip("PIL.ImageFont")
@@ -1759,12 +1763,7 @@ class TestRealLibraries:
         pil_draw.Draw(scan).text((80, 200), "SCANNED PAGE 42", fill="black", font=font)
         path = tmp_path / "scan.pdf"
         scan.save(path, "PDF", resolution=200.0)
-        reader = PDFReader(input_path=path, ocr="auto")
-        try:
-            chunks = list(reader.get_raw_chunks())
-        except RuntimeError as exc:  # the Tesseract binary is not installed
-            pytest.skip(str(exc))
-        (chunk,) = chunks
+        (chunk,) = list(PDFReader(input_path=path, ocr="auto").get_raw_chunks())
         assert chunk["page_number"] == 0
         assert "SCANNED PAGE 42" in " ".join(chunk["text"].split())
         assert chunk["ocr_engine"] == "tesseract"

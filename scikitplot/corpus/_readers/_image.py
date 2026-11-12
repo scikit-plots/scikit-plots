@@ -132,8 +132,9 @@ def _ocr_tesseract(
     ------
     ImportError
         If ``pytesseract`` is not installed.
-    RuntimeError
-        If the Tesseract binary is not found on ``PATH``.
+    pytesseract.TesseractNotFoundError
+        If the Tesseract program is not on ``PATH`` (an ``OSError``; the
+        ``pytesseract`` package installs without it).
     """
     try:
         import pytesseract  # noqa: PLC0415

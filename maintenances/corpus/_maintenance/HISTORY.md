@@ -62,6 +62,12 @@ types) had four defects:
 - **Recorded, not changed** (ledger note): CX-23 `XMLReader` raises
   `XMLSyntaxError` with lxml and `ValueError` without it, as its docstring
   says it should; a decision.
+- **CI, from PR 931:** the test that runs pypdfium2 and Tesseract on a scan
+  skipped only on `RuntimeError`, as `_ocr_tesseract`'s docstring promised,
+  but without the Tesseract program pytesseract raises
+  `TesseractNotFoundError` (an `OSError`): the test shard failed on `main`.
+  The test now skips when `shutil.which` cannot find the program, and the
+  docstring names the real exception.
 - Evidence: `evidence/round-2026-11-13-text-encoding.log`.
 
 ## 2026-11-12 — PDF files and pages that cannot be read; OCR of scanned pages, PR 931

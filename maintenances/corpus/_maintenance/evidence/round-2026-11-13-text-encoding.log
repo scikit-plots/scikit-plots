@@ -130,3 +130,7 @@ DefaultFilter's API row gains word_count; plugins/scikitplot/skills/scikitplot-c
 3.14t       OLD: 23 failed, 6249 passed      NEW: 23 failed, 6372 passed      sets identical: yes
 3.15        OLD: 23 failed, 6250 passed      NEW: 23 failed, 6373 passed      sets identical: yes
 3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- CI failure from PR 931 (test shard, CPython 3.11, no Tesseract program on the runner)
+main's test with PATH=/nonexistent: 1 failed, TesseractNotFoundError: tesseract is not installed or it's not in your PATH
+fixed test, PATH=/nonexistent: 1 skipped ("the Tesseract program is not on PATH"); with Tesseract on PATH: 1 passed
