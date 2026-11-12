@@ -19,7 +19,7 @@
 | `extract_archive(archive_path: 'str \| Path', output_path: 'str \| Path', *, supported_extensions: 'frozenset[str] \| None' = ...)` | function | Extract an archive to a destination directory. |
 | `is_archive(path: 'str \| Path') -> 'bool'` | function | Check if a file path has a supported archive extension. |
 | `ChunkerBase()` | class | Abstract base class for all text chunkers. |
-| `DefaultFilter(min_words: 'int' = 3, min_chars: 'int' = 10) -> 'None'` | class | Standard noise filter ported and improved from remarx's ``include_sentence``. |
+| `DefaultFilter(min_words: 'int' = 3, min_chars: 'int' = 10, word_count: 'str \| Callable[[str], int]' = 'script') -> 'None'` | class | Standard noise filter ported and improved from remarx's ``include_sentence``. |
 | `DocumentReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Abstract base class for all format-specific document readers. |
 | `DummyReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | A no-op reader that validates source existence and accessibility. |
 | `FilterBase()` | class | Abstract base class for corpus document filters. |

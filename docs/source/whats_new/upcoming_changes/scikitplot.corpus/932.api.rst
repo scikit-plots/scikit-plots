@@ -1,0 +1,8 @@
+- ``TextReader(encoding=...)`` is a policy, and chardet is no longer
+  consulted unless asked for. ``None`` detects by fixed rules, the same on
+  every machine; a codec name decodes strictly; a list of codecs takes the
+  first that decodes the whole file; ``"chardet"`` asks chardet; a callable
+  ``(raw) -> codec`` decides. Every chunk records the codec used in its
+  ``encoding`` metadata. A file that is neither marked nor UTF-8 now
+  decodes as Windows-1252 (or latin-1) with a warning where an installed
+  chardet used to guess: pass ``encoding="chardet"`` or the corpus's codecs.

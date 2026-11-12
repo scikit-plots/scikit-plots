@@ -394,4 +394,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 
 ### PRs 928 to 931: D12, CX-14, CX-15 (a), CX-16 (a), CX-17, CX-18, CX-19
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-12).
-- Next: CX-16's default (ledger note: a choice), D11, D13.
+
+### PR 932: CX-20; CX-21 and CX-22 as policies; reader snapshots
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
+- Next: choices in ledger notes CX-16, CX-23; D11, D13.

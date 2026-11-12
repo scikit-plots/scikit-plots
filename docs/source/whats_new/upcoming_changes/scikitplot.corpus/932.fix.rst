@@ -1,0 +1,8 @@
+- ``TextReader`` (``.txt``, ``.md``, ``.rst``) detects the encoding from the
+  whole file instead of its first 8 KiB. A UTF-8 file with a multi-byte
+  character across byte 8192 was decoded as latin-1 where chardet is not
+  installed, and a file whose first non-UTF-8 byte came later raised
+  ``UnicodeDecodeError``. UTF-16 and UTF-32 text no longer starts with
+  U+FEFF, a binary file raises ``ValueError`` instead of becoming a
+  document, and text that is not UTF-8 is decoded as Windows-1252 when it
+  can be, so curly quotes, dashes and the euro sign are kept.

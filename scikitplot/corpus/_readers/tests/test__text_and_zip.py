@@ -35,6 +35,7 @@ Run with::
 
     pytest corpus/_readers/tests/test__text_and_zip.py -v
 """
+
 from __future__ import annotations
 
 import io
@@ -44,6 +45,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from .. import _text as _text_module
 from .._text import (
     MarkdownReader,
     ReSTReader,
@@ -60,62 +62,408 @@ from ..._schema import SourceType
 
 
 class TestDetectEncoding:
+    """The detector's contract: exact codecs, whole-file input, binary is None."""
 
-    def test_utf8_bom(self) -> None:
-        assert _detect_encoding(b"\xef\xbb\xbfHello") == "utf-8-sig"
+    @pytest.fixture(autouse=True)
+    def _no_chardet(self):
+        # The result must not depend on chardet unless a test installs one.
+        with patch.dict("sys.modules", {"chardet": None}):
+            yield
 
-    def test_utf32_le_bom(self) -> None:
-        assert _detect_encoding(b"\xff\xfe\x00\x00Hello") == "utf-32-le"
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (b"\xef\xbb\xbfHello", "utf-8-sig"),
+            (b"\xff\xfe\x00\x00H\x00\x00\x00", "utf-32"),
+            (b"\x00\x00\xfe\xff\x00\x00\x00H", "utf-32"),
+            (b"\xff\xfeH\x00e\x00", "utf-16"),
+            (b"\xfe\xff\x00H\x00e", "utf-16"),
+        ],
+    )
+    def test_a_byte_order_mark_picks_a_codec_that_drops_it(
+        self, raw: bytes, expected: str
+    ) -> None:
+        assert _detect_encoding(raw) == expected
+        assert not raw.decode(expected).startswith("\ufeff")
 
-    def test_utf32_be_bom(self) -> None:
-        assert _detect_encoding(b"\x00\x00\xfe\xffHello") == "utf-32-be"
+    def test_utf8_including_ascii(self) -> None:
+        assert _detect_encoding("Hello, \u4e16\u754c!".encode("utf-8")) == "utf-8"
+        assert _detect_encoding(b"Hello world") == "utf-8"
+        assert _detect_encoding(b"") == "utf-8"
 
-    def test_utf16_le_bom(self) -> None:
-        # Must NOT be confused with utf-32-le (4-byte prefix checked first).
-        raw = b"\xff\xfeH\x00e\x00l\x00l\x00o\x00"
-        result = _detect_encoding(raw)
-        assert result in ("utf-16-le",)
-
-    def test_utf16_be_bom(self) -> None:
-        raw = b"\xfe\xff\x00H\x00e\x00l\x00l\x00o"
-        assert _detect_encoding(raw) == "utf-16-be"
-
-    def test_strict_utf8_path(self) -> None:
-        raw = "Hello, 世界!".encode("utf-8")
+    def test_utf8_is_judged_on_all_the_bytes_not_a_prefix(self) -> None:
+        # A 3-byte character straddles byte 8192: a prefix of 8192 bytes is
+        # not valid UTF-8, the whole is.
+        raw = ("\u8a18\u61b6" * 3000).encode("utf-8")
+        assert not _decodes_prefix(raw, 8192)
         assert _detect_encoding(raw) == "utf-8"
 
-    def test_plain_ascii_is_utf8(self) -> None:
-        assert _detect_encoding(b"Hello world") == "utf-8"
+    def test_a_non_utf8_byte_after_8_kib_is_seen(self) -> None:
+        raw = b"a" * 10_000 + b"caf\xe9"
+        assert _detect_encoding(raw) == "cp1252"
 
-    def test_latin1_fallback_for_invalid_utf8(self) -> None:
-        # 0x80-0xFF bytes are valid Latin-1 but invalid UTF-8.
-        raw = b"calf\xe9"  # "café" in Latin-1
-        result = _detect_encoding(raw)
-        assert result in ("latin-1", "ISO-8859-1", "windows-1252", "latin1")
+    @pytest.mark.parametrize(
+        "raw", [b"\x00", b"text\x00more", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"]
+    )
+    def test_a_nul_byte_without_a_byte_order_mark_is_binary(self, raw: bytes) -> None:
+        assert _detect_encoding(raw) is None
 
-    def test_chardet_used_when_installed(self) -> None:
-        raw = b"calf\xe9 au lait"  # Latin-1, not valid UTF-8
-        mock_result = {"encoding": "ISO-8859-1", "confidence": 0.99}
-        with patch.dict("sys.modules", {"chardet": MagicMock(detect=MagicMock(return_value=mock_result))}):
-            # Force UTF-8 decode to fail so chardet branch is reached.
-            result = _detect_encoding(raw)
-        # chardet or latin-1 fallback — either is acceptable
-        assert result is not None
+    def test_utf16_with_a_mark_holds_nul_bytes_and_is_text(self) -> None:
+        assert _detect_encoding("Hi".encode("utf-16")) == "utf-16"
 
-    def test_chardet_low_confidence_falls_through_to_latin1(self) -> None:
-        raw = b"calf\xe9"
-        mock_result = {"encoding": "ISO-8859-1", "confidence": 0.50}
-        mock_chardet = MagicMock()
-        mock_chardet.detect.return_value = mock_result
-        with patch.dict("sys.modules", {"chardet": mock_chardet}):
-            result = _detect_encoding(raw)
-        assert result in ("latin-1", "latin1", "ISO-8859-1")
+    def test_cp1252_for_bytes_0x80_to_0x9f(self) -> None:
+        raw = b"caf\xe9 \x97 \x805 \x93q\x94"
+        assert _detect_encoding(raw) == "cp1252"
+        assert raw.decode("cp1252") == "caf\u00e9 \u2014 \u20ac5 \u201cq\u201d"
 
-    def test_chardet_absent_still_returns_string(self) -> None:
-        raw = b"calf\xe9"
+    @pytest.mark.parametrize("undefined", [b"\x81", b"\x8d", b"\x8f", b"\x90", b"\x9d"])
+    def test_latin1_when_cp1252_leaves_a_byte_undefined(self, undefined: bytes) -> None:
+        assert _detect_encoding(b"caf\xe9 " + undefined) == "latin-1"
+
+    def test_the_fallback_warns_and_names_the_codec(self) -> None:
+        with patch.object(_text_module.logger, "warning") as warning:
+            _detect_encoding(b"caf\xe9")
+        (args,) = [call.args for call in warning.call_args_list]
+        assert args[1] == "cp1252"
+        assert "Pass encoding=" in args[0]
+
+    def test_chardet_is_used_when_confident_and_it_decodes_the_file(self) -> None:
+        raw = "\u043f\u0430\u043c\u044f\u0442\u044c".encode("koi8-r") * 20
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.95}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert _detect_encoding(raw, use_chardet=True) == "KOI8-R"
+            assert _detect_encoding(raw) == "cp1252"
+
+    @pytest.mark.parametrize(
+        "guess",
+        [
+            {"encoding": "KOI8-R", "confidence": 0.5},
+            {"encoding": None, "confidence": 0.99},
+            {"encoding": "ascii", "confidence": 0.99},
+            {"encoding": "no-such-codec", "confidence": 0.99},
+        ],
+    )
+    def test_chardet_is_ignored_when_unsure_or_its_codec_fails(self, guess) -> None:
+        chardet = MagicMock()
+        chardet.detect.return_value = guess
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert _detect_encoding(b"caf\xe9", use_chardet=True) == "cp1252"
+
+    def test_nul_is_binary_even_where_the_bytes_are_valid_utf8(self) -> None:
+        assert b"text\x00more".decode("utf-8") == "text\x00more"
+        assert _detect_encoding("memory".encode("utf-16-le")) is None
+
+    def test_chardet_is_not_asked_about_utf8_or_binary(self) -> None:
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.99}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert _detect_encoding(b"\xc3\xa9", use_chardet=True) == "utf-8"
+            assert _detect_encoding(b"\xe9\x00", use_chardet=True) is None
+            assert _detect_encoding(b"caf\xe9") == "cp1252"
+        chardet.detect.assert_not_called()
+
+    def test_use_chardet_without_chardet_is_an_import_error(self) -> None:
+        with pytest.raises(ImportError, match="pip install chardet"):
+            _detect_encoding(b"caf\xe9", use_chardet=True)
+
+
+#: "pamyat" (memory) in KOI8-R: not UTF-8, decodable as cp1252.
+KOI8 = bytes([0xD0, 0xC1, 0xCD, 0xD1, 0xD4, 0xD8, 0x20])
+#: The same word as text.
+PAMYAT = "".join(chr(c) for c in (0x043F, 0x0430, 0x043C, 0x044F, 0x0442, 0x044C)) + " "
+
+
+def _decodes_prefix(raw: bytes, size: int) -> bool:
+    try:
+        raw[:size].decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+class TestTextReaderEncoding:
+    """What the reader yields for each kind of file, with chardet absent."""
+
+    @pytest.fixture(autouse=True)
+    def _no_chardet(self):
         with patch.dict("sys.modules", {"chardet": None}):
-            result = _detect_encoding(raw)
-        assert isinstance(result, str)
+            yield
+
+    def _text(self, path: Path, **kwargs) -> str:
+        (chunk,) = list(TextReader(input_path=path, **kwargs).get_raw_chunks())
+        assert chunk["raw_text"] == chunk["text"]
+        return chunk["text"]
+
+    @pytest.mark.parametrize(
+        "codec",
+        ["utf-8-sig", "utf-16", "utf-16-le", "utf-16-be", "utf-32", "utf-32-be"],
+    )
+    def test_no_byte_order_mark_reaches_the_text(
+        self, tmp_path: Path, codec: str
+    ) -> None:
+        text = "Ged\u00e4chtnis \u2014 m\u00e9moire"
+        f = tmp_path / "doc.txt"
+        if codec in ("utf-16-le", "utf-16-be"):
+            mark = b"\xff\xfe" if codec.endswith("le") else b"\xfe\xff"
+            f.write_bytes(mark + text.encode(codec))
+        elif codec == "utf-32-be":
+            f.write_bytes(b"\x00\x00\xfe\xff" + text.encode(codec))
+        else:
+            f.write_bytes(text.encode(codec))
+        assert self._text(f) == text
+
+    def test_a_long_utf8_file_cut_inside_a_character_at_8_kib(
+        self, tmp_path: Path
+    ) -> None:
+        text = "\u8a18\u61b6\u8207\u56de\u61b6" * 1000
+        f = tmp_path / "zh.md"
+        f.write_text(text, encoding="utf-8")
+        assert not _decodes_prefix(f.read_bytes(), 8192)
+        assert self._text(f) == text
+
+    def test_a_non_utf8_byte_after_8_kib_does_not_raise(self, tmp_path: Path) -> None:
+        f = tmp_path / "late.txt"
+        f.write_bytes(b"plain ascii line\n" * 600 + b"caf\xe9\n")
+        assert self._text(f).endswith("caf\u00e9\n")
+
+    def test_windows_1252_punctuation_is_kept(self, tmp_path: Path) -> None:
+        f = tmp_path / "win.txt"
+        f.write_bytes(b"\x93Quoted\x94 \x96 100\x80")
+        assert self._text(f) == "\u201cQuoted\u201d \u2013 100\u20ac"
+
+    @pytest.mark.parametrize(
+        ("codec", "newline"),
+        [("utf-8", "\r\n"), ("utf-8", "\r"), ("cp1252", "\r\n"), ("utf-16", "\r\n")],
+    )
+    def test_line_endings_become_newlines_as_read_text_gives(
+        self, tmp_path: Path, codec: str, newline: str
+    ) -> None:
+        f = tmp_path / "lines.txt"
+        f.write_bytes(newline.join(["one \u00e9", "two", "", "three"]).encode(codec))
+        expected = "one \u00e9\ntwo\n\nthree"
+        assert self._text(f) == expected
+        assert f.read_text(encoding=codec) == expected
+
+    def test_line_endings_with_an_explicit_encoding(self, tmp_path: Path) -> None:
+        f = tmp_path / "lines.txt"
+        f.write_bytes(b"a\r\nb\rc\n")
+        assert self._text(f, encoding="ascii") == "a\nb\nc\n"
+
+    def test_a_binary_file_is_a_value_error(self, tmp_path: Path) -> None:
+        f = tmp_path / "data.txt"
+        f.write_bytes(b"header" + bytes(range(256)))
+        with pytest.raises(ValueError, match="not a text file") as info:
+            list(TextReader(input_path=f).get_raw_chunks())
+        assert "offset 6" in str(info.value)
+        assert "encoding='utf-16-le'" in str(info.value)
+
+    def test_utf16_without_a_mark_is_read_with_an_explicit_encoding(
+        self, tmp_path: Path
+    ) -> None:
+        f = tmp_path / "nomark.txt"
+        f.write_bytes("memory".encode("utf-16-le"))
+        with pytest.raises(ValueError, match="not a text file"):
+            list(TextReader(input_path=f).get_raw_chunks())
+        assert self._text(f, encoding="utf-16-le") == "memory"
+
+    def test_an_explicit_encoding_that_does_not_fit_raises(
+        self, tmp_path: Path
+    ) -> None:
+        f = tmp_path / "doc.txt"
+        f.write_bytes(b"caf\xe9")
+        with pytest.raises(UnicodeDecodeError):
+            list(TextReader(input_path=f, encoding="utf-8").get_raw_chunks())
+
+    def test_the_default_ignores_an_installed_chardet(self, tmp_path: Path) -> None:
+        f = tmp_path / "ru.txt"
+        f.write_bytes(KOI8 * 20)
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.99}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert self._text(f) == KOI8.decode("cp1252") * 20
+        chardet.detect.assert_not_called()
+
+    def test_the_same_text_with_chardet_present_for_a_utf8_file(
+        self, tmp_path: Path
+    ) -> None:
+        text = "\u8a18\u61b6" * 3000
+        f = tmp_path / "zh.txt"
+        f.write_text(text, encoding="utf-8")
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "GB2312", "confidence": 0.99}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            assert self._text(f) == text
+        assert self._text(f) == text
+
+
+class TestTextReaderEncodingPolicy:
+    """encoding=: a codec, candidates, 'chardet', a callable; codec recorded."""
+
+    @pytest.fixture(autouse=True)
+    def _no_chardet(self):
+        with patch.dict("sys.modules", {"chardet": None}):
+            yield
+
+    def _chunk(self, path: Path, **kwargs) -> dict:
+        (chunk,) = list(TextReader(input_path=path, **kwargs).get_raw_chunks())
+        return chunk
+
+    def _file(self, tmp_path: Path, raw: bytes, name: str = "doc.txt") -> Path:
+        f = tmp_path / name
+        f.write_bytes(raw)
+        return f
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (b"plain", "utf-8"),
+            (b"\xef\xbb\xbfmarked", "utf-8-sig"),
+            (b"\xff\xfem\x00", "utf-16"),
+            (b"caf\xe9", "cp1252"),
+            (b"caf\xe9\x81", "latin-1"),
+        ],
+    )
+    def test_the_codec_used_is_recorded(self, tmp_path: Path, raw, expected) -> None:
+        assert self._chunk(self._file(tmp_path, raw))["encoding"] == expected
+
+    def test_the_codec_reaches_the_document_metadata(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"caf\xe9 au lait, and more words here")
+        (doc,) = list(TextReader(input_path=f).get_documents())
+        assert doc.metadata["encoding"] == "cp1252"
+
+    def test_a_codec_name_decodes_strictly(self, tmp_path: Path) -> None:
+        chunk = self._chunk(self._file(tmp_path, KOI8), encoding="koi8_r")
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+
+    def test_the_first_candidate_that_decodes_wins(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, KOI8)
+        chunk = self._chunk(f, encoding=["utf-8", "koi8_r", "cp1252"])
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+        assert self._chunk(f, encoding=("utf-8", "cp1252", "koi8_r"))["encoding"] == (
+            "cp1252"
+        )
+
+    def test_a_byte_order_mark_comes_before_the_candidates(
+        self, tmp_path: Path
+    ) -> None:
+        f = self._file(tmp_path, "memory".encode("utf-16"))
+        chunk = self._chunk(f, encoding=["latin-1"])
+        assert (chunk["text"], chunk["encoding"]) == ("memory", "utf-16")
+
+    def test_candidates_read_utf16_without_a_mark_in_the_order_given(
+        self, tmp_path: Path
+    ) -> None:
+        # No binary check under candidates: the caller's order decides.
+        f = self._file(tmp_path, "memory".encode("utf-16-le"))
+        chunk = self._chunk(f, encoding=["utf-16-le"])
+        assert (chunk["text"], chunk["encoding"]) == ("memory", "utf-16-le")
+        # These bytes are also valid UTF-8 (with NULs), so order matters.
+        assert self._chunk(f, encoding=["utf-8", "utf-16-le"])["encoding"] == "utf-8"
+
+    def test_no_candidate_that_decodes_is_a_value_error(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"caf\xe9")
+        with pytest.raises(ValueError, match="none of the encoding candidates") as info:
+            list(TextReader(input_path=f, encoding=["utf-8", "ascii"]).get_raw_chunks())
+        assert "['utf-8', 'ascii']" in str(info.value)
+        assert "latin-1" in str(info.value)
+        assert self._chunk(f, encoding=["utf-8", "latin-1"])["encoding"] == "latin-1"
+
+    def test_chardet_on_request(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, KOI8 * 20)
+        chardet = MagicMock()
+        chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.95}
+        with patch.dict("sys.modules", {"chardet": chardet}):
+            chunk = self._chunk(f, encoding="chardet")
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT * 20, "KOI8-R")
+
+    def test_chardet_on_request_without_chardet_is_an_import_error(
+        self, tmp_path: Path
+    ) -> None:
+        f = self._file(tmp_path, b"caf\xe9")
+        with pytest.raises(ImportError, match="pip install chardet"):
+            list(TextReader(input_path=f, encoding="chardet").get_raw_chunks())
+
+    def test_chardet_on_request_still_refuses_binary(self, tmp_path: Path) -> None:
+        f = self._file(tmp_path, b"\x00\x01binary")
+        with pytest.raises(ValueError, match="not a text file"):
+            list(TextReader(input_path=f, encoding="chardet").get_raw_chunks())
+
+    def test_a_callable_gets_the_bytes_and_names_the_codec(
+        self, tmp_path: Path
+    ) -> None:
+        seen = []
+
+        def policy(raw: bytes) -> str:
+            seen.append(raw)
+            return "koi8_r"
+
+        chunk = self._chunk(self._file(tmp_path, KOI8), encoding=policy)
+        assert seen == [KOI8]
+        assert (chunk["text"], chunk["encoding"]) == (PAMYAT, "koi8_r")
+
+    def test_a_callable_is_not_asked_when_the_file_has_a_mark(
+        self, tmp_path: Path
+    ) -> None:
+        def policy(raw: bytes) -> str:
+            raise AssertionError("not called")
+
+        f = self._file(tmp_path, b"\xef\xbb\xbfmarked")
+        assert self._chunk(f, encoding=policy)["encoding"] == "utf-8-sig"
+
+    @pytest.mark.parametrize("returned", [None, 3, "no-such-codec", b"utf-8"])
+    def test_a_callable_returning_no_codec_is_a_type_error(
+        self, tmp_path: Path, returned
+    ) -> None:
+        reader = TextReader(
+            input_path=self._file(tmp_path, b"text"), encoding=lambda raw: returned
+        )
+        with pytest.raises(TypeError, match="must return a codec name"):
+            list(reader.get_raw_chunks())
+
+    def test_a_callable_naming_a_codec_that_fails_is_a_value_error(
+        self, tmp_path: Path
+    ) -> None:
+        reader = TextReader(
+            input_path=self._file(tmp_path, b"caf\xe9"), encoding=lambda raw: "utf-8"
+        )
+        with pytest.raises(ValueError, match="chose 'utf-8', which does not decode"):
+            list(reader.get_raw_chunks())
+
+    @pytest.mark.parametrize(
+        ("bad", "error"),
+        [
+            ("no-such-codec", ValueError),
+            (["utf-8", "no-such-codec"], ValueError),
+            (["utf-8", 3], ValueError),
+            ([], TypeError),
+            ((), TypeError),
+            (3, TypeError),
+            ({"utf-8"}, TypeError),
+            (b"utf-8", TypeError),
+        ],
+    )
+    def test_a_policy_outside_the_documented_ones_is_refused(
+        self, tmp_path: Path, bad, error
+    ) -> None:
+        with pytest.raises(error, match="encoding"):
+            TextReader(input_path=self._file(tmp_path, b"text"), encoding=bad)
+
+    @pytest.mark.parametrize(
+        "good",
+        [
+            None,
+            "utf-8",
+            "UTF8",
+            "latin_1",
+            ["utf-8"],
+            ("cp1252", "latin-1"),
+            "chardet",
+            len,
+        ],
+    )
+    def test_the_documented_policies_are_accepted(self, tmp_path: Path, good) -> None:
+        TextReader(input_path=self._file(tmp_path, b"text"), encoding=good)
 
 
 # ===========================================================================
@@ -124,7 +472,6 @@ class TestDetectEncoding:
 
 
 class TestTextReader:
-
     def test_reads_utf8_file(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_text("Hello, world!", encoding="utf-8")
@@ -253,7 +600,6 @@ class TestTextReader:
 
 
 class TestMarkdownReader:
-
     def test_file_type(self) -> None:
         assert MarkdownReader.file_type == ".md"
 
@@ -273,7 +619,6 @@ class TestMarkdownReader:
 
 
 class TestReSTReader:
-
     def test_file_type(self) -> None:
         assert ReSTReader.file_type == ".rst"
 
@@ -297,7 +642,6 @@ class TestReSTReader:
 
 
 class TestShouldSkip:
-
     def test_normal_file_not_skipped(self) -> None:
         assert _should_skip("docs/chapter01.txt") is False
 
@@ -330,7 +674,6 @@ class TestShouldSkip:
 
 
 class TestIsWithin:
-
     def test_child_inside_parent(self, tmp_path: Path) -> None:
         child = (tmp_path / "sub" / "file.txt").resolve()
         assert _is_within(child, tmp_path.resolve()) is True
@@ -362,7 +705,6 @@ class TestIsWithin:
 
 
 class TestZipReaderConstruction:
-
     def _make_zip(self, tmp_path: Path, members: dict[str, bytes]) -> Path:
         """Create a ZIP file containing the given members."""
         zpath = tmp_path / "archive.zip"
@@ -424,7 +766,6 @@ class TestZipReaderConstruction:
 
 
 class TestZipReaderGetRawChunks:
-
     def _make_zip(self, tmp_path: Path, members: dict[str, str | bytes]) -> Path:
         zpath = tmp_path / "archive.zip"
         with zipfile.ZipFile(zpath, "w") as zf:
@@ -443,10 +784,13 @@ class TestZipReaderGetRawChunks:
         assert any("Hello from zip." in c.get("text", "") for c in chunks)
 
     def test_skips_hidden_member(self, tmp_path: Path) -> None:
-        zpath = self._make_zip(tmp_path, {
-            ".hidden": "secret",
-            "visible.txt": "Hello visible.",
-        })
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                ".hidden": "secret",
+                "visible.txt": "Hello visible.",
+            },
+        )
         reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         # Only visible.txt should contribute.
@@ -454,10 +798,13 @@ class TestZipReaderGetRawChunks:
         assert "Hello visible." in all_text
 
     def test_skips_macosx_member(self, tmp_path: Path) -> None:
-        zpath = self._make_zip(tmp_path, {
-            "__MACOSX/._doc.txt": "garbage",
-            "doc.txt": "Real content.",
-        })
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                "__MACOSX/._doc.txt": "garbage",
+                "doc.txt": "Real content.",
+            },
+        )
         reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
@@ -465,9 +812,7 @@ class TestZipReaderGetRawChunks:
         assert "garbage" not in all_text
 
     def test_file_count_guard_raises(self, tmp_path: Path) -> None:
-        zpath = self._make_zip(tmp_path, {
-            f"file{i}.txt": "x" for i in range(5)
-        })
+        zpath = self._make_zip(tmp_path, {f"file{i}.txt": "x" for i in range(5)})
         reader = ZipReader(input_path=zpath, max_files=2, skip_unsupported=True)
         with pytest.raises(ValueError, match="max_files"):
             list(reader.get_raw_chunks())
@@ -475,11 +820,14 @@ class TestZipReaderGetRawChunks:
     def test_bomb_guard_raises(self, tmp_path: Path) -> None:
         # Create members whose cumulative uncompressed size exceeds limit.
         big = "x" * 1000
-        zpath = self._make_zip(tmp_path, {
-            "a.txt": big,
-            "b.txt": big,
-            "c.txt": big,
-        })
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                "a.txt": big,
+                "b.txt": big,
+                "c.txt": big,
+            },
+        )
         reader = ZipReader(input_path=zpath, max_total_bytes=500, skip_unsupported=True)
         with pytest.raises(ValueError, match="max_total_bytes"):
             list(reader.get_raw_chunks())
@@ -491,10 +839,13 @@ class TestZipReaderGetRawChunks:
             list(reader.get_raw_chunks())
 
     def test_unsupported_ext_skipped_when_skip_true(self, tmp_path: Path) -> None:
-        zpath = self._make_zip(tmp_path, {
-            "data.xyz123": "garbage",
-            "doc.txt": "Good content.",
-        })
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                "data.xyz123": "garbage",
+                "doc.txt": "Good content.",
+            },
+        )
         reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
@@ -506,11 +857,14 @@ class TestZipReaderGetRawChunks:
         assert list(reader.get_raw_chunks()) == []
 
     def test_multiple_txt_members_all_yielded(self, tmp_path: Path) -> None:
-        zpath = self._make_zip(tmp_path, {
-            "a.txt": "Content A.",
-            "b.txt": "Content B.",
-            "c.txt": "Content C.",
-        })
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                "a.txt": "Content A.",
+                "b.txt": "Content B.",
+                "c.txt": "Content C.",
+            },
+        )
         reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
@@ -555,9 +909,7 @@ class TestZipReaderGetRawChunks:
         docs = list(ZipReader(input_path=outer).get_documents())
 
         assert len(docs) == 1
-        assert docs[0].input_path == (
-            "outer.zip/nested/inner.zip/deep/document.txt"
-        )
+        assert docs[0].input_path == ("outer.zip/nested/inner.zip/deep/document.txt")
         assert docs[0].source_type == SourceType.ARTICLE
 
     def test_zipslip_member_skipped(self, tmp_path: Path) -> None:
