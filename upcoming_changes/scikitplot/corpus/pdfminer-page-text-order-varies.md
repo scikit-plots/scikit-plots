@@ -15,9 +15,10 @@ towncrier_fragment: ""
 ## Summary
 
 `PDFReader` asks pdfminer.six for a page's layout with pdfminer's default
-layout parameters unless `laparams` is given. For some pages the order of
+layout parameters unless `pdfminer_kwargs` sets them. For some pages the order of
 the text boxes, and so the page's text, changes between two identical reads
-(finding CX-16). PR 930 added `laparams`; `{"boxes_flow": None}` gives the
+(finding CX-16). PR 930 added `pdfminer_kwargs`;
+`{"laparams": {"boxes_flow": None}}` gives the
 same text on every read. What is left is the default.
 
 ## Why it matters
@@ -33,7 +34,8 @@ stored embedding is not reproducible for that page.
   (pages 16, 18, 36 and 96 over two sets of reads): figures with many small
   labels of the same size. The characters are the same, their order is not.
 - The same with `PYTHONHASHSEED=0`.
-- With `laparams={"boxes_flow": None}`: no unstable page in any file.
+- With `pdfminer_kwargs={"laparams": {"boxes_flow": None}}`: no unstable
+  page in any file.
 
 ## Root cause / current understanding
 
@@ -68,7 +70,7 @@ ordered by position: reproducible, but pdfminer no longer groups boxes into
 columns, so the reading order of multi-column pages changes); (c) keep
 pdfminer's grouping and order boxes that tie by position before joining
 them, if that can be shown to remove every difference; (d) leave the default
-and rely on the documented `laparams` setting.
+and rely on the documented `pdfminer_kwargs` setting.
 
 ## Verification / acceptance criteria
 

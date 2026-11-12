@@ -166,6 +166,78 @@ name. The check runs on every pull request (`pr_check_path_lengths.yml`).
 Module-specific maintenance instructions may impose stronger checks. Follow the
 stronger rule when it does not conflict with repository policy.
 
+## API convention: options for a named backend
+
+Applies to every class or function that does its work through one of several
+interchangeable backends (a parameter such as `backend`, `prefer_backend` or
+`engine` with values `x`, `y`, `z`).
+
+**Rule.** An option that only one backend understands is never a flat parameter
+of its own. It travels in a keyword-argument mapping that names the backend it
+belongs to:
+
+```python
+def read(path, *, backend=None, x_kwargs=None, y_kwargs=None): ...
+
+read(path, backend="x", x_kwargs={"layout": "strict"})
+```
+
+Two forms are allowed. Pick one per callable and never mix them.
+
+| | Form A: one parameter per backend | Form B: one nested mapping |
+|---|---|---|
+| Signature | `x_kwargs=None, y_kwargs=None` | `backend_kwargs=None` |
+| Value | `{"option": value}` | `{"x": {"option": value}, "y": {...}}` |
+| Use when | the backends are a fixed, short list in the signature | backends are registered at run time, or the list is long or open |
+| Strength | visible in the signature and in completion; one docstring entry per backend; a misspelt parameter name fails at the call | the signature does not change when a backend is added |
+| Cost | one more parameter for every backend that gains options | a misspelt backend name is found only by validation; one docstring entry has to describe every backend |
+
+Form A is the default. Form B is for registries and plug-in points.
+
+**Requirements for both forms.**
+
+1. **Name.** Form A: `<backend>_kwargs`, where `<backend>` is the exact value
+   the backend parameter accepts (`prefer_backend="pdfminer"` gives
+   `pdfminer_kwargs`). Form B: `backend_kwargs`, keyed by those same values.
+   When a backend has two entry points that both take options, the name states
+   the entry point after the backend: `<backend>_<entry>_kwargs`.
+2. **Target.** Each mapping is forwarded to exactly one documented callable of
+   the backend, and the docstring names it ("keyword arguments for
+   `pkg.module.func`"). The keys are that callable's own argument names, with
+   no renaming and no translation layer.
+3. **Default.** `None`, meaning "the backend's defaults". Never a mutable
+   default. The mapping is read, never modified; copy it before adding to it.
+4. **Type check at construction.** Anything but `None` or a mapping with `str`
+   keys is a `TypeError` that names the parameter. In form B an outer key that
+   is not a known backend is a `ValueError` that lists the valid names.
+5. **One owner per argument.** A key the callable sets itself (the file, a
+   password, a page range) is rejected with a `ValueError` at construction.
+   An option that every backend shares stays an ordinary parameter and is
+   never accepted through a kwargs mapping.
+6. **Backend errors are reported, not swallowed.** The backend validates the
+   keys. Its `TypeError` or `ValueError` is re-raised as a `ValueError` that
+   names the parameter and the target callable, with the original as
+   `__cause__`. It must not be caught by a handler that treats it as a failed
+   input.
+7. **Options for a backend that does not run are ignored.** They are neither
+   an error nor a warning, because a call may choose its backend
+   automatically. The docstring says which backend each mapping reaches.
+8. **Behaviour without options is unchanged.** Adding a mapping never changes
+   what the callable does when the mapping is `None`.
+9. **Tests.** The options reach the target callable; `None` passes nothing; a
+   reserved key, a non-mapping and an option the backend rejects each raise
+   the documented error; a backend that does not run ignores its mapping.
+
+**Why.** A flat parameter borrowed from one backend (`laparams`, `dpi`,
+`beam_size`) says nothing about where it applies, collides with the next
+backend that uses the same word differently, and makes every new backend
+option a change to the public signature. A mapping named after the backend is
+specific, cannot collide, and lets a backend gain options without a change
+here.
+
+**Example in the tree.** `scikitplot.corpus.PDFReader`:
+`prefer_backend="pdfminer"` with `pdfminer_kwargs={"laparams": {...}}`.
+
 ## When a documentation review discovers a code or logic issue
 
 Do not silently redesign runtime code during a documentation-only task.

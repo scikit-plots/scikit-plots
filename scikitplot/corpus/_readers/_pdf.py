@@ -87,9 +87,10 @@ class _PdfminerPages:
         Path to the PDF file.
     password : str, optional
         Decryption password. Empty string for unencrypted PDFs.
-    laparams : Mapping or None, optional
-        Keyword arguments for ``pdfminer.layout.LAParams``. ``None`` leaves
-        the layout to pdfminer's defaults.
+    kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``. A
+        mapping under ``"laparams"`` is turned into a
+        ``pdfminer.layout.LAParams``.
 
     Notes
     -----
@@ -105,11 +106,11 @@ class _PdfminerPages:
         self,
         pdf_path: Any,
         password: str = "",
-        laparams: Mapping[str, Any] | None = None,
+        kwargs: Mapping[str, Any] | None = None,
     ) -> None:
         self._path = pdf_path
         self._password = password
-        self._laparams = laparams
+        self._kwargs = kwargs
         self._pages: Any = None
         # Index of the page the open iterator yields next.
         self._at = 0
@@ -134,7 +135,7 @@ class _PdfminerPages:
         ImportError
             If ``pdfminer`` is not installed.
         ValueError
-            If pdfminer does not accept ``laparams``.
+            If pdfminer does not accept the keyword arguments.
         """
         try:
             from pdfminer.high_level import extract_pages  # type: ignore[] # noqa: PLC0415
@@ -150,22 +151,31 @@ class _PdfminerPages:
 
         if self._pages is None or page_number != self._at:
             self.close()
-            laparams = None
-            if self._laparams is not None:
+            options = dict(self._kwargs or {})
+            if isinstance(options.get("laparams"), Mapping):
                 try:
-                    laparams = LAParams(**self._laparams)
+                    options["laparams"] = LAParams(**options["laparams"])
                 except (TypeError, ValueError) as exc:
                     raise ValueError(
-                        "PDFReader: laparams is not accepted by"
-                        f" pdfminer.layout.LAParams: {exc}"
+                        "PDFReader: pdfminer_kwargs['laparams'] is not accepted"
+                        f" by pdfminer.layout.LAParams: {exc}"
                     ) from exc
-            # page_numbers is a container of 0-based indices; None is all.
-            self._pages = extract_pages(
-                str(self._path),
-                password=self._password,
-                laparams=laparams,
-                page_numbers=(range(page_number, sys.maxsize) if page_number else None),
-            )
+            try:
+                # page_numbers is a container of 0-based indices; None is all.
+                self._pages = extract_pages(
+                    str(self._path),
+                    password=self._password,
+                    page_numbers=(
+                        range(page_number, sys.maxsize) if page_number else None
+                    ),
+                    **options,
+                )
+            except TypeError as exc:
+                # A generator function binds its arguments when it is called.
+                raise ValueError(
+                    "PDFReader: pdfminer_kwargs is not accepted by"
+                    f" pdfminer.high_level.extract_pages: {exc}"
+                ) from exc
             self._at = page_number
         try:
             page = next(self._pages, None)
@@ -302,8 +312,8 @@ class _PageTexts:
     prefer_backend : str or None
         ``"pdfminer"``, ``"pypdf"``, or ``None`` for pdfminer with a
         per-page fallback to pypdf.
-    laparams : Mapping or None, optional
-        Keyword arguments for ``pdfminer.layout.LAParams``.
+    pdfminer_kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``.
     """
 
     def __init__(
@@ -311,10 +321,10 @@ class _PageTexts:
         pdf_path: Any,
         password: str,
         prefer_backend: str | None,
-        laparams: Mapping[str, Any] | None = None,
+        pdfminer_kwargs: Mapping[str, Any] | None = None,
     ) -> None:
         self._prefer_backend = prefer_backend
-        self._pdfminer = _PdfminerPages(pdf_path, password, laparams)
+        self._pdfminer = _PdfminerPages(pdf_path, password, pdfminer_kwargs)
         self._pypdf = _PypdfPages(pdf_path, password)
 
     def text(self, page_idx: int) -> str | None:
@@ -446,11 +456,14 @@ class PDFReader(DocumentReader):
         Force a specific extraction backend. One of ``"pdfminer"``,
         ``"pypdf"``, or ``None`` (auto: try pdfminer first). Default:
         ``None``.
-    laparams : Mapping or None, optional
-        Keyword arguments for ``pdfminer.layout.LAParams``, the layout
-        analysis pdfminer.six runs on every page. ``None`` uses pdfminer's
-        defaults. pypdf ignores it. See the Notes for a reproducible read.
-        Default: ``None``.
+    pdfminer_kwargs : Mapping or None, optional
+        Keyword arguments for ``pdfminer.high_level.extract_pages``, used
+        when pdfminer.six reads a page; pypdf ignores them. A mapping under
+        ``"laparams"`` is turned into a ``pdfminer.layout.LAParams``, so
+        the layout analysis can be set without importing pdfminer.
+        ``password``, ``page_numbers`` and ``maxpages`` are set by the
+        reader and are not accepted. ``None`` uses pdfminer's defaults. See
+        the Notes for a reproducible read. Default: ``None``.
     chunker : ChunkerBase or None, optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
     filter_ : FilterBase or None, optional
@@ -501,9 +514,9 @@ class PDFReader(DocumentReader):
     far apart by their address in memory, so the text of a page with many
     such boxes (a figure with repeated labels, a grid) can come out in a
     different order on another read of the same file.
-    ``laparams={"boxes_flow": None}`` orders the boxes by position instead:
-    the same text on every read, without pdfminer's grouping of boxes into
-    columns.
+    ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders the boxes
+    by position instead: the same text on every read, without pdfminer's
+    grouping of boxes into columns.
 
     **Encrypted PDFs:** Supply ``password`` when constructing the reader.
     If the password is wrong, affected pages are skipped with a warning.
@@ -545,6 +558,12 @@ class PDFReader(DocumentReader):
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
 
+    # extract_pages arguments the reader passes itself. maxpages is among
+    # them because the reader reads every page and may open the file again.
+    _PDFMINER_RESERVED: ClassVar[frozenset[str]] = frozenset(
+        {"password", "page_numbers", "maxpages"}
+    )
+
     password: str = field(default="")
     """Decryption password for encrypted PDFs. Empty string means unencrypted."""
 
@@ -560,10 +579,10 @@ class PDFReader(DocumentReader):
     When ``"custom"``, :attr:`custom_extractor` **must** be provided.
     """
 
-    laparams: Mapping[str, Any] | None = field(default=None)
+    pdfminer_kwargs: Mapping[str, Any] | None = field(default=None)
     """
-    Keyword arguments for ``pdfminer.layout.LAParams``; ``None`` uses
-    pdfminer's defaults. Default: ``None``.
+    Keyword arguments for ``pdfminer.high_level.extract_pages``; ``None``
+    uses pdfminer's defaults. Default: ``None``.
     """
 
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
@@ -587,8 +606,10 @@ class PDFReader(DocumentReader):
         ValueError
             If ``max_file_bytes <= 0``.
         TypeError
-            If ``laparams`` is not a mapping with ``str`` keys (and not
-            ``None``).
+            If ``pdfminer_kwargs`` is not a mapping with ``str`` keys (and
+            not ``None``).
+        ValueError
+            If ``pdfminer_kwargs`` holds an argument the reader sets itself.
         """
         super().__post_init__()
         if (
@@ -621,14 +642,24 @@ class PDFReader(DocumentReader):
             raise ValueError(
                 f"PDFReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."
             )
-        if self.laparams is not None and not (
-            isinstance(self.laparams, Mapping)
-            and all(isinstance(key, str) for key in self.laparams)
-        ):
-            raise TypeError(
-                "PDFReader: laparams must be a mapping of pdfminer.layout.LAParams"
-                f" argument names to values, or None; got {self.laparams!r}."
+        if self.pdfminer_kwargs is not None:
+            if not (
+                isinstance(self.pdfminer_kwargs, Mapping)
+                and all(isinstance(key, str) for key in self.pdfminer_kwargs)
+            ):
+                raise TypeError(
+                    "PDFReader: pdfminer_kwargs must be a mapping of"
+                    " pdfminer.high_level.extract_pages argument names to"
+                    f" values, or None; got {self.pdfminer_kwargs!r}."
+                )
+            reserved = sorted(
+                self._PDFMINER_RESERVED.intersection(self.pdfminer_kwargs)
             )
+            if reserved:
+                raise ValueError(
+                    f"PDFReader: pdfminer_kwargs must not hold {reserved}; the"
+                    " reader sets these arguments itself."
+                )
 
     # ------------------------------------------------------------------
     # DocumentReader contract
@@ -663,7 +694,7 @@ class PDFReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes``.
         ValueError
-            If pdfminer.six does not accept ``laparams``.
+            If pdfminer.six does not accept ``pdfminer_kwargs``.
         ImportError
             If neither pdfminer.six nor pypdf is installed (built-in path).
         RuntimeError
@@ -701,7 +732,10 @@ class PDFReader(DocumentReader):
 
         pages_yielded = 0
         pages = _PageTexts(
-            self.input_path, self.password, self.prefer_backend, self.laparams
+            self.input_path,
+            self.password,
+            self.prefer_backend,
+            self.pdfminer_kwargs,
         )
         try:
             for page_idx in range(n_pages):

@@ -186,3 +186,39 @@ test_module_names exit=0 :: ok scikitplot: every test module name is unique
 libs_tools exit=0 :: Generated files are up to date.
 corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
 mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin
+
+=== after the rule "options for a named backend": the field laparams became pdfminer_kwargs (before merge)
+
+pdfminer_kwargs is forwarded to pdfminer.high_level.extract_pages; a mapping under "laparams" becomes LAParams
+through PDFReader(prefer_backend="pdfminer"), the 277-page file, 4 reads (suites running beside it):
+PDFReader default                                          unstable_in_4_reads=[16, 18, 36, 96]
+PDFReader pdfminer_kwargs={"laparams": {"boxes_flow": None}} unstable_in_4_reads=[]
+tests: test__pdf.py 57 passed on CPython 3.9, 3.12, 3.13, 3.13t, 3.14, 3.15 (TestPdfminerKwargs replaces the
+laparams tests above: 19 tests)
+mutations, whole file: 30 of 30 caught (19 for the one-pass read; 11 for the kwargs: not forwarded, laparams mapping
+not converted, layout error not wrapped, extract_pages error not wrapped, reader does not hand them down, non-str
+keys accepted, non-mapping accepted, reserved keys accepted, maxpages not reserved, page texts drop them, caller's
+mapping modified)
+lint: _pdf.py OLD 0 findings, NEW 0; test__pdf.py 0 findings; black clean
+
+--- suites after the rename (failed, passed; OLD = main at f30de99)
+3.9         OLD: 24 failed, 6002 passed      NEW: 24 failed, 6059 passed      sets identical: yes
+3.10        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6156 passed      sets identical: yes
+3.11        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6156 passed      sets identical: yes
+3.12        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6156 passed      sets identical: yes
+3.13        OLD: 23 failed, 6132 passed      NEW: 23 failed, 6189 passed      sets identical: yes
+3.13t       OLD: 24 failed, 6002 passed      NEW: 24 failed, 6059 passed      sets identical: yes
+3.14        OLD: 23 failed, 6090 passed      NEW: 23 failed, 6147 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6099 passed      NEW: 23 failed, 6156 passed      sets identical: yes
+3.15        OLD: 23 failed, 6099 passed      NEW: 23 failed, 6156 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+
+--- gates after the rename (NEW staged)
+towncrier exit=0 :: - configured fragment types: 7
+check_records exit=0 :: ok   plugins
+pr_labeler exit=0 :: Labeler check: PASS (curated_labels=12, files=7037, module_labels=81, title_labels=19)
+path_lengths exit=0 :: 0 failing, 0 known, 0 stale
+test_module_names exit=0 :: ok scikitplot: every test module name is unique
+libs_tools exit=0 :: Generated files are up to date.
+corpus_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'runtime_files': 0, 'runtime_bytes': 0, 'source_files': 0, 'source_loc
+mcp_trackers exit=1 :: INVENTORY: TRACKER.json inventory is stale: recorded={'tracked_files': 58, 'python_files': 31, 'test_python_files': 16, 'plugin

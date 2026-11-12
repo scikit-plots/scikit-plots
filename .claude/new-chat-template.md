@@ -141,6 +141,9 @@ one line.
 - Rewrite tests to the corrected contract; never delete a test to make a
   change pass.
 - Deterministic logic only: no heuristics, guesses or "best effort".
+- An option only one backend understands goes in `<backend>_kwargs` (or one
+  nested `backend_kwargs`), never in a flat parameter of its own: see "API
+  convention: options for a named backend" in `maintenances/MAINTAINING.md`.
 - Every summary to me ends with:
   "This pull request includes code written with the assistance of AI. The
   code has **not yet been reviewed** by a human."

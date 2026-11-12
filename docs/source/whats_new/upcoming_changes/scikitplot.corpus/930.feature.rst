@@ -1,5 +1,6 @@
-- ``PDFReader`` takes ``laparams``, a mapping of keyword arguments for
-  ``pdfminer.layout.LAParams``. pdfminer.six can order the text boxes of a
+- ``PDFReader`` takes ``pdfminer_kwargs``, keyword arguments for
+  ``pdfminer.high_level.extract_pages``; a mapping under ``"laparams"``
+  becomes the layout parameters. pdfminer.six can order the text boxes of a
   page differently on two reads of the same file;
-  ``laparams={"boxes_flow": None}`` orders them by position, which gives the
-  same text every time.
+  ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders them by
+  position, which gives the same text every time.

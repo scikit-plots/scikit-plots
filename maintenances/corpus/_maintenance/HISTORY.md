@@ -26,16 +26,24 @@
   tests for the one-pass read, most on stand-ins for the two libraries so they run without them
   and count opens; 29 of the first 37 fail on `main`. 19 mutations caught, 4
   of them only after the tests were strengthened.
-- **CX-16 (a): `PDFReader.laparams`.** pdfminer.six keeps candidate pairs
-  of text boxes in a heap ordered by distance and then by `id()`, so boxes
-  that tie come out in an order that depends on memory addresses: 2 to 4
-  pages of the 277 differed over 4 reads; the other 7 PDFs (180 pages) had
-  none. `laparams`, a mapping of `LAParams` keyword arguments, is passed to
-  pdfminer on every open; a non-mapping is a `TypeError` at construction, an
-  argument pdfminer rejects a `ValueError` at the read. With
-  `{"boxes_flow": None}` no page of the 8 files differed over 4 reads. The
-  default is unchanged and still not reproducible on such pages: the ledger
-  note stays open for that decision. 13 more tests, 8 more mutations caught.
+- **CX-16 (a): `PDFReader.pdfminer_kwargs`.** pdfminer.six keeps candidate
+  pairs of text boxes in a heap ordered by distance and then by `id()`, so
+  boxes that tie come out in an order that depends on memory addresses: 2 to
+  4 pages of the 277 differed over 4 reads; the other 7 PDFs (180 pages) had
+  none. `pdfminer_kwargs`, keyword arguments for
+  `pdfminer.high_level.extract_pages`, is passed on every open; a mapping
+  under `"laparams"` becomes an `LAParams`. A non-mapping is a `TypeError`
+  and `password`, `page_numbers` or `maxpages` a `ValueError` at
+  construction; an argument pdfminer rejects is a `ValueError` at the read.
+  With `{"laparams": {"boxes_flow": None}}` no page of the 8 files differed
+  over 4 reads. The default is unchanged and still not reproducible on such
+  pages: the ledger note stays open for that decision. 19 more tests (57 in
+  the file); 30 mutations caught in all.
+- **Rule added: options for a named backend** (`maintenances/MAINTAINING.md`,
+  one line in the chat template's standing rules). An option only one
+  backend understands travels in `<backend>_kwargs` (or one nested
+  `backend_kwargs`), never in a flat parameter. The field was first written
+  as `laparams` and renamed under the rule before merge.
 - **CX-17: the `corpus` extra required `pdfminer` and `pdfminer.six`.** Both
   install the import package `pdfminer`. In a fresh CPython 3.12 environment
   `uv pip install pdfminer pdfminer.six` left a package that cannot import
