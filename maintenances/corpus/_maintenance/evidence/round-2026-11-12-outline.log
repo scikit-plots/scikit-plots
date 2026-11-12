@@ -55,3 +55,34 @@ corpus_trackers / mcp_trackers: exit 1 on OLD as well (open decision D6).
 --- scikit-plots/skills
 usage-skill renderer rows/example/module text identical: True
 plugin build: 0 of 115 files differ from published 06b9ac4
+
+=== added to PR 928 afterwards: CX-15 (a) and the gallery-grid card header
+
+--- CX-15: ImageReader frames (CPython 3.13.18; the 280-frame GIF, 800 x 1111, 2.2 MiB; OCR stubbed)
+OLD            : chunks=280 seconds=1.84 peak_rss_mib=1006
+NEW default 64 : chunks=64 seconds=0.54 peak_rss_mib=62
+NEW unbounded  : chunks=280 seconds=1.45 peak_rss_mib=64
+tests: 15 new in TestFramesOnDemand; on OLD all 15 fail (max_frames unknown)
+mutations (test__image.py): limit ignored, warning never issued, all frames copied up front, bool accepted,
+zero accepted, frames not copied, never seeks, default unbounded, limit off by one: 9 of 9 caught
+
+--- gallery grid: card header (the PR's CI: 2 failed in test_directive.py with Sphinx Design 0.8.0)
+cause: Sphinx Design 0.8 adds the card options header and footer and deprecates the ^^^ / +++ separators
+CPython 3.12, Sphinx 9.1.1, Sphinx Design 0.7.0: 313 passed, 1 skipped
+CPython 3.12, Sphinx 9.1.1, Sphinx Design 0.8.0: 314 passed
+OLD with the new tests: collection error (_has_card_header_directive unknown)
+mutations (directive.py): always separator, never separator, header not indented, fixed fence,
+detection always false: 5 of 5 caught
+
+--- suites after both changes (failed, passed; OLD = main at c6886f7)
+3.9         OLD: 24 failed, 5971 passed      NEW: 24 failed, 6002 passed      sets identical: yes
+3.10        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6099 passed      sets identical: yes
+3.11        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6099 passed      sets identical: yes
+3.12        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6099 passed      sets identical: yes
+3.13        OLD: 23 failed, 6101 passed      NEW: 23 failed, 6132 passed      sets identical: yes
+3.13t       OLD: 24 failed, 5971 passed      NEW: 24 failed, 6002 passed      sets identical: yes
+3.14        OLD: 23 failed, 6074 passed      NEW: 23 failed, 6090 passed      sets identical: yes
+3.14t       OLD: 23 failed, 6068 passed      NEW: 23 failed, 6099 passed      sets identical: yes
+3.15        OLD: 23 failed, 6068 passed      NEW: 23 failed, 6099 passed      sets identical: yes
+3.8    mcp  OLD: 5 failed, 271 passed        NEW: 5 failed, 271 passed        sets identical: yes
+(3.14 has no Pillow: the new image tests skip there)

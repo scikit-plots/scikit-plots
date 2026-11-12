@@ -1,0 +1,4 @@
+- A gallery-grid card with a ``header`` builds without the
+  ``design.card_legacy`` warning on Sphinx Design 0.8 and newer: the header
+  is written as a ``card-header`` directive there, and with the ``^^^``
+  separator on older versions.

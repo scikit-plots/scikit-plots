@@ -222,10 +222,21 @@ class TestCardOptionNames:
         assert name in directive_module._FALLBACK_CARD_OPTIONS
 
     @pytest.mark.parametrize(
-        "name", ["title", "header", "image", "content", "category", "tags", "description"]
+        "name", ["title", "image", "content", "category", "tags", "description"]
     )
     def test_item_data_keys_are_not_card_options(self, name):
         assert name not in _card_option_names()
+
+    def test_header_is_consumed_here_whatever_sphinx_design_accepts(self):
+        # Sphinx Design 0.8 added a ``header`` card option; the item key of
+        # that name stays this directive's own and is never forwarded.
+        assert "header" in directive_module._RESERVED_ITEM_KEYS
+
+    def test_the_card_header_directive_is_detected_from_sphinx_design(self):
+        cards = pytest.importorskip("sphinx_design.cards")
+        assert directive_module._has_card_header_directive() is hasattr(
+            cards, "CardHeaderDirective"
+        )
 
     def test_the_result_is_stable(self):
         assert _card_option_names() is _card_option_names()
@@ -412,7 +423,20 @@ class TestOptionsBlock:
 
 
 class TestBuildCard:
-    def test_an_rst_card_with_every_body_part(self):
+    # Sphinx Design 0.8 added the ``card-header`` directive and deprecated the
+    # ``^^^`` separator; each form is pinned for the Sphinx Design that has it.
+    @pytest.mark.parametrize(
+        ("has_directive", "header"),
+        [
+            (True, "   .. card-header::\n\n      Head\n\n"),
+            (False, "   Head\n\n   ^^^\n\n"),
+        ],
+        ids=["card-header", "separator"],
+    )
+    def test_an_rst_card_with_every_body_part(self, monkeypatch, has_directive, header):
+        monkeypatch.setattr(
+            directive_module, "_has_card_header_directive", lambda: has_directive
+        )
         card = make_directive()._build_card(
             {"title": "Title", "header": "Head", "image": "a.png", "content": "Body",
              "link": "https://example.org"},
@@ -423,25 +447,46 @@ class TestBuildCard:
             "   :link: https://example.org\n"
             "   :class-card: sk-collection-item-0\n"
             "\n"
-            "   Head\n\n   ^^^\n\n"
-            "   .. image:: a.png\n\n"
+            + header
+            + "   .. image:: a.png\n\n"
             "   Body\n"
         )
 
-    def test_a_myst_card_with_every_body_part(self):
+    @pytest.mark.parametrize(
+        ("has_directive", "fence", "header"),
+        [
+            (True, "~~~~", "~~~{card-header}\nHead\n~~~\n\n"),
+            (False, "~~~~", "Head  \n^^^  \n"),
+        ],
+        ids=["card-header", "separator"],
+    )
+    def test_a_myst_card_with_every_body_part(
+        self, monkeypatch, has_directive, fence, header
+    ):
+        monkeypatch.setattr(
+            directive_module, "_has_card_header_directive", lambda: has_directive
+        )
         card = make_directive()._build_card(
             {"title": "Title", "header": "Head", "image": "a.png", "content": "Body"},
             rst=False,
         )
         assert card == (
-            "\n~~~~{grid-item-card} Title\n"
+            f"\n{fence}{{grid-item-card}} Title\n"
             ":class-card: sk-collection-item-0  \n"
             "\n\n"
-            "Head  \n^^^  \n"
-            "![image](a.png)  \n"
+            + header
+            + "![image](a.png)  \n"
             "Body  \n"
-            "\n~~~~\n"
+            f"\n{fence}\n"
         )
+
+    def test_a_myst_header_holding_a_fence_gets_a_longer_one(self, monkeypatch):
+        monkeypatch.setattr(directive_module, "_has_card_header_directive", lambda: True)
+        card = make_directive()._build_card(
+            {"title": "T", "header": "~~~~\ncode\n~~~~"}, rst=False
+        )
+        assert "~~~~~{card-header}\n~~~~\ncode\n~~~~\n~~~~~\n" in card
+        assert card.startswith("\n~~~~~~{grid-item-card} T\n")
 
     @pytest.mark.parametrize("rst", [True, False], ids=["rst", "myst"])
     def test_an_empty_item_still_renders_a_card(self, rst):
@@ -966,6 +1011,32 @@ class TestBuildCards:
         assert "<span>Read one</span>" in result.html
         # A data field must neither be rendered nor make the card disappear.
         assert "data-only" not in result.html
+
+    def test_a_multi_line_header_renders_without_a_warning(self, build):
+        result = build(
+            ".. gallery-grid::\n\n"
+            "   - title: One\n"
+            "     header: |\n"
+            "       First **line**\n\n"
+            "       Second paragraph\n"
+            "     content: Body\n"
+        )
+        assert result.warnings == ""
+        header = result.html.split('<div class="sd-card-header docutils">')[1]
+        header = header.split('<div class="sd-card-body')[0]
+        assert "First <strong>line</strong>" in header
+        assert "Second paragraph" in header
+        assert "Body" not in header
+
+    @pytest.mark.skipif(
+        not directive_module._has_card_header_directive(),
+        reason="Sphinx Design before 0.8 has only the separator form",
+    )
+    def test_without_the_directive_the_separator_form_is_used(self, build, monkeypatch):
+        monkeypatch.setattr(directive_module, "_has_card_header_directive", lambda: False)
+        result = build(".. gallery-grid::\n\n   - title: One\n     header: Head text\n")
+        assert "design.card_legacy" in result.warnings
+        assert "Head text" in result.html
 
     def test_the_shared_assets_are_written_and_referenced(self, build):
         result = build(".. gallery-grid::\n\n   - title: One\n")

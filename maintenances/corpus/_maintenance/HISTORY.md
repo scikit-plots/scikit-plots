@@ -21,10 +21,28 @@ non-deterministic result.
   Tests: 16 new in `TestOutline` (15 fail on `main`); 8 mutations caught,
   one only after the separator test was corrected; suites unchanged on
   CPython 3.9 to 3.15.0b4, 3.13t, 3.14t, MCP on 3.8.
-- **Recorded, not changed** (ledger notes): CX-14 `PDFReader` reopens the
+- **CX-15 (a): `ImageReader` reads frames on demand, up to `max_frames`.**
+  It copied every frame of the file into a list before the first OCR call
+  and then ran OCR on all of them, without a bound (a 280-frame GIF did not
+  finish in 60 s). A private `_LazyFrames` now counts the frames by seeking
+  and copies one frame at a time; the new field `max_frames` (default 64,
+  `None` for no limit; a positive int, `bool` refused) stops the read, and a
+  warning names the file, its frame count, the frames read and the frames
+  left unread. On the 280-frame GIF (800 x 1111) with OCR stubbed: peak RSS
+  1006 MiB before, 62 MiB with the default, 64 MiB with `max_frames=None`.
+  Tests: 15 new in `TestFramesOnDemand` (all fail on `main`); 9 mutations
+  caught.
+- **Outside corpus, in the same PR (its CI was red):** Sphinx Design 0.8
+  gave `card` a `header` option and deprecated the `^^^` separator
+  (`design.card_legacy`). The gallery grid's test that `header` is not a
+  card option failed, and every card with a header warned. The grid now
+  writes a `card-header` directive where Sphinx Design has it and the
+  separator where it does not (`_header_block`); a MyST header gets a fence
+  longer than any it holds. Tests pass with Sphinx Design 0.7.0 and 0.8.0
+  on CPython 3.12; 5 mutations caught.
+- **Recorded, not changed** (ledger note): CX-14 `PDFReader` reopens the
   file and walks the page tree for every page (a 277-page PDF: 75 s against
-  7.9 s in one pass); CX-15 `ImageReader` copies and OCRs every frame of an
-  animated image without a bound (a 280-frame GIF did not finish in 60 s).
+  7.9 s in one pass).
 - Measured, not changed: MCP's `_tokens` (131 ms for 22,034 chunks; two exact
   rewrites reached 105-122 ms, not worth a change). `.pptx` has no reader
   (a clear error); pages or frames whose text the default filter omits are
