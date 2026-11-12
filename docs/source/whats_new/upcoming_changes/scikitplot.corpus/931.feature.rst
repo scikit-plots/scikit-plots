@@ -1,0 +1,10 @@
+- ``PDFReader`` can read scanned pages with OCR. ``ocr="auto"`` renders a
+  page whose text layer is empty (or shorter than ``ocr_min_chars``) with
+  pypdfium2 and reads it with Tesseract or easyocr (``ocr_engine``);
+  ``ocr="always"`` reads every page, and a callable
+  ``(page_number, text) -> bool`` decides per page. ``ocr_engine`` also
+  takes a callable, ``ocr_dpi`` sets the resolution, ``pypdfium2_kwargs``
+  passes rendering options, and ``ocr_max_pages`` (default 64) bounds the
+  work, with a warning for the pages left. Readers in parallel threads
+  render one page at a time, since PDFium is not thread-safe. The default,
+  ``ocr="off"``, reads as before.

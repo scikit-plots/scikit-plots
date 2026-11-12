@@ -627,6 +627,7 @@ corpus = [
   ## `import pdfminer.high_level` fails, which breaks corpus.PDFReader.
   ## Enforced by tools/maint_tools/check_refused_requirements.py (CI).
   "pdfminer.six",
+  "pypdfium2",                              # renders PDF pages for OCR (PDFReader ocr=)
 
   "langdetect",
   "gensim",

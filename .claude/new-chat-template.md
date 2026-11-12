@@ -15,7 +15,7 @@ last pull request opened, plus one; set it when a chat starts.
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `930`
+- Pull request number for new fragments: `931`
 - Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`
@@ -184,6 +184,9 @@ one line.
   - `tools/maint_tools/check_path_lengths.py check`
   - `tools/maint_tools/check_test_module_names.py`
   - `tools/maint_tools/check_refused_requirements.py`
+  - `pre-commit run --files <every file the change touches>` (the hooks CI
+    runs: codespell, ruff format, ruff check and more; black alone accepts
+    formatting that `ruff format` rewrites)
   - `python -m libs._tools check`
   - each touched submodule's `_maintenance/check_trackers.py`
   - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`

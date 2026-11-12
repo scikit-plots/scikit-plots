@@ -1,0 +1,7 @@
+- ``PDFReader`` no longer returns nothing for a file it cannot read. A file
+  that is not a complete PDF, or an encrypted one with the wrong
+  ``password``, raises a ``ValueError`` that gives each backend's reason
+  (``CorpusPipeline.run_batch`` reports it and goes on to the next file). A
+  page no backend can read is skipped instead of ending the read, and the
+  skipped pages are named in a warning. A file whose pages hold no text,
+  such as a scan, gives a warning that ``PDFReader`` does not run OCR.

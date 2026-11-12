@@ -1,0 +1,3 @@
+- The ``corpus`` extra requires ``pypdfium2``, which renders PDF pages for
+  ``PDFReader``'s OCR. It has wheels for every supported CPython, including
+  the free-threaded builds.

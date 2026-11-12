@@ -14,14 +14,16 @@ is skipped where they are not installed.
 
 from __future__ import annotations
 
+import contextlib
 import pathlib
 import sys
+import threading
 import types
 from typing import Any, Sequence
 
 import pytest
 
-from .. import _pdf
+from .. import _image, _pdf
 from .._pdf import PDFReader
 
 #: What the encrypted test files open with, and something that is not it.
@@ -347,14 +349,23 @@ class TestPdfminerOnePass:
         (warning,) = logged["warning"]
         assert "could not determine page count for doc.pdf" in warning
 
-    def test_a_page_pdfminer_fails_on_ends_a_pdfminer_only_read(
-        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    def test_a_page_pdfminer_fails_on_is_skipped_and_named(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
     ) -> None:
         fake = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
         fake.install(monkeypatch)
         reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
-        assert _texts(reader) == [(0, "a")]
+        assert _texts(reader) == [(0, "a"), (2, "c")]
         assert fake.open_now == 0
+        assert logged["warning"] == [
+            (
+                "PDFReader: 1 of 3 page(s) of doc.pdf could not be read and are"
+                " skipped (pages 1; pdfminer: ValueError: bad page)."
+            )
+        ]
 
     def test_missing_pdfminer_is_an_import_error(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -454,6 +465,792 @@ class TestPdfminerPages:
         pages = _pdf._PdfminerPages(pdf_path)
         pages.close()
         pages.close()
+
+
+# ===========================================================================
+# Files and pages that cannot be read, or hold no text
+# ===========================================================================
+
+
+class TestNothingSilent:
+    def test_a_file_pdfminer_cannot_open_is_a_value_error_with_the_reason(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([KeyError("No /Root object")])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pdfminer")
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        message = str(info.value)
+        assert "(pdfminer: KeyError: 'No /Root object')" in message
+        assert "complete PDF" in message
+        assert "'password'" in message
+        assert fake.open_now == 0
+
+    def test_both_backends_are_named_when_neither_can_open_the_file(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([ValueError()]).install(monkeypatch)
+        _FakePypdf(["A"], open_error=OSError("truncated")).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None)
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        assert "(pdfminer: ValueError; pypdf: OSError: truncated)" in str(info.value)
+
+    def test_a_wrong_password_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePypdf(["A"], password=_KEY).install(monkeypatch)
+        reader = _reader(
+            pdf_path, monkeypatch, None, prefer_backend="pypdf", password=_OTHER_KEY
+        )
+        with pytest.raises(ValueError, match=r"cannot read doc\.pdf") as info:
+            list(reader.get_raw_chunks())
+        assert "pypdf: the password does not decrypt the file" in str(info.value)
+
+    def test_every_page_failing_with_a_known_count_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([ValueError("one"), ValueError("two")]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 2, prefer_backend="pdfminer")
+        with pytest.raises(ValueError, match="pdfminer: ValueError: one"):
+            list(reader.get_raw_chunks())
+
+    def test_pages_without_text_are_one_warning_and_no_error(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Figure()], [_Box(" \n")], []]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
+        assert _texts(reader) == []
+        assert logged["warning"] == [
+            (
+                "PDFReader: none of the 3 page(s) read from doc.pdf has extractable"
+                " text. The file probably holds scanned images; pass ocr='auto'"
+                " to read them with OCR."
+            )
+        ]
+
+    def test_one_page_with_text_is_no_warning(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Figure()], [_Box("b")], []]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
+        assert _texts(reader) == [(1, "b")]
+        assert logged["warning"] == []
+
+    def test_a_file_without_pages_is_neither_an_error_nor_a_scan(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 0, prefer_backend="pdfminer")
+        assert _texts(reader) == []
+        (warning,) = logged["warning"]
+        assert "could not determine page count" in warning
+
+    def test_without_a_count_a_failed_page_ends_the_read_without_a_warning(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
+        fake.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "a")]
+        (warning,) = logged["warning"]
+        assert "could not determine page count" in warning
+
+    def test_without_a_count_reading_is_not_cut_at_a_fixed_number_of_pages(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        n_pages = 10_050
+        _FakePypdf(["x"] * n_pages).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, None, prefer_backend="pypdf")
+        assert sum(1 for _ in reader.get_raw_chunks()) == n_pages
+
+    def test_stopping_early_on_a_readable_file_raises_nothing(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")], ValueError("bad page")])
+        fake.install(monkeypatch)
+        chunks = _reader(
+            pdf_path, monkeypatch, 2, prefer_backend="pdfminer"
+        ).get_raw_chunks()
+        assert next(chunks)["text"] == "a"
+        chunks.close()
+        assert fake.open_now == 0
+
+
+# ===========================================================================
+# OCR of rendered pages
+# ===========================================================================
+
+
+class _FakeImage:
+    """
+    A rendered page as the engine sees it.
+
+    Like ``PdfBitmap.to_pil`` for ``L``, ``RGBA`` and ``RGBX``, an image made
+    by the bitmap shares its pixels: ``freed`` becomes true when the bitmap
+    is closed. ``copy`` and ``convert`` give an image that owns its pixels.
+    """
+
+    def __init__(self, page: int, mode: str = "RGB") -> None:
+        self.page = page
+        self.mode = mode
+        self.freed = False
+
+    def convert(self, mode: str) -> _FakeImage:
+        if self.freed:
+            raise AssertionError("converted after its bitmap was closed")
+        return _FakeImage(self.page, mode)
+
+    def copy(self) -> _FakeImage:
+        if self.freed:
+            raise AssertionError("copied after its bitmap was closed")
+        return _FakeImage(self.page, self.mode)
+
+
+class _FakePdfium:
+    """
+    Stand-in for ``pypdfium2``.
+
+    Parameters
+    ----------
+    n_pages : int
+        Pages in the document.
+    fail : dict, optional
+        Page -> exception raised when that page is rendered.
+    open_error : Exception or None
+        Raised when the document is opened.
+    mode : str
+        Mode of the rendered images.
+    """
+
+    def __init__(
+        self,
+        n_pages: int,
+        fail: dict[int, Exception] | None = None,
+        open_error: Exception | None = None,
+        mode: str = "RGB",
+    ) -> None:
+        self.n_pages = n_pages
+        self.fail = fail or {}
+        self.open_error = open_error
+        self.mode = mode
+        self.opens: list[dict[str, Any]] = []
+        self.renders: list[dict[str, Any]] = []
+        self.open_now = 0
+        self.pages_open = 0
+        self.inside = 0
+        self.most_inside = 0
+        self._count_lock = threading.Lock()
+        #: Set to a barrier to hold each render until another thread arrives.
+        self.barrier: threading.Barrier | None = None
+
+    def enter(self) -> None:
+        with self._count_lock:
+            self.inside += 1
+            self.most_inside = max(self.most_inside, self.inside)
+        if self.barrier is not None:
+            # Broken when the other thread cannot arrive: it waits for the lock.
+            with contextlib.suppress(threading.BrokenBarrierError):
+                self.barrier.wait(timeout=0.5)
+
+    def leave(self) -> None:
+        with self._count_lock:
+            self.inside -= 1
+
+    def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        fake = self
+
+        class _Bitmap:
+            def __init__(self, page: int) -> None:
+                self._page = page
+                self._images: list[_FakeImage] = []
+
+            def to_pil(self) -> _FakeImage:
+                image = _FakeImage(self._page, fake.mode)
+                self._images.append(image)
+                return image
+
+            def close(self) -> None:
+                for image in self._images:
+                    image.freed = True
+
+        class _Page:
+            def __init__(self, index: int) -> None:
+                self._index = index
+                fake.pages_open += 1
+
+            def render(self, scale: float = 1, **kwargs: Any) -> _Bitmap:
+                fake.enter()
+                try:
+                    return self._render(scale, **kwargs)
+                finally:
+                    fake.leave()
+
+            def _render(self, scale: float, **kwargs: Any) -> _Bitmap:
+                fake.renders.append({"page": self._index, "scale": scale, **kwargs})
+                if "no_such_option" in kwargs:
+                    raise TypeError("render() got an unexpected keyword argument")
+                if self._index in fake.fail:
+                    raise fake.fail[self._index]
+                return _Bitmap(self._index)
+
+            def close(self) -> None:
+                fake.pages_open -= 1
+
+        class PdfDocument:
+            def __init__(self, path: str, password: Any = None) -> None:
+                fake.opens.append({"path": path, "password": password})
+                if fake.open_error is not None:
+                    raise fake.open_error
+                fake.open_now += 1
+
+            def __getitem__(self, index: int) -> _Page:
+                if index >= fake.n_pages:
+                    raise IndexError(index)
+                return _Page(index)
+
+            def close(self) -> None:
+                fake.open_now -= 1
+
+        module = types.ModuleType("pypdfium2")
+        module.PdfDocument = PdfDocument
+        monkeypatch.setitem(sys.modules, "pypdfium2", module)
+
+
+def _engine(image: _FakeImage) -> tuple[str, float]:
+    """An OCR engine that reads the page number."""
+    return f"ocr text of page {image.page}\n", 0.75
+
+
+def _ocr_reader(
+    pdf_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    layers: list[Any],
+    **kwargs: Any,
+) -> tuple[PDFReader, _FakePdfium]:
+    """A pdfminer-only reader over ``layers`` with OCR by ``_engine``."""
+    _FakePdfminer(layers).install(monkeypatch)
+    pdfium = _FakePdfium(len(layers))
+    pdfium.install(monkeypatch)
+    kwargs.setdefault("ocr_engine", _engine)
+    reader = _reader(
+        pdf_path, monkeypatch, len(layers), prefer_backend="pdfminer", **kwargs
+    )
+    return reader, pdfium
+
+
+class TestOcrPolicy:
+    def test_off_is_the_default_and_renders_nothing(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reader, pdfium = _ocr_reader(pdf_path, monkeypatch, [[], [_Box("b")]])
+        assert reader.ocr == "off"
+        chunks = list(reader.get_raw_chunks())
+        assert [(c["page_number"], c["text"]) for c in chunks] == [(1, "b")]
+        assert "ocr_engine" not in chunks[0]
+        assert pdfium.opens == []
+
+    def test_auto_reads_only_pages_without_a_text_layer(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        layers = [[], [_Box("text layer")], [_Box(" \n")], [_Figure()]]
+        reader, pdfium = _ocr_reader(pdf_path, monkeypatch, layers, ocr="auto")
+        chunks = list(reader.get_raw_chunks())
+        assert [(c["page_number"], c["text"]) for c in chunks] == [
+            (0, "ocr text of page 0"),
+            (1, "text layer"),
+            (2, "ocr text of page 2"),
+            (3, "ocr text of page 3"),
+        ]
+        assert [r["page"] for r in pdfium.renders] == [0, 2, 3]
+        assert chunks[0]["raw_text"] == "ocr text of page 0\n"
+        assert chunks[0]["ocr_engine"] == "custom"
+        assert chunks[0]["confidence"] == 0.75  # noqa: PLR2004
+        assert "ocr_engine" not in chunks[1]
+        assert "confidence" not in chunks[1]
+        assert len(pdfium.opens) == 1
+        assert pdfium.open_now == 0
+        assert pdfium.pages_open == 0
+
+    @pytest.mark.parametrize(
+        ("min_chars", "read"), [(1, [1]), (7, [0, 1]), (8, [0, 1, 2])]
+    )
+    def test_ocr_min_chars_sets_how_short_a_text_layer_is_not_trusted(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        min_chars: int,
+        read: list[int],
+    ) -> None:
+        layers = [[_Box("Page 1")], [], [_Box("7 chars")]]
+        reader, pdfium = _ocr_reader(
+            pdf_path, monkeypatch, layers, ocr="auto", ocr_min_chars=min_chars
+        )
+        list(reader.get_raw_chunks())
+        assert [r["page"] for r in pdfium.renders] == read
+
+    def test_always_replaces_the_text_layer_unless_ocr_finds_nothing(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def engine(image: _FakeImage) -> str:
+            return "" if image.page == 1 else f"seen {image.page}"
+
+        layers = [[_Box("layer 0")], [_Box("layer 1")], []]
+        reader, _ = _ocr_reader(
+            pdf_path, monkeypatch, layers, ocr="always", ocr_engine=engine
+        )
+        chunks = list(reader.get_raw_chunks())
+        assert [(c["page_number"], c["text"]) for c in chunks] == [
+            (0, "seen 0"),
+            (1, "layer 1"),
+            (2, "seen 2"),
+        ]
+        assert "confidence" not in chunks[0]
+        assert "ocr_engine" not in chunks[1]
+
+    def test_a_policy_callable_decides_from_page_number_and_text(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[int, str]] = []
+
+        def policy(page_number: int, text: str) -> bool:
+            calls.append((page_number, text))
+            return page_number == 2  # noqa: PLR2004
+
+        layers = [[_Box(" a \n")], [], [_Box("c")]]
+        reader, pdfium = _ocr_reader(pdf_path, monkeypatch, layers, ocr=policy)
+        assert _texts(reader) == [(0, "a"), (2, "ocr text of page 2")]
+        assert calls == [(0, "a"), (1, ""), (2, "c")]
+        assert [r["page"] for r in pdfium.renders] == [2]
+
+    def test_a_policy_that_does_not_return_a_bool_is_a_type_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reader, _ = _ocr_reader(
+            pdf_path, monkeypatch, [[_Box("a")]], ocr=lambda page, text: 1
+        )
+        with pytest.raises(TypeError, match="must return a bool; got 'int'"):
+            list(reader.get_raw_chunks())
+
+    def test_ocr_max_pages_bounds_the_pages_read_and_names_the_rest(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        layers = [[], [_Box("b")], [], [], [], [_Box("f")], []]
+        reader, pdfium = _ocr_reader(
+            pdf_path, monkeypatch, layers, ocr="auto", ocr_max_pages=2
+        )
+        assert _texts(reader) == [
+            (0, "ocr text of page 0"),
+            (1, "b"),
+            (2, "ocr text of page 2"),
+            (5, "f"),
+        ]
+        assert [r["page"] for r in pdfium.renders] == [0, 2]
+        assert logged["warning"] == [
+            (
+                "PDFReader: 3 more page(s) of doc.pdf needed OCR after"
+                " ocr_max_pages=2 was reached (pages 3-4, 6); their text layer"
+                " is used. Pass ocr_max_pages=None to read them all."
+            )
+        ]
+
+    def test_no_limit_reads_every_page_and_warns_nothing(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        reader, pdfium = _ocr_reader(
+            pdf_path, monkeypatch, [[]] * 70, ocr="auto", ocr_max_pages=None
+        )
+        assert len(_texts(reader)) == 70  # noqa: PLR2004
+        assert len(pdfium.renders) == 70  # noqa: PLR2004
+        assert logged["warning"] == []
+
+    def test_with_ocr_on_a_file_without_text_says_so_without_the_hint(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        reader, _ = _ocr_reader(
+            pdf_path, monkeypatch, [[], []], ocr="auto", ocr_engine=lambda image: ""
+        )
+        assert _texts(reader) == []
+        assert logged["warning"] == [
+            (
+                "PDFReader: none of the 2 page(s) read from doc.pdf has"
+                " extractable text, with OCR as configured."
+            )
+        ]
+
+    def test_a_custom_reader_ignores_ocr(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pdfium = _FakePdfium(1)
+        pdfium.install(monkeypatch)
+        reader = PDFReader(
+            input_path=pdf_path,
+            prefer_backend="custom",
+            custom_extractor=lambda path, **kw: [{"text": "custom"}],
+            ocr="always",
+        )
+        assert [c["text"] for c in reader.get_raw_chunks()] == ["custom"]
+        assert pdfium.opens == []
+
+
+class TestOcrRendering:
+    def test_pages_are_rendered_at_ocr_dpi_with_pypdfium2_kwargs(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reader, pdfium = _ocr_reader(
+            pdf_path,
+            monkeypatch,
+            [[]],
+            ocr="auto",
+            ocr_dpi=144,
+            pypdfium2_kwargs={"grayscale": True},
+        )
+        list(reader.get_raw_chunks())
+        assert pdfium.renders == [{"page": 0, "scale": 2.0, "grayscale": True}]
+
+    def test_the_password_reaches_pypdfium2_and_an_empty_one_is_none(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        for password, expected in (("", None), (_KEY, _KEY)):
+            reader, pdfium = _ocr_reader(
+                pdf_path, monkeypatch, [[]], ocr="auto", password=password
+            )
+            list(reader.get_raw_chunks())
+            assert pdfium.opens == [{"path": str(pdf_path), "password": expected}]
+
+    def test_an_image_in_another_mode_is_converted_to_rgb(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        modes: list[str] = []
+
+        def engine(image: _FakeImage) -> str:
+            modes.append(image.mode)
+            return "x"
+
+        _FakePdfminer([[], []]).install(monkeypatch)
+        pdfium = _FakePdfium(2, mode="BGRA")
+        pdfium.install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            2,
+            prefer_backend="pdfminer",
+            ocr="auto",
+            ocr_engine=engine,
+        )
+        list(reader.get_raw_chunks())
+        assert modes == ["RGB", "RGB"]
+        pdfium.mode = "L"
+        list(reader.get_raw_chunks())
+        assert modes == ["RGB", "RGB", "L", "L"]
+
+    @pytest.mark.parametrize("mode", ["RGB", "L", "RGBA", "RGBX", "BGRA"])
+    def test_the_engine_gets_an_image_that_outlives_the_bitmap(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, mode: str
+    ) -> None:
+        seen: list[_FakeImage] = []
+
+        def engine(image: _FakeImage) -> str:
+            seen.append(image)
+            return "x"
+
+        _FakePdfminer([[], []]).install(monkeypatch)
+        _FakePdfium(2, mode=mode).install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            2,
+            prefer_backend="pdfminer",
+            ocr="auto",
+            ocr_engine=engine,
+        )
+        assert _texts(reader) == [(0, "x"), (1, "x")]
+        assert [image.freed for image in seen] == [False, False]
+        assert {image.mode for image in seen} == (
+            {mode} if mode in ("RGB", "L") else {"RGB"}
+        )
+
+    def test_readers_in_threads_never_render_at_the_same_time(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([[], [], []]).install(monkeypatch)
+        pdfium = _FakePdfium(3)
+        pdfium.install(monkeypatch)
+        # Without the lock the barrier lets two renders be inside together.
+        pdfium.barrier = threading.Barrier(2)
+        monkeypatch.setattr(PDFReader, "_count_pages", lambda self: 3)
+        results: dict[int, list[tuple[int, str]]] = {}
+
+        def work(key: int) -> None:
+            reader = PDFReader(
+                input_path=pdf_path,
+                prefer_backend="pdfminer",
+                ocr="auto",
+                ocr_engine=_engine,
+            )
+            results[key] = _texts(reader)
+
+        threads = [threading.Thread(target=work, args=(key,)) for key in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        expected = [(i, f"ocr text of page {i}") for i in range(3)]
+        assert results == {0: expected, 1: expected}
+        assert pdfium.most_inside == 1
+
+    def test_an_option_pypdfium2_rejects_is_a_value_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reader, pdfium = _ocr_reader(
+            pdf_path,
+            monkeypatch,
+            [[]],
+            ocr="auto",
+            pypdfium2_kwargs={"no_such_option": 1},
+        )
+        with pytest.raises(
+            ValueError, match="pypdfium2_kwargs is not accepted"
+        ) as info:
+            list(reader.get_raw_chunks())
+        assert isinstance(info.value.__cause__, TypeError)
+        assert pdfium.open_now == 0
+        assert pdfium.pages_open == 0
+
+    def test_a_page_that_cannot_be_rendered_keeps_its_text_layer(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Box("a")], [], [_Box("c")], []]).install(monkeypatch)
+        pdfium = _FakePdfium(4, fail={0: OSError("bad stream"), 3: TypeError()})
+        pdfium.install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            4,
+            prefer_backend="pdfminer",
+            ocr="always",
+            ocr_engine=_engine,
+        )
+        assert _texts(reader) == [
+            (0, "a"),
+            (1, "ocr text of page 1"),
+            (2, "ocr text of page 2"),
+        ]
+        assert logged["warning"] == [
+            (
+                "PDFReader: 2 page(s) of doc.pdf could not be rendered for OCR"
+                " (pages 0, 3; OSError: bad stream); their text layer is used."
+            )
+        ]
+        assert pdfium.pages_open == 0
+
+    def test_a_file_pypdfium2_cannot_open_is_tried_once(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Box("a")], [], []]).install(monkeypatch)
+        pdfium = _FakePdfium(3, open_error=ValueError("not a PDF"))
+        pdfium.install(monkeypatch)
+        reader = _reader(
+            pdf_path,
+            monkeypatch,
+            3,
+            prefer_backend="pdfminer",
+            ocr="auto",
+            ocr_engine=_engine,
+        )
+        assert _texts(reader) == [(0, "a")]
+        assert len(pdfium.opens) == 1
+        (warning,) = logged["warning"]
+        assert "(pages 1-2; ValueError: not a PDF)" in warning
+
+    def test_without_pypdfium2_ocr_is_an_import_error_when_a_page_needs_it(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([[_Box("a")], []]).install(monkeypatch)
+        _missing(monkeypatch, "pypdfium2")
+        reader = _reader(
+            pdf_path, monkeypatch, 2, prefer_backend="pdfminer", ocr="auto"
+        )
+        with pytest.raises(ImportError, match="pip install pypdfium2"):
+            list(reader.get_raw_chunks())
+
+    def test_without_pypdfium2_a_file_with_text_is_read_as_before(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _FakePdfminer([[_Box("a")], [_Box("b")]]).install(monkeypatch)
+        _missing(monkeypatch, "pypdfium2")
+        reader = _reader(
+            pdf_path, monkeypatch, 2, prefer_backend="pdfminer", ocr="auto"
+        )
+        assert _texts(reader) == [(0, "a"), (1, "b")]
+
+    def test_the_document_is_closed_when_the_consumer_stops_early(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reader, pdfium = _ocr_reader(pdf_path, monkeypatch, [[], []], ocr="auto")
+        chunks = reader.get_raw_chunks()
+        next(chunks)
+        assert pdfium.open_now == 1
+        chunks.close()
+        assert pdfium.open_now == 0
+
+
+class TestOcrEngines:
+    def test_tesseract_gets_the_image_and_the_language(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[int, Any]] = []
+
+        def fake(image: _FakeImage, lang: Any) -> tuple[str, float]:
+            calls.append((image.page, lang))
+            return "read", 0.5
+
+        monkeypatch.setattr(_image, "_ocr_tesseract", fake)
+        reader, _ = _ocr_reader(
+            pdf_path,
+            monkeypatch,
+            [[]],
+            ocr="auto",
+            ocr_engine="tesseract",
+            ocr_lang="deu",
+        )
+        (chunk,) = list(reader.get_raw_chunks())
+        assert calls == [(0, "deu")]
+        assert chunk["ocr_engine"] == "tesseract"
+        assert chunk["confidence"] == 0.5  # noqa: PLR2004
+
+    def test_easyocr_reuses_its_reader_across_pages(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        given: list[Any] = []
+
+        def fake(image: _FakeImage, lang: Any, reader: Any) -> tuple[str, float, Any]:
+            given.append(reader)
+            return f"page {image.page}", 0.9, "loaded model"
+
+        monkeypatch.setattr(_image, "_ocr_easyocr", fake)
+        reader, _ = _ocr_reader(
+            pdf_path, monkeypatch, [[], [], []], ocr="auto", ocr_engine="easyocr"
+        )
+        chunks = list(reader.get_raw_chunks())
+        assert given == [None, "loaded model", "loaded model"]
+        assert {c["ocr_engine"] for c in chunks} == {"easyocr"}
+
+    @pytest.mark.parametrize(
+        "result",
+        [None, 3, ("text",), ("text", 1.5), ("text", -0.1), ("t", True), (1, 0.5)],
+    )
+    def test_an_engine_returning_anything_else_is_a_type_error(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, result: Any
+    ) -> None:
+        reader, pdfium = _ocr_reader(
+            pdf_path, monkeypatch, [[]], ocr="auto", ocr_engine=lambda image: result
+        )
+        with pytest.raises(TypeError, match="ocr_engine callable must return"):
+            list(reader.get_raw_chunks())
+        assert pdfium.open_now == 0
+
+    @pytest.mark.parametrize("confidence", [0, 1, 0.0, 1.0])
+    def test_a_confidence_on_the_bounds_is_kept(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, confidence: Any
+    ) -> None:
+        reader, _ = _ocr_reader(
+            pdf_path,
+            monkeypatch,
+            [[]],
+            ocr="auto",
+            ocr_engine=lambda image: ("t", confidence),
+        )
+        (chunk,) = list(reader.get_raw_chunks())
+        assert chunk["confidence"] == float(confidence)
+
+    def test_an_engine_error_is_not_swallowed(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def engine(image: _FakeImage) -> str:
+            raise RuntimeError("tesseract is not installed")
+
+        reader, pdfium = _ocr_reader(
+            pdf_path, monkeypatch, [[]], ocr="auto", ocr_engine=engine
+        )
+        with pytest.raises(RuntimeError, match="tesseract is not installed"):
+            list(reader.get_raw_chunks())
+        assert pdfium.open_now == 0
+
+
+class TestOcrValidation:
+    @pytest.mark.parametrize(
+        ("field", "value", "error"),
+        [
+            ("ocr", "on", ValueError),
+            ("ocr", None, ValueError),
+            ("ocr", True, ValueError),
+            ("ocr_engine", "paddle", ValueError),
+            ("ocr_engine", None, ValueError),
+            ("ocr_min_chars", 0, ValueError),
+            ("ocr_min_chars", True, ValueError),
+            ("ocr_min_chars", "3", ValueError),
+            ("ocr_max_pages", 0, ValueError),
+            ("ocr_max_pages", False, ValueError),
+            ("ocr_max_pages", 2.0, ValueError),
+            ("ocr_dpi", 0, ValueError),
+            ("ocr_dpi", 1201, ValueError),
+            ("ocr_dpi", 300.0, ValueError),
+            ("ocr_dpi", True, ValueError),
+            ("ocr_lang", 3, TypeError),
+            ("ocr_lang", ["eng"], TypeError),
+            ("pypdfium2_kwargs", ["grayscale"], TypeError),
+            ("pypdfium2_kwargs", {1: True}, TypeError),
+            ("pypdfium2_kwargs", {"scale": 2}, ValueError),
+        ],
+    )
+    def test_a_value_outside_the_documented_ones_is_refused(
+        self, pdf_path: pathlib.Path, field: str, value: Any, error: type
+    ) -> None:
+        with pytest.raises(error, match=field):
+            PDFReader(input_path=pdf_path, **{field: value})
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"ocr": "auto", "ocr_dpi": 1, "ocr_max_pages": None},
+            {"ocr": "always", "ocr_dpi": 1200, "ocr_min_chars": 10_000},
+            {"ocr": lambda page, text: False, "ocr_engine": lambda image: ""},
+            {"ocr_engine": "easyocr", "ocr_lang": "en", "pypdfium2_kwargs": {}},
+        ],
+    )
+    def test_the_documented_values_are_accepted(
+        self, pdf_path: pathlib.Path, kwargs: dict[str, Any]
+    ) -> None:
+        PDFReader(input_path=pdf_path, **kwargs)
 
 
 # ===========================================================================
@@ -737,14 +1534,26 @@ class TestAutoMode:
         assert len(miner.opens) == _TWICE
         assert miner.open_now == 0
 
-    def test_a_page_neither_backend_can_read_ends_the_read(
-        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    def test_a_page_neither_backend_can_read_is_skipped_and_named(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
     ) -> None:
-        miner = _FakePdfminer([[_Box("a")], ValueError("bad page"), [_Box("c")]])
+        miner = _FakePdfminer(
+            [[_Box("a")], ValueError("bad page"), [_Box("c")], KeyError("font")]
+        )
         miner.install(monkeypatch)
-        backup = _FakePypdf(["A", ValueError("bad page"), "C"])
+        backup = _FakePypdf(["A", OSError("bad stream"), "C", OSError("later")])
         backup.install(monkeypatch)
-        assert _texts(_reader(pdf_path, monkeypatch, 3)) == [(0, "a")]
+        assert _texts(_reader(pdf_path, monkeypatch, 4)) == [(0, "a"), (2, "c")]
+        assert logged["warning"] == [
+            (
+                "PDFReader: 2 of 4 page(s) of doc.pdf could not be read and are"
+                " skipped (pages 1, 3; pdfminer: ValueError: bad page;"
+                " pypdf: OSError: bad stream)."
+            )
+        ]
 
     def test_without_pdfminer_every_page_comes_from_pypdf(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -934,6 +1743,34 @@ class TestRealLibraries:
         assert _pdf._count_pdf_pages_pdfminer(path, _OTHER_KEY) is None
         assert _pdf._count_pdf_pages_pdfminer(path) is None
 
+    def test_a_scanned_page_is_read_with_tesseract(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        pytest.importorskip("pypdfium2")
+        pytest.importorskip("pytesseract")
+        pil_image = pytest.importorskip("PIL.Image")
+        pil_draw = pytest.importorskip("PIL.ImageDraw")
+        pil_font = pytest.importorskip("PIL.ImageFont")
+        try:
+            font = pil_font.load_default(size=72)
+        except TypeError:  # Pillow < 10.1 has no sized default font
+            pytest.skip("Pillow's default font has no size here")
+        scan = pil_image.new("RGB", (1700, 600), "white")
+        pil_draw.Draw(scan).text((80, 200), "SCANNED PAGE 42", fill="black", font=font)
+        path = tmp_path / "scan.pdf"
+        scan.save(path, "PDF", resolution=200.0)
+        reader = PDFReader(input_path=path, ocr="auto")
+        try:
+            chunks = list(reader.get_raw_chunks())
+        except RuntimeError as exc:  # the Tesseract binary is not installed
+            pytest.skip(str(exc))
+        (chunk,) = chunks
+        assert chunk["page_number"] == 0
+        assert "SCANNED PAGE 42" in " ".join(chunk["text"].split())
+        assert chunk["ocr_engine"] == "tesseract"
+        assert 0.0 <= chunk["confidence"] <= 1.0
+        assert _texts(PDFReader(input_path=path)) == []
+
     def test_pypdf_reads_each_page_in_order(self, tmp_path: pathlib.Path) -> None:
         pytest.importorskip("pypdf")
         path = _write_pdf(tmp_path / "doc.pdf", self.TEXTS)
@@ -950,4 +1787,33 @@ class TestRealLibraries:
         reader = PDFReader(input_path=path, prefer_backend=backend, password=_KEY)
         assert _texts(reader) == list(self.EXPECTED)
         wrong = PDFReader(input_path=path, prefer_backend=backend, password=_OTHER_KEY)
-        assert _texts(wrong) == []
+        with pytest.raises(ValueError, match=r"cannot read locked\.pdf") as info:
+            list(wrong.get_raw_chunks())
+        assert "'password'" in str(info.value)
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer", "pypdf"])
+    @pytest.mark.parametrize(
+        "content", [b"", b"this is not a PDF\n" * 20, b"%PDF-1.4\n1 0 obj\n<< /Type"]
+    )
+    def test_a_file_that_is_not_a_complete_pdf_is_a_value_error(
+        self, tmp_path: pathlib.Path, backend: str | None, content: bytes
+    ) -> None:
+        pytest.importorskip("pypdf" if backend == "pypdf" else "pdfminer.high_level")
+        path = tmp_path / "broken.pdf"
+        path.write_bytes(content)
+        reader = PDFReader(input_path=path, prefer_backend=backend)
+        with pytest.raises(ValueError, match=r"cannot read broken\.pdf"):
+            list(reader.get_raw_chunks())
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer", "pypdf"])
+    def test_a_file_of_blank_pages_is_a_warning_not_an_error(
+        self,
+        tmp_path: pathlib.Path,
+        backend: str | None,
+        logged: dict[str, list[str]],
+    ) -> None:
+        pytest.importorskip("pypdf" if backend == "pypdf" else "pdfminer.high_level")
+        path = _write_pdf(tmp_path / "scan.pdf", ["", "", ""])
+        assert _texts(PDFReader(input_path=path, prefer_backend=backend)) == []
+        (warning,) = logged["warning"]
+        assert "none of the 3 page(s) read from scan.pdf" in warning

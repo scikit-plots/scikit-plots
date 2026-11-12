@@ -1,5 +1,70 @@
 # Corpus maintenance history
 
+## 2026-11-12 — PDF files and pages that cannot be read; OCR of scanned pages, PR 931
+
+- **CX-18: `PDFReader` lost unreadable files and pages without a word.** A
+  file that is not a PDF, an empty or truncated file, and an encrypted file
+  with the wrong password all gave zero documents and a successful result;
+  the backends' reasons were logged at DEBUG only, and with
+  `prefer_backend="pdfminer"` a wrong password produced no message about the
+  password at all. A page no backend could read ended the read, so every
+  page after it was dropped. A file of scanned pages gave nothing and an
+  INFO line. `ImageReader` raises for a file it cannot identify.
+  - No page read by any backend, and a backend reported why: `ValueError`
+    naming the file and each backend's first reason. `run_batch` already
+    turns a reader error into a "skipping" warning.
+  - Page count known: a page no backend can read is skipped and reading
+    goes on; one warning after the last page names the skipped pages and the
+    reasons. Page count unknown: the first such page is still the end.
+  - Pages read, none with text: one warning that the file probably holds
+    scanned images and that `PDFReader` does not run OCR.
+  - The 10,000-page sentinel for an unknown page count is gone; reading
+    ends at the first page that cannot be read.
+- Text of readable files is unchanged: 8 PDFs on 3 backends, 22 of 24 runs
+  identical page by page; the other 2 are the 277-page file with pdfminer,
+  which differs between two reads of `main` as well (CX-16).
+- Tests: 22 more in `test__pdf.py` (85), 3 rewritten to the corrected
+  contract; 23 fail on `main`. 20 mutations caught.
+- **CX-19: OCR of scanned pages, opt-in.** 3 of the 8 research PDFs give no
+  usable text: two have no text layer, one has only 6-character page labels.
+  `PDFReader` gains a policy, an engine and a renderer, all off by default:
+  - `ocr`: `"off"` (default), `"auto"` (a page whose text layer has fewer
+    than `ocr_min_chars` characters, default 1), `"always"`, or a callable
+    `(page_number, text) -> bool` that decides per page.
+  - `ocr_engine`: `"tesseract"` or `"easyocr"` (the functions `ImageReader`
+    uses) or a callable returning the text or `(text, confidence)`;
+    `ocr_lang`. OCR text replaces the text layer when it is not empty; the
+    chunk records `ocr_engine` and the engine's `confidence`.
+  - Pages are rendered with pypdfium2 at `ocr_dpi` (default 300, at most
+    1200); its options go in `pypdfium2_kwargs`, `scale` refused (rule
+    "options for a named backend").
+  - `ocr_max_pages` (default 64) bounds the pages read with OCR; the rest
+    keep their text layer and are named in one warning. A page that cannot
+    be rendered keeps its text layer and is named too; engine errors are not
+    caught. Page lists in all these warnings are ranges (`5-50`).
+  - Not used: the images a page lists. On the 27-page scan pypdf lists all
+    27 images on every page (shared resources), so OCR of those would read
+    the deck 27 times.
+  - Results: the 27-page scan 0 to 26 pages (handwriting, confidence about
+    0.5); the label-only file 1 page with `"auto"`, 9 with `ocr_min_chars=20`;
+    the 51-page scan with `ocr_max_pages=5` 5 pages and one warning; a text
+    PDF renders nothing. Two reads with OCR: identical text.
+  - `pypdfium2` added to the `corpus` extra (wheels for CPython 3.8 to 3.15
+    and the free-threaded builds).
+  - Found in review, before merge: (1) PDFium is not thread-safe, and
+    `CorpusBuilder(max_workers>1)` runs readers in threads. Eight readers
+    with OCR in threads: a segmentation fault (3.13), a trap (3.13t), and
+    runs that finished with different text per thread. Every pypdfium2 call
+    now holds one module lock; OCR runs outside it. 10 of 10 runs clean
+    after. (2) `PdfBitmap.to_pil` shares the bitmap's buffer for `L`, `RGBA`
+    and `RGBX` (a `grayscale` render), and the bitmap was closed, which
+    frees that buffer, before OCR read the image; shown by writing into the
+    buffer. The image is now copied or converted before the bitmap closes.
+  - Tests: 66 more (151); 33 mutations caught, among them no lock, a lock
+    per reader and an uncopied image. One test runs pypdfium2 and Tesseract
+    on a scan made with Pillow (CPython 3.12, 3.13, 3.15).
+- Evidence: `evidence/round-2026-11-12-pdf-nothing-silent.log`.
+
 ## 2026-11-12 — PDF pages in one pass, layout parameters, PR 930
 
 - **CX-14: `PDFReader` reads a file once per backend.** The reader called
