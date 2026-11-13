@@ -374,7 +374,8 @@ def register_corpus_readers() -> tuple[str, ...]:
 
     **Developer notes.** The reader is the standard-library one in
     ``_office.py``, with the same size limits and DTD refusal, so corpus gains
-    Office support without a new dependency.
+    Office support without a new dependency. A corpus that reads these
+    extensions itself keeps its own reader, and nothing is registered.
     """
     corpus = _corpus()
     existing = set(corpus.DocumentReader.supported_types())

@@ -83,7 +83,7 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `register_bridge` | function | Register a custom bridge for a user-defined chunker class. |
 | `unregister_bridge` | function | Remove a previously registered bridge for *chunker_class*. |
 
-416 more names, and signatures: [references/API.md](references/API.md).
+417 more names, and signatures: [references/API.md](references/API.md).
 
 ## Example (from the docstring of `scikitplot.corpus`)
 

@@ -158,8 +158,16 @@ class TestReaders:
             '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
             "<w:p><w:r><w:t>MRN: 00412345</w:t></w:r></w:p></w:body></w:document>"
         )
+        # A package names its main part in _rels/.rels; corpus's own reader
+        # (used when corpus has one for .docx) finds the document through it.
+        relationships = (
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+            'relationships/officeDocument" Target="word/document.xml"/></Relationships>'
+        )
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("_rels/.rels", relationships)
             archive.writestr("word/document.xml", body)
         path.write_bytes(buffer.getvalue())
         return path

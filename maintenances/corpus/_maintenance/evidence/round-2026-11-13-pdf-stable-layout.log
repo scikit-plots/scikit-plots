@@ -1,0 +1,38 @@
+CX-16 (c) PDF page text the same on every read, PR 935 (2026-11-13)
+
+pdfminer.six 20260107, CPython 3.13.18.
+
+Per-page comparison, 13 research PDFs (495 pages), pdfminer's extract_pages vs the stable device:
+20 statistics concepts.pdf 10 differ [] untied-differ []
+6 agentic patterns.pdf 8 differ [] untied-differ []
+7 agent memory types.pdf 9 differ [] untied-differ []
+Claude Notebook Carousel.pdf 12 differ [] untied-differ []
+FastAPI.pdf 31 differ [] untied-differ []
+Foundations of LLM.pdf 277 differ [18, 36, 95] untied-differ []
+Morphology.pdf 27 differ [] untied-differ []
+RAG & Vector Databases.pdf 42 differ [] untied-differ []
+Securing-the-agentic-enterprisepdf.pdf 4 differ [] untied-differ []
+WHO-EURO-2025-12555-52329-80560-eng.pdf 6 differ [] untied-differ []
+agents guide.pdf 51 differ [] untied-differ []
+late interaction retrieval.pdf 8 differ [] untied-differ []
+rag vectorless.pdf 10 differ [] untied-differ []
+pages 495 differ 3
+
+reader_snapshot.py, --repeat 4, origin/main vs branch:
+main:   13 file(s): 0 error(s), 1 unstable
+branch: 13 file(s): 0 error(s), 0 unstable
+changed: Foundations of LLM.pdf: text_digest '8cb1a458723a83b386a825dd80f56f1fa89ab485ec9da0bdc049134630ab706e' -> '27b51940d037fb3a48a8e6d9fa6c8fc02b147445c4adc06faf8784c0d7e00c36'
+1 difference(s).
+
+Read time, Foundations of LLM.pdf (277 pages): main 9.96 s, branch 9.55 s.
+Tests: test__pdf*.py 159 passed. Mutant numbering by id(): test__pdf_layout.py 1 failed.
+
+OfficeReader, research folder without images (main of this PR vs with OfficeReader):
+changed: pptx/math-gnostics.pptx: result 'error' -> 'ok'
+changed: pptx/math-gnostics.pptx: chunks 0 -> 13
+changed: pptx/math-gnostics.pptx: chars 0 -> 5817
+changed: pptx/math-gnostics.pptx: text_digest None -> 'f5697a1dcac406640f529c1e4d63180290e5b60ee1815d54365ad85542f993a5'
+changed: pptx/math-gnostics.pptx: digest None -> '3237e2e8383b99b4a9230084bc2c429f137d18a11aa65813de5b99a938b360bb'
+changed: pptx/math-gnostics.pptx: error "ValueError: No DocumentReader registered for extension '.pptx'. Supported types: .aac, .aiff, .avi, .bmp, .flac, .flv, .gif, .jpeg, .jpg, .m4a, .m4v, .md, .mkv
+6 difference(s).
+with OfficeReader: 139 file(s): 0 error(s), 0 unstable

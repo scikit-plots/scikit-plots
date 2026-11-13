@@ -222,6 +222,78 @@ class CompareTests(unittest.TestCase):
             snap.compare(dict(self.before, format=2), self.before)
 
 
+class SelectionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.folder = _Folder(
+            {"b.txt": "one\n", "a/c.TXT": "x\n", "a/d.md": "y\n", "x.bad": "?"}
+        )
+        self.root = self.folder.root
+
+    def tearDown(self) -> None:
+        self.folder.close()
+
+    def names(self, **kwargs) -> list:
+        return list(snap.snapshot(self.root, lines_reader, **kwargs)["files"])
+
+    def test_include_takes_matching_files_in_every_subfolder_any_case(self) -> None:
+        self.assertEqual(self.names(include=["*.txt"]), ["a/c.TXT", "b.txt"])
+
+    def test_exclude_wins_over_include(self) -> None:
+        self.assertEqual(self.names(include=["a/*"], exclude=["*.md"]), ["a/c.TXT"])
+
+    def test_without_patterns_every_file_is_read_and_none_recorded(self) -> None:
+        result = snap.snapshot(self.root, lines_reader)
+        self.assertEqual(list(result["files"]), ["a/c.TXT", "a/d.md", "b.txt", "x.bad"])
+        self.assertNotIn("include", result)
+        self.assertNotIn("exclude", result)
+
+    def test_patterns_are_recorded(self) -> None:
+        result = snap.snapshot(self.root, lines_reader, exclude=["*.bad"])
+        self.assertEqual((result["include"], result["exclude"]), ([], ["*.bad"]))
+
+    def test_a_string_is_refused(self) -> None:
+        with self.assertRaises(TypeError):
+            snap.snapshot(self.root, lines_reader, include="*.txt")
+        with self.assertRaises(TypeError):
+            snap.snapshot(self.root, lines_reader, exclude=[1])
+
+    def test_compare_names_a_different_selection(self) -> None:
+        a = snap.snapshot(self.root, lines_reader, include=["*.txt"])
+        b = snap.snapshot(self.root, lines_reader)
+        lines = snap.compare(a, b)
+        self.assertEqual(lines[0], "selection: include ['*.txt'] -> []")
+        self.assertIn("only after: a/d.md", lines)
+        self.assertEqual(snap.compare(a, a), [])
+
+    def test_command_line_patterns_repeat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = Path(tmp) / "s.json"
+            real = snap._scikitplot_reader
+            snap._scikitplot_reader = lambda kwargs, documents: lines_reader
+            try:
+                with redirect_stdout(io.StringIO()):
+                    code = snap.main(
+                        [
+                            "snapshot",
+                            str(self.root),
+                            "--out",
+                            str(out_path),
+                            "--include",
+                            "*.txt",
+                            "--include",
+                            "*.md",
+                            "--exclude",
+                            "b.*",
+                        ]
+                    )
+            finally:
+                snap._scikitplot_reader = real
+            self.assertEqual(code, 0)
+            data = json.loads(out_path.read_text(encoding="ascii"))
+            self.assertEqual(list(data["files"]), ["a/c.TXT", "a/d.md"])
+            self.assertEqual(data["include"], ["*.txt", "*.md"])
+
+
 class CommandLineTests(unittest.TestCase):
     def test_compare_exits_1_on_a_difference_and_0_without(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

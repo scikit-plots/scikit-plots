@@ -177,3 +177,4 @@ titles, then open the file that holds the rules you need.
 | 169 | Tests | a child pytest session in a temporary project loads no plugin it did not name | [testing.md](rules/testing.md) |
 | 170 | Skills | code in a published skill runs as written: Python in a `python` block without prompts, output as `# ` comments, and no line a shell reads as a redirect | [delivery.md](rules/delivery.md) |
 | 171 | Skills | a directory finding is reproduced and fixed against the directory's scan of a published commit, never against the portal's Validate alone | [delivery.md](rules/delivery.md) |
+| 172 | Documentation | a public name added, renamed or removed is added, renamed or removed in the API reference template in the same change | [documentation.md](rules/documentation.md) |

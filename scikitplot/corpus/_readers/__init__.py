@@ -40,6 +40,12 @@ Available readers:
     PDF files (``.pdf``) via ``pdfminer.six`` -> ``pypdf`` cascade.
     Per-page error recovery; encrypted PDF support.
 
+:class:`OfficeReader`
+    Office documents: Office Open XML (``.docx``, ``.pptx``, ``.xlsx`` and
+    their macro and template variants) and OpenDocument (``.odt``,
+    ``.ods``, ``.odp``, ``.odg``, ``.odf``, templates and flat XML forms). Standard library only; nothing in the
+    package is run.
+
 :class:`ImageReader`
     Raster images (``.png``, ``.jpg``, ``.jpeg``, ``.gif``, ``.webp``,
     ``.tiff``, ``.tif``, ``.bmp``) via OCR.
@@ -136,6 +142,7 @@ from . import (
     _audio,
     _custom,
     _image,
+    _office,
     _pdf,
     _text,
     _video,
@@ -148,6 +155,7 @@ from ._alto import *  # noqa: F403
 from ._audio import *  # noqa: F403
 from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
+from ._office import *  # noqa: F403
 from ._pdf import *  # noqa: F403
 from ._text import *  # noqa: F403
 from ._video import *  # noqa: F403
@@ -161,6 +169,7 @@ __all__ += _alto.__all__
 __all__ += _audio.__all__
 __all__ += _custom.__all__
 __all__ += _image.__all__
+__all__ += _office.__all__
 __all__ += _pdf.__all__
 __all__ += _text.__all__
 __all__ += _video.__all__

@@ -18,7 +18,10 @@ Usage
     PYTHONPATH=<tree after>  python reader_snapshot.py snapshot FOLDER --out after.json
     python reader_snapshot.py compare before.json after.json
 
-``snapshot`` options: ``--repeat N`` (reads per file, default 2),
+``snapshot`` options: ``--include GLOB`` and ``--exclude GLOB`` (repeatable;
+which files to read, matched against the path relative to FOLDER, case
+ignored: ``--include '*.pdf'`` reads the PDFs only, ``--exclude '*.jpg'``
+skips the slow OCR of photos), ``--repeat N`` (reads per file, default 2),
 ``--reader-kwargs JSON`` (passed to ``DocumentReader.create``, for example
 ``'{"ocr": "auto"}'``), ``--documents`` (snapshot the documents after the
 reader's filter instead of the raw chunks). ``compare`` exits 1 when the
@@ -45,6 +48,7 @@ is used; Python 3.8 and newer.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import logging
@@ -150,12 +154,47 @@ def read_once(path: Path, read: Reader, root: Path, logger: str) -> dict[str, An
     return outcome
 
 
+def selected(name: str, include: Sequence[str], exclude: Sequence[str]) -> bool:
+    """
+    Whether the file *name* is read, given the glob patterns.
+
+    Parameters
+    ----------
+    name : str
+        Path relative to the folder, with ``/`` separators.
+    include : sequence of str
+        Patterns of the files to read; empty reads every file.
+    exclude : sequence of str
+        Patterns of the files to skip; they win over *include*.
+
+    Returns
+    -------
+    bool
+        ``True`` when *name* matches an *include* pattern (or there is
+        none) and no *exclude* pattern.
+
+    Notes
+    -----
+    ``fnmatch`` patterns, matched case-insensitively against the whole
+    relative path; ``*`` also matches ``/``, so ``*.pdf`` takes PDFs in
+    every subfolder and ``video/*`` everything under ``video``.
+    """
+    lowered = name.lower()
+
+    def matches(patterns: Sequence[str]) -> bool:
+        return any(fnmatch.fnmatchcase(lowered, p.lower()) for p in patterns)
+
+    return (not include or matches(include)) and not matches(exclude)
+
+
 def snapshot(
     root: Path,
     read: Reader,
     *,
     repeat: int = 2,
     logger: str = "scikitplot",
+    include: Sequence[str] = (),
+    exclude: Sequence[str] = (),
 ) -> dict[str, Any]:
     """
     Read every file under *root* *repeat* times and describe each.
@@ -171,11 +210,15 @@ def snapshot(
         Reads per file, at least 1. Default: 2.
     logger : str, optional
         Logger whose warnings are recorded. Default: ``"scikitplot"``.
+    include, exclude : sequence of str, optional
+        Glob patterns of the files to read and to skip (:func:`selected`).
+        Default: every file.
 
     Returns
     -------
     dict
         ``{"format": 1, "repeat": repeat, "files": {relative path: record}}``,
+        plus ``"include"`` and ``"exclude"`` when either is given,
         each record as :func:`read_once` returns it from the first read,
         plus ``stable``: whether every read gave the same data (warnings
         aside: a message may name a temporary path).
@@ -184,7 +227,16 @@ def snapshot(
     ------
     ValueError
         If *root* is not a folder or *repeat* is less than 1.
+    TypeError
+        If *include* or *exclude* is a string or holds a non-string.
     """
+    for label, patterns in (("include", include), ("exclude", exclude)):
+        if isinstance(patterns, str) or not all(isinstance(p, str) for p in patterns):
+            raise TypeError(
+                f"reader_snapshot: {label} must be a sequence of glob strings;"
+                f" got {patterns!r}."
+            )
+    include, exclude = tuple(include), tuple(exclude)
     if not root.is_dir():
         raise ValueError(f"reader_snapshot: {root} is not a folder.")
     if isinstance(repeat, bool) or not isinstance(repeat, int) or repeat < 1:
@@ -194,7 +246,12 @@ def snapshot(
     root = root.resolve()
     files: dict[str, Any] = {}
     for path in sorted(
-        (p for p in root.rglob("*") if p.is_file()),
+        (
+            p
+            for p in root.rglob("*")
+            if p.is_file()
+            and selected(p.relative_to(root).as_posix(), include, exclude)
+        ),
         key=lambda p: p.relative_to(root).as_posix(),
     ):
         reads = [read_once(path, read, root, logger) for _ in range(repeat)]
@@ -203,7 +260,11 @@ def snapshot(
             all(other[f] == reads[0][f] for f in DATA_FIELDS) for other in reads[1:]
         )
         files[path.relative_to(root).as_posix()] = record
-    return {"format": FORMAT, "repeat": repeat, "files": files}
+    result: dict[str, Any] = {"format": FORMAT, "repeat": repeat, "files": files}
+    if include or exclude:
+        result["include"] = list(include)
+        result["exclude"] = list(exclude)
+    return result
 
 
 def compare(
@@ -230,8 +291,10 @@ def compare(
     -------
     list of str
         ``only before: f``, ``only after: f``, ``changed: f: field a -> b``
-        and ``unstable: f`` (in *after*) lines, sorted by file. Empty when
-        the snapshots agree.
+        and ``unstable: f`` (in *after*) lines, sorted by file, after a
+        ``selection:`` line when the two were taken with other
+        ``include``/``exclude`` patterns (a file only in one may then be
+        a filter, not a reader, difference). Empty when the snapshots agree.
 
     Raises
     ------
@@ -247,7 +310,11 @@ def compare(
     fields = list(TEXT_FIELDS if text_only else DATA_FIELDS)
     if not (ignore_warnings or text_only):
         fields.append("warnings")
-    lines: list[str] = []
+    lines: list[str] = [
+        f"selection: {key} {before.get(key, [])!r} -> {after.get(key, [])!r}"
+        for key in ("include", "exclude")
+        if before.get(key, []) != after.get(key, [])
+    ]
     old, new = before["files"], after["files"]
     for name in sorted(set(old) | set(new)):
         if name not in new:
@@ -293,6 +360,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     take.add_argument("--repeat", type=int, default=2)
     take.add_argument("--reader-kwargs", default="{}", help="JSON object")
     take.add_argument("--documents", action="store_true")
+    take.add_argument("--include", action="append", default=[], metavar="GLOB")
+    take.add_argument("--exclude", action="append", default=[], metavar="GLOB")
     diff = sub.add_parser("compare", help="compare two snapshots")
     diff.add_argument("before", type=Path)
     diff.add_argument("after", type=Path)
@@ -308,6 +377,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.folder,
             _scikitplot_reader(kwargs, args.documents),
             repeat=args.repeat,
+            include=args.include,
+            exclude=args.exclude,
         )
         args.out.write_text(
             json.dumps(result, indent=1, sort_keys=True, ensure_ascii=True) + "\n",

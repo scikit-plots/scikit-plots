@@ -1990,6 +1990,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "normalize_extractor_output",
                     # image
                     "ImageReader",
+                    # office
+                    "OfficeReader",
                     # pdf
                     "PDFReader",
                     # text

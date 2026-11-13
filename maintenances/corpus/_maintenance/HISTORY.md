@@ -1,5 +1,104 @@
 # Corpus maintenance history
 
+## 2026-11-13 — PDF page text the same on every read, PR 935
+
+- **CX-16 (c): pdfminer.six grouped tied text boxes by memory address.**
+  `LTLayoutContainer.group_textboxes` keeps candidate pairs in a heap of
+  `(skip, distance, id(a), id(b), a, b)`; pairs at the same distance were
+  ordered by `id()`. `_PdfminerPages` now lays pages out through
+  `_stable_extract_pages` (the steps of `extract_pages`) with a device whose
+  page runs the same algorithm, each box and group numbered in creation
+  order in place of `id()`. Pairs that do not tie merge as before, so
+  pdfminer's grouping into columns is kept. Option (c) of the ledger note;
+  the note is removed. `PDFReader(pdfminer_ties="stable" | "pdfminer")`
+  chooses the layout: `"pdfminer"` calls `extract_pages` itself, for
+  comparing with pdfminer.six or if a pdfminer release changes the
+  internals the stable page relies on (`begin_page` setting `cur_item`,
+  `analyze` calling `group_textboxes`). The device re-classes pdfminer's own
+  page instead of building one, so every attribute its constructor sets
+  (`rotate`, and any later release adds) is kept.
+- Research files (13 PDFs, 495 pages): 3 or 4 pages differ from pdfminer's own
+  read (pdfminer's own read varies), every one a page with a tie; 4 reads per file: 1 unstable file on
+  main, none on the branch. Reading time unchanged (277 pages: 9.96 s ->
+  9.55 s).
+- Tests: `test__pdf_layout.py` (a 4 x 4 grid allocated in two orders:
+  pdfminer's order differs, ours does not; without ties ours equals
+  pdfminer's; the mutant numbering by `id()` fails 1). The pdfminer fake in
+  `test__pdf.py` stands in for `_stable_extract_pages`; damaged-install
+  tests name the modules the layout imports.
+- `reader_snapshot.py --include/--exclude GLOB`: the full research folder
+  did not finish in 15 minutes, mostly image OCR. Patterns are matched
+  case-insensitively against the relative path, recorded in the snapshot,
+  and `compare` reports a `selection:` line when two snapshots used
+  different ones. The research folder without `*.jpg`, `*.gif`, `*.png`:
+  139 files, 1 error (`.pptx`: no reader), 0 unstable on this branch.
+- **Office reader, phase 1 (ledger note `office-document-reader.md`).**
+  `OfficeReader` (`_readers/_office.py`) reads Word and PowerPoint Office
+  Open XML packages in memory with `zipfile` and `parse_stdlib_secure`:
+  the main part from `_rels/.rels`, Word body paragraphs and tables in
+  order (tracked deletions dropped), footnotes and endnotes, slides in
+  `p:sldIdLst` order, notes (body placeholder only), hidden slides. Limits
+  `max_file_bytes`, `max_part_bytes` (declared and actual size),
+  `max_parts`; relationships that are external or above the package root
+  are not followed; an OLE2 file (legacy or encrypted) is named. 36 tests
+  (`test__office.py`, every fixture built with `zipfile`); 7 mutants, each
+  caught. Research snapshot: the `.pptx` error becomes 13 chunks (18
+  slides, 5 with a picture only); 139 files, 0 errors, 0 unstable. Corpus
+  suite: the same 15 network failures with and without the change. Usage
+  skill API regenerated for `scikitplot.corpus` only (other modules need
+  a compiled build).
+- **Office reader, phase 2: Excel.** `.xlsx .xlsm .xltx .xltm`: worksheets
+  in `<sheets>` order, cells tab-separated at their column, empty rows
+  dropped, `rows_per_chunk` rows a chunk (`sheet`, `row_start`,
+  `row_end`), values as stored (cached formula result, never computed;
+  `TRUE`/`FALSE`; errors; dates as serial numbers). `hidden_slides`
+  becomes `hidden` (slides and sheets; not yet released). 50 tests; 7
+  mutants, 6 caught; the 7th (follow a chartsheet relationship) reads the
+  chartsheet part, which has no rows: no difference in output.
+- **Office reader, phase 3: OpenDocument, and package reality.** ODF
+  packages and flat XML files read from `content.xml` / the one file:
+  text documents (paragraphs, headings, lists, sections, tables, notes;
+  tracked changes and annotations left out; a text box inside a paragraph
+  read once), spreadsheets (repeated cells and rows expanded lazily, empty
+  filler skipped, a value repeated past 16 384 columns or 1 048 576 rows
+  refused, `text:s` capped at 1 000 spaces), presentations and drawings
+  (a chunk per page, then notes), formulas (annotation). A manifest with
+  `encryption-data` is refused. OOXML: Strict namespaces are renamed to
+  the Transitional ones after parsing (elements and attributes, only when
+  the part names them); a ZIP holding a part name twice is refused; the
+  main part's root decides the kind, so a mis-named file still reads.
+  87 tests; 12 mutants, each caught. Research snapshot unchanged (no ODF
+  file in it): 139 files, 0 errors, 0 unstable. Corpus suite: the same 15
+  network failures.
+- **Office extensions known outside the reader.** `from_url` treated a
+  URL ending in `.pptx`, `.xlsm`, `.odp` (and 20 more) as a web page: the
+  two download lists (`_base.py`, `_url_handler.py`) held `.docx`, `.xlsx`,
+  `.odt`, `.ods` only. Both now hold every extension `OfficeReader` reads,
+  and `SourceType.infer` gives `article` for the text family and
+  `spreadsheet` for the sheet family. Presentations and drawings stay
+  `unknown`: there is no source type for them (a decision, see the ledger
+  note). A test ties the lists to `OfficeReader.file_types`.
+- **cleanprompt.** `register_corpus_readers()` registers nothing now that
+  corpus reads `.docx`/`.xlsx`/`.pptx` itself; its test fixture wrote a
+  package without `_rels/.rels` and now writes one.
+- **API reference.** `OfficeReader` was missing from
+  `docs/source/apis_reference.py` (`plan` listed it as `ambiguous`). Added
+  to the template's Readers section and rebuilt; `rebuild --check` clean,
+  `plan` missing 155 -> 154 (the rest predate this PR). Rule 172 and a
+  section of `maintenances/MAINTAINING.md` now say what a public name's
+  addition, rename or removal must update.
+- **Headings.** A Word or OpenDocument text body was one chunk per run
+  of paragraphs between tables, so a long document without tables was one
+  chunk with no section. With `headings=True` (default) a heading starts
+  a new chunk and the chunks and tables under it carry `heading` and
+  `heading_level`. Word: the paragraph's `outlineLvl`, else its style's,
+  else the built-in `heading 1`..`heading 9` name (not localised in the
+  file, unlike the style id), else a style it is based on (cycles
+  ended); OpenDocument: `text:h` with `text:outline-level`. The joined
+  text of a document is the same with the option on or off. 106 tests; 9
+  mutants: 8 caught, 1 without effect (styles read although unused).
+- Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
+
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934
 
 - **CX-25: member warnings named the temporary extraction path.** When a

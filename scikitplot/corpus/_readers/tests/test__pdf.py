@@ -123,6 +123,10 @@ class _FakePdfminer:
         monkeypatch.setitem(sys.modules, "pdfminer", package)
         monkeypatch.setitem(sys.modules, "pdfminer.high_level", high_level)
         monkeypatch.setitem(sys.modules, "pdfminer.layout", layout)
+        # The reader lays pages out through its own copy of extract_pages
+        # (reproducible grouping, CX-16); the fake stands in for that too.
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", self.extract_pages)
+        monkeypatch.setattr(_pdf, "_stable_layout_classes", lambda: (None, None))
 
 
 class _FakePypdf:
@@ -378,7 +382,25 @@ class TestPdfminerOnePass:
 
 
 class TestDamagedPdfminer:
-    @pytest.mark.parametrize("module", ["pdfminer.high_level", "pdfminer.layout"])
+    @pytest.mark.parametrize(
+        "module",
+        ["pdfminer.converter", "pdfminer.pdfinterp", "pdfminer.pdfpage"],
+    )
+    def test_a_module_the_layout_needs_is_named_as_incomplete(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, module: str
+    ) -> None:
+        pytest.importorskip("pdfminer.layout")
+        _pdf._stable_layout_classes.cache_clear()
+        monkeypatch.setitem(sys.modules, module, None)
+        try:
+            reader = PDFReader(input_path=pdf_path, prefer_backend="pdfminer")
+            with pytest.raises(ImportError, match="is incomplete") as info:
+                list(reader.get_raw_chunks())
+        finally:
+            _pdf._stable_layout_classes.cache_clear()
+        assert module in str(info.value)
+
+    @pytest.mark.parametrize("module", ["pdfminer.layout"])
     def test_a_package_without_one_of_its_modules_is_named_as_incomplete(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, module: str
     ) -> None:
@@ -1572,7 +1594,7 @@ class TestAutoMode:
         logged: dict[str, list[str]],
     ) -> None:
         _FakePdfminer([]).install(monkeypatch)
-        monkeypatch.setitem(sys.modules, "pdfminer.high_level", None)
+        monkeypatch.setitem(sys.modules, "pdfminer.layout", None)
         backup = _FakePypdf(["A", "B"])
         backup.install(monkeypatch)
         assert _texts(_reader(pdf_path, monkeypatch, 2)) == [(0, "A"), (1, "B")]
@@ -1689,16 +1711,16 @@ class TestRealLibraries:
     def test_pdfminer_opens_the_file_once(
         self, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        high_level = pytest.importorskip("pdfminer.high_level")
+        pytest.importorskip("pdfminer.high_level")
         path = _write_pdf(tmp_path / "doc.pdf", self.TEXTS)
         opens = []
-        real = high_level.extract_pages
+        real = _pdf._stable_extract_pages
 
         def counted(*args: Any, **kwargs: Any) -> Any:
             opens.append(kwargs.get("page_numbers"))
             return real(*args, **kwargs)
 
-        monkeypatch.setattr(high_level, "extract_pages", counted)
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", counted)
         reader = PDFReader(input_path=path, prefer_backend="pdfminer")
         assert _texts(reader) == list(self.EXPECTED)
         assert opens == [None]
@@ -1816,3 +1838,69 @@ class TestRealLibraries:
         assert _texts(PDFReader(input_path=path, prefer_backend=backend)) == []
         (warning,) = logged["warning"]
         assert "none of the 3 page(s) read from scan.pdf" in warning
+
+
+# ===========================================================================
+# pdfminer_ties: which layout groups equally distant text boxes (CX-16)
+# ===========================================================================
+
+
+class TestPdfminerTies:
+    def _install(self, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+        """Both layouts read one page; return which one each open used."""
+        used: list[str] = []
+        fake = _FakePdfminer([[_Box("text")]])
+        fake.install(monkeypatch)
+
+        def tagged(name: str) -> Any:
+            def extract(*args: Any, **kwargs: Any) -> Any:
+                used.append(name)
+                return fake.extract_pages(*args, **kwargs)
+
+            return extract
+
+        monkeypatch.setattr(
+            sys.modules["pdfminer.high_level"], "extract_pages", tagged("pdfminer")
+        )
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", tagged("stable"))
+        return used
+
+    @pytest.mark.parametrize(
+        ("ties", "expected"),
+        [(None, "stable"), ("stable", "stable"), ("pdfminer", "pdfminer")],
+    )
+    def test_the_policy_picks_the_layout(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        ties: str | None,
+        expected: str,
+    ) -> None:
+        used = self._install(monkeypatch)
+        kwargs = {} if ties is None else {"pdfminer_ties": ties}
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer", **kwargs)
+        assert _texts(reader) == [(0, "text")]
+        assert used == [expected]
+
+    @pytest.mark.parametrize("ties", ["", "Stable", "id", None, 1])
+    def test_another_value_is_a_value_error(
+        self, pdf_path: pathlib.Path, ties: Any
+    ) -> None:
+        with pytest.raises(ValueError, match="pdfminer_ties must be one of"):
+            PDFReader(input_path=pdf_path, pdfminer_ties=ties)
+
+    def test_pdfminer_ties_needs_only_pdfminers_own_modules(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The stable layout's extra modules are not imported for "pdfminer".
+        used = self._install(monkeypatch)
+
+        def refuse() -> Any:
+            raise AssertionError("the stable layout was built")
+
+        monkeypatch.setattr(_pdf, "_stable_layout_classes", refuse)
+        reader = _reader(
+            pdf_path, monkeypatch, 1, prefer_backend="pdfminer", pdfminer_ties="pdfminer"
+        )
+        assert _texts(reader) == [(0, "text")]
+        assert used == ["pdfminer"]

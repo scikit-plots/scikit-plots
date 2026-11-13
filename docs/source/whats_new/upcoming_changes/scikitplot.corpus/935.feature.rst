@@ -1,0 +1,16 @@
+- New ``OfficeReader`` reads office documents with the standard library only:
+  Office Open XML (``.docx``, ``.docm``, ``.dotx``, ``.dotm``, ``.pptx``,
+  ``.pptm``, ``.potx``, ``.potm``, ``.ppsx``, ``.ppsm``, ``.xlsx``, ``.xlsm``,
+  ``.xltx``, ``.xltm``; Strict and Transitional) and OpenDocument (``.odt``,
+  ``.ott``, ``.ods``, ``.ots``, ``.odp``, ``.otp``, ``.odg``, ``.otg``,
+  ``.odf`` and the flat ``.fodt``, ``.fods``, ``.fodp``, ``.fodg``). Body
+  text and tables come in document order, slides and pages in deck order,
+  sheets as tab-separated rows (``rows_per_chunk=``; stored values, formulas
+  never computed), with speaker notes, footnotes and endnotes (``notes=``)
+  and hidden slides and sheets (``hidden=``). In Word and OpenDocument text
+  a heading starts a new chunk, and the chunks under it carry ``heading``
+  and ``heading_level`` (``headings=``). The content decides how a
+  file is read, not its extension. XML parts are parsed with entity
+  declarations refused, sizes and repeat counts are bounded, encrypted and
+  ambiguous packages are refused, and macros are flagged (``has_macros``),
+  never run.

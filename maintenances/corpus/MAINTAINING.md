@@ -43,7 +43,11 @@ python -B $T compare before.json after.json --text-only # text and errors
 ```
 
 Add `--documents` to both snapshots to include the default filter, and
-`--reader-kwargs '{"ocr": "auto"}'` for options. Every file that changes is
+`--reader-kwargs '{"ocr": "auto"}'` for options. `--include GLOB` and
+`--exclude GLOB` (repeatable, case ignored, `*` crosses folders) choose the
+files: `--include '*.pdf'` for a PDF change, `--exclude '*.jpg' --exclude
+'*.gif'` to skip slow image OCR. Use the same patterns for both snapshots;
+`compare` starts with a `selection:` line when they differ. Every file that changes is
 either the intended change or a regression to fix; record the result in the
 round's evidence log. Each file is read twice, and `unstable` means two
 reads of the same bytes gave different data: a finding in itself. Running
