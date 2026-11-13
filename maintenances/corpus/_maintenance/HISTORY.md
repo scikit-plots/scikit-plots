@@ -55,6 +55,21 @@
   becomes `hidden` (slides and sheets; not yet released). 50 tests; 7
   mutants, 6 caught; the 7th (follow a chartsheet relationship) reads the
   chartsheet part, which has no rows: no difference in output.
+- **Office reader, phase 3: OpenDocument, and package reality.** ODF
+  packages and flat XML files read from `content.xml` / the one file:
+  text documents (paragraphs, headings, lists, sections, tables, notes;
+  tracked changes and annotations left out; a text box inside a paragraph
+  read once), spreadsheets (repeated cells and rows expanded lazily, empty
+  filler skipped, a value repeated past 16 384 columns or 1 048 576 rows
+  refused, `text:s` capped at 1 000 spaces), presentations and drawings
+  (a chunk per page, then notes), formulas (annotation). A manifest with
+  `encryption-data` is refused. OOXML: Strict namespaces are renamed to
+  the Transitional ones after parsing (elements and attributes, only when
+  the part names them); a ZIP holding a part name twice is refused; the
+  main part's root decides the kind, so a mis-named file still reads.
+  87 tests; 12 mutants, each caught. Research snapshot unchanged (no ODF
+  file in it): 139 files, 0 errors, 0 unstable. Corpus suite: the same 15
+  network failures.
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934

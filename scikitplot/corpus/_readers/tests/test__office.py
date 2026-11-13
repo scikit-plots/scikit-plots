@@ -494,3 +494,361 @@ class TestExcel:
     def test_every_excel_extension_dispatches(self, tmp_path, suffix):
         path = _xlsx(tmp_path / f"b{suffix}", [("S", _sheet(""), None)])
         assert isinstance(DocumentReader.create(path), OfficeReader)
+
+
+# ---------------------------------------------------------------------------
+# Office Open XML: Strict conformance, ambiguous packages, content decides
+# ---------------------------------------------------------------------------
+
+STRICT = "http://purl.oclc.org/ooxml"
+
+
+class TestPackageReality:
+    def test_strict_conformance_reads_like_transitional(self, tmp_path):
+        w = f"{STRICT}/wordprocessingml/main"
+        rel = f"{STRICT}/officeDocument/relationships"
+        path = _write(
+            tmp_path / "d.docx",
+            {
+                "_rels/.rels": (
+                    f'<?xml version="1.0"?><Relationships xmlns="{PKG}">'
+                    f'<Relationship Id="r1" Type="{rel}/officeDocument"'
+                    ' Target="word/document.xml"/></Relationships>'
+                ),
+                "word/document.xml": (
+                    f'<?xml version="1.0"?><w:document xmlns:w="{w}"><w:body>'
+                    "<w:p><w:r><w:t>strict</w:t></w:r></w:p></w:body></w:document>"
+                ),
+            },
+        )
+        assert [c["text"] for c in _chunks(path)] == ["strict"]
+
+    def test_strict_presentation_follows_its_relationship_ids(self, tmp_path):
+        p, a = f"{STRICT}/presentationml/main", f"{STRICT}/drawingml/main"
+        rel = f"{STRICT}/officeDocument/relationships"
+
+        def rels(*items):
+            body = "".join(
+                f'<Relationship Id="{i}" Type="{rel}/{k}" Target="{t}"/>'
+                for i, k, t in items
+            )
+            return f'<?xml version="1.0"?><Relationships xmlns="{PKG}">{body}</Relationships>'
+
+        path = _write(
+            tmp_path / "d.pptx",
+            {
+                "_rels/.rels": rels(("r1", "officeDocument", "ppt/presentation.xml")),
+                "ppt/presentation.xml": (
+                    f'<?xml version="1.0"?><p:presentation xmlns:p="{p}" xmlns:r="{rel}">'
+                    '<p:sldIdLst><p:sldId id="256" r:id="rS"/></p:sldIdLst>'
+                    "</p:presentation>"
+                ),
+                "ppt/_rels/presentation.xml.rels": rels(
+                    ("rS", "slide", "slides/s.xml")
+                ),
+                "ppt/slides/s.xml": (
+                    f'<?xml version="1.0"?><p:sld xmlns:p="{p}" xmlns:a="{a}"><p:cSld>'
+                    "<p:spTree><p:sp><p:txBody><a:p><a:r><a:t>one</a:t></a:r></a:p>"
+                    "</p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+                ),
+            },
+        )
+        assert [(c["page_number"], c["text"]) for c in _chunks(path)] == [(0, "one")]
+
+    def test_a_part_held_twice_is_refused(self, tmp_path):
+        path = tmp_path / "d.docx"
+        document = f'<w:document xmlns:w="{W}"/>'
+        with zipfile.ZipFile(path, "w") as zf:
+            zf.writestr(
+                "_rels/.rels", _rels(("rId1", "officeDocument", "word/document.xml"))
+            )
+            zf.writestr("word/document.xml", document)
+            with pytest.warns(UserWarning, match="Duplicate name"):
+                zf.writestr("word/document.xml", document)
+        with pytest.raises(ValueError, match="more than once"):
+            _chunks(path)
+
+    def test_the_content_decides_not_the_extension(self, tmp_path):
+        slides = [("slide1.xml", _slide("a deck"))]
+        path = _pptx(tmp_path / "named.docx", slides, ["slide1.xml"])
+        assert [(c["page_number"], c["text"]) for c in _chunks(path)] == [(0, "a deck")]
+
+
+# ---------------------------------------------------------------------------
+# OpenDocument
+# ---------------------------------------------------------------------------
+
+ODF = "urn:oasis:names:tc:opendocument:xmlns:"
+ODF_NS = (
+    f'xmlns:office="{ODF}office:1.0" xmlns:text="{ODF}text:1.0"'
+    f' xmlns:table="{ODF}table:1.0" xmlns:draw="{ODF}drawing:1.0"'
+    f' xmlns:presentation="{ODF}presentation:1.0"'
+)
+
+
+def _content(
+    kind: str, inner: str, root: str = "document-content", extra: str = ""
+) -> str:
+    return (
+        f'<?xml version="1.0"?><office:{root} {ODF_NS}>{extra}<office:body>'
+        f"<office:{kind}>{inner}</office:{kind}></office:body></office:{root}>"
+    )
+
+
+def _odf(path: Path, kind: str, inner: str, extra: dict | None = None) -> Path:
+    parts = {
+        "mimetype": "application/vnd.oasis.opendocument",
+        "content.xml": _content(kind, inner),
+    }
+    parts.update(extra or {})
+    return _write(path, parts)
+
+
+def _cell(text: str = "", repeat: int | None = None) -> str:
+    attr = f' table:number-columns-repeated="{repeat}"' if repeat else ""
+    body = f"<text:p>{text}</text:p>" if text else ""
+    return f"<table:table-cell{attr}>{body}</table:table-cell>"
+
+
+def _row(cells: str, repeat: int | None = None) -> str:
+    attr = f' table:number-rows-repeated="{repeat}"' if repeat else ""
+    return f"<table:table-row{attr}>{cells}</table:table-row>"
+
+
+class TestOpenDocumentText:
+    def test_paragraphs_headings_lists_tables_in_order(self, tmp_path):
+        inner = (
+            "<text:h>Title</text:h><text:p>one</text:p>"
+            "<text:list><text:list-item><text:p>item</text:p></text:list-item></text:list>"
+            '<table:table table:name="T">'
+            + _row(_cell("a") + _cell("b"))
+            + _row(_cell() + _cell())
+            + _row(_cell("c") + _cell("d"))
+            + "</table:table><text:section><text:p>last</text:p></text:section>"
+        )
+        got = [
+            (c["section_type"], c["text"])
+            for c in _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        ]
+        assert got == [
+            ("text", "Title\none\nitem"),
+            ("table", "a\tb\nc\td"),
+            ("text", "last"),
+        ]
+
+    def test_spaces_tabs_breaks_spans_and_tails(self, tmp_path):
+        inner = (
+            '<text:p>a<text:s text:c="3"/>b<text:tab/>c<text:line-break/>'
+            "<text:span>d</text:span>e<text:s/>f</text:p>"
+        )
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert chunk["text"] == "a   b\tc\nde f"
+
+    def test_notes_comments_and_tracked_deletions(self, tmp_path):
+        inner = (
+            "<text:tracked-changes><text:changed-region><text:deletion>"
+            "<text:p>gone</text:p></text:deletion></text:changed-region>"
+            "</text:tracked-changes>"
+            "<text:p>body<text:note><text:note-citation>1</text:note-citation>"
+            "<text:note-body><text:p>a note</text:p></text:note-body></text:note>"
+            "<office:annotation><text:p>comment</text:p></office:annotation> end</text:p>"
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        got = [(c["section_type"], c["text"]) for c in _chunks(path)]
+        assert got == [("text", "body end"), ("footnote", "a note")]
+        assert [c["text"] for c in _chunks(path, notes=False)] == ["body end"]
+
+    def test_a_text_box_inside_a_paragraph_is_read_once(self, tmp_path):
+        inner = (
+            "<text:p>frame <draw:frame><draw:text-box><text:p>boxed</text:p>"
+            "</draw:text-box></draw:frame></text:p>"
+        )
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert chunk["text"] == "frame boxed"
+
+    def test_a_huge_space_count_is_capped(self, tmp_path):
+        inner = '<text:p>a<text:s text:c="999999999999"/>b</text:p>'
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert chunk["text"] == "a" + " " * 1000 + "b"
+
+
+class TestOpenDocumentSpreadsheet:
+    def test_repeats_gaps_and_filler(self, tmp_path):
+        table = (
+            '<table:table table:name="Data">'
+            + _row(_cell("h1") + _cell("x", 2) + _cell(repeat=16381))
+            + _row(_cell(repeat=16384), 3)
+            + _row(
+                _cell(repeat=2)
+                + _cell("v")
+                + "<table:covered-table-cell/>"
+                + _cell("w"),
+                2,
+            )
+            + _row(_cell(repeat=16384), 1048570)
+            + "</table:table>"
+            '<table:table table:name="Empty">'
+            + _row(_cell(repeat=16384), 1048576)
+            + "</table:table>"
+        )
+        chunks = _chunks(_odf(tmp_path / "b.ods", "spreadsheet", table))
+        (chunk,) = chunks
+        assert chunk["text"] == "h1\tx\tx\n\t\tv\t\tw\n\t\tv\t\tw"
+        assert (chunk["sheet"], chunk["page_number"]) == ("Data", 0)
+        assert (chunk["row_start"], chunk["row_end"]) == (1, 6)
+        assert "hidden" not in chunk
+
+    def test_rows_per_chunk_applies(self, tmp_path):
+        table = '<table:table table:name="S">' + _row(_cell("r"), 5) + "</table:table>"
+        path = _odf(tmp_path / "b.ods", "spreadsheet", table)
+        got = [(c["row_start"], c["row_end"]) for c in _chunks(path, rows_per_chunk=2)]
+        assert got == [(1, 2), (3, 4), (5, 5)]
+
+    def test_a_value_repeated_past_the_sheet_is_refused(self, tmp_path):
+        wide = (
+            '<table:table table:name="S">' + _row(_cell("x", 10**9)) + "</table:table>"
+        )
+        with pytest.raises(ValueError, match="past column"):
+            _chunks(_odf(tmp_path / "w.ods", "spreadsheet", wide))
+        tall = (
+            '<table:table table:name="S">' + _row(_cell("x"), 10**12) + "</table:table>"
+        )
+        with pytest.raises(ValueError, match="past row"):
+            _chunks(_odf(tmp_path / "t.ods", "spreadsheet", tall))
+
+
+class TestOpenDocumentPages:
+    @pytest.mark.parametrize(
+        ("suffix", "kind"), [(".odp", "presentation"), (".odg", "drawing")]
+    )
+    def test_a_chunk_per_page_then_its_notes(self, tmp_path, suffix, kind):
+        def page(text: str, notes: str = "") -> str:
+            spoken = (
+                f"<presentation:notes><draw:frame><draw:text-box><text:p>{notes}</text:p>"
+                "</draw:text-box></draw:frame></presentation:notes>"
+                if notes
+                else ""
+            )
+            return (
+                f"<draw:page><draw:frame><draw:text-box><text:p>{text}</text:p>"
+                f"</draw:text-box></draw:frame>{spoken}</draw:page>"
+            )
+
+        inner = page("first", "say") + page("") + page("third")
+        path = _odf(tmp_path / f"d{suffix}", kind, inner)
+        got = [(c["section_type"], c["page_number"], c["text"]) for c in _chunks(path)]
+        assert got == [
+            ("text", 0, "first"),
+            ("footnote", 0, "say"),
+            ("text", 2, "third"),
+        ]
+        assert [c["text"] for c in _chunks(path, notes=False)] == ["first", "third"]
+
+
+class TestOpenDocumentPackage:
+    def test_flat_xml_reads_like_the_package(self, tmp_path):
+        inner = "<text:p>flat</text:p>"
+        path = tmp_path / "d.fodt"
+        path.write_text(_content("text", inner, root="document"), encoding="utf-8")
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["part"], chunk["has_macros"]) == (
+            "flat",
+            "flat",
+            False,
+        )
+        (packaged,) = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert packaged["text"] == chunk["text"]
+
+    def test_flat_xml_with_a_byte_order_mark_and_scripts(self, tmp_path):
+        scripts = "<office:scripts><office:script/></office:scripts>"
+        xml = _content("text", "<text:p>x</text:p>", root="document", extra=scripts)
+        path = tmp_path / "d.fodt"
+        path.write_bytes(b"\xef\xbb\xbf" + xml.encode("utf-8"))
+        assert [c["has_macros"] for c in _chunks(path)] == [True]
+
+    def test_other_xml_is_refused(self, tmp_path):
+        path = tmp_path / "d.fodt"
+        path.write_text('<?xml version="1.0"?><html/>', encoding="utf-8")
+        with pytest.raises(ValueError, match="not a flat OpenDocument file"):
+            _chunks(path)
+
+    def test_flat_xml_entities_are_refused(self, tmp_path):
+        path = tmp_path / "d.fodt"
+        path.write_text(
+            '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY x "y">]>'
+            + _content("text", "<text:p>&x;</text:p>", root="document").split("?>", 1)[
+                1
+            ],
+            encoding="utf-8",
+        )
+        with pytest.raises(ValueError, match="entit"):
+            _chunks(path)
+
+    def test_flat_xml_over_the_part_limit(self, tmp_path):
+        path = tmp_path / "d.fodt"
+        path.write_text(
+            _content("text", "<text:p>x</text:p>", root="document"), encoding="utf-8"
+        )
+        with pytest.raises(ValueError, match="max_part_bytes"):
+            _chunks(path, max_part_bytes=20)
+
+    def test_an_encrypted_package_is_refused(self, tmp_path):
+        manifest = (
+            f'<?xml version="1.0"?><manifest:manifest xmlns:manifest="{ODF}manifest:1.0">'
+            '<manifest:file-entry manifest:full-path="content.xml">'
+            "<manifest:encryption-data/></manifest:file-entry></manifest:manifest>"
+        )
+        path = _odf(tmp_path / "d.odt", "text", "", {"META-INF/manifest.xml": manifest})
+        with pytest.raises(ValueError, match="encrypted with a password"):
+            _chunks(path)
+
+    def test_basic_macros_are_flagged(self, tmp_path):
+        path = _odf(
+            tmp_path / "d.odt",
+            "text",
+            "<text:p>x</text:p>",
+            {"Basic/Standard/M.xml": "<a/>"},
+        )
+        assert [c["has_macros"] for c in _chunks(path)] == [True]
+
+    def test_a_formula_gives_its_annotation(self, tmp_path):
+        math = "http://www.w3.org/1998/Math/MathML"
+        xml = (
+            f'<?xml version="1.0"?><math xmlns="{math}"><semantics><mrow/>'
+            '<annotation encoding="StarMath 5.0">a over b</annotation></semantics></math>'
+        )
+        path = _write(tmp_path / "f.odf", {"content.xml": xml})
+        assert [c["text"] for c in _chunks(path)] == ["a over b"]
+
+    def test_a_body_of_another_kind(self, tmp_path):
+        with pytest.raises(ValueError, match="not a text document"):
+            _chunks(_odf(tmp_path / "d.odt", "chart", ""))
+
+    def test_no_body(self, tmp_path):
+        path = _write(
+            tmp_path / "d.odt", {"content.xml": f"<office:document-content {ODF_NS}/>"}
+        )
+        with pytest.raises(ValueError, match="no office:body"):
+            _chunks(path)
+
+    @pytest.mark.parametrize(
+        "suffix",
+        [
+            ".odt",
+            ".ott",
+            ".ods",
+            ".ots",
+            ".odp",
+            ".otp",
+            ".odg",
+            ".otg",
+            ".odf",
+            ".fodt",
+            ".fods",
+            ".fodp",
+            ".fodg",
+        ],
+    )
+    def test_every_extension_dispatches(self, tmp_path, suffix):
+        path = _odf(tmp_path / f"d{suffix}", "text", "")
+        assert isinstance(DocumentReader.create(path), OfficeReader)

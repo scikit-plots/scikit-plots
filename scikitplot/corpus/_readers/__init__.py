@@ -41,10 +41,9 @@ Available readers:
     Per-page error recovery; encrypted PDF support.
 
 :class:`OfficeReader`
-    Word, PowerPoint and Excel in the Office Open XML format (``.docx``,
-    ``.docm``, ``.dotx``, ``.dotm``, ``.pptx``, ``.pptm``, ``.potx``,
-    ``.potm``, ``.ppsx``, ``.ppsm``, ``.xlsx``, ``.xlsm``, ``.xltx``,
-    ``.xltm``). Standard library only; nothing in the
+    Office documents: Office Open XML (``.docx``, ``.pptx``, ``.xlsx`` and
+    their macro and template variants) and OpenDocument (``.odt``,
+    ``.ods``, ``.odp``, ``.odg``, ``.odf``, templates and flat XML forms). Standard library only; nothing in the
     package is run.
 
 :class:`ImageReader`

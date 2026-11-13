@@ -238,7 +238,7 @@
 | `CustomReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Fully user-customizable reader for any file extension and resource type. |
 | `normalize_extractor_output(raw: 'Any', *, source_type: 'SourceType' = SourceType.UNKNOWN, section_type: 'SectionType' = SectionType. ...)` | function | Coerce an extractor return value to a list of raw chunk dicts. |
 | `ImageReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | OCR-based text extraction from raster image files. |
-| `OfficeReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Read Word, PowerPoint and Excel files in the Office Open XML format. |
+| `OfficeReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Read office documents: Office Open XML and OpenDocument. |
 | `PDFReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | PDF document reader with pdfminer.six → pypdf cascade. |
 | `MarkdownReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Markdown document reader. |
 | `ReSTReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | reStructuredText document reader. |

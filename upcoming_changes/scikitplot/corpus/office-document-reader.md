@@ -41,7 +41,7 @@ groups, with different costs:
 | Group | Extensions | Container | Needs |
 |---|---|---|---|
 | OOXML | `.docx .docm .dotx .dotm`, `.xlsx .xlsm .xltx .xltm`, `.pptx .pptm .potx .potm .ppsx .ppsm .sldx .sldm` | ZIP + XML | standard library only |
-| ODF | `.odt .ods .odp .odg .odf` (ZIP), `.fodt .fods .fodp .fodg` (one XML file) | ZIP + XML or XML | standard library only |
+| ODF | `.odt .ods .odp .odg .odf`, templates `.ott .ots .otp .otg` (ZIP), `.fodt .fods .fodp .fodg` (one XML file) | ZIP + XML or XML | standard library only |
 | Legacy binary | `.doc .dot .wbk`, `.xls .xlt`, `.ppt .pot .pps`, `.xlsb` | OLE2 compound file (BIFF12 for `.xlsb`) | an optional backend |
 | Code, not documents | `.wll .wwl`, `.xla .xlam .xll .xll_ .xla_ .xla5 .xla8 .xlm .xlw`, `.ppa .ppam` | add-ins, DLLs, macro sheets, workspaces | refused |
 
@@ -112,8 +112,15 @@ Phased, one pull request each:
    booleans, errors; chartsheets skipped; hidden sheets under `hidden=`.
    Left for later: number formats (dates read as serial numbers), merged
    cells, a streamed parse (memory bounded by `max_part_bytes`), `.xlsb`.
-3. **ODF** (`.odt .ods .odp .odg .odf`, flat variants): the same chunk
-   model from `content.xml`.
+3. **ODF**: done in PR 935. `.odt .ott .ods .ots .odp .otp .odg .otg
+   .odf` and flat `.fodt .fods .fodp .fodg` from `content.xml` (or the one
+   XML file): paragraphs, headings, lists, tables, notes; sheets with
+   repeated cells and rows expanded within the sheet size; a chunk per
+   page with its notes; formula annotation. Encrypted packages refused.
+   Also for OOXML: Strict-conformance namespaces read like Transitional; a
+   package holding a part twice is refused; the content decides, not the
+   extension. Left for later: hidden pages and sheets (the flag is in a
+   style), headers and footers from `styles.xml`, `.odm` master documents.
 4. **Legacy binary**: optional backends (for example an OLE2 parser, or a
    conversion through a LibreOffice process), off unless installed.
 5. **Add-ins**: registered so they are refused with a reason instead of
@@ -123,6 +130,17 @@ Common to all: one class per family, a shared part loader (manifest order,
 byte budget, hardened XML), chunk keys `text`, `section_type`,
 `page_number` (slide or sheet index), `part`, and the `custom_extractor`
 hook every reader has.
+
+## Later, beyond the five phases
+
+- Format detection for every reader from the file's first bytes and its
+  package, so a wrong extension is caught before dispatch.
+- Provenance on every chunk: a hash of the source file and the reader
+  version, so an index entry can be traced to exact bytes.
+- A decompression-ratio limit next to the size limits.
+- Formula text next to the cached value for spreadsheets, as an option.
+- Heading levels for Word and OpenDocument text, so chunks keep their
+  section.
 
 ## Verification / acceptance criteria
 

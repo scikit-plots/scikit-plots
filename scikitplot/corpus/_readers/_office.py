@@ -4,12 +4,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Office Open XML documents: Word, PowerPoint and Excel (``.docx``, ``.pptx``, ``.xlsx``).
+Office documents: Office Open XML (``.docx``, ``.pptx``, ``.xlsx``) and OpenDocument (``.odt``, ``.ods``, ``.odp``).
 
-An Office Open XML file is a ZIP package of XML parts. This reader opens the
-package in memory, follows its relationships to the parts that hold text and
-parses each with the hardened XML parser. Nothing is extracted to disk and
-nothing in the package (macros, OLE objects, external links) is run.
+Both families are ZIP packages of XML parts (OpenDocument also has a flat,
+single-XML form). This reader opens the package in memory, finds the parts
+that hold text (Office Open XML: by relationships; OpenDocument:
+``content.xml``) and parses each with the hardened XML parser. Nothing is
+extracted to disk and nothing in the package (macros, OLE objects, external
+links) is run. The content decides how a file is read, not its extension.
 
 Python 3.8-3.15. Standard library only.
 """
@@ -37,6 +39,32 @@ _A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 _P = "http://schemas.openxmlformats.org/presentationml/2006/main"
 _S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
+#: Strict-conformance namespaces, mapped to the transitional ones the reader
+#: is written against. The element and attribute names are the same.
+_STRICT_PREFIX = "http://purl.oclc.org/ooxml/"
+_STRICT = {
+    "http://purl.oclc.org/ooxml/wordprocessingml/main": _W,
+    "http://purl.oclc.org/ooxml/drawingml/main": _A,
+    "http://purl.oclc.org/ooxml/presentationml/main": _P,
+    "http://purl.oclc.org/ooxml/spreadsheetml/main": _S,
+    "http://purl.oclc.org/ooxml/officeDocument/relationships": _DOC_REL,
+}
+
+_ODF = "urn:oasis:names:tc:opendocument:xmlns:"
+_O_OFFICE = _ODF + "office:1.0"
+_O_TEXT = _ODF + "text:1.0"
+_O_TABLE = _ODF + "table:1.0"
+_O_DRAW = _ODF + "drawing:1.0"
+_O_PRESENTATION = _ODF + "presentation:1.0"
+_O_MANIFEST = _ODF + "manifest:1.0"
+
+#: Sheet size limits of the common spreadsheet applications; a repeat count
+#: beyond them is refused instead of expanded.
+_MAX_COLUMNS = 16_384
+_MAX_ROWS = 1_048_576
+#: Most spaces one ``text:s`` may stand for.
+_MAX_SPACES = 1_000
+
 #: Relationship types, by their last path segment.
 _OFFICE_DOCUMENT = "officeDocument"
 _SLIDE = "slide"
@@ -52,11 +80,60 @@ _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _WORD_EXTENSIONS = [".docx", ".docm", ".dotx", ".dotm"]
 _POWERPOINT_EXTENSIONS = [".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm"]
 _EXCEL_EXTENSIONS = [".xlsx", ".xlsm", ".xltx", ".xltm"]
+_OPENDOCUMENT_EXTENSIONS = [
+    ".odt",
+    ".ott",
+    ".ods",
+    ".ots",
+    ".odp",
+    ".otp",
+    ".odg",
+    ".otg",
+    ".odf",
+    ".fodt",
+    ".fods",
+    ".fodp",
+    ".fodg",
+]
 
 
 def _q(namespace: str, name: str) -> str:
     """Return the ElementTree (Clark) name ``{namespace}name``."""
     return f"{{{namespace}}}{name}"
+
+
+def _transitional(root: Any) -> None:
+    """Rename Strict-conformance names under *root* to the transitional ones."""
+
+    def renamed(name: str) -> str:
+        if not name.startswith("{" + _STRICT_PREFIX):
+            return name
+        namespace, _, local = name[1:].partition("}")
+        return _q(_STRICT.get(namespace, namespace), local)
+
+    for element in root.iter():
+        if isinstance(element.tag, str):
+            element.tag = renamed(element.tag)
+        strict = [key for key in element.attrib if key.startswith("{" + _STRICT_PREFIX)]
+        for key in strict:
+            element.attrib[renamed(key)] = element.attrib.pop(key)
+
+
+def _parse(data: bytes, what: str) -> Any:
+    """
+    Parse *data* with the hardened parser.
+
+    Raises
+    ------
+    ValueError
+        If it declares entities or is not well-formed; *what* names it.
+    """
+    try:
+        return parse_stdlib_secure(data)
+    except ValueError:
+        raise
+    except Exception as exc:  # expat errors are not ValueError
+        raise ValueError(f"OfficeReader: {what} is not well-formed XML: {exc}") from exc
 
 
 class _Package:
@@ -93,6 +170,15 @@ class _Package:
                 f" (max_parts={max_parts})."
             )
         self._infos = {info.filename: info for info in infos}
+        if len(self._infos) != len(infos):
+            seen: set[str] = set()
+            twice = next(
+                i.filename for i in infos if i.filename in seen or seen.add(i.filename)
+            )
+            raise ValueError(
+                f"OfficeReader: {name} holds the part {twice!r} more than once;"
+                " which one a reader takes is not defined."
+            )
 
     def names(self) -> Iterator[str]:
         """Yield every part name."""
@@ -123,15 +209,14 @@ class _Package:
                 f"OfficeReader: part {part!r} of {self._name} is larger than"
                 f" max_part_bytes={self._max:,}."
             )
-        try:
-            return parse_stdlib_secure(data)
-        except ValueError:
-            raise
-        except Exception as exc:  # expat errors are not ValueError
-            raise ValueError(
-                f"OfficeReader: part {part!r} of {self._name} is not"
-                f" well-formed XML: {exc}"
-            ) from exc
+        root = _parse(data, f"part {part!r} of {self._name}")
+        if _STRICT_PREFIX.encode("ascii") in data:
+            _transitional(root)
+        return root
+
+    def has(self, part: str) -> bool:
+        """Whether the package holds *part*."""
+        return part in self._infos
 
     def relationships(self, part: str) -> dict[str, tuple[str, str]]:
         """
@@ -346,6 +431,145 @@ def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
 
 
 # ---------------------------------------------------------------------------
+# Text of OpenDocument
+# ---------------------------------------------------------------------------
+
+#: Inline content that is not part of the running text.
+_ODF_NOT_TEXT = frozenset(
+    {
+        _q(_O_TEXT, "note"),
+        _q(_O_OFFICE, "annotation"),
+        _q(_O_OFFICE, "annotation-end"),
+        _q(_O_TEXT, "tracked-changes"),
+    }
+)
+
+
+def _repeat(element: Any, attribute: str) -> int:
+    """Return a ``number-*-repeated`` count of *element*; 1 when absent or bad."""
+    try:
+        count = int(element.get(_q(_O_TABLE, attribute)) or 1)
+    except ValueError:
+        return 1
+    return max(count, 1)
+
+
+def _odf_text(node: Any) -> str:
+    """Return the running text under *node*: spaces, tabs and breaks expanded."""
+    space, tab, line_break = (_q(_O_TEXT, n) for n in ("s", "tab", "line-break"))
+    out: list[str] = []
+    stack: list[tuple[bool, Any]] = [(False, node)]
+    while stack:
+        is_text, item = stack.pop()
+        if is_text:
+            out.append(item)
+            continue
+        tag = item.tag
+        if tag in _ODF_NOT_TEXT:
+            continue
+        if tag == space:
+            try:
+                count = int(item.get(_q(_O_TEXT, "c")) or 1)
+            except ValueError:
+                count = 1
+            out.append(" " * max(1, min(count, _MAX_SPACES)))
+        elif tag == tab:
+            out.append("\t")
+        elif tag == line_break:
+            out.append("\n")
+        else:
+            items: list[tuple[bool, Any]] = []
+            if item.text:
+                items.append((True, item.text))
+            for child in item:
+                items.append((False, child))
+                if child.tail:
+                    items.append((True, child.tail))
+            stack.extend(reversed(items))
+    return "".join(out)
+
+
+def _odf_blocks(
+    container: Any, *, tables: bool, skip: frozenset = frozenset()
+) -> Iterator[Any]:
+    """
+    Yield the paragraphs under *container* in document order.
+
+    A paragraph or heading is yielded as its text (``str``) and not entered
+    again, so a text box inside it is read once. With ``tables=True`` a
+    ``table:table`` is yielded as its element instead of being entered.
+    Subtrees in *skip*, tracked changes and annotations are left out.
+    """
+    blocks = {_q(_O_TEXT, "p"), _q(_O_TEXT, "h")}
+    table = _q(_O_TABLE, "table")
+    stack = [iter(container)]
+    while stack:
+        node = next(stack[-1], None)
+        if node is None:
+            stack.pop()
+            continue
+        tag = node.tag
+        if tag in _ODF_NOT_TEXT or tag in skip:
+            continue
+        if tag in blocks:
+            yield _odf_text(node)
+        elif tables and tag == table:
+            yield node
+        else:
+            stack.append(iter(node))
+
+
+def _odf_rows(table: Any, what: str) -> Iterator[tuple[int, str]]:
+    """
+    Yield ``(row number, line)`` for each row of a ``table:table`` with a value.
+
+    Repeated cells and rows are expanded; runs of empty ones only move the
+    position, so the usual "rest of the sheet" filler costs nothing.
+
+    Raises
+    ------
+    ValueError
+        If cells with a value repeat past ``_MAX_COLUMNS`` columns, or rows
+        with a value past ``_MAX_ROWS`` rows; *what* names the table.
+    """
+    cell_tag = _q(_O_TABLE, "table-cell")
+    covered = _q(_O_TABLE, "covered-table-cell")
+    number = 0
+    for row in table.iter(_q(_O_TABLE, "table-row")):
+        rows = _repeat(row, "number-rows-repeated")
+        cells: list[str] = []
+        gap = 0
+        for cell in row:
+            if cell.tag not in (cell_tag, covered):
+                continue
+            count = _repeat(cell, "number-columns-repeated")
+            text = ""
+            if cell.tag == cell_tag:
+                text = "\n".join(_odf_blocks(cell, tables=False)).strip()
+            if not text:
+                gap += count
+                continue
+            if len(cells) + gap + count > _MAX_COLUMNS:
+                raise ValueError(
+                    f"OfficeReader: {what}: row {number + 1} repeats cells past"
+                    f" column {_MAX_COLUMNS:,}."
+                )
+            cells.extend([""] * gap)
+            cells.extend([text] * count)
+            gap = 0
+        if cells:
+            if number + rows > _MAX_ROWS:
+                raise ValueError(
+                    f"OfficeReader: {what}: row {number + 1} is repeated"
+                    f" {rows:,} times, past row {_MAX_ROWS:,}."
+                )
+            line = "\t".join(cells)
+            for offset in range(rows):
+                yield number + 1 + offset, line
+        number += rows
+
+
+# ---------------------------------------------------------------------------
 # Reader
 # ---------------------------------------------------------------------------
 
@@ -353,7 +577,7 @@ def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
 @dataclass
 class OfficeReader(DocumentReader):
     r"""
-    Read Word, PowerPoint and Excel files in the Office Open XML format.
+    Read office documents: Office Open XML and OpenDocument.
 
     Word documents (``.docx``, ``.docm``, ``.dotx``, ``.dotm``) give their
     body in document order, a chunk per run of paragraphs between tables and
@@ -362,6 +586,13 @@ class OfficeReader(DocumentReader):
     a chunk per slide in the order of the deck, then, if asked, its notes.
     Workbooks (``.xlsx``, ``.xlsm``, ``.xltx``, ``.xltm``) give each
     worksheet in workbook order, ``rows_per_chunk`` rows a chunk.
+
+    OpenDocument files read the same way: text documents (``.odt``,
+    ``.ott``) as paragraphs, tables and notes; spreadsheets (``.ods``,
+    ``.ots``) as sheets of rows; presentations and drawings (``.odp``,
+    ``.otp``, ``.odg``, ``.otg``) as a chunk per page, then its notes; a
+    formula (``.odf``) as its annotation text; and the flat single-XML
+    forms (``.fodt``, ``.fods``, ``.fodp``, ``.fodg``).
 
     Parameters
     ----------
@@ -389,15 +620,16 @@ class OfficeReader(DocumentReader):
     Attributes
     ----------
     file_types : list of str
-        The Word, PowerPoint and Excel extensions above.
+        The Office Open XML and OpenDocument extensions above.
 
     Raises
     ------
     ValueError
         If a limit is not a positive int; at read time, if the file is too
-        large, is not a ZIP package (a legacy ``.doc``/``.ppt`` or an
-        encrypted file is named as such), has no Word or PowerPoint main
-        part, or holds a part over a limit or not well-formed XML.
+        large, is not a package or a flat OpenDocument file (a legacy
+        ``.doc``/``.ppt`` or an encrypted file is named as such), has no
+        main part the reader knows, holds a part twice, over a limit or not
+        well-formed XML, or repeats spreadsheet cells past a sheet's size.
 
     See Also
     --------
@@ -419,6 +651,10 @@ class OfficeReader(DocumentReader):
     result of a formula (formulas are never computed), dates as their
     serial number, booleans as ``TRUE``/``FALSE``.
 
+    **What decides.** The content, not the extension: a ``.docx`` that is
+    a presentation reads as one, and the Strict and Transitional
+    conformance classes of Office Open XML read alike.
+
     **Order.** Slides follow the deck's list (``p:sldIdLst``), not their
     part names, so ``slide11.xml`` can come before ``slide2.xml``.
 
@@ -431,9 +667,17 @@ class OfficeReader(DocumentReader):
     **Memory.** Each part is parsed whole, so a sheet's memory is bounded by
     ``max_part_bytes``, not streamed.
 
+    **OpenDocument specifics.** Cells give their displayed text, so dates
+    read as shown. Repeated cells and rows are expanded; a repeat of cells
+    or rows *with a value* beyond 16 384 columns or 1 048 576 rows is
+    refused. Hidden pages and sheets are not told apart (the flag lives in
+    a style), so their chunks carry no ``hidden`` key. A package whose
+    manifest lists encrypted parts is refused.
+
     **Not read (yet):** headers and footers, comments, charts, SmartArt,
-    embedded images (no OCR), slide masters and layouts; number formats
-    (dates read as numbers); chartsheets.
+    embedded images (no OCR), slide masters and layouts; number formats in
+    Excel (dates read as numbers); chartsheets; legacy binary files
+    (``.doc``, ``.xls``, ``.ppt``).
 
     Examples
     --------
@@ -444,7 +688,10 @@ class OfficeReader(DocumentReader):
     """
 
     file_types: ClassVar[list[str] | None] = (
-        _WORD_EXTENSIONS + _POWERPOINT_EXTENSIONS + _EXCEL_EXTENSIONS
+        _WORD_EXTENSIONS
+        + _POWERPOINT_EXTENSIONS
+        + _EXCEL_EXTENSIONS
+        + _OPENDOCUMENT_EXTENSIONS
     )
 
     notes: bool = field(default=True)
@@ -480,7 +727,7 @@ class OfficeReader(DocumentReader):
                     f"OfficeReader: {name} must be an int > 0; got {value!r}."
                 )
 
-    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
         Yield the text of the document, a chunk at a time.
 
@@ -505,44 +752,196 @@ class OfficeReader(DocumentReader):
         if head == _OLE2_MAGIC:
             raise ValueError(
                 f"OfficeReader: {self.file_name} is an OLE2 compound file, not"
-                " an Office Open XML package: a legacy binary document (.doc,"
-                " .ppt) under another name, or a package encrypted with a"
-                " password. Save it as .docx/.pptx without a password."
+                " an Office Open XML or OpenDocument package: a legacy binary"
+                " document (.doc, .xls, .ppt), or a package encrypted with a"
+                " password. Save it as .docx/.xlsx/.pptx or .odt/.ods/.odp"
+                " without a password."
             )
+        if head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<"):
+            chunks: Iterator[dict[str, Any]] = self._flat_opendocument(size)
+            for chunk in chunks:
+                chunk["raw_text"] = chunk["text"]
+                yield chunk
+            return
         try:
             zf = zipfile.ZipFile(self.input_path)
         except zipfile.BadZipFile as exc:
             raise ValueError(
-                f"OfficeReader: {self.file_name} is not an Office Open XML"
+                f"OfficeReader: {self.file_name} is not an office document"
                 f" package (not a ZIP file: {exc})."
             ) from exc
         with zf:
             pkg = _Package(zf, self.file_name, self.max_part_bytes, self.max_parts)
-            has_macros = any(
-                posixpath.basename(n).lower() == "vbaproject.bin" for n in pkg.names()
-            )
             main = pkg.first("", _OFFICE_DOCUMENT)
             root = pkg.xml(main) if main else None
-            if root is None:
-                raise ValueError(
-                    f"OfficeReader: {self.file_name} has no main document part"
-                    " (no officeDocument relationship in _rels/.rels)."
+            if root is not None:
+                has_macros = any(
+                    posixpath.basename(n).lower() == "vbaproject.bin"
+                    for n in pkg.names()
                 )
-            if root.tag == _q(_W, "document"):
-                chunks = self._word(pkg, main, root)
-            elif root.tag == _q(_P, "presentation"):
-                chunks = self._powerpoint(pkg, main, root)
-            elif root.tag == _q(_S, "workbook"):
-                chunks = self._excel(pkg, main, root)
+                if root.tag == _q(_W, "document"):
+                    chunks = self._word(pkg, main, root)
+                elif root.tag == _q(_P, "presentation"):
+                    chunks = self._powerpoint(pkg, main, root)
+                elif root.tag == _q(_S, "workbook"):
+                    chunks = self._excel(pkg, main, root)
+                else:
+                    raise ValueError(
+                        f"OfficeReader: {self.file_name}: the main part {main!r}"
+                        f" is {root.tag!r}, not a Word document, a presentation"
+                        " or a workbook."
+                    )
+            elif pkg.has("content.xml"):
+                self._refuse_encrypted(pkg)
+                has_macros = any(
+                    n.startswith(("Basic/", "Scripts/")) for n in pkg.names()
+                )
+                chunks = self._opendocument(pkg.xml("content.xml"), "content.xml")
             else:
                 raise ValueError(
-                    f"OfficeReader: {self.file_name}: the main part {main!r} is"
-                    f" {root.tag!r}, not a Word document, a presentation or a workbook."
+                    f"OfficeReader: {self.file_name} has no main document part"
+                    " (no officeDocument relationship in _rels/.rels, and no"
+                    " content.xml)."
                 )
             for chunk in chunks:
                 chunk["raw_text"] = chunk["text"]
                 chunk["has_macros"] = has_macros
                 yield chunk
+
+    # -- OpenDocument --------------------------------------------------------
+
+    def _refuse_encrypted(self, pkg: _Package) -> None:
+        manifest = pkg.xml("META-INF/manifest.xml")
+        if manifest is not None and any(
+            True for _ in manifest.iter(_q(_O_MANIFEST, "encryption-data"))
+        ):
+            raise ValueError(
+                f"OfficeReader: {self.file_name} is encrypted with a password"
+                " (its manifest lists encrypted parts). Save it without a"
+                " password."
+            )
+
+    def _flat_opendocument(self, size: int) -> Iterator[dict[str, Any]]:
+        if size > self.max_part_bytes:
+            raise ValueError(
+                f"OfficeReader: {self.file_name} is {size:,} bytes of XML"
+                f" (max_part_bytes={self.max_part_bytes:,})."
+            )
+        with open(self.input_path, "rb") as fh:  # noqa: PTH123
+            root = _parse(fh.read(), self.file_name)
+        if root.tag != _q(_O_OFFICE, "document"):
+            raise ValueError(
+                f"OfficeReader: {self.file_name} is XML with the root"
+                f" {root.tag!r}, not a flat OpenDocument file"
+                " (office:document) and not a ZIP package."
+            )
+        scripts = root.find(_q(_O_OFFICE, "scripts"))
+        has_macros = scripts is not None and len(scripts) > 0
+        for chunk in self._opendocument(root, "flat"):
+            chunk["has_macros"] = has_macros
+            yield chunk
+
+    def _opendocument(self, root: Any, part: str) -> Iterator[dict[str, Any]]:
+        if root is not None and root.tag.endswith("}math"):
+            # A formula: the annotation holds its source text.
+            text = "\n".join(
+                (a.text or "").strip()
+                for a in root.iter()
+                if a.tag.endswith("}annotation")
+            ).strip()
+            if text:
+                yield {
+                    "text": text,
+                    "section_type": SectionType.TEXT.value,
+                    "part": part,
+                }
+            return
+        body = None if root is None else root.find(_q(_O_OFFICE, "body"))
+        kind = None if body is None or not len(body) else body[0]
+        if kind is None:
+            raise ValueError(
+                f"OfficeReader: {self.file_name}: {part} has no office:body"
+                " with a document in it."
+            )
+        if kind.tag == _q(_O_OFFICE, "text"):
+            yield from self._odf_text_document(kind, part)
+        elif kind.tag == _q(_O_OFFICE, "spreadsheet"):
+            tables = kind.findall(_q(_O_TABLE, "table"))
+            for number, table in enumerate(tables):
+                name = table.get(_q(_O_TABLE, "name")) or f"Sheet{number + 1}"
+                rows = _odf_rows(table, f"{self.file_name} sheet {name!r}")
+                yield from self._row_chunks(rows, name, number, part, None)
+        elif kind.tag in (_q(_O_OFFICE, "presentation"), _q(_O_OFFICE, "drawing")):
+            notes_tag = _q(_O_PRESENTATION, "notes")
+            for number, page in enumerate(kind.findall(_q(_O_DRAW, "page"))):
+                shown = _odf_blocks(page, tables=False, skip=frozenset({notes_tag}))
+                text = "\n".join(line for line in shown if line.strip()).strip()
+                if text:
+                    yield {
+                        "text": text,
+                        "section_type": SectionType.TEXT.value,
+                        "part": part,
+                        "page_number": number,
+                    }
+                notes = page.find(notes_tag)
+                if not self.notes or notes is None:
+                    continue
+                spoken = "\n".join(
+                    line for line in _odf_blocks(notes, tables=False) if line.strip()
+                ).strip()
+                if spoken:
+                    yield {
+                        "text": spoken,
+                        "section_type": SectionType.FOOTNOTE.value,
+                        "part": part,
+                        "page_number": number,
+                    }
+        else:
+            raise ValueError(
+                f"OfficeReader: {self.file_name}: {part} holds {kind.tag!r},"
+                " not a text document, a spreadsheet, a presentation or a"
+                " drawing."
+            )
+
+    def _odf_text_document(self, body: Any, part: str) -> Iterator[dict[str, Any]]:
+        paragraphs: list[str] = []
+
+        def flush() -> Iterator[dict[str, Any]]:
+            text = "\n".join(paragraphs).strip()
+            paragraphs.clear()
+            if text:
+                yield {
+                    "text": text,
+                    "section_type": SectionType.TEXT.value,
+                    "part": part,
+                }
+
+        for block in _odf_blocks(body, tables=True):
+            if isinstance(block, str):
+                paragraphs.append(block)
+                continue
+            yield from flush()
+            table = "\n".join(line for _, line in _odf_rows(block, self.file_name))
+            if table:
+                yield {
+                    "text": table,
+                    "section_type": SectionType.TABLE.value,
+                    "part": part,
+                }
+        yield from flush()
+        if not self.notes:
+            return
+        for note in body.iter(_q(_O_TEXT, "note")):
+            note_body = note.find(_q(_O_TEXT, "note-body"))
+            if note_body is None:
+                continue
+            text = "\n".join(_odf_blocks(note_body, tables=False)).strip()
+            if text:
+                yield {
+                    "text": text,
+                    "section_type": SectionType.FOOTNOTE.value,
+                    "part": part,
+                }
 
     # -- Word ---------------------------------------------------------------
 
@@ -682,29 +1081,42 @@ class OfficeReader(DocumentReader):
                     part,
                 )
                 continue
-            block: list[tuple[int, str]] = []
-            for row in _sheet_rows(ws, shared):
-                block.append(row)
-                if len(block) == self.rows_per_chunk:
-                    yield self._sheet_chunk(block, name, number, part, hidden)
-                    block = []
-            if block:
-                yield self._sheet_chunk(block, name, number, part, hidden)
+            yield from self._row_chunks(
+                _sheet_rows(ws, shared), name, number, part, hidden
+            )
 
-    @staticmethod
-    def _sheet_chunk(
-        block: list[tuple[int, str]], name: str, number: int, part: str, hidden: bool
-    ) -> dict[str, Any]:
-        return {
-            "text": "\n".join(line for _, line in block),
-            "section_type": SectionType.TABLE.value,
-            "part": part,
-            "page_number": number,
-            "sheet": name,
-            "row_start": block[0][0],
-            "row_end": block[-1][0],
-            "hidden": hidden,
-        }
+    def _row_chunks(
+        self,
+        rows: Iterator[tuple[int, str]],
+        name: str,
+        number: int,
+        part: str,
+        hidden: bool | None,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield a sheet's rows as chunks of ``rows_per_chunk`` rows."""
+        block: list[tuple[int, str]] = []
+
+        def chunk() -> dict[str, Any]:
+            made = {
+                "text": "\n".join(line for _, line in block),
+                "section_type": SectionType.TABLE.value,
+                "part": part,
+                "page_number": number,
+                "sheet": name,
+                "row_start": block[0][0],
+                "row_end": block[-1][0],
+            }
+            if hidden is not None:
+                made["hidden"] = hidden
+            return made
+
+        for row in rows:
+            block.append(row)
+            if len(block) == self.rows_per_chunk:
+                yield chunk()
+                block = []
+        if block:
+            yield chunk()
 
 
 def _notes_text(root: Any) -> str:
