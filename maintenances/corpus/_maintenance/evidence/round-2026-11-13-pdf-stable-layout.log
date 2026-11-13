@@ -26,3 +26,13 @@ changed: Foundations of LLM.pdf: text_digest '8cb1a458723a83b386a825dd80f56f1fa8
 
 Read time, Foundations of LLM.pdf (277 pages): main 9.96 s, branch 9.55 s.
 Tests: test__pdf*.py 159 passed. Mutant numbering by id(): test__pdf_layout.py 1 failed.
+
+OfficeReader, research folder without images (main of this PR vs with OfficeReader):
+changed: pptx/math-gnostics.pptx: result 'error' -> 'ok'
+changed: pptx/math-gnostics.pptx: chunks 0 -> 13
+changed: pptx/math-gnostics.pptx: chars 0 -> 5817
+changed: pptx/math-gnostics.pptx: text_digest None -> 'f5697a1dcac406640f529c1e4d63180290e5b60ee1815d54365ad85542f993a5'
+changed: pptx/math-gnostics.pptx: digest None -> '3237e2e8383b99b4a9230084bc2c429f137d18a11aa65813de5b99a938b360bb'
+changed: pptx/math-gnostics.pptx: error "ValueError: No DocumentReader registered for extension '.pptx'. Supported types: .aac, .aiff, .avi, .bmp, .flac, .flv, .gif, .jpeg, .jpg, .m4a, .m4v, .md, .mkv
+6 difference(s).
+with OfficeReader: 139 file(s): 0 error(s), 0 unstable

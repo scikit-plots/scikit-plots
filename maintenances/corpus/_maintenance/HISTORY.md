@@ -32,6 +32,21 @@
   and `compare` reports a `selection:` line when two snapshots used
   different ones. The research folder without `*.jpg`, `*.gif`, `*.png`:
   139 files, 1 error (`.pptx`: no reader), 0 unstable on this branch.
+- **Office reader, phase 1 (ledger note `office-document-reader.md`).**
+  `OfficeReader` (`_readers/_office.py`) reads Word and PowerPoint Office
+  Open XML packages in memory with `zipfile` and `parse_stdlib_secure`:
+  the main part from `_rels/.rels`, Word body paragraphs and tables in
+  order (tracked deletions dropped), footnotes and endnotes, slides in
+  `p:sldIdLst` order, notes (body placeholder only), hidden slides. Limits
+  `max_file_bytes`, `max_part_bytes` (declared and actual size),
+  `max_parts`; relationships that are external or above the package root
+  are not followed; an OLE2 file (legacy or encrypted) is named. 36 tests
+  (`test__office.py`, every fixture built with `zipfile`); 7 mutants, each
+  caught. Research snapshot: the `.pptx` error becomes 13 chunks (18
+  slides, 5 with a picture only); 139 files, 0 errors, 0 unstable. Corpus
+  suite: the same 15 network failures with and without the change. Usage
+  skill API regenerated for `scikitplot.corpus` only (other modules need
+  a compiled build).
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934

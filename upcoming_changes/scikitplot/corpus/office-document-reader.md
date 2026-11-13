@@ -1,13 +1,13 @@
 ---
 title: "No reader for office documents (Word, Excel, PowerPoint, OpenDocument)"
-status: planned
+status: in-progress
 kind: "other"
 area: "scikitplot/corpus"
 discovered_during: "PR 935: reader snapshot of the research files (math-gnostics.pptx)"
 release_note: "required"
 towncrier_section: "scikitplot.corpus"
 towncrier_type: "feature"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.corpus/935.feature.rst"
 ---
 
 # No reader for office documents (Word, Excel, PowerPoint, OpenDocument)
@@ -101,9 +101,11 @@ the other readers; add-ins are refused with a message that says why.
 
 Phased, one pull request each:
 
-1. **OOXML Word, PowerPoint** (`.docx` family, `.pptx` family): paragraphs
-   with heading level from styles, tables, notes; slide order from
-   `presentation.xml`.
+1. **OOXML Word, PowerPoint** (`.docx` family, `.pptx` family): done in
+   PR 935 (`_readers/_office.py`, `OfficeReader`). Body paragraphs and
+   tables in order, footnotes and endnotes, slides in deck order, notes,
+   hidden slides. Left for later: heading levels from styles, headers and
+   footers, comments, `.sldx`/`.sldm` (a single-slide package).
 2. **OOXML Excel** (`.xlsx` family): one chunk per sheet or per row block,
    with a `max_rows` limit; shared strings; cached values.
 3. **ODF** (`.odt .ods .odp .odg .odf`, flat variants): the same chunk
@@ -120,7 +122,8 @@ hook every reader has.
 
 ## Verification / acceptance criteria
 
-- The research `.pptx` reads 18 slides in deck order.
+- The research `.pptx` reads its 18 slides in deck order: 13 chunks, the 5
+  other slides hold only a picture. Done (PR 935).
 - Generated fixtures for each extension (built in the tests with
   `zipfile`, no binary files committed) cover the edge cases above.
 - Hostile inputs: XXE in a part, an entity bomb, a member over the byte
