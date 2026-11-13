@@ -87,6 +87,16 @@
   `plan` missing 155 -> 154 (the rest predate this PR). Rule 172 and a
   section of `maintenances/MAINTAINING.md` now say what a public name's
   addition, rename or removal must update.
+- **Headings.** A Word or OpenDocument text body was one chunk per run
+  of paragraphs between tables, so a long document without tables was one
+  chunk with no section. With `headings=True` (default) a heading starts
+  a new chunk and the chunks and tables under it carry `heading` and
+  `heading_level`. Word: the paragraph's `outlineLvl`, else its style's,
+  else the built-in `heading 1`..`heading 9` name (not localised in the
+  file, unlike the style id), else a style it is based on (cycles
+  ended); OpenDocument: `text:h` with `text:outline-level`. The joined
+  text of a document is the same with the option on or off. 106 tests; 9
+  mutants: 8 caught, 1 without effect (styles read although unused).
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934

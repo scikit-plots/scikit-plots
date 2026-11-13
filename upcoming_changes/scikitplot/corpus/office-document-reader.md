@@ -139,8 +139,9 @@ hook every reader has.
   version, so an index entry can be traced to exact bytes.
 - A decompression-ratio limit next to the size limits.
 - Formula text next to the cached value for spreadsheets, as an option.
-- Heading levels for Word and OpenDocument text, so chunks keep their
-  section.
+- Heading levels for Word and OpenDocument text: done in PR 935
+  (`headings=`; `heading`, `heading_level` on each chunk of a section).
+  Left: the path of parent headings, and titles of slides.
 - Decision: a `SourceType` for presentations (and drawings). Today they
   infer `unknown`; text files infer `article`, sheets `spreadsheet`.
 - The two lists of downloadable extensions (`_base.py`, `_url_handler.py`)

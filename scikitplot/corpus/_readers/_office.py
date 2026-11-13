@@ -73,6 +73,10 @@ _WORKSHEET = "worksheet"
 _SHARED_STRINGS = "sharedStrings"
 _FOOTNOTES = "footnotes"
 _ENDNOTES = "endnotes"
+_STYLES = "styles"
+
+#: Deepest heading level kept; a larger outline level is body text.
+_MAX_HEADING_LEVEL = 10
 
 #: Start of an OLE2 compound file: a legacy binary or an encrypted package.
 _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
@@ -292,6 +296,71 @@ def _word_paragraph(p: Any) -> str:
     return "".join(out)
 
 
+def _outline_level(properties: Any) -> int | None:
+    """Return the 1-based heading level a ``w:pPr`` sets directly, if any."""
+    outline = None if properties is None else properties.find(_q(_W, "outlineLvl"))
+    if outline is None:
+        return None
+    try:
+        level = int(outline.get(_q(_W, "val")) or "") + 1
+    except ValueError:
+        return None
+    # Level 10 (val 9) is "body text" in WordprocessingML.
+    return level if 1 <= level < _MAX_HEADING_LEVEL else None
+
+
+def _word_style_levels(styles: Any) -> dict[str, int]:
+    """
+    Return ``{paragraph style id: heading level}`` from a styles part.
+
+    A style is a heading when it sets an outline level, is one of the
+    built-in ``heading 1`` to ``heading 9`` styles (stored under that name
+    in every language), or is based on a style that is.
+    """
+    levels: dict[str, int] = {}
+    parents: dict[str, str] = {}
+    for style in [] if styles is None else styles.iter(_q(_W, "style")):
+        if style.get(_q(_W, "type")) not in (None, "paragraph"):
+            continue
+        style_id = style.get(_q(_W, "styleId")) or ""
+        level = _outline_level(style.find(_q(_W, "pPr")))
+        name = style.find(_q(_W, "name"))
+        words = [] if name is None else (name.get(_q(_W, "val")) or "").lower().split()
+        named = (
+            level is None
+            and words[:1] == ["heading"]
+            and len(words) == 2  # noqa: PLR2004
+            and words[1].isdigit()
+        )
+        if named and 1 <= int(words[1]) < _MAX_HEADING_LEVEL:
+            level = int(words[1])
+        if level is not None:
+            levels[style_id] = level
+        based = style.find(_q(_W, "basedOn"))
+        if based is not None:
+            parents[style_id] = based.get(_q(_W, "val")) or ""
+    for style_id, first_parent in parents.items():
+        seen = {style_id}
+        parent = first_parent
+        while style_id not in levels and parent and parent not in seen:
+            if parent in levels:
+                levels[style_id] = levels[parent]
+            seen.add(parent)
+            parent = parents.get(parent, "")
+    return levels
+
+
+def _word_heading(p: Any, levels: dict[str, int]) -> int | None:
+    """Return the heading level of a ``w:p``, or ``None`` for body text."""
+    properties = p.find(_q(_W, "pPr"))
+    if properties is None:
+        return None
+    if properties.find(_q(_W, "outlineLvl")) is not None:
+        return _outline_level(properties)
+    style = properties.find(_q(_W, "pStyle"))
+    return None if style is None else levels.get(style.get(_q(_W, "val")) or "")
+
+
 def _word_table(tbl: Any) -> str:
     """Return a ``w:tbl`` as lines of tab-separated cells; empty rows dropped."""
     rows = []
@@ -445,6 +514,17 @@ _ODF_NOT_TEXT = frozenset(
 )
 
 
+class _Heading(str):
+    """A heading's text, with its outline ``level`` (1 is the top)."""
+
+    __slots__ = ("level",)
+
+    def __new__(cls, text: str, level: int) -> Any:
+        made = super().__new__(cls, text)
+        made.level = min(max(level, 1), _MAX_HEADING_LEVEL)
+        return made
+
+
 def _repeat(element: Any, attribute: str) -> int:
     """Return a ``number-*-repeated`` count of *element*; 1 when absent or bad."""
     try:
@@ -500,7 +580,8 @@ def _odf_blocks(
     ``table:table`` is yielded as its element instead of being entered.
     Subtrees in *skip*, tracked changes and annotations are left out.
     """
-    blocks = {_q(_O_TEXT, "p"), _q(_O_TEXT, "h")}
+    heading = _q(_O_TEXT, "h")
+    blocks = {_q(_O_TEXT, "p"), heading}
     table = _q(_O_TABLE, "table")
     stack = [iter(container)]
     while stack:
@@ -512,7 +593,15 @@ def _odf_blocks(
         if tag in _ODF_NOT_TEXT or tag in skip:
             continue
         if tag in blocks:
-            yield _odf_text(node)
+            text = _odf_text(node)
+            if tag == heading:
+                try:
+                    level = int(node.get(_q(_O_TEXT, "outline-level")) or 1)
+                except ValueError:
+                    level = 1
+                yield _Heading(text, level)
+            else:
+                yield text
         elif tables and tag == table:
             yield node
         else:
@@ -607,6 +696,10 @@ class OfficeReader(DocumentReader):
     rows_per_chunk : int, optional
         Most spreadsheet rows in one chunk; a longer sheet gives several
         chunks. Default: ``500``.
+    headings : bool, optional
+        Start a new chunk at each heading of a text document and record
+        the heading on the chunks under it. ``False`` reads headings as
+        paragraphs. Default: ``True``.
     max_file_bytes : int, optional
         Largest file read. Default: 500 MB.
     max_part_bytes : int, optional
@@ -650,6 +743,13 @@ class OfficeReader(DocumentReader):
     row numbers) and ``hidden``. A cell gives its stored value: the cached
     result of a formula (formulas are never computed), dates as their
     serial number, booleans as ``TRUE``/``FALSE``.
+
+    **Headings.** In Word and OpenDocument text, a heading starts a new
+    chunk (its text is the chunk's first line), and that chunk and the
+    tables under it carry ``heading`` and ``heading_level`` (1 is the top)
+    until the next heading, so a chunk keeps the section it belongs to.
+    Word headings are found by outline level, by the built-in ``heading
+    1`` to ``heading 9`` styles, and by styles based on them.
 
     **What decides.** The content, not the extension: a ``.docx`` that is
     a presentation reads as one, and the Strict and Transitional
@@ -703,6 +803,9 @@ class OfficeReader(DocumentReader):
     rows_per_chunk: int = field(default=500)
     """Most spreadsheet rows in one chunk. Default: ``500``."""
 
+    headings: bool = field(default=True)
+    """Split text documents at headings and record them. Default: ``True``."""
+
     max_file_bytes: int = field(default=500 * 1024 * 1024)
     """Largest file read. Default: 500 MB."""
 
@@ -715,7 +818,7 @@ class OfficeReader(DocumentReader):
     def __post_init__(self) -> None:
         """Validate the options."""
         super().__post_init__()
-        for name in ("notes", "hidden"):
+        for name in ("notes", "hidden", "headings"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(
                     f"OfficeReader: {name} must be a bool; got {getattr(self, name)!r}."
@@ -904,31 +1007,15 @@ class OfficeReader(DocumentReader):
             )
 
     def _odf_text_document(self, body: Any, part: str) -> Iterator[dict[str, Any]]:
-        paragraphs: list[str] = []
+        def blocks() -> Iterator[Any]:
+            for block in _odf_blocks(body, tables=True):
+                if isinstance(block, str):
+                    yield block
+                else:
+                    rows = _odf_rows(block, self.file_name)
+                    yield ("table", "\n".join(line for _, line in rows))
 
-        def flush() -> Iterator[dict[str, Any]]:
-            text = "\n".join(paragraphs).strip()
-            paragraphs.clear()
-            if text:
-                yield {
-                    "text": text,
-                    "section_type": SectionType.TEXT.value,
-                    "part": part,
-                }
-
-        for block in _odf_blocks(body, tables=True):
-            if isinstance(block, str):
-                paragraphs.append(block)
-                continue
-            yield from flush()
-            table = "\n".join(line for _, line in _odf_rows(block, self.file_name))
-            if table:
-                yield {
-                    "text": table,
-                    "section_type": SectionType.TABLE.value,
-                    "part": part,
-                }
-        yield from flush()
+        yield from self._sections(blocks(), part)
         if not self.notes:
             return
         for note in body.iter(_q(_O_TEXT, "note")):
@@ -945,36 +1032,61 @@ class OfficeReader(DocumentReader):
 
     # -- Word ---------------------------------------------------------------
 
-    def _word(self, pkg: _Package, main: str, root: Any) -> Iterator[dict[str, Any]]:
-        body = root.find(_q(_W, "body"))
+    def _sections(self, blocks: Iterator[Any], part: str) -> Iterator[dict[str, Any]]:
+        """
+        Yield body chunks from *blocks*: paragraphs, headings and tables.
+
+        *blocks* holds ``str`` (a paragraph), :class:`_Heading` and
+        ``("table", text)``. With ``headings=True`` a heading starts a new
+        chunk and every chunk until the next heading carries ``heading``
+        and ``heading_level``.
+        """
         paragraphs: list[str] = []
+        current: dict[str, Any] = {}
+
+        def made(text: str, kind: SectionType) -> dict[str, Any]:
+            return {"text": text, "section_type": kind.value, "part": part, **current}
 
         def flush() -> Iterator[dict[str, Any]]:
             text = "\n".join(paragraphs).strip()
             paragraphs.clear()
             if text:
-                yield {
-                    "text": text,
-                    "section_type": SectionType.TEXT.value,
-                    "part": main,
-                }
+                yield made(text, SectionType.TEXT)
 
-        for node in [] if body is None else body:
-            if node.tag == _q(_W, "p"):
-                paragraphs.append(_word_paragraph(node))
-            elif node.tag == _q(_W, "tbl"):
+        for block in blocks:
+            if isinstance(block, tuple):
                 yield from flush()
-                table = _word_table(node)
-                if table:
-                    yield {
-                        "text": table,
-                        "section_type": SectionType.TABLE.value,
-                        "part": main,
-                    }
-            elif node.tag == _q(_W, "sdt"):
-                # A content control: its paragraphs read as body text.
-                paragraphs.extend(_word_paragraph(p) for p in node.iter(_q(_W, "p")))
+                if block[1]:
+                    yield made(block[1], SectionType.TABLE)
+                continue
+            if self.headings and isinstance(block, _Heading) and block.strip():
+                yield from flush()
+                current = {"heading": block.strip(), "heading_level": block.level}
+            paragraphs.append(block)
         yield from flush()
+
+    def _word(self, pkg: _Package, main: str, root: Any) -> Iterator[dict[str, Any]]:
+        body = root.find(_q(_W, "body"))
+        styles = pkg.first(main, _STYLES) if self.headings else None
+        levels = _word_style_levels(pkg.xml(styles)) if styles else {}
+
+        def paragraph(p: Any) -> str:
+            text = _word_paragraph(p)
+            level = _word_heading(p, levels) if self.headings else None
+            return text if level is None else _Heading(text, level)
+
+        def blocks() -> Iterator[Any]:
+            for node in [] if body is None else body:
+                if node.tag == _q(_W, "p"):
+                    yield paragraph(node)
+                elif node.tag == _q(_W, "tbl"):
+                    yield ("table", _word_table(node))
+                elif node.tag == _q(_W, "sdt"):
+                    # A content control: its paragraphs read as body text.
+                    for p in node.iter(_q(_W, "p")):
+                        yield paragraph(p)
+
+        yield from self._sections(blocks(), main)
         if not self.notes:
             return
         for kind, element in ((_FOOTNOTES, "footnote"), (_ENDNOTES, "endnote")):

@@ -882,3 +882,143 @@ class TestExtensionsAreKnownElsewhere:
     def test_text_and_sheet_extensions_infer_a_source_type(self, suffixes, expected):
         for suffix in suffixes:
             assert SourceType.infer(Path(f"file{suffix}")).value == expected
+
+
+# ---------------------------------------------------------------------------
+# Headings: a chunk keeps the section it belongs to
+# ---------------------------------------------------------------------------
+
+
+def _styled(text: str, style: str | None = None, outline: int | None = None) -> str:
+    properties = ""
+    if style is not None:
+        properties += f'<w:pStyle w:val="{style}"/>'
+    if outline is not None:
+        properties += f'<w:outlineLvl w:val="{outline}"/>'
+    if properties:
+        properties = f"<w:pPr>{properties}</w:pPr>"
+    return f"<w:p>{properties}<w:r><w:t>{text}</w:t></w:r></w:p>"
+
+
+def _style(style_id: str, name: str, based: str | None = None, outline=None) -> str:
+    inner = f'<w:name w:val="{name}"/>'
+    if based:
+        inner += f'<w:basedOn w:val="{based}"/>'
+    if outline is not None:
+        inner += f'<w:pPr><w:outlineLvl w:val="{outline}"/></w:pPr>'
+    return f'<w:style w:type="paragraph" w:styleId="{style_id}">{inner}</w:style>'
+
+
+STYLES = (
+    f'<?xml version="1.0"?><w:styles xmlns:w="{W}">'
+    + _style("Nadpis1", "heading 1")
+    + _style("Nadpis2", "heading 2")
+    + _style("Sub", "My sub", based="Mid")
+    + _style("Mid", "My mid", based="Nadpis2")
+    + _style("Outl", "Custom", outline=2)
+    + _style("LoopA", "a", based="LoopB")
+    + _style("LoopB", "b", based="LoopA")
+    + _style("Body", "heading text")
+    + _style("Linked", "heading 1 char")
+    + '<w:style w:type="character" w:styleId="Chr"><w:name w:val="heading 1"/></w:style>'
+    + "</w:styles>"
+)
+
+
+def _headed_docx(path: Path, body: str) -> Path:
+    return _docx(
+        path,
+        body,
+        extra={"word/styles.xml": STYLES},
+        doc_rels=[("rSt", "styles", "styles.xml")],
+    )
+
+
+class TestHeadings:
+    def test_word_headings_split_and_label_chunks(self, tmp_path):
+        table = "<w:tbl><w:tr><w:tc>" + _p("cell") + "</w:tc></w:tr></w:tbl>"
+        body = (
+            _p("preface")
+            + _styled("One", "Nadpis1")
+            + _p("a")
+            + table
+            + _p("b")
+            + _styled("Two", "Nadpis2")
+            + _p("c")
+        )
+        got = [
+            (c["section_type"], c["text"], c.get("heading"), c.get("heading_level"))
+            for c in _chunks(_headed_docx(tmp_path / "d.docx", body))
+        ]
+        assert got == [
+            ("text", "preface", None, None),
+            ("text", "One\na", "One", 1),
+            ("table", "cell", "One", 1),
+            ("text", "b", "One", 1),
+            ("text", "Two\nc", "Two", 2),
+        ]
+
+    @pytest.mark.parametrize(
+        ("style", "outline", "level"),
+        [
+            ("Nadpis2", None, 2),
+            ("Sub", None, 2),  # based on a style based on heading 2
+            ("Outl", None, 3),  # the style sets outline level 2 (0-based)
+            (None, 0, 1),  # set on the paragraph itself
+            ("Nadpis1", 4, 5),  # the paragraph's own level wins
+            ("Nadpis1", 9, None),  # level 9 is body text
+            ("LoopA", None, None),  # styles based on each other
+            ("Body", None, None),  # a name that only starts like a heading
+            ("Linked", None, None),  # "heading 1 char": more than the built-in name
+            ("Chr", None, None),  # a character style of that name
+            ("Missing", None, None),
+        ],
+    )
+    def test_how_a_word_heading_is_found(self, tmp_path, style, outline, level):
+        body = _styled("H", style, outline) + _p("x")
+        (chunk,) = _chunks(_headed_docx(tmp_path / "d.docx", body))
+        assert chunk.get("heading_level") == level
+        assert chunk["text"] == "H\nx"
+
+    def test_without_a_styles_part_only_direct_levels_count(self, tmp_path):
+        body = _styled("A", "Nadpis1") + _styled("B", None, 1) + _p("x")
+        got = [
+            (c["text"], c.get("heading_level"))
+            for c in _chunks(_docx(tmp_path / "d.docx", body))
+        ]
+        assert got == [("A", None), ("B\nx", 2)]
+
+    def test_headings_off_reads_them_as_paragraphs(self, tmp_path):
+        body = _p("a") + _styled("One", "Nadpis1") + _p("b")
+        (chunk,) = _chunks(_headed_docx(tmp_path / "d.docx", body), headings=False)
+        assert chunk["text"] == "a\nOne\nb"
+        assert "heading" not in chunk
+
+    def test_an_empty_heading_does_not_start_a_section(self, tmp_path):
+        body = _p("a") + _styled(" ", "Nadpis1") + _p("b")
+        (chunk,) = _chunks(_headed_docx(tmp_path / "d.docx", body))
+        assert "heading" not in chunk
+
+    def test_opendocument_headings(self, tmp_path):
+        inner = (
+            "<text:p>preface</text:p>"
+            '<text:h text:outline-level="1">One</text:h><text:p>a</text:p>'
+            '<table:table table:name="T">' + _row(_cell("cell")) + "</table:table>"
+            '<text:h text:outline-level="3">Deep</text:h><text:p>b</text:p>'
+            "<text:h>Plain</text:h>"
+            '<text:h text:outline-level="99">Far</text:h>'
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        got = [
+            (c["text"], c.get("heading"), c.get("heading_level")) for c in _chunks(path)
+        ]
+        assert got == [
+            ("preface", None, None),
+            ("One\na", "One", 1),
+            ("cell", "One", 1),
+            ("Deep\nb", "Deep", 3),
+            ("Plain", "Plain", 1),
+            ("Far", "Far", 10),
+        ]
+        joined = "\n".join(c["text"] for c in _chunks(path, headings=False))
+        assert joined == "preface\nOne\na\ncell\nDeep\nb\nPlain\nFar"
