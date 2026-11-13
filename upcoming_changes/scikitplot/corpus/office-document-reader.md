@@ -141,6 +141,10 @@ hook every reader has.
 - Formula text next to the cached value for spreadsheets, as an option.
 - Heading levels for Word and OpenDocument text, so chunks keep their
   section.
+- Decision: a `SourceType` for presentations (and drawings). Today they
+  infer `unknown`; text files infer `article`, sheets `spreadsheet`.
+- The two lists of downloadable extensions (`_base.py`, `_url_handler.py`)
+  differ by three entries and should be one.
 
 ## Verification / acceptance criteria
 

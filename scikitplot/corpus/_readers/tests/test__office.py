@@ -20,7 +20,9 @@ from pathlib import Path
 
 import pytest
 
+from ... import _url_handler
 from ..._base import DocumentReader
+from ..._schema import SourceType
 from .._office import OfficeReader
 
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -852,3 +854,31 @@ class TestOpenDocumentPackage:
     def test_every_extension_dispatches(self, tmp_path, suffix):
         path = _odf(tmp_path / f"d{suffix}", "text", "")
         assert isinstance(DocumentReader.create(path), OfficeReader)
+
+
+# ---------------------------------------------------------------------------
+# The rest of corpus knows the extensions the reader reads
+# ---------------------------------------------------------------------------
+
+
+class TestExtensionsAreKnownElsewhere:
+    def test_a_url_with_any_office_extension_is_a_download(self):
+        for known in (
+            DocumentReader._DOWNLOADABLE_EXTENSIONS,
+            _url_handler._DOWNLOADABLE_EXTENSIONS,
+        ):
+            assert set(OfficeReader.file_types) <= set(known)
+
+    @pytest.mark.parametrize(
+        ("suffixes", "expected"),
+        [
+            ([".docx", ".docm", ".dotx", ".dotm", ".odt", ".ott", ".fodt"], "article"),
+            (
+                [".xlsx", ".xlsm", ".xltx", ".xltm", ".ods", ".ots", ".fods"],
+                "spreadsheet",
+            ),
+        ],
+    )
+    def test_text_and_sheet_extensions_infer_a_source_type(self, suffixes, expected):
+        for suffix in suffixes:
+            assert SourceType.infer(Path(f"file{suffix}")).value == expected

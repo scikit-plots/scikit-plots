@@ -829,6 +829,11 @@ _SOURCE_EXT_MAP: Final[dict[str, SourceType]] = {
     ".doc": SourceType.ARTICLE,
     ".docx": SourceType.ARTICLE,
     ".odt": SourceType.ARTICLE,
+    ".docm": SourceType.ARTICLE,
+    ".dotx": SourceType.ARTICLE,
+    ".dotm": SourceType.ARTICLE,
+    ".ott": SourceType.ARTICLE,
+    ".fodt": SourceType.ARTICLE,
     # Markup / data
     ".xml": SourceType.ARTICLE,
     ".html": SourceType.WEB,
@@ -840,6 +845,11 @@ _SOURCE_EXT_MAP: Final[dict[str, SourceType]] = {
     ".xlsx": SourceType.SPREADSHEET,
     ".xls": SourceType.SPREADSHEET,
     ".ods": SourceType.SPREADSHEET,
+    ".xlsm": SourceType.SPREADSHEET,
+    ".xltx": SourceType.SPREADSHEET,
+    ".xltm": SourceType.SPREADSHEET,
+    ".ots": SourceType.SPREADSHEET,
+    ".fods": SourceType.SPREADSHEET,
     # Images
     ".jpg": SourceType.IMAGE,
     ".jpeg": SourceType.IMAGE,

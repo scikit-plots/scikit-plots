@@ -70,6 +70,17 @@
   87 tests; 12 mutants, each caught. Research snapshot unchanged (no ODF
   file in it): 139 files, 0 errors, 0 unstable. Corpus suite: the same 15
   network failures.
+- **Office extensions known outside the reader.** `from_url` treated a
+  URL ending in `.pptx`, `.xlsm`, `.odp` (and 20 more) as a web page: the
+  two download lists (`_base.py`, `_url_handler.py`) held `.docx`, `.xlsx`,
+  `.odt`, `.ods` only. Both now hold every extension `OfficeReader` reads,
+  and `SourceType.infer` gives `article` for the text family and
+  `spreadsheet` for the sheet family. Presentations and drawings stay
+  `unknown`: there is no source type for them (a decision, see the ledger
+  note). A test ties the lists to `OfficeReader.file_types`.
+- **cleanprompt.** `register_corpus_readers()` registers nothing now that
+  corpus reads `.docx`/`.xlsx`/`.pptx` itself; its test fixture wrote a
+  package without `_rels/.rels` and now writes one.
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934
