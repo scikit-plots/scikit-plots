@@ -50,6 +50,7 @@ enforces this in CI.
 
 from __future__ import annotations
 
+import functools
 import itertools
 import logging
 import sys
@@ -133,6 +134,181 @@ def _pdfminer_import_error(exc: ImportError) -> ImportError:
     )
 
 
+def _stable_extract_pages(
+    pdf_file: str,
+    *,
+    password: str = "",
+    page_numbers: Any = None,
+    maxpages: int = 0,
+    caching: bool = True,
+    laparams: Any = None,
+) -> Any:
+    """
+    Yield a PDF's pages as ``pdfminer.high_level.extract_pages`` does, reproducibly.
+
+    Parameters
+    ----------
+    pdf_file : str
+        Path to the PDF file.
+    password : str, optional
+        Decryption password. Default: ``""``.
+    page_numbers : container of int or None, optional
+        Zero-based pages to read; ``None`` reads all. Default: ``None``.
+    maxpages : int, optional
+        Most pages to read; ``0`` is no limit. Default: ``0``.
+    caching : bool, optional
+        Whether pdfminer caches resources. Default: ``True``.
+    laparams : pdfminer.layout.LAParams or None, optional
+        Layout parameters; ``None`` is pdfminer's defaults. Default: ``None``.
+
+    Yields
+    ------
+    pdfminer.layout.LTPage
+        One laid-out page at a time.
+
+    Raises
+    ------
+    ImportError
+        If ``pdfminer`` is not installed.
+
+    See Also
+    --------
+    _stable_layout_classes : The page and device that order ties by creation.
+
+    Notes
+    -----
+    **User note:** The same file and settings give the same text for every
+    page on every read (finding CX-16).
+
+    **Developer note:** The arguments and the steps are those of
+    ``extract_pages``; only the device differs (:func:`_stable_layout_classes`).
+    """
+    from pdfminer.layout import LAParams  # type: ignore[] # noqa: PLC0415
+    from pdfminer.pdfinterp import (  # type: ignore[] # noqa: PLC0415
+        PDFPageInterpreter,
+        PDFResourceManager,
+    )
+    from pdfminer.pdfpage import PDFPage  # type: ignore[] # noqa: PLC0415
+
+    _, device_class = _stable_layout_classes()
+    with open(pdf_file, "rb") as fp:  # noqa: PTH123
+        manager = PDFResourceManager(caching=caching)
+        device = device_class(
+            manager, laparams=LAParams() if laparams is None else laparams
+        )
+        interpreter = PDFPageInterpreter(manager, device)
+        for page in PDFPage.get_pages(
+            fp, page_numbers, maxpages=maxpages, password=password, caching=caching
+        ):
+            interpreter.process_page(page)
+            yield device.get_result()
+
+
+@functools.lru_cache(maxsize=None)
+def _stable_layout_classes() -> tuple[type, type]:
+    """
+    Return a pdfminer page and page device that group text boxes reproducibly.
+
+    Returns
+    -------
+    tuple of (type, type)
+        ``(page_class, device_class)``: a ``pdfminer.layout.LTPage`` and a
+        ``pdfminer.converter.PDFPageAggregator`` that lays its pages out
+        with it.
+
+    Raises
+    ------
+    ImportError
+        If ``pdfminer`` is not installed.
+
+    Notes
+    -----
+    **Developer note:** ``LTLayoutContainer.group_textboxes`` merges the
+    closest pair of text boxes first and keeps candidate pairs in a heap of
+    ``(skip, distance, id(a), id(b), a, b)``. Pairs at the same distance are
+    ordered by ``id()``, a memory address, so a page with many equally
+    spaced boxes (a figure with repeated labels) groups, and so orders its
+    text, differently from one read to the next. This page runs the same
+    algorithm with each box and group numbered in the order it is created
+    in place of ``id()``. Pairs that do not tie are merged exactly as
+    pdfminer merges them, so a page without ties gives pdfminer's own text,
+    columns included. Built once, on first use, so that importing this
+    module does not import pdfminer; every pdfminer module the layout uses
+    is imported here, so a damaged installation is found before a page is
+    read.
+    """
+    import heapq  # noqa: PLC0415
+    from itertools import count  # noqa: PLC0415
+
+    from pdfminer.converter import PDFPageAggregator  # type: ignore[] # noqa: PLC0415
+    from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
+        LTPage,
+        LTTextBoxVertical,
+        LTTextGroupLRTB,
+        LTTextGroupTBRL,
+        Plane,
+    )
+    from pdfminer.pdfinterp import PDFPageInterpreter  # noqa: F401, PLC0415
+    from pdfminer.pdfpage import PDFPage  # noqa: F401, PLC0415
+
+    def gap(a: Any, b: Any) -> float:
+        """Area of the box around *a* and *b* less their own areas."""
+        x0, y0 = min(a.x0, b.x0), min(a.y0, b.y0)
+        x1, y1 = max(a.x1, b.x1), max(a.y1, b.y1)
+        return (x1 - x0) * (y1 - y0) - a.width * a.height - b.width * b.height
+
+    class _StablePage(LTPage):
+        def group_textboxes(self, laparams: Any, boxes: Any) -> list:
+            plane = Plane(self.bbox)
+            numbers = count()
+            number = {id(box): next(numbers) for box in boxes}
+
+            def between(a: Any, b: Any) -> set:
+                x0, y0 = min(a.x0, b.x0), min(a.y0, b.y0)
+                x1, y1 = max(a.x1, b.x1), max(a.y1, b.y1)
+                return set(plane.find((x0, y0, x1, y1))).difference((a, b))
+
+            pairs = [
+                (False, gap(a, b), number[id(a)], number[id(b)], a, b)
+                for i, a in enumerate(boxes)
+                for b in boxes[i + 1 :]
+            ]
+            heapq.heapify(pairs)
+            plane.extend(boxes)
+            done: set = set()
+            while pairs:
+                skip, distance, na, nb, a, b = heapq.heappop(pairs)
+                if na in done or nb in done:
+                    continue
+                if not skip and between(a, b):
+                    heapq.heappush(pairs, (True, distance, na, nb, a, b))
+                    continue
+                vertical = (LTTextBoxVertical, LTTextGroupTBRL)
+                if isinstance(a, vertical) or isinstance(b, vertical):
+                    group: Any = LTTextGroupTBRL([a, b])
+                else:
+                    group = LTTextGroupLRTB([a, b])
+                plane.remove(a)
+                plane.remove(b)
+                done.update((na, nb))
+                ng = next(numbers)
+                for other in plane:
+                    heapq.heappush(
+                        pairs,
+                        (False, gap(group, other), ng, number[id(other)], group, other),
+                    )
+                number[id(group)] = ng
+                plane.add(group)
+            return list(plane)
+
+    class _StableAggregator(PDFPageAggregator):
+        def begin_page(self, page: Any, ctm: Any) -> None:
+            super().begin_page(page, ctm)
+            self.cur_item = _StablePage(self.cur_item.pageid, self.cur_item.bbox)
+
+    return _StablePage, _StableAggregator
+
+
 def _reason(exc: BaseException) -> str:
     """Return an exception as ``Type: message``, or ``Type`` without one."""
     message = str(exc).strip()
@@ -202,11 +378,12 @@ class _PdfminerPages:
             If pdfminer does not accept the keyword arguments.
         """
         try:
-            from pdfminer.high_level import extract_pages  # type: ignore[] # noqa: PLC0415
             from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
                 LAParams,
                 LTTextContainer,
             )
+
+            _stable_layout_classes()
         except ImportError as exc:
             raise _pdfminer_import_error(exc) from exc
 
@@ -223,7 +400,7 @@ class _PdfminerPages:
                     ) from exc
             try:
                 # page_numbers is a container of 0-based indices; None is all.
-                self._pages = extract_pages(
+                self._pages = _stable_extract_pages(
                     str(self._path),
                     password=self._password,
                     page_numbers=(
@@ -944,13 +1121,13 @@ class PDFReader(DocumentReader):
     readers running in parallel threads (``CorpusBuilder(max_workers=...)``)
     render one page at a time; the OCR engine runs in parallel.
 
-    **Reproducible text:** pdfminer.six orders text boxes that are equally
-    far apart by their address in memory, so the text of a page with many
-    such boxes (a figure with repeated labels, a grid) can come out in a
-    different order on another read of the same file.
-    ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders the boxes
-    by position instead: the same text on every read, without pdfminer's
-    grouping of boxes into columns.
+    **Reproducible text:** The same file and settings give the same text for
+    every page on every read. pdfminer.six orders text boxes that are
+    equally far apart by their address in memory, so a page with many such
+    boxes (a figure with repeated labels, a grid) could come out in a
+    different order on another read; the reader breaks those ties by the
+    order in which the boxes were found. Pages without ties, and pdfminer's
+    grouping of boxes into columns, are as pdfminer.six lays them out.
 
     **Encrypted PDFs:** Supply ``password`` when constructing the reader.
     If the password is wrong, affected pages are skipped with a warning.

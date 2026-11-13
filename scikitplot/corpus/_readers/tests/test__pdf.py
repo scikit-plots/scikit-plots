@@ -123,6 +123,10 @@ class _FakePdfminer:
         monkeypatch.setitem(sys.modules, "pdfminer", package)
         monkeypatch.setitem(sys.modules, "pdfminer.high_level", high_level)
         monkeypatch.setitem(sys.modules, "pdfminer.layout", layout)
+        # The reader lays pages out through its own copy of extract_pages
+        # (reproducible grouping, CX-16); the fake stands in for that too.
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", self.extract_pages)
+        monkeypatch.setattr(_pdf, "_stable_layout_classes", lambda: (None, None))
 
 
 class _FakePypdf:
@@ -378,7 +382,25 @@ class TestPdfminerOnePass:
 
 
 class TestDamagedPdfminer:
-    @pytest.mark.parametrize("module", ["pdfminer.high_level", "pdfminer.layout"])
+    @pytest.mark.parametrize(
+        "module",
+        ["pdfminer.converter", "pdfminer.pdfinterp", "pdfminer.pdfpage"],
+    )
+    def test_a_module_the_layout_needs_is_named_as_incomplete(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, module: str
+    ) -> None:
+        pytest.importorskip("pdfminer.layout")
+        _pdf._stable_layout_classes.cache_clear()
+        monkeypatch.setitem(sys.modules, module, None)
+        try:
+            reader = PDFReader(input_path=pdf_path, prefer_backend="pdfminer")
+            with pytest.raises(ImportError, match="is incomplete") as info:
+                list(reader.get_raw_chunks())
+        finally:
+            _pdf._stable_layout_classes.cache_clear()
+        assert module in str(info.value)
+
+    @pytest.mark.parametrize("module", ["pdfminer.layout"])
     def test_a_package_without_one_of_its_modules_is_named_as_incomplete(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, module: str
     ) -> None:
@@ -1572,7 +1594,7 @@ class TestAutoMode:
         logged: dict[str, list[str]],
     ) -> None:
         _FakePdfminer([]).install(monkeypatch)
-        monkeypatch.setitem(sys.modules, "pdfminer.high_level", None)
+        monkeypatch.setitem(sys.modules, "pdfminer.layout", None)
         backup = _FakePypdf(["A", "B"])
         backup.install(monkeypatch)
         assert _texts(_reader(pdf_path, monkeypatch, 2)) == [(0, "A"), (1, "B")]
@@ -1689,16 +1711,16 @@ class TestRealLibraries:
     def test_pdfminer_opens_the_file_once(
         self, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        high_level = pytest.importorskip("pdfminer.high_level")
+        pytest.importorskip("pdfminer.high_level")
         path = _write_pdf(tmp_path / "doc.pdf", self.TEXTS)
         opens = []
-        real = high_level.extract_pages
+        real = _pdf._stable_extract_pages
 
         def counted(*args: Any, **kwargs: Any) -> Any:
             opens.append(kwargs.get("page_numbers"))
             return real(*args, **kwargs)
 
-        monkeypatch.setattr(high_level, "extract_pages", counted)
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", counted)
         reader = PDFReader(input_path=path, prefer_backend="pdfminer")
         assert _texts(reader) == list(self.EXPECTED)
         assert opens == [None]

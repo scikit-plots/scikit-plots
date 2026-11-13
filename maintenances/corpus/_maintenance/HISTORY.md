@@ -1,5 +1,27 @@
 # Corpus maintenance history
 
+## 2026-11-13 — PDF page text the same on every read, PR 935
+
+- **CX-16 (c): pdfminer.six grouped tied text boxes by memory address.**
+  `LTLayoutContainer.group_textboxes` keeps candidate pairs in a heap of
+  `(skip, distance, id(a), id(b), a, b)`; pairs at the same distance were
+  ordered by `id()`. `_PdfminerPages` now lays pages out through
+  `_stable_extract_pages` (the steps of `extract_pages`) with a device whose
+  page runs the same algorithm, each box and group numbered in creation
+  order in place of `id()`. Pairs that do not tie merge as before, so
+  pdfminer's grouping into columns is kept. Option (c) of the ledger note;
+  the note is removed.
+- Research files (13 PDFs, 495 pages): 3 or 4 pages differ from pdfminer's own
+  read (pdfminer's own read varies), every one a page with a tie; 4 reads per file: 1 unstable file on
+  main, none on the branch. Reading time unchanged (277 pages: 9.96 s ->
+  9.55 s).
+- Tests: `test__pdf_layout.py` (a 4 x 4 grid allocated in two orders:
+  pdfminer's order differs, ours does not; without ties ours equals
+  pdfminer's; the mutant numbering by `id()` fails 1). The pdfminer fake in
+  `test__pdf.py` stands in for `_stable_extract_pages`; damaged-install
+  tests name the modules the layout imports.
+- Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
+
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934
 
 - **CX-25: member warnings named the temporary extraction path.** When a

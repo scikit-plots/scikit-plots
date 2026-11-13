@@ -159,3 +159,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 934: CX-25 (ZIP member warnings name the archive)
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
 - Next: choices in ledger notes CX-16, CX-23; D11, D13.
+
+### PR 935: CX-16 (c), PDF page text the same on every read
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
+- Next: CX-23 (XMLReader error type); D11, D13.
