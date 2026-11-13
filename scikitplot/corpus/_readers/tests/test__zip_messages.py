@@ -31,9 +31,7 @@ def _zip(tmp_path: Path) -> Path:
     return path
 
 
-def _member_warnings(
-    path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
-) -> list:
+def _member_warnings(path: Path, caplog, captured_logger, monkeypatch) -> list:
     """Read *path* with a member reader whose error names the file it got.
 
     Pillow, pdfminer and other libraries put the path they were given in
@@ -46,7 +44,9 @@ def _member_warnings(
 
     monkeypatch.setattr(DocumentReader, "_create_one", staticmethod(failing_reader))
     caplog.clear()
-    with caplog.at_level(logging.WARNING, logger="scikitplot.corpus._readers._zip"):
+    # captured_logger, not caplog.at_level: the "scikitplot" logger does not
+    # propagate, and which pytest releases see its records differs (Rule 139).
+    with captured_logger(logging.WARNING, "scikitplot.corpus._readers._zip"):
         list(ZipReader(input_path=path).get_raw_chunks())
     return [
         r.getMessage()
@@ -56,16 +56,22 @@ def _member_warnings(
 
 
 class TestMemberWarnings:
-    def test_warning_names_the_archive_path(self, tmp_path, caplog, monkeypatch):
-        messages = _member_warnings(_zip(tmp_path), caplog, monkeypatch)
+    def test_warning_names_the_archive_path(
+        self, tmp_path, caplog, captured_logger, monkeypatch
+    ):
+        messages = _member_warnings(
+            _zip(tmp_path), caplog, captured_logger, monkeypatch
+        )
         assert len(messages) == 1
         assert "'docs.zip/a/bad.txt'" in messages[0]
         assert "skplt_zip_" not in messages[0]
 
-    def test_warning_is_the_same_on_every_run(self, tmp_path, caplog, monkeypatch):
+    def test_warning_is_the_same_on_every_run(
+        self, tmp_path, caplog, captured_logger, monkeypatch
+    ):
         path = _zip(tmp_path)
-        first = _member_warnings(path, caplog, monkeypatch)
-        assert first == _member_warnings(path, caplog, monkeypatch)
+        first = _member_warnings(path, caplog, captured_logger, monkeypatch)
+        assert first == _member_warnings(path, caplog, captured_logger, monkeypatch)
 
 
 class TestArchiveRelative:
