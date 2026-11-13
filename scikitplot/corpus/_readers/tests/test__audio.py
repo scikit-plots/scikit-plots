@@ -285,3 +285,34 @@ class TestAudioReaderBackendReports:
         reader._backend_outcomes.append(MagicMock(to_dict=lambda: {"status": "failed"}))
         list(reader.get_documents())
         assert reader.backend_reports == ()
+
+
+class TestEmptyAudioFile:
+    """A 0-byte audio file holds no audio and fails fast (CX-24)."""
+
+    @pytest.mark.parametrize("suffix", [".wav", ".mp3"])
+    @pytest.mark.parametrize("transcribe", [False, True])
+    def test_empty_file_raises(
+        self, tmp_path: Path, suffix: str, transcribe: bool
+    ) -> None:
+        path = tmp_path / f"empty{suffix}"
+        path.write_bytes(b"")
+        reader = AudioReader(input_path=path, transcribe=transcribe)
+        asr_target = "scikitplot.corpus._readers._audio._transcribe_whisper"
+        with patch(asr_target) as asr, pytest.raises(ValueError, match=r"empty \(0 bytes\)"):
+            list(reader.get_raw_chunks())
+        asr.assert_not_called()
+
+    def test_empty_file_raises_even_with_a_companion(self, tmp_path: Path) -> None:
+        path = tmp_path / "empty.mp3"
+        path.write_bytes(b"")
+        (tmp_path / "empty.srt").write_text(
+            "1\n00:00:00,000 --> 00:00:01,000\nhello\n", encoding="utf-8"
+        )
+        with pytest.raises(ValueError, match=r"empty\.mp3 is empty"):
+            list(AudioReader(input_path=path).get_raw_chunks())
+
+    def test_one_byte_file_is_not_rejected_as_empty(self, tmp_path: Path) -> None:
+        path = tmp_path / "tiny.wav"
+        path.write_bytes(b"\x00")
+        assert list(AudioReader(input_path=path).get_raw_chunks()) == []
