@@ -1144,3 +1144,72 @@ class TestDamagedPackage:
         path.write_bytes(bytes(raw))
         with pytest.raises(ValueError, match=r"word/document\.xml"):
             _chunks(path)
+
+
+# ---------------------------------------------------------------------------
+# Word hidden text is flagged, and left out on request
+# ---------------------------------------------------------------------------
+
+
+def _run(text: str, vanish: str | None = None) -> str:
+    if vanish is None:
+        return f"<w:r><w:t>{text}</w:t></w:r>"
+    value = "" if vanish == "" else f' w:val="{vanish}"'
+    return f"<w:r><w:rPr><w:vanish{value}/></w:rPr><w:t>{text}</w:t></w:r>"
+
+
+class TestHiddenText:
+    @pytest.mark.parametrize("vanish", ["", "1", "true", "on"])
+    def test_hidden_runs_are_read_and_flagged(self, tmp_path, vanish):
+        body = f"<w:p>{_run('seen ')}{_run('secret', vanish)}</w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret", True)
+
+    @pytest.mark.parametrize("vanish", ["0", "false", "off"])
+    def test_vanish_turned_off_is_ordinary_text(self, tmp_path, vanish):
+        body = f"<w:p>{_run('seen ')}{_run('shown', vanish)}</w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "seen shown"
+        assert "has_hidden_text" not in chunk
+
+    def test_hidden_false_leaves_hidden_runs_out(self, tmp_path):
+        body = (
+            f"<w:p>{_run('seen')}{_run(' secret', '')}</w:p>"
+            f"<w:p>{_run('all hidden', '')}</w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body), hidden=False)
+        assert chunk["text"] == "seen"
+        assert "has_hidden_text" not in chunk
+
+    def test_tables_footnotes_and_headings_carry_the_flag(self, tmp_path):
+        table = f"<w:tbl><w:tr><w:tc><w:p>{_run('x', '')}</w:p></w:tc></w:tr></w:tbl>"
+        heading = f'<w:p><w:pPr><w:outlineLvl w:val="0"/></w:pPr>{_run("H", "")}</w:p>'
+        notes = (
+            f'<?xml version="1.0"?><w:footnotes xmlns:w="{W}"><w:footnote w:id="1">'
+            f"<w:p>{_run('n', '')}</w:p></w:footnote></w:footnotes>"
+        )
+        path = _docx(
+            tmp_path / "d.docx",
+            _p("plain") + table + heading + _p("under"),
+            extra={"word/footnotes.xml": notes},
+            doc_rels=[("rF", "footnotes", "footnotes.xml")],
+        )
+        got = [
+            (c["section_type"], c["text"], c.get("has_hidden_text"))
+            for c in _chunks(path)
+        ]
+        assert got == [
+            ("text", "plain", None),
+            ("table", "x", True),
+            ("text", "H\nunder", True),
+            ("footnote", "n", True),
+        ]
+        hidden_out = [
+            (c["section_type"], c["text"]) for c in _chunks(path, hidden=False)
+        ]
+        assert hidden_out == [("text", "plain"), ("text", "under")]
+
+    def test_a_hidden_run_without_text_sets_no_flag(self, tmp_path):
+        body = f"<w:p>{_run('seen')}<w:r><w:rPr><w:vanish/></w:rPr><w:tab/></w:r></w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert "has_hidden_text" not in chunk

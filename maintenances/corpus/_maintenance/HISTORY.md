@@ -28,6 +28,13 @@ now use it. Package reads are wrapped in `_Package.xml`.
 - Tests: 9 new (115); all 9 fail on `main`; 7 mutants, each caught.
   Research snapshot unchanged (139 files); corpus suite unchanged.
 - Evidence: `evidence/round-2026-11-14-office-review.log`.
+- **CX-30: Word hidden text was read with no sign.** A run with
+  `w:vanish` is not displayed but was read as ordinary text, so text
+  hidden in a document (to steer a model that reads it) reached the
+  corpus unmarked. Chunks holding any carry `has_hidden_text=True`;
+  `hidden=False` leaves the runs out, as it does hidden slides and sheets.
+  A `w:vanish` from a style is not detected (recorded). `_walk` takes a
+  `drop` predicate. 10 tests; 7 mutants, each caught.
 - Start template: the pull request number is `937`. `orient.py` derives
   the number when the template line is missing or reads `auto`, or with
   `--pr auto`: one more than the highest number among the fragment names

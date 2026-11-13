@@ -1,0 +1,4 @@
+- ``OfficeReader`` flags Word text formatted as hidden: a chunk that holds
+  any carries ``has_hidden_text=True``, and ``hidden=False`` (which already
+  left out hidden slides and sheets) leaves the hidden runs out. Hidden
+  text is invisible to a reader but reaches a model that reads the file.

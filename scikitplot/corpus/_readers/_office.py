@@ -292,7 +292,11 @@ _FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallba
 
 
 def _walk(
-    root: Any, *, skip: frozenset = frozenset(), leaves: frozenset = frozenset()
+    root: Any,
+    *,
+    skip: frozenset = frozenset(),
+    leaves: frozenset = frozenset(),
+    drop: Any = None,
 ) -> Iterator[Any]:
     """
     Yield the descendants of *root* in document order, each once.
@@ -307,6 +311,9 @@ def _walk(
         Tags that are yielded but not entered, so content nested in them
         (a table in a cell, a text box in a paragraph) is read by whoever
         reads the leaf, and only there.
+    drop : callable or None, optional
+        ``drop(element) -> bool``: an element for which it is true is left
+        out with its subtree, like a ``skip`` tag.
     """
     stack = [iter(root)]
     while stack:
@@ -315,7 +322,7 @@ def _walk(
             stack.pop()
             continue
         tag = node.tag
-        if tag == _FALLBACK or tag in skip:
+        if tag == _FALLBACK or tag in skip or (drop is not None and drop(node)):
             continue
         yield node
         if tag not in leaves:
@@ -326,17 +333,49 @@ def _walk(
 _WORD_REMOVED = frozenset({_q(_W, "del"), _q(_W, "moveFrom")})
 
 
-def _word_paragraph(p: Any) -> str:
+class _Text(str):
+    """Text that records whether it holds hidden text (``hidden``)."""
+
+    __slots__ = ("hidden",)
+
+    def __new__(cls, text: str, hidden: bool = False) -> Any:
+        made = super().__new__(cls, text)
+        made.hidden = hidden
+        return made
+
+
+def _vanished(run: Any) -> bool:
+    """Whether a ``w:r`` is formatted as hidden text (``w:vanish``)."""
+    properties = run.find(_q(_W, "rPr"))
+    vanish = None if properties is None else properties.find(_q(_W, "vanish"))
+    if vanish is None:
+        return False
+    return (vanish.get(_q(_W, "val")) or "true").lower() not in ("0", "false", "off")
+
+
+def _word_paragraph(p: Any, *, keep_hidden: bool = True) -> Any:
     """
-    Return the text of a ``w:p``: runs, tabs and breaks.
+    Return the text of a ``w:p``: runs, tabs and breaks, as :class:`_Text`.
 
     Tracked deletions and the old place of moved text are dropped; a
-    markup-compatibility fallback is not read a second time.
+    markup-compatibility fallback is not read a second time. Runs
+    formatted as hidden (``w:vanish``) are read when *keep_hidden* and
+    left out otherwise; the result's ``hidden`` says whether any was read.
     """
     out: list[str] = []
-    t, tab, br, cr = (_q(_W, n) for n in ("t", "tab", "br", "cr"))
+    t, tab, br, cr, run = (_q(_W, n) for n in ("t", "tab", "br", "cr", "r"))
     hyphen = _q(_W, "noBreakHyphen")
-    for node in _walk(p, skip=_WORD_REMOVED):
+    hidden = False
+
+    def drop(node: Any) -> bool:
+        nonlocal hidden
+        if node.tag != run or not _vanished(node):
+            return False
+        if keep_hidden and any(True for _ in node.iter(t)):
+            hidden = True
+        return not keep_hidden
+
+    for node in _walk(p, skip=_WORD_REMOVED, drop=drop):
         tag = node.tag
         if tag == t:
             out.append(node.text or "")
@@ -346,14 +385,25 @@ def _word_paragraph(p: Any) -> str:
             out.append("\n")
         elif tag == hyphen:
             out.append("-")
-    return "".join(out)
+    return _Text("".join(out), hidden)
 
 
-def _word_paragraphs(container: Any) -> list[str]:
-    """Return the text of each ``w:p`` under *container*, nested ones in their parent."""
+def _word_paragraphs(container: Any, *, keep_hidden: bool = True) -> list[Any]:
+    """Return each ``w:p`` under *container* as :class:`_Text`, nested ones in their parent."""
     p = _q(_W, "p")
     found = _walk(container, skip=_WORD_REMOVED, leaves=frozenset({p}))
-    return [_word_paragraph(node) for node in found if node.tag == p]
+    return [
+        _word_paragraph(node, keep_hidden=keep_hidden)
+        for node in found
+        if node.tag == p
+    ]
+
+
+def _joined(parts: list[Any], separator: str = "\n") -> Any:
+    """Join :class:`_Text` parts, keeping whether any held hidden text."""
+    return _Text(
+        separator.join(parts), any(getattr(part, "hidden", False) for part in parts)
+    )
 
 
 def _outline_level(properties: Any) -> int | None:
@@ -421,7 +471,7 @@ def _word_heading(p: Any, levels: dict[str, int]) -> int | None:
     return None if style is None else levels.get(style.get(_q(_W, "val")) or "")
 
 
-def _word_table(tbl: Any) -> str:
+def _word_table(tbl: Any, *, keep_hidden: bool = True) -> Any:
     """
     Return a ``w:tbl`` as lines of tab-separated cells; empty rows dropped.
 
@@ -433,14 +483,14 @@ def _word_table(tbl: Any) -> str:
     for row in _walk(tbl, leaves=frozenset({tr})):
         if row.tag != tr:
             continue
-        cells = [
-            "\n".join(_word_paragraphs(cell)).strip()
-            for cell in _walk(row, leaves=frozenset({tc}))
-            if cell.tag == tc
-        ]
+        cells = []
+        for cell in _walk(row, leaves=frozenset({tc})):
+            if cell.tag == tc:
+                text = _joined(_word_paragraphs(cell, keep_hidden=keep_hidden))
+                cells.append(_Text(text.strip(), text.hidden))
         if any(cells):
-            rows.append("\t".join(cells))
-    return "\n".join(rows)
+            rows.append(_joined(cells, "\t"))
+    return _joined(rows)
 
 
 def _drawing_paragraph(p: Any) -> str:
@@ -586,13 +636,13 @@ _ODF_NOT_TEXT = frozenset(
 )
 
 
-class _Heading(str):
+class _Heading(_Text):
     """A heading's text, with its outline ``level`` (1 is the top)."""
 
     __slots__ = ("level",)
 
-    def __new__(cls, text: str, level: int) -> Any:
-        made = super().__new__(cls, text)
+    def __new__(cls, text: str, level: int, hidden: bool = False) -> Any:
+        made = super().__new__(cls, text, hidden)
         made.level = min(max(level, 1), _MAX_HEADING_LEVEL)
         return made
 
@@ -767,8 +817,10 @@ class OfficeReader(DocumentReader):
         Read speaker notes (PowerPoint) and footnotes and endnotes (Word).
         Default: ``True``.
     hidden : bool, optional
-        Read slides and sheets marked hidden. Their chunks carry
-        ``hidden=True``. Default: ``True``.
+        Read slides and sheets marked hidden, and Word text formatted as
+        hidden (``w:vanish``). Their chunks carry ``hidden=True`` (slides,
+        sheets) or ``has_hidden_text=True`` (Word). ``False`` leaves all of
+        them out. Default: ``True``.
     rows_per_chunk : int, optional
         Most spreadsheet rows in one chunk; a longer sheet gives several
         chunks. Default: ``500``.
@@ -819,6 +871,13 @@ class OfficeReader(DocumentReader):
     row numbers) and ``hidden``. A cell gives its stored value: the cached
     result of a formula (formulas are never computed), dates as their
     serial number, booleans as ``TRUE``/``FALSE``.
+
+    **Hidden text.** Word text formatted as hidden is not shown to a
+    reader but is in the file; text placed there to steer a model that
+    reads the document is one reason to know. A chunk that holds any
+    carries ``has_hidden_text=True`` (the key is absent otherwise), and
+    ``hidden=False`` leaves the hidden runs out. Hidden formatting that
+    comes from a style, not from the run, is not detected.
 
     **Headings.** In Word and OpenDocument text, a heading starts a new
     chunk (its text is the chunk's first line), and that chunk and the
@@ -874,7 +933,7 @@ class OfficeReader(DocumentReader):
     """Read speaker notes, footnotes and endnotes. Default: ``True``."""
 
     hidden: bool = field(default=True)
-    """Read slides and sheets marked hidden. Default: ``True``."""
+    """Read hidden slides, sheets and Word hidden text. Default: ``True``."""
 
     rows_per_chunk: int = field(default=500)
     """Most spreadsheet rows in one chunk. Default: ``500``."""
@@ -1120,20 +1179,25 @@ class OfficeReader(DocumentReader):
         paragraphs: list[str] = []
         current: dict[str, Any] = {}
 
-        def made(text: str, kind: SectionType) -> dict[str, Any]:
-            return {"text": text, "section_type": kind.value, "part": part, **current}
+        def made(text: Any, kind: SectionType, hidden: bool) -> dict[str, Any]:
+            chunk = {"text": str(text), "section_type": kind.value, "part": part}
+            chunk.update(current)
+            if hidden:
+                chunk["has_hidden_text"] = True
+            return chunk
 
         def flush() -> Iterator[dict[str, Any]]:
-            text = "\n".join(paragraphs).strip()
+            joined = _joined(paragraphs)
             paragraphs.clear()
-            if text:
-                yield made(text, SectionType.TEXT)
+            if joined.strip():
+                yield made(joined.strip(), SectionType.TEXT, joined.hidden)
 
         for block in blocks:
             if isinstance(block, tuple):
                 yield from flush()
                 if block[1]:
-                    yield made(block[1], SectionType.TABLE)
+                    hidden = getattr(block[1], "hidden", False)
+                    yield made(block[1], SectionType.TABLE, hidden)
                 continue
             if self.headings and isinstance(block, _Heading) and block.strip():
                 yield from flush()
@@ -1146,17 +1210,17 @@ class OfficeReader(DocumentReader):
         styles = pkg.first(main, _STYLES) if self.headings else None
         levels = _word_style_levels(pkg.xml(styles)) if styles else {}
 
-        def paragraph(p: Any) -> str:
-            text = _word_paragraph(p)
+        def paragraph(p: Any) -> Any:
+            text = _word_paragraph(p, keep_hidden=self.hidden)
             level = _word_heading(p, levels) if self.headings else None
-            return text if level is None else _Heading(text, level)
+            return text if level is None else _Heading(text, level, text.hidden)
 
         def blocks() -> Iterator[Any]:
             for node in [] if body is None else body:
                 if node.tag == _q(_W, "p"):
                     yield paragraph(node)
                 elif node.tag == _q(_W, "tbl"):
-                    yield ("table", _word_table(node))
+                    yield ("table", _word_table(node, keep_hidden=self.hidden))
                 elif node.tag == _q(_W, "sdt"):
                     # A content control: its paragraphs read as body text.
                     p_tag = _q(_W, "p")
@@ -1175,13 +1239,16 @@ class OfficeReader(DocumentReader):
             for note in notes_root.iter(_q(_W, element)):
                 if note.get(_q(_W, "type")) in ("separator", "continuationSeparator"):
                     continue
-                text = "\n".join(_word_paragraphs(note)).strip()
-                if text:
-                    yield {
-                        "text": text,
+                joined = _joined(_word_paragraphs(note, keep_hidden=self.hidden))
+                if joined.strip():
+                    chunk = {
+                        "text": joined.strip(),
                         "section_type": SectionType.FOOTNOTE.value,
                         "part": part,
                     }
+                    if joined.hidden:
+                        chunk["has_hidden_text"] = True
+                    yield chunk
 
     # -- PowerPoint ----------------------------------------------------------
 
