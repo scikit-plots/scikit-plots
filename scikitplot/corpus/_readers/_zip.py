@@ -187,10 +187,11 @@ def _archive_relative(text: str, extract_dir: Path, archive_name: str) -> str:
     Returns
     -------
     str
-        *text* with every ``<extract_dir>/`` prefix replaced by
-        ``<archive_name>/``, so ``/tmp/skplt_zip_x1y2/a/b.png`` reads
-        ``docs.zip/a/b.png``. The same archive gives the same message on
-        every run.
+        *text* with every path under *extract_dir* replaced by
+        ``<archive_name>/<member>``, so ``/tmp/skplt_zip_x1y2/a/b.png`` reads
+        ``docs.zip/a/b.png``. On Windows the member's backslashes, single or
+        doubled by ``repr()``, become ``/``. The same archive gives the same
+        message on every run.
 
     Notes
     -----
@@ -201,11 +202,25 @@ def _archive_relative(text: str, extract_dir: Path, archive_name: str) -> str:
     cannot match inside it.
     """
     import os  # noqa: PLC0415
+    import re  # noqa: PLC0415
 
-    roots = {str(extract_dir), str(extract_dir.resolve())}
-    for root in sorted(roots, key=len, reverse=True):
-        for sep in {os.sep, "/"}:
-            text = text.replace(root + sep, archive_name + "/")
+    windows = os.sep == "\\"
+    forms = set()
+    for root in {str(extract_dir), str(extract_dir.resolve())}:
+        forms.add((root, os.sep))
+        forms.add((root, "/"))
+        if windows:
+            # repr() of a Windows path doubles each backslash.
+            forms.add((root.replace("\\", "\\\\"), "\\\\"))
+
+    def member(match: re.Match) -> str:
+        tail = match.group(1)
+        if windows:
+            tail = tail.replace("\\\\", "/").replace("\\", "/")
+        return f"{archive_name}/{tail}"
+
+    for root, sep in sorted(forms, key=lambda f: len(f[0]), reverse=True):
+        text = re.sub(re.escape(root + sep) + r"([^'\"\s]*)", member, text)
     return text
 
 

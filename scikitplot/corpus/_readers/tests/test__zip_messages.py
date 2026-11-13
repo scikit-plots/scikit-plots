@@ -77,9 +77,16 @@ class TestMemberWarnings:
 class TestArchiveRelative:
     def test_replaces_the_directory_prefix(self, tmp_path):
         root = tmp_path / "skplt_zip_x"
-        text = f"cannot open '{root}{os.sep}a{os.sep}b.png'"
+        text = f"cannot open '{root / 'a' / 'b.png'}'"
         assert _archive_relative(text, root, "docs.zip") == (
-            f"cannot open 'docs.zip/a{os.sep}b.png'"
+            "cannot open 'docs.zip/a/b.png'"
+        )
+
+    def test_repr_of_the_path_is_replaced(self, tmp_path):
+        root = tmp_path / "skplt_zip_x"
+        text = f"cannot open {str(root / 'a' / 'b.png')!r}"
+        assert _archive_relative(text, root, "docs.zip") == (
+            "cannot open 'docs.zip/a/b.png'"
         )
 
     def test_forward_slash_prefix_is_replaced(self, tmp_path):
@@ -106,3 +113,40 @@ class TestArchiveRelative:
             pytest.skip("symlinks not permitted")
         text = f"{real.resolve()}{os.sep}m.pdf and {link}{os.sep}m.pdf"
         assert _archive_relative(text, link, "z.zip") == "z.zip/m.pdf and z.zip/m.pdf"
+
+
+class _WindowsDir:
+    """A Windows extraction directory, so the test runs on any system."""
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+
+    def __str__(self) -> str:
+        return self._path
+
+    def resolve(self) -> _WindowsDir:
+        return self
+
+
+class TestArchiveRelativeOnWindows:
+    root = "C:\\Users\\runner\\AppData\\Local\\Temp\\skplt_zip_ab12"
+
+    @pytest.fixture(autouse=True)
+    def _windows_sep(self, monkeypatch):
+        monkeypatch.setattr(os, "sep", "\\")
+
+    def test_plain_path(self):
+        text = f"cannot identify file '{self.root}\\a\\bad.txt'"
+        got = _archive_relative(text, _WindowsDir(self.root), "docs.zip")
+        assert got == "cannot identify file 'docs.zip/a/bad.txt'"
+
+    def test_repr_with_doubled_backslashes(self):
+        path = f"{self.root}\\a\\bad.txt"
+        text = f"cannot identify file {path!r}"
+        got = _archive_relative(text, _WindowsDir(self.root), "docs.zip")
+        assert got == "cannot identify file 'docs.zip/a/bad.txt'"
+
+    def test_forward_slashes(self):
+        text = f"{self.root}/a/bad.txt"
+        got = _archive_relative(text, _WindowsDir(self.root), "docs.zip")
+        assert got == "docs.zip/a/bad.txt"
