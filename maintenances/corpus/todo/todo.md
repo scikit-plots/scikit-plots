@@ -398,3 +398,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 932: CX-20; CX-21 and CX-22 as policies; reader snapshots
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
 - Next: choices in ledger notes CX-16, CX-23; D11, D13.
+
+### PR 933: CX-24 (empty audio file)
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
+- Next: choices in ledger notes CX-16, CX-23; D11, D13; ZipReader member
+  warnings name a temporary path.

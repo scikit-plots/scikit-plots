@@ -1,5 +1,19 @@
 # Corpus maintenance history
 
+## 2026-11-13 — empty audio files fail fast, PR 933
+
+- **CX-24: a 0-byte audio file gave 0 documents with misleading advice.**
+  `AudioReader` on an empty `.wav` or `.mp3` logged "no companion file found
+  ... set transcribe=True"; with `transcribe=True` it then ran every Whisper
+  backend on the file and returned 0 documents. It now raises `ValueError`
+  ("... is empty (0 bytes) and holds no audio") before any strategy, also
+  when a companion transcript exists. A `custom_extractor` still receives
+  the file, since it owns the bytes. Two custom-ASR test fixtures wrote
+  empty stand-in files; they now write stub bytes.
+- Tests: `TestEmptyAudioFile` (5 fail on the old tree; mutants `< 0` and
+  `<= 1` each caught). Reader snapshot of the research folder: see
+  `evidence/round-2026-11-13-empty-audio.log`.
+
 ## 2026-11-13 — text encoding as a policy; script-aware word count; reader snapshots, PR 932
 
 Every local reader was run on empty, binary, truncated and differently

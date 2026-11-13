@@ -1,0 +1,4 @@
+- ``AudioReader`` raises ``ValueError`` for an empty (0-byte) audio file
+  unless a ``custom_extractor`` is set. It returned no documents and logged
+  a warning suggesting ``transcribe=True``, which then ran the speech
+  recognition backends on a file with no audio.

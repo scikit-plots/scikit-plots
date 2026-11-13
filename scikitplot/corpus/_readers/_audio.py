@@ -1289,7 +1289,8 @@ class AudioReader(DocumentReader):
         Raises
         ------
         ValueError
-            If the file exceeds ``max_file_bytes``.
+            If the file exceeds ``max_file_bytes``, or is empty (0 bytes)
+            and no ``custom_extractor`` is set.
         ImportError
             If ``transcribe=True``, ``strict=True``, and neither Whisper backend
             can be imported.
@@ -1308,6 +1309,15 @@ class AudioReader(DocumentReader):
         if self.custom_extractor is not None:
             yield from self._iter_custom_extractor_chunks()
             return
+
+        # A 0-byte file holds no audio: no companion, transcription or
+        # classification can describe it (CX-24).
+        if file_size == 0:
+            raise ValueError(
+                f"AudioReader: {self.file_name} is empty (0 bytes) and holds"
+                " no audio. Replace it with the full recording or remove it"
+                " from the input."
+            )
 
         yielded_any = False
 

@@ -145,7 +145,7 @@ def test_custom_metadata_is_preserved_without_core_field_shadowing(monkeypatch, 
 
 def test_audio_reader_nests_custom_metadata_and_keeps_reader_provenance(tmp_path: Path) -> None:
     path = tmp_path / "custom.mp3"
-    path.write_bytes(b"")
+    path.write_bytes(b"not decoded: the backend is a stub")
     custom = ASRBackend(
         "metadata-reader-asr",
         lambda request: [
@@ -268,7 +268,7 @@ def test_audio_reader_accepts_mapping_policy_and_private_capability_registry(
     from scikitplot.corpus import AudioReader
 
     path = tmp_path / "private.mp3"
-    path.write_bytes(b"")
+    path.write_bytes(b"not decoded: the backend is a stub")
     registry = CapabilityRegistry([CapabilitySpec("asr:private", "asr", module="json")])
     custom = ASRBackend(
         "private-asr",

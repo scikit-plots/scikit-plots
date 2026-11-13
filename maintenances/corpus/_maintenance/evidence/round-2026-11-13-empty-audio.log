@@ -1,0 +1,19 @@
+CX-24 empty audio file, PR 933 (2026-11-13)
+
+Reader snapshot: research zip mp3/ folder plus empty.wav and empty.mp3 (0 bytes).
+The full research folder (431 files, mostly images through OCR) did not finish in 900 s; audio is the only reader changed.
+
+changed: empty.mp3: result 'ok' -> 'error'
+changed: empty.mp3: text_digest '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945' -> None
+changed: empty.mp3: digest '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945' -> None
+changed: empty.mp3: error None -> 'ValueError: AudioReader: empty.mp3 is empty (0 bytes) and holds no audio. Replace it with the full recording or remove it from the input.'
+changed: empty.mp3: warnings ['AudioReader: no companion file found for empty.mp3; yielding no chunks. To enable transcription, set transcribe=True. To enable classification, set classify=True with a classifier callable.'] -> []
+changed: empty.wav: result 'ok' -> 'error'
+changed: empty.wav: text_digest '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945' -> None
+changed: empty.wav: digest '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945' -> None
+changed: empty.wav: error None -> 'ValueError: AudioReader: empty.wav is empty (0 bytes) and holds no audio. Replace it with the full recording or remove it from the input.'
+changed: empty.wav: warnings ['AudioReader: no companion file found for empty.wav; yielding no chunks. To enable transcription, set transcribe=True. To enable classification, set classify=True with a classifier callable.'] -> []
+10 difference(s).
+
+Tests: every corpus test file naming AudioReader: 119 passed.
+Old tree: TestEmptyAudioFile 5 failed, 4 passed. Mutants 'file_size < 0': 5 failed; 'file_size <= 1': 1 failed.
