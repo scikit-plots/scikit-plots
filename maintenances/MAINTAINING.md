@@ -253,6 +253,30 @@ here.
 **Example in the tree.** `scikitplot.corpus.PDFReader`:
 `prefer_backend="pdfminer"` with `pdfminer_kwargs={"laparams": {...}}`.
 
+## When a public name is added, renamed or removed
+
+A public name is one in a module's `__all__`. Four generated or curated
+places describe it; one change updates all of them (Rule 172):
+
+| Place | Source to edit | Command | Check |
+|---|---|---|---|
+| API reference (`docs/source/apis_reference.py`) | `scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in` | `python -m scikitplot._build_utils.generate_apis_reference rebuild --apply` | `... rebuild --check`; `... plan --json` |
+| Usage skill (`plugins/scikitplot/skills/scikitplot-<module>/`) | the module's `__all__` and docstrings | `python tools/maint_tools/generate_usage_skills.py sync` | `... check` |
+| Release note | `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst` | written by hand | the towncrier gate |
+| Module docstring lists (for example `_readers/__init__.py`) | the docstring | written by hand | read it |
+
+- **Added:** list the name in the section's `autosummary`, under the
+  comment naming its source file. A new section only when none fits.
+- **Renamed or moved:** change it in every list, `classes` included.
+- **Removed:** delete it from every list; a stale entry breaks the docs
+  build (`imports`).
+- **Public but not documented on purpose:** keep a commented line with the
+  reason, so `plan` output can be read against it.
+- Never edit `docs/source/apis_reference.py` by hand: `rebuild --check`
+  fails and the next rebuild discards the edit.
+- `plan`, `check` and `imports` import the package: run them against a
+  built install, or with `--allow-uninstalled` from outside the source tree.
+
 ## When a documentation review discovers a code or logic issue
 
 Do not silently redesign runtime code during a documentation-only task.

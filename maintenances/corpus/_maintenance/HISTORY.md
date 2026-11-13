@@ -81,6 +81,12 @@
 - **cleanprompt.** `register_corpus_readers()` registers nothing now that
   corpus reads `.docx`/`.xlsx`/`.pptx` itself; its test fixture wrote a
   package without `_rels/.rels` and now writes one.
+- **API reference.** `OfficeReader` was missing from
+  `docs/source/apis_reference.py` (`plan` listed it as `ambiguous`). Added
+  to the template's Readers section and rebuilt; `rebuild --check` clean,
+  `plan` missing 155 -> 154 (the rest predate this PR). Rule 172 and a
+  section of `maintenances/MAINTAINING.md` now say what a public name's
+  addition, rename or removal must update.
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934
