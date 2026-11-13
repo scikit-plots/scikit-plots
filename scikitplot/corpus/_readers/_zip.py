@@ -170,6 +170,60 @@ def _is_within(child: Path, parent: Path) -> bool:
         return False
 
 
+def _archive_relative(text: str, extract_dir: Path, archive_name: str) -> str:
+    """
+    Replace the temporary extraction directory in *text* with the archive.
+
+    Parameters
+    ----------
+    text : str
+        A message that may name an extracted member by its temporary path,
+        such as a member reader's exception text.
+    extract_dir : Path
+        The temporary directory the members were extracted into.
+    archive_name : str
+        The archive's display name.
+
+    Returns
+    -------
+    str
+        *text* with every path under *extract_dir* replaced by
+        ``<archive_name>/<member>``, so ``/tmp/skplt_zip_x1y2/a/b.png`` reads
+        ``docs.zip/a/b.png``. On Windows the member's backslashes, single or
+        doubled by ``repr()``, become ``/``. The same archive gives the same
+        message on every run.
+
+    Notes
+    -----
+    Both the directory as created and its resolved form are replaced: on
+    some systems the temporary directory is reached through a symbolic
+    link (macOS ``/var`` -> ``/private/var``), and members are extracted to
+    resolved paths. The longer form is replaced first so the shorter one
+    cannot match inside it.
+    """
+    import os  # noqa: PLC0415
+    import re  # noqa: PLC0415
+
+    windows = os.sep == "\\"
+    forms = set()
+    for root in {str(extract_dir), str(extract_dir.resolve())}:
+        forms.add((root, os.sep))
+        forms.add((root, "/"))
+        if windows:
+            # repr() of a Windows path doubles each backslash.
+            forms.add((root.replace("\\", "\\\\"), "\\\\"))
+
+    def member(match: re.Match) -> str:
+        tail = match.group(1)
+        if windows:
+            tail = tail.replace("\\\\", "/").replace("\\", "/")
+        return f"{archive_name}/{tail}"
+
+    for root, sep in sorted(forms, key=lambda f: len(f[0]), reverse=True):
+        text = re.sub(re.escape(root + sep) + r"([^'\"\s]*)", member, text)
+    return text
+
+
 # ===========================================================================
 # ZipReader
 # ===========================================================================
@@ -476,7 +530,7 @@ class ZipReader(DocumentReader):
                             "ZipReader: ZipSlip detected for member %r — "
                             "skipping (escapes %s).",
                             member_path,
-                            tmp_dir,
+                            archive_name,
                         )
                         continue
 
@@ -587,7 +641,7 @@ class ZipReader(DocumentReader):
                             "ZipReader: failed to read member %s from %s: %s",
                             member_path,
                             archive_name,
-                            exc,
+                            _archive_relative(str(exc), tmp_dir, archive_name),
                         )
 
         finally:
