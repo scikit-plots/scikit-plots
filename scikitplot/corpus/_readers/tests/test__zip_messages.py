@@ -20,17 +20,31 @@ from pathlib import Path
 
 import pytest
 
+from scikitplot.corpus._base import DocumentReader
 from scikitplot.corpus._readers._zip import ZipReader, _archive_relative
 
 
 def _zip(tmp_path: Path) -> Path:
     path = tmp_path / "docs.zip"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("a/bad.png", b"not an image")
+        zf.writestr("a/bad.txt", "some text")
     return path
 
 
-def _member_warnings(path: Path, caplog: pytest.LogCaptureFixture) -> list:
+def _member_warnings(
+    path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> list:
+    """Read *path* with a member reader whose error names the file it got.
+
+    Pillow, pdfminer and other libraries put the path they were given in
+    their messages; the stub does the same, so the test does not depend on
+    which optional readers are installed.
+    """
+
+    def failing_reader(target, **kwargs):
+        raise OSError(f"cannot identify file {str(target)!r}")
+
+    monkeypatch.setattr(DocumentReader, "_create_one", staticmethod(failing_reader))
     caplog.clear()
     with caplog.at_level(logging.WARNING, logger="scikitplot.corpus._readers._zip"):
         list(ZipReader(input_path=path).get_raw_chunks())
@@ -42,17 +56,16 @@ def _member_warnings(path: Path, caplog: pytest.LogCaptureFixture) -> list:
 
 
 class TestMemberWarnings:
-    def test_warning_names_the_archive_path(self, tmp_path, caplog):
-        pytest.importorskip("PIL")
-        messages = _member_warnings(_zip(tmp_path), caplog)
+    def test_warning_names_the_archive_path(self, tmp_path, caplog, monkeypatch):
+        messages = _member_warnings(_zip(tmp_path), caplog, monkeypatch)
         assert len(messages) == 1
-        assert "docs.zip/a/bad.png" in messages[0]
+        assert "'docs.zip/a/bad.txt'" in messages[0]
         assert "skplt_zip_" not in messages[0]
 
-    def test_warning_is_the_same_on_every_run(self, tmp_path, caplog):
-        pytest.importorskip("PIL")
+    def test_warning_is_the_same_on_every_run(self, tmp_path, caplog, monkeypatch):
         path = _zip(tmp_path)
-        assert _member_warnings(path, caplog) == _member_warnings(path, caplog)
+        first = _member_warnings(path, caplog, monkeypatch)
+        assert first == _member_warnings(path, caplog, monkeypatch)
 
 
 class TestArchiveRelative:
