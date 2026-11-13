@@ -26,7 +26,12 @@ it. It lists, from the files in this checkout and nothing else:
 
 The pull request number and the deferred notes come from the ``FILL IN``
 block of ``.claude/new-chat-template.md``, so they are written in one place;
-``--pr`` overrides the number for one run.
+``--pr`` overrides the number for one run. When neither gives a number (the
+line is missing, or reads ``auto``), the next one is derived: one more than
+the highest pull request number found in the release-note fragment names
+and in the ``(#N)`` of the checkout's merge commit subjects
+(:func:`next_pr`). The report says where the number came from
+(``pr_source``).
 
 **Developer notes.** Read-only and deterministic: every list is sorted and
 nothing is written, so running it twice gives the same output. It uses the
@@ -41,6 +46,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -70,8 +77,12 @@ _TOP = re.compile(
 _ROOT_FILE = re.compile(r"^[A-Z][A-Z_]*\.md$")
 
 _PR_LINE = re.compile(
-    r"^- Pull request number for new fragments:\s*`(\d+)`", re.MULTILINE
+    r"^- Pull request number for new fragments:\s*`(\d+|auto)`", re.MULTILINE
 )
+#: The ``(#N)`` a squash merge adds to a commit subject.
+_MERGED = re.compile(r"\(#(\d+)\)\s*$")
+#: Commit subjects read from the checkout for :func:`next_pr`.
+_LOG_DEPTH = 200
 _PATH = re.compile(r"`(upcoming_changes/[^`]+\.md)`")
 _STATUS = re.compile(r"^status:\s*([A-Za-z_-]+)\s*$", re.MULTILINE)
 #: Ledger statuses that still need work (upcoming_changes/README.md). A
@@ -123,7 +134,8 @@ def template_settings(root: Path) -> tuple[str | None, list[str]]:
     Returns
     -------
     pr : str or None
-        The number in the FILL IN block, or ``None`` when absent.
+        The number in the FILL IN block, or ``None`` when absent or
+        ``auto``.
     deferred : list of str
         Note paths listed under "Notes I am deferring", sorted.
     """
@@ -137,7 +149,72 @@ def template_settings(root: Path) -> tuple[str | None, list[str]]:
     if "Notes I am deferring" in block:
         part = block.split("Notes I am deferring", 1)[1].split("\n- ", 1)[0]
         deferred = sorted(set(_PATH.findall(part)))
-    return (match.group(1) if match else None), deferred
+    number = match.group(1) if match else None
+    return (None if number == "auto" else number), deferred
+
+
+def merged_numbers(root: Path) -> list[int]:
+    """
+    Return the pull request numbers in the checkout's recent commit subjects.
+
+    Parameters
+    ----------
+    root : Path
+        The checkout root.
+
+    Returns
+    -------
+    list of int
+        The ``N`` of every subject ending in ``(#N)`` among the last
+        ``_LOG_DEPTH`` commits of ``HEAD``; empty when the checkout is not a
+        git repository or git is not installed (a zip of the tree).
+    """
+    git = shutil.which("git")
+    if git is None or not (root / ".git").exists():
+        return []
+    try:
+        out = subprocess.run(  # noqa: S603 - fixed arguments, no shell
+            [git, "-C", str(root), "log", f"-{_LOG_DEPTH}", "--format=%s", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [int(m.group(1)) for m in map(_MERGED.search, out.splitlines()) if m]
+
+
+def next_pr(root: Path) -> str | None:
+    """
+    Return the next pull request number: one more than the highest known.
+
+    Parameters
+    ----------
+    root : Path
+        The checkout root.
+
+    Returns
+    -------
+    str or None
+        ``max + 1`` over the release-note fragment numbers and
+        :func:`merged_numbers`; ``None`` when neither has any.
+
+    Notes
+    -----
+    **Developer notes.** A guess, made explicit: a pull request opened
+    elsewhere since the checkout (by another chat, or with no fragment) is
+    not seen, so ``state`` reports the number as derived. Fragment numbers
+    count because a zip of the tree has no git history.
+    """
+    base = root / "docs/source/whats_new/upcoming_changes"
+    known = [
+        int(path.name.split(".", 1)[0])
+        for path in base.glob("*/*.rst")
+        if path.name.split(".", 1)[0].isdigit()
+    ]
+    known += merged_numbers(root)
+    return str(max(known) + 1) if known else None
 
 
 def open_notes(root: Path, deferred: list[str]) -> list[dict]:
@@ -351,11 +428,17 @@ def state(root: Path, pr: str | None = None) -> dict:
     Returns
     -------
     dict
-        ``pr``, ``open_notes``, ``fragments``, ``areas`` and ``problems``.
+        ``pr``, ``pr_source`` (``"--pr"``, ``"template"`` or ``"derived"``),
+        ``open_notes``, ``fragments``, ``areas`` and ``problems``.
     """
     problems: list[str] = []
     template_pr, deferred = template_settings(root)
-    pr = pr or template_pr
+    if pr == "auto":
+        # Asked for explicitly: derive even when the template has a number.
+        source, pr = "derived", next_pr(root)
+    else:
+        source = "--pr" if pr else "template" if template_pr else "derived"
+        pr = pr or template_pr or next_pr(root)
     if pr is None:
         problems.append(f"no pull request number: fill in {TEMPLATE} or pass --pr")
     missing = [p for p in deferred if not (root / p).is_file()]
@@ -363,7 +446,7 @@ def state(root: Path, pr: str | None = None) -> dict:
     problems.extend(f"dead path in {entry}" for entry in dead_paths(root))
     filed = fragments(root, pr)
     others = other_fragment_numbers(root, pr)
-    if pr is not None and not filed and others:
+    if source != "derived" and pr is not None and not filed and others:
         found = ", ".join(f"{number} ({count})" for number, count in others.items())
         problems.append(
             f"no fragments are filed under {pr}, but some are under {found}: "
@@ -371,6 +454,7 @@ def state(root: Path, pr: str | None = None) -> dict:
         )
     return {
         "pr": pr,
+        "pr_source": source,
         "open_notes": open_notes(root, deferred),
         "fragments": filed,
         "areas": areas(root, problems),
@@ -380,7 +464,13 @@ def state(root: Path, pr: str | None = None) -> dict:
 
 def render(report: dict) -> str:
     """Return the report as plain text."""
-    lines = [f"pull request: {report['pr']}", "", "open ledger:"]
+    source = report.get("pr_source", "template")
+    shown = f"{report['pr']} (derived: next after the highest known)"
+    lines = [
+        f"pull request: {shown if source == 'derived' else report['pr']}",
+        "",
+        "open ledger:",
+    ]
     for note in report["open_notes"]:
         marks = ([] if note["status"] == "open" else [note["status"]]) + (
             ["deferred"] if note["deferred"] else []
@@ -405,7 +495,11 @@ def render(report: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     """Print the state; exit 1 when any record could not be read."""
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    parser.add_argument("--pr", help="pull request number (default: the template's)")
+    parser.add_argument(
+        "--pr",
+        help="pull request number, or 'auto' to derive the next one"
+        " (default: the template's)",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON")
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="checkout")
     args = parser.parse_args(argv)

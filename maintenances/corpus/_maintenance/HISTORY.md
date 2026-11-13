@@ -28,6 +28,12 @@ now use it. Package reads are wrapped in `_Package.xml`.
 - Tests: 9 new (115); all 9 fail on `main`; 7 mutants, each caught.
   Research snapshot unchanged (139 files); corpus suite unchanged.
 - Evidence: `evidence/round-2026-11-14-office-review.log`.
+- Start template: the pull request number is `937`. `orient.py` derives
+  the number when the template line is missing or reads `auto`, or with
+  `--pr auto`: one more than the highest number among the fragment names
+  and the `(#N)` merge subjects of the last 200 commits (no git: fragments
+  only), reported as `pr_source: derived`. 6 new tests (18 in
+  `test_orient_deliver.py`).
 
 ## 2026-11-13 — PDF page text the same on every read, PR 935
 
