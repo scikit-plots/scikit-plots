@@ -1838,3 +1838,69 @@ class TestRealLibraries:
         assert _texts(PDFReader(input_path=path, prefer_backend=backend)) == []
         (warning,) = logged["warning"]
         assert "none of the 3 page(s) read from scan.pdf" in warning
+
+
+# ===========================================================================
+# pdfminer_ties: which layout groups equally distant text boxes (CX-16)
+# ===========================================================================
+
+
+class TestPdfminerTies:
+    def _install(self, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+        """Both layouts read one page; return which one each open used."""
+        used: list[str] = []
+        fake = _FakePdfminer([[_Box("text")]])
+        fake.install(monkeypatch)
+
+        def tagged(name: str) -> Any:
+            def extract(*args: Any, **kwargs: Any) -> Any:
+                used.append(name)
+                return fake.extract_pages(*args, **kwargs)
+
+            return extract
+
+        monkeypatch.setattr(
+            sys.modules["pdfminer.high_level"], "extract_pages", tagged("pdfminer")
+        )
+        monkeypatch.setattr(_pdf, "_stable_extract_pages", tagged("stable"))
+        return used
+
+    @pytest.mark.parametrize(
+        ("ties", "expected"),
+        [(None, "stable"), ("stable", "stable"), ("pdfminer", "pdfminer")],
+    )
+    def test_the_policy_picks_the_layout(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        ties: str | None,
+        expected: str,
+    ) -> None:
+        used = self._install(monkeypatch)
+        kwargs = {} if ties is None else {"pdfminer_ties": ties}
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer", **kwargs)
+        assert _texts(reader) == [(0, "text")]
+        assert used == [expected]
+
+    @pytest.mark.parametrize("ties", ["", "Stable", "id", None, 1])
+    def test_another_value_is_a_value_error(
+        self, pdf_path: pathlib.Path, ties: Any
+    ) -> None:
+        with pytest.raises(ValueError, match="pdfminer_ties must be one of"):
+            PDFReader(input_path=pdf_path, pdfminer_ties=ties)
+
+    def test_pdfminer_ties_needs_only_pdfminers_own_modules(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The stable layout's extra modules are not imported for "pdfminer".
+        used = self._install(monkeypatch)
+
+        def refuse() -> Any:
+            raise AssertionError("the stable layout was built")
+
+        monkeypatch.setattr(_pdf, "_stable_layout_classes", refuse)
+        reader = _reader(
+            pdf_path, monkeypatch, 1, prefer_backend="pdfminer", pdfminer_ties="pdfminer"
+        )
+        assert _texts(reader) == [(0, "text")]
+        assert used == ["pdfminer"]

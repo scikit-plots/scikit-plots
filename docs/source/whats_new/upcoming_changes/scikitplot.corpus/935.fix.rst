@@ -2,4 +2,5 @@
   ordered text boxes that are equally far apart by their memory address, so
   a page with many such boxes (a figure with repeated labels) could come
   out in a different order on another read of the same file. Pages without
-  such ties read as before, columns included.
+  such ties read as before, columns included. ``pdfminer_ties="pdfminer"``
+  reads in pdfminer.six's own order.

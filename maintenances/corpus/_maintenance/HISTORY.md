@@ -10,7 +10,11 @@
   page runs the same algorithm, each box and group numbered in creation
   order in place of `id()`. Pairs that do not tie merge as before, so
   pdfminer's grouping into columns is kept. Option (c) of the ledger note;
-  the note is removed.
+  the note is removed. `PDFReader(pdfminer_ties="stable" | "pdfminer")`
+  chooses the layout: `"pdfminer"` calls `extract_pages` itself, for
+  comparing with pdfminer.six or if a pdfminer release changes the
+  internals the stable page relies on (`begin_page` setting `cur_item`,
+  `analyze` calling `group_textboxes`).
 - Research files (13 PDFs, 495 pages): 3 or 4 pages differ from pdfminer's own
   read (pdfminer's own read varies), every one a page with a tie; 4 reads per file: 1 unstable file on
   main, none on the branch. Reading time unchanged (277 pages: 9.96 s ->

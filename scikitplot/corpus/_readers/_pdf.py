@@ -329,6 +329,11 @@ class _PdfminerPages:
         Keyword arguments for ``pdfminer.high_level.extract_pages``. A
         mapping under ``"laparams"`` is turned into a
         ``pdfminer.layout.LAParams``.
+    ties : {"stable", "pdfminer"}, optional
+        How text boxes that are equally far apart are grouped:
+        ``"stable"`` in the order they were found (the same text on every
+        read), ``"pdfminer"`` as pdfminer.six orders them, by memory
+        address. Default: ``"stable"``.
 
     Notes
     -----
@@ -345,10 +350,12 @@ class _PdfminerPages:
         pdf_path: Any,
         password: str = "",
         kwargs: Mapping[str, Any] | None = None,
+        ties: str = "stable",
     ) -> None:
         self._path = pdf_path
         self._password = password
         self._kwargs = kwargs
+        self._ties = ties
         self._pages: Any = None
         #: Why the first page that failed could not be read, if any did.
         self.error: str | None = None
@@ -383,7 +390,13 @@ class _PdfminerPages:
                 LTTextContainer,
             )
 
-            _stable_layout_classes()
+            if self._ties == "stable":
+                _stable_layout_classes()
+                extract: Any = _stable_extract_pages
+            else:
+                from pdfminer.high_level import (  # type: ignore[] # noqa: PLC0415
+                    extract_pages as extract,
+                )
         except ImportError as exc:
             raise _pdfminer_import_error(exc) from exc
 
@@ -400,7 +413,7 @@ class _PdfminerPages:
                     ) from exc
             try:
                 # page_numbers is a container of 0-based indices; None is all.
-                self._pages = _stable_extract_pages(
+                self._pages = extract(
                     str(self._path),
                     password=self._password,
                     page_numbers=(
@@ -559,6 +572,8 @@ class _PageTexts:
         per-page fallback to pypdf.
     pdfminer_kwargs : Mapping or None, optional
         Keyword arguments for ``pdfminer.high_level.extract_pages``.
+    pdfminer_ties : {"stable", "pdfminer"}, optional
+        See :class:`_PdfminerPages`. Default: ``"stable"``.
     """
 
     def __init__(
@@ -567,9 +582,12 @@ class _PageTexts:
         password: str,
         prefer_backend: str | None,
         pdfminer_kwargs: Mapping[str, Any] | None = None,
+        pdfminer_ties: str = "stable",
     ) -> None:
         self._prefer_backend = prefer_backend
-        self._pdfminer = _PdfminerPages(pdf_path, password, pdfminer_kwargs)
+        self._pdfminer = _PdfminerPages(
+            pdf_path, password, pdfminer_kwargs, pdfminer_ties
+        )
         self._warned = False
         #: Number of pages a backend returned text (possibly empty) for.
         self.n_read = 0
@@ -1030,8 +1048,15 @@ class PDFReader(DocumentReader):
         ``"laparams"`` is turned into a ``pdfminer.layout.LAParams``, so
         the layout analysis can be set without importing pdfminer.
         ``password``, ``page_numbers`` and ``maxpages`` are set by the
-        reader and are not accepted. ``None`` uses pdfminer's defaults. See
-        the Notes for a reproducible read. Default: ``None``.
+        reader and are not accepted. ``None`` uses pdfminer's defaults.
+        Default: ``None``.
+    pdfminer_ties : {"stable", "pdfminer"}, optional
+        How pdfminer.six's layout groups text boxes that are equally far
+        apart. ``"stable"``: in the order the boxes were found, so a page
+        gives the same text on every read. ``"pdfminer"``: pdfminer.six's
+        own order, by memory address, which can change from one read to the
+        next; for comparing with pdfminer.six itself. Pages without such
+        ties are the same either way. See the Notes. Default: ``"stable"``.
     ocr : {"off", "auto", "always"} or callable, optional
         Which pages are rendered and read with OCR. ``"off"`` reads the text
         layer only. ``"auto"`` reads a page with OCR when its text layer has
@@ -1128,6 +1153,9 @@ class PDFReader(DocumentReader):
     different order on another read; the reader breaks those ties by the
     order in which the boxes were found. Pages without ties, and pdfminer's
     grouping of boxes into columns, are as pdfminer.six lays them out.
+    ``pdfminer_ties="pdfminer"`` reads in pdfminer.six's own order instead.
+    ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders the boxes
+    by position without grouping them into columns: reproducible either way.
 
     **Encrypted PDFs:** Supply ``password`` when constructing the reader.
     If the password is wrong, affected pages are skipped with a warning.
@@ -1169,6 +1197,8 @@ class PDFReader(DocumentReader):
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
 
+    _VALID_PDFMINER_TIES: ClassVar[tuple[str, ...]] = ("stable", "pdfminer")
+
     # extract_pages arguments the reader passes itself. maxpages is among
     # them because the reader reads every page and may open the file again.
     _PDFMINER_RESERVED: ClassVar[frozenset[str]] = frozenset(
@@ -1194,6 +1224,12 @@ class PDFReader(DocumentReader):
     """
     Keyword arguments for ``pdfminer.high_level.extract_pages``; ``None``
     uses pdfminer's defaults. Default: ``None``.
+    """
+
+    pdfminer_ties: str = field(default="stable")
+    """
+    ``"stable"`` (same text on every read) or ``"pdfminer"`` (pdfminer.six's
+    own order of equally distant text boxes). Default: ``"stable"``.
     """
 
     ocr: str | Callable[[int, str], bool] = field(default="off")
@@ -1256,6 +1292,8 @@ class PDFReader(DocumentReader):
             If ``pypdfium2_kwargs`` holds ``scale``.
         ValueError
             If ``pdfminer_kwargs`` holds an argument the reader sets itself.
+        ValueError
+            If ``pdfminer_ties`` is not ``"stable"`` or ``"pdfminer"``.
         """
         super().__post_init__()
         if (
@@ -1306,6 +1344,12 @@ class PDFReader(DocumentReader):
                     f"PDFReader: pdfminer_kwargs must not hold {reserved}; the"
                     " reader sets these arguments itself."
                 )
+
+        if self.pdfminer_ties not in self._VALID_PDFMINER_TIES:
+            raise ValueError(
+                f"PDFReader: pdfminer_ties must be one of"
+                f" {list(self._VALID_PDFMINER_TIES)}; got {self.pdfminer_ties!r}."
+            )
 
         self._validate_ocr()
 
@@ -1444,6 +1488,7 @@ class PDFReader(DocumentReader):
             self.password,
             self.prefer_backend,
             self.pdfminer_kwargs,
+            self.pdfminer_ties,
         )
         ocr = self._page_ocr()
         try:
