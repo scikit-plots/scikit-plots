@@ -26,6 +26,12 @@
   pdfminer's; the mutant numbering by `id()` fails 1). The pdfminer fake in
   `test__pdf.py` stands in for `_stable_extract_pages`; damaged-install
   tests name the modules the layout imports.
+- `reader_snapshot.py --include/--exclude GLOB`: the full research folder
+  did not finish in 15 minutes, mostly image OCR. Patterns are matched
+  case-insensitively against the relative path, recorded in the snapshot,
+  and `compare` reports a `selection:` line when two snapshots used
+  different ones. The research folder without `*.jpg`, `*.gif`, `*.png`:
+  139 files, 1 error (`.pptx`: no reader), 0 unstable on this branch.
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934
