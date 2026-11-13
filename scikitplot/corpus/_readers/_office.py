@@ -360,8 +360,7 @@ class OfficeReader(DocumentReader):
         for name in ("notes", "hidden_slides"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(
-                    f"OfficeReader: {name} must be a bool;"
-                    f" got {getattr(self, name)!r}."
+                    f"OfficeReader: {name} must be a bool; got {getattr(self, name)!r}."
                 )
         for name in ("max_file_bytes", "max_part_bytes", "max_parts"):
             value = getattr(self, name)
