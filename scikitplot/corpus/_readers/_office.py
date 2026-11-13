@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import posixpath
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Generator, Iterator
 
@@ -205,8 +206,23 @@ class _Package:
                 f"OfficeReader: part {part!r} of {self._name} is"
                 f" {info.file_size:,} bytes (max_part_bytes={self._max:,})."
             )
-        with self._zf.open(info) as src:
-            data = src.read(self._max + 1)
+        try:
+            with self._zf.open(info) as src:
+                data = src.read(self._max + 1)
+        except (
+            zipfile.BadZipFile,
+            zlib.error,
+            EOFError,
+            NotImplementedError,
+            RuntimeError,
+            OSError,
+        ) as exc:
+            # A damaged member, a compression method Python lacks, or a
+            # member encrypted at the ZIP level (RuntimeError).
+            raise ValueError(
+                f"OfficeReader: part {part!r} of {self._name} cannot be read"
+                f" from the package ({type(exc).__name__}: {exc})."
+            ) from exc
         if len(data) > self._max:
             # The declared size understated the content.
             raise ValueError(
@@ -270,20 +286,58 @@ class _Package:
 # ---------------------------------------------------------------------------
 
 
-def _word_paragraph(p: Any) -> str:
-    """Return the text of a ``w:p``: runs, tabs and breaks; deletions dropped."""
-    out: list[str] = []
-    t, tab, br, cr = (_q(_W, n) for n in ("t", "tab", "br", "cr"))
-    hyphen, deleted = _q(_W, "noBreakHyphen"), _q(_W, "del")
-    stack = [iter(p)]
+#: The fallback of a markup-compatibility block: the same content again, in
+#: an older form, next to the ``mc:Choice`` a reader of this format takes.
+_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+
+
+def _walk(
+    root: Any, *, skip: frozenset = frozenset(), leaves: frozenset = frozenset()
+) -> Iterator[Any]:
+    """
+    Yield the descendants of *root* in document order, each once.
+
+    Parameters
+    ----------
+    root : Element
+        Where to start; not yielded itself.
+    skip : frozenset of str, optional
+        Tags whose subtree is left out. ``mc:Fallback`` is always left out.
+    leaves : frozenset of str, optional
+        Tags that are yielded but not entered, so content nested in them
+        (a table in a cell, a text box in a paragraph) is read by whoever
+        reads the leaf, and only there.
+    """
+    stack = [iter(root)]
     while stack:
         node = next(stack[-1], None)
         if node is None:
             stack.pop()
             continue
         tag = node.tag
-        if tag == deleted:
-            continue  # tracked deletion: not part of the current text
+        if tag == _FALLBACK or tag in skip:
+            continue
+        yield node
+        if tag not in leaves:
+            stack.append(iter(node))
+
+
+#: Tracked changes whose text is not in the document as it now reads.
+_WORD_REMOVED = frozenset({_q(_W, "del"), _q(_W, "moveFrom")})
+
+
+def _word_paragraph(p: Any) -> str:
+    """
+    Return the text of a ``w:p``: runs, tabs and breaks.
+
+    Tracked deletions and the old place of moved text are dropped; a
+    markup-compatibility fallback is not read a second time.
+    """
+    out: list[str] = []
+    t, tab, br, cr = (_q(_W, n) for n in ("t", "tab", "br", "cr"))
+    hyphen = _q(_W, "noBreakHyphen")
+    for node in _walk(p, skip=_WORD_REMOVED):
+        tag = node.tag
         if tag == t:
             out.append(node.text or "")
         elif tag == tab:
@@ -292,8 +346,14 @@ def _word_paragraph(p: Any) -> str:
             out.append("\n")
         elif tag == hyphen:
             out.append("-")
-        stack.append(iter(node))
     return "".join(out)
+
+
+def _word_paragraphs(container: Any) -> list[str]:
+    """Return the text of each ``w:p`` under *container*, nested ones in their parent."""
+    p = _q(_W, "p")
+    found = _walk(container, skip=_WORD_REMOVED, leaves=frozenset({p}))
+    return [_word_paragraph(node) for node in found if node.tag == p]
 
 
 def _outline_level(properties: Any) -> int | None:
@@ -362,12 +422,21 @@ def _word_heading(p: Any, levels: dict[str, int]) -> int | None:
 
 
 def _word_table(tbl: Any) -> str:
-    """Return a ``w:tbl`` as lines of tab-separated cells; empty rows dropped."""
+    """
+    Return a ``w:tbl`` as lines of tab-separated cells; empty rows dropped.
+
+    A table nested in a cell is part of that cell's text and is not read
+    again as rows of its own.
+    """
+    tr, tc = _q(_W, "tr"), _q(_W, "tc")
     rows = []
-    for tr in tbl.iter(_q(_W, "tr")):
+    for row in _walk(tbl, leaves=frozenset({tr})):
+        if row.tag != tr:
+            continue
         cells = [
-            "\n".join(_word_paragraph(p) for p in tc.iter(_q(_W, "p"))).strip()
-            for tc in tr.findall(_q(_W, "tc"))
+            "\n".join(_word_paragraphs(cell)).strip()
+            for cell in _walk(row, leaves=frozenset({tc}))
+            if cell.tag == tc
         ]
         if any(cells):
             rows.append("\t".join(cells))
@@ -378,7 +447,7 @@ def _drawing_paragraph(p: Any) -> str:
     """Return the text of one DrawingML ``a:p``: its runs and line breaks."""
     t, br = _q(_A, "t"), _q(_A, "br")
     parts = []
-    for node in p.iter():
+    for node in _walk(p):
         if node.tag == t:
             parts.append(node.text or "")
         elif node.tag == br:
@@ -388,25 +457,28 @@ def _drawing_paragraph(p: Any) -> str:
 
 def _drawing_paragraphs(container: Any) -> list[str]:
     """Return the ``a:p`` paragraphs under *container* in document order."""
-    return [_drawing_paragraph(p) for p in container.iter(_q(_A, "p"))]
+    p = _q(_A, "p")
+    found = _walk(container, leaves=frozenset({p}))
+    return [_drawing_paragraph(node) for node in found if node.tag == p]
 
 
 def _slide_text(root: Any) -> str:
     """Return a slide's text: shapes in document order, tables as rows."""
     lines: list[str] = []
-    tbl = _q(_A, "tbl")
-    tables = list(root.iter(tbl))
-    in_table = {id(p) for table in tables for p in table.iter(_q(_A, "p"))}
-    for node in root.iter():
+    tbl, tr, tc, p = (_q(_A, n) for n in ("tbl", "tr", "tc", "p"))
+    for node in _walk(root, leaves=frozenset({tbl, p})):
         if node.tag == tbl:
-            for tr in node.iter(_q(_A, "tr")):
+            for row in _walk(node, leaves=frozenset({tr})):
+                if row.tag != tr:
+                    continue
                 cells = [
-                    "\n".join(_drawing_paragraphs(tc)).strip()
-                    for tc in tr.findall(_q(_A, "tc"))
+                    "\n".join(_drawing_paragraphs(cell)).strip()
+                    for cell in _walk(row, leaves=frozenset({tc}))
+                    if cell.tag == tc
                 ]
                 if any(cells):
                     lines.append("\t".join(cells))
-        elif node.tag == _q(_A, "p") and id(node) not in in_table:
+        elif node.tag == p:
             lines.append(_drawing_paragraph(node))
     return "\n".join(line for line in lines if line.strip()).strip()
 
@@ -624,7 +696,11 @@ def _odf_rows(table: Any, what: str) -> Iterator[tuple[int, str]]:
     cell_tag = _q(_O_TABLE, "table-cell")
     covered = _q(_O_TABLE, "covered-table-cell")
     number = 0
-    for row in table.iter(_q(_O_TABLE, "table-row")):
+    row_tag = _q(_O_TABLE, "table-row")
+    for row in _walk(table, leaves=frozenset({row_tag})):
+        # Rows are not entered: a table nested in a cell is that cell's text.
+        if row.tag != row_tag:
+            continue
         rows = _repeat(row, "number-rows-repeated")
         cells: list[str] = []
         gap = 0
@@ -1083,8 +1159,10 @@ class OfficeReader(DocumentReader):
                     yield ("table", _word_table(node))
                 elif node.tag == _q(_W, "sdt"):
                     # A content control: its paragraphs read as body text.
-                    for p in node.iter(_q(_W, "p")):
-                        yield paragraph(p)
+                    p_tag = _q(_W, "p")
+                    for p in _walk(node, skip=_WORD_REMOVED, leaves=frozenset({p_tag})):
+                        if p.tag == p_tag:
+                            yield paragraph(p)
 
         yield from self._sections(blocks(), main)
         if not self.notes:
@@ -1097,9 +1175,7 @@ class OfficeReader(DocumentReader):
             for note in notes_root.iter(_q(_W, element)):
                 if note.get(_q(_W, "type")) in ("separator", "continuationSeparator"):
                     continue
-                text = "\n".join(
-                    _word_paragraph(p) for p in note.iter(_q(_W, "p"))
-                ).strip()
+                text = "\n".join(_word_paragraphs(note)).strip()
                 if text:
                     yield {
                         "text": text,
@@ -1234,7 +1310,9 @@ class OfficeReader(DocumentReader):
 def _notes_text(root: Any) -> str:
     """Return the body text of a notes slide (not its slide image or number)."""
     lines: list[str] = []
-    for sp in root.iter(_q(_P, "sp")):
+    for sp in _walk(root):
+        if sp.tag != _q(_P, "sp"):
+            continue
         ph = sp.find(f"{_q(_P, 'nvSpPr')}/{_q(_P, 'nvPr')}/{_q(_P, 'ph')}")
         if ph is None or ph.get("type") != "body":
             continue

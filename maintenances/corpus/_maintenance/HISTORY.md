@@ -1,5 +1,34 @@
 # Corpus maintenance history
 
+## 2026-11-14 — office reader review: text read twice, untyped package errors, PR 936
+
+Review of `_readers/_office.py` after PR 935, each finding reproduced on
+`main` first:
+
+- **CX-26: a markup-compatibility fallback was read as well as its
+  choice.** A Word text box (`mc:Choice` with `wps`, `mc:Fallback` with
+  `w:pict`) gave "box" twice; a slide equation the same.
+- **CX-27: moved text was read at both places.** `w:moveFrom` holds `w:t`
+  (unlike `w:del`, which holds `w:delText`).
+- **CX-28: a table nested in a cell was read twice**, as the cell's text
+  and again as rows of the outer table (Word `tbl.iter(tr)`, OpenDocument
+  `table.iter(table-row)`); a text box in a cell paragraph likewise. Rows
+  and cells wrapped in a content control were not found at all.
+- **CX-29: `BadZipFile` and `RuntimeError` escaped** for a damaged member
+  and for one encrypted at the ZIP level; the reader documents
+  `ValueError`.
+
+One cause for the first three: descendants were collected with
+`Element.iter`, which enters everything. `_walk(root, skip=, leaves=)`
+visits each descendant once, never enters `mc:Fallback` or a `skip` tag,
+and yields a `leaves` tag without entering it, so nested content is read
+by its container only. Paragraphs, tables, rows, cells, slides and notes
+now use it. Package reads are wrapped in `_Package.xml`.
+
+- Tests: 9 new (115); all 9 fail on `main`; 7 mutants, each caught.
+  Research snapshot unchanged (139 files); corpus suite unchanged.
+- Evidence: `evidence/round-2026-11-14-office-review.log`.
+
 ## 2026-11-13 — PDF page text the same on every read, PR 935
 
 - **CX-16 (c): pdfminer.six grouped tied text boxes by memory address.**

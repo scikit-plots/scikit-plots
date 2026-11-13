@@ -1022,3 +1022,125 @@ class TestHeadings:
         ]
         joined = "\n".join(c["text"] for c in _chunks(path, headings=False))
         assert joined == "preface\nOne\na\ncell\nDeep\nb\nPlain\nFar"
+
+
+# ---------------------------------------------------------------------------
+# Every piece of text is read once
+# ---------------------------------------------------------------------------
+
+MC = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+
+
+def _alternate(choice: str, fallback: str) -> str:
+    return (
+        f'<mc:AlternateContent xmlns:mc="{MC}"><mc:Choice Requires="x">{choice}'
+        f"</mc:Choice><mc:Fallback>{fallback}</mc:Fallback></mc:AlternateContent>"
+    )
+
+
+class TestReadOnce:
+    def test_a_word_text_box_is_not_read_from_its_fallback_too(self, tmp_path):
+        box = "<w:txbxContent>" + _p("box") + "</w:txbxContent>"
+        body = (
+            "<w:p><w:r><w:t>body </w:t></w:r><w:r>"
+            + _alternate(box, f"<w:pict>{box}</w:pict>")
+            + "</w:r></w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "body box"
+
+    def test_moved_text_is_read_at_its_new_place_only(self, tmp_path):
+        body = (
+            "<w:p><w:moveFrom><w:r><w:t>moved</w:t></w:r></w:moveFrom>"
+            "<w:r><w:t>stay</w:t></w:r></w:p>"
+            "<w:p><w:moveTo><w:r><w:t>moved</w:t></w:r></w:moveTo></w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "stay\nmoved"
+
+    def test_a_nested_word_table_is_its_cells_text(self, tmp_path):
+        inner = "<w:tbl><w:tr><w:tc>" + _p("inner") + "</w:tc></w:tr></w:tbl>"
+        body = (
+            "<w:tbl><w:tr><w:tc>"
+            + _p("outer")
+            + inner
+            + "</w:tc><w:tc>"
+            + _p("b")
+            + "</w:tc></w:tr></w:tbl>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "outer\ninner\tb"
+
+    def test_rows_and_cells_inside_content_controls_are_found(self, tmp_path):
+        body = (
+            "<w:tbl><w:sdt><w:sdtContent><w:tr><w:sdt><w:sdtContent><w:tc>"
+            + _p("a")
+            + "</w:tc></w:sdtContent></w:sdt><w:tc>"
+            + _p("b")
+            + "</w:tc></w:tr></w:sdtContent></w:sdt></w:tbl>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "a\tb"
+
+    def test_a_text_box_in_a_table_cell_paragraph_is_read_once(self, tmp_path):
+        cell = (
+            "<w:p><w:r><w:t>cell </w:t></w:r><w:r><w:txbxContent>"
+            + _p("box")
+            + "</w:txbxContent></w:r></w:p>"
+        )
+        body = f"<w:tbl><w:tr><w:tc>{cell}</w:tc></w:tr></w:tbl>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "cell box"
+
+    def test_a_slide_shape_is_not_read_from_its_fallback_too(self, tmp_path):
+        def shape(text: str) -> str:
+            return f"<p:sp><p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>"
+
+        slides = [
+            ("slide1.xml", _slide("title", table=_alternate(shape("m"), shape("m"))))
+        ]
+        (chunk,) = _chunks(_pptx(tmp_path / "d.pptx", slides, ["slide1.xml"]))
+        assert chunk["text"] == "title\nm"
+
+    def test_a_nested_opendocument_table_is_its_cells_text(self, tmp_path):
+        inner = "<table:table>" + _row(_cell("inner")) + "</table:table>"
+        outer_cell = (
+            f"<table:table-cell><text:p>outer</text:p>{inner}</table:table-cell>"
+        )
+        body = "<table:table>" + _row(outer_cell + _cell("b")) + "</table:table>"
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", body))
+        assert chunk["text"] == "outer\ninner\tb"
+
+
+class TestDamagedPackage:
+    def _flagged(self, source: Path, target: Path) -> Path:
+        """Copy *source* with every member marked encrypted at the ZIP level."""
+        raw = bytearray(source.read_bytes())
+        for signature, offset in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+            at = raw.find(signature)
+            while at >= 0:
+                raw[at + offset] |= 1
+                at = raw.find(signature, at + 4)
+        target.write_bytes(bytes(raw))
+        return target
+
+    def test_a_member_encrypted_at_the_zip_level_is_a_value_error(self, tmp_path):
+        plain = _docx(tmp_path / "plain.docx", _p("x"))
+        with pytest.raises(ValueError, match="cannot be read from the package"):
+            _chunks(self._flagged(plain, tmp_path / "d.docx"))
+
+    def test_a_damaged_member_is_a_value_error_naming_the_part(self, tmp_path):
+        path = tmp_path / "d.docx"
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as zf:
+            zf.writestr(
+                "_rels/.rels", _rels(("rId1", "officeDocument", "word/document.xml"))
+            )
+            zf.writestr("word/document.xml", f'<w:document xmlns:w="{W}"/>' + " " * 200)
+        raw = bytearray(path.read_bytes())
+        at = raw.find(b"<w:document")
+        raw[at + 60 : at + 70] = (
+            b"\xff" * 10
+        )  # the stored bytes no longer match the CRC
+        path.write_bytes(bytes(raw))
+        with pytest.raises(ValueError, match=r"word/document\.xml"):
+            _chunks(path)
