@@ -304,7 +304,11 @@ def _stable_layout_classes() -> tuple[type, type]:
     class _StableAggregator(PDFPageAggregator):
         def begin_page(self, page: Any, ctm: Any) -> None:
             super().begin_page(page, ctm)
-            self.cur_item = _StablePage(self.cur_item.pageid, self.cur_item.bbox)
+            # Re-class pdfminer's own page rather than build one: every
+            # attribute its constructor set (rotate, and any a later release
+            # adds) is kept, whatever the constructor's signature.
+            if type(self.cur_item) is LTPage:
+                self.cur_item.__class__ = _StablePage
 
     return _StablePage, _StableAggregator
 

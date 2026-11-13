@@ -21,6 +21,7 @@ import pytest
 
 layout = pytest.importorskip("pdfminer.layout")
 pytest.importorskip("pdfminer.converter")
+pdfinterp = pytest.importorskip("pdfminer.pdfinterp")
 
 from .._pdf import _stable_layout_classes  # noqa: E402
 
@@ -86,3 +87,73 @@ class TestStableGrouping:
         assert issubclass(page_class, layout.LTPage)
         converter = pytest.importorskip("pdfminer.converter")
         assert issubclass(device_class, converter.PDFPageAggregator)
+
+
+class _Page:
+    """The one attribute ``begin_page`` reads from a ``PDFPage``."""
+
+    mediabox = (0, 0, 300, 400)
+
+
+def _begin(device_class: type) -> object:
+    device = device_class(pdfinterp.PDFResourceManager(), laparams=layout.LAParams())
+    device.begin_page(_Page(), (1, 0, 0, 1, 0, 0))
+    return device.cur_item
+
+
+class TestStableDevice:
+    def test_the_page_keeps_every_attribute_pdfminer_set(self):
+        converter = pytest.importorskip("pdfminer.converter")
+        page_class, device_class = _stable_layout_classes()
+        ours = _begin(device_class)
+        theirs = _begin(converter.PDFPageAggregator)
+        assert type(ours) is page_class
+        assert vars(ours).keys() == vars(theirs).keys()
+        assert (ours.pageid, ours.bbox, ours.rotate) == (
+            theirs.pageid,
+            theirs.bbox,
+            theirs.rotate,
+        )
+
+
+class TestStableGroupingEdges:
+    def test_no_boxes_is_no_group(self):
+        page_class, _ = _stable_layout_classes()
+        page = page_class(1, (0, 0, 200, 200))
+        assert page.group_textboxes(layout.LAParams(), []) == []
+
+    @pytest.mark.parametrize("reverse_allocation", [False, True])
+    def test_vertical_boxes_group_top_to_bottom_right_to_left(self, reverse_allocation):
+        page_class, _ = _stable_layout_classes()
+        boxes: list = [None] * len(GRID)
+        order = range(len(GRID))
+        for i in reversed(order) if reverse_allocation else order:
+            box = layout.LTTextBoxVertical()
+            x, y = GRID[i]
+            box.set_bbox((x, y, x + 10.0, y + 10.0))
+            boxes[i] = box
+        page = page_class(1, (0, 0, 200, 200))
+        (top,) = page.group_textboxes(layout.LAParams(), boxes)
+        assert isinstance(top, layout.LTTextGroupTBRL)
+
+    def test_vertical_ties_give_one_order_whatever_the_addresses(self):
+        page_class, _ = _stable_layout_classes()
+
+        def order(reverse_allocation: bool) -> list:
+            boxes: list = [None] * len(GRID)
+            spacers = []
+            idx = range(len(GRID))
+            for i in reversed(idx) if reverse_allocation else idx:
+                spacers.append([0] * (i + 1))
+                box = layout.LTTextBoxVertical()
+                x, y = GRID[i]
+                box.set_bbox((x, y, x + 10.0, y + 10.0))
+                box.tag = i
+                boxes[i] = box
+            page = page_class(1, (0, 0, 200, 200))
+            assigner = layout.IndexAssigner()
+            for group in page.group_textboxes(layout.LAParams(), boxes):
+                assigner.run(group)
+            return [b.tag for b in sorted(boxes, key=lambda b: b.index)]
+
+        assert order(False) == order(True)
