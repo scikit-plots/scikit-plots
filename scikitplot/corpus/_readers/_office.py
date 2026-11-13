@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Office Open XML documents: Word and PowerPoint (``.docx``, ``.pptx`` and kin).
+Office Open XML documents: Word, PowerPoint and Excel (``.docx``, ``.pptx``, ``.xlsx``).
 
 An Office Open XML file is a ZIP package of XML parts. This reader opens the
 package in memory, follows its relationships to the parts that hold text and
@@ -35,11 +35,14 @@ _DOC_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 _A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 _P = "http://schemas.openxmlformats.org/presentationml/2006/main"
+_S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
 #: Relationship types, by their last path segment.
 _OFFICE_DOCUMENT = "officeDocument"
 _SLIDE = "slide"
 _NOTES_SLIDE = "notesSlide"
+_WORKSHEET = "worksheet"
+_SHARED_STRINGS = "sharedStrings"
 _FOOTNOTES = "footnotes"
 _ENDNOTES = "endnotes"
 
@@ -48,6 +51,7 @@ _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
 _WORD_EXTENSIONS = [".docx", ".docm", ".dotx", ".dotm"]
 _POWERPOINT_EXTENSIONS = [".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm"]
+_EXCEL_EXTENSIONS = [".xlsx", ".xlsm", ".xltx", ".xltm"]
 
 
 def _q(namespace: str, name: str) -> str:
@@ -254,6 +258,94 @@ def _slide_text(root: Any) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Text of SpreadsheetML
+# ---------------------------------------------------------------------------
+
+
+def _string_item(si: Any) -> str:
+    """Return a shared or inline string: its ``t`` runs, phonetic runs left out."""
+    t, phonetic = _q(_S, "t"), _q(_S, "rPh")
+    out: list[str] = []
+    stack = [iter(si)]
+    while stack:
+        node = next(stack[-1], None)
+        if node is None:
+            stack.pop()
+            continue
+        if node.tag == phonetic:
+            continue
+        if node.tag == t:
+            out.append(node.text or "")
+        stack.append(iter(node))
+    return "".join(out)
+
+
+def _column_index(ref: str) -> int | None:
+    """Return the 0-based column of a cell reference (``"C7"`` -> 2)."""
+    index = 0
+    letters = 0
+    for char in ref:
+        if "A" <= char <= "Z":
+            index = index * 26 + (ord(char) - 64)
+            letters += 1
+        else:
+            break
+    return index - 1 if letters else None
+
+
+def _cell_text(cell: Any, shared: list[str]) -> str:
+    """
+    Return a cell's value as text: as stored, never computed.
+
+    Shared strings are looked up, booleans read ``TRUE``/``FALSE``, a
+    formula gives its cached result (none: empty), numbers and dates give
+    the stored number.
+    """
+    kind = cell.get("t", "n")
+    if kind == "inlineStr":
+        inline = cell.find(_q(_S, "is"))
+        return "" if inline is None else _string_item(inline)
+    value = cell.find(_q(_S, "v"))
+    text = "" if value is None or value.text is None else value.text
+    if kind == "s":
+        try:
+            return shared[int(text)]
+        except (ValueError, IndexError):
+            return ""
+    if kind == "b":
+        return {"1": "TRUE", "0": "FALSE"}.get(text, text)
+    return text
+
+
+def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
+    """
+    Yield ``(row number, line)`` for each row with a value.
+
+    Cells are tab-separated at their column, so a gap keeps its place;
+    trailing empty cells are dropped.
+    """
+    c_tag = _q(_S, "c")
+    for position, row in enumerate(root.iter(_q(_S, "row")), start=1):
+        try:
+            number = int(row.get("r") or position)
+        except ValueError:
+            number = position
+        cells: dict[int, str] = {}
+        following = 0
+        for cell in row.findall(c_tag):
+            column = _column_index(cell.get("r") or "")
+            if column is None:
+                column = following
+            following = column + 1
+            cells[column] = _cell_text(cell, shared)
+        values = [cells.get(i, "") for i in range(max(cells, default=-1) + 1)]
+        while values and not values[-1].strip():
+            values.pop()
+        if values:
+            yield number, "\t".join(values)
+
+
+# ---------------------------------------------------------------------------
 # Reader
 # ---------------------------------------------------------------------------
 
@@ -261,13 +353,15 @@ def _slide_text(root: Any) -> str:
 @dataclass
 class OfficeReader(DocumentReader):
     r"""
-    Read Word and PowerPoint files in the Office Open XML format.
+    Read Word, PowerPoint and Excel files in the Office Open XML format.
 
     Word documents (``.docx``, ``.docm``, ``.dotx``, ``.dotm``) give their
     body in document order, a chunk per run of paragraphs between tables and
     a chunk per table, then footnotes and endnotes. Presentations
     (``.pptx``, ``.pptm``, ``.potx``, ``.potm``, ``.ppsx``, ``.ppsm``) give
     a chunk per slide in the order of the deck, then, if asked, its notes.
+    Workbooks (``.xlsx``, ``.xlsm``, ``.xltx``, ``.xltm``) give each
+    worksheet in workbook order, ``rows_per_chunk`` rows a chunk.
 
     Parameters
     ----------
@@ -276,9 +370,12 @@ class OfficeReader(DocumentReader):
     notes : bool, optional
         Read speaker notes (PowerPoint) and footnotes and endnotes (Word).
         Default: ``True``.
-    hidden_slides : bool, optional
-        Read slides marked hidden. Their chunks carry ``hidden=True``.
-        Default: ``True``.
+    hidden : bool, optional
+        Read slides and sheets marked hidden. Their chunks carry
+        ``hidden=True``. Default: ``True``.
+    rows_per_chunk : int, optional
+        Most spreadsheet rows in one chunk; a longer sheet gives several
+        chunks. Default: ``500``.
     max_file_bytes : int, optional
         Largest file read. Default: 500 MB.
     max_part_bytes : int, optional
@@ -292,7 +389,7 @@ class OfficeReader(DocumentReader):
     Attributes
     ----------
     file_types : list of str
-        The Word and PowerPoint extensions above.
+        The Word, PowerPoint and Excel extensions above.
 
     Raises
     ------
@@ -315,7 +412,12 @@ class OfficeReader(DocumentReader):
     ``page_number`` (0-based position in the deck) and ``hidden``; notes
     add ``page_number`` of their slide. Word tables are ``section_type
     "table"``, cells separated by tabs and rows by lines; footnotes and
-    endnotes are ``"footnote"``.
+    endnotes are ``"footnote"``. Sheet chunks are ``"table"``, rows by line
+    and cells by tab at their column, with ``page_number`` (0-based sheet
+    position), ``sheet`` (its name), ``row_start``, ``row_end`` (1-based
+    row numbers) and ``hidden``. A cell gives its stored value: the cached
+    result of a formula (formulas are never computed), dates as their
+    serial number, booleans as ``TRUE``/``FALSE``.
 
     **Order.** Slides follow the deck's list (``p:sldIdLst``), not their
     part names, so ``slide11.xml`` can come before ``slide2.xml``.
@@ -326,8 +428,12 @@ class OfficeReader(DocumentReader):
     targets, or to targets above the package root, are not followed.
     Tracked deletions are dropped; fields read as their cached text.
 
+    **Memory.** Each part is parsed whole, so a sheet's memory is bounded by
+    ``max_part_bytes``, not streamed.
+
     **Not read (yet):** headers and footers, comments, charts, SmartArt,
-    embedded images (no OCR), slide masters and layouts.
+    embedded images (no OCR), slide masters and layouts; number formats
+    (dates read as numbers); chartsheets.
 
     Examples
     --------
@@ -337,13 +443,18 @@ class OfficeReader(DocumentReader):
     >>> docs = list(reader.get_documents())
     """
 
-    file_types: ClassVar[list[str] | None] = _WORD_EXTENSIONS + _POWERPOINT_EXTENSIONS
+    file_types: ClassVar[list[str] | None] = (
+        _WORD_EXTENSIONS + _POWERPOINT_EXTENSIONS + _EXCEL_EXTENSIONS
+    )
 
     notes: bool = field(default=True)
     """Read speaker notes, footnotes and endnotes. Default: ``True``."""
 
-    hidden_slides: bool = field(default=True)
-    """Read slides marked hidden. Default: ``True``."""
+    hidden: bool = field(default=True)
+    """Read slides and sheets marked hidden. Default: ``True``."""
+
+    rows_per_chunk: int = field(default=500)
+    """Most spreadsheet rows in one chunk. Default: ``500``."""
 
     max_file_bytes: int = field(default=500 * 1024 * 1024)
     """Largest file read. Default: 500 MB."""
@@ -357,12 +468,12 @@ class OfficeReader(DocumentReader):
     def __post_init__(self) -> None:
         """Validate the options."""
         super().__post_init__()
-        for name in ("notes", "hidden_slides"):
+        for name in ("notes", "hidden"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(
                     f"OfficeReader: {name} must be a bool; got {getattr(self, name)!r}."
                 )
-        for name in ("max_file_bytes", "max_part_bytes", "max_parts"):
+        for name in ("max_file_bytes", "max_part_bytes", "max_parts", "rows_per_chunk"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise ValueError(
@@ -421,10 +532,12 @@ class OfficeReader(DocumentReader):
                 chunks = self._word(pkg, main, root)
             elif root.tag == _q(_P, "presentation"):
                 chunks = self._powerpoint(pkg, main, root)
+            elif root.tag == _q(_S, "workbook"):
+                chunks = self._excel(pkg, main, root)
             else:
                 raise ValueError(
                     f"OfficeReader: {self.file_name}: the main part {main!r} is"
-                    f" {root.tag!r}, not a Word document or a presentation."
+                    f" {root.tag!r}, not a Word document, a presentation or a workbook."
                 )
             for chunk in chunks:
                 chunk["raw_text"] = chunk["text"]
@@ -512,7 +625,7 @@ class OfficeReader(DocumentReader):
                 )
                 continue
             hidden = slide.get("show") in ("0", "false")
-            if hidden and not self.hidden_slides:
+            if hidden and not self.hidden:
                 continue
             text = _slide_text(slide)
             if text:
@@ -538,6 +651,60 @@ class OfficeReader(DocumentReader):
                     "page_number": number,
                     "hidden": hidden,
                 }
+
+    # -- Excel ---------------------------------------------------------------
+
+    def _excel(self, pkg: _Package, main: str, root: Any) -> Iterator[dict[str, Any]]:
+        rels = pkg.relationships(main)
+        shared: list[str] = []
+        for kind, target in rels.values():
+            if kind == _SHARED_STRINGS:
+                strings = pkg.xml(target)
+                if strings is not None:
+                    shared = [_string_item(si) for si in strings.iter(_q(_S, "si"))]
+                break
+        sheets = root.find(_q(_S, "sheets"))
+        for number, sheet in enumerate([] if sheets is None else sheets):
+            name = sheet.get("name") or f"Sheet{number + 1}"
+            kind, part = rels.get(sheet.get(_q(_DOC_REL, "id")) or "", ("", ""))
+            if kind != _WORKSHEET:
+                # A chartsheet or a dialog sheet: no cells to read.
+                continue
+            hidden = sheet.get("state") in ("hidden", "veryHidden")
+            if hidden and not self.hidden:
+                continue
+            ws = pkg.xml(part)
+            if ws is None:
+                logger.warning(
+                    "OfficeReader: %s: sheet %r part %r is missing; skipped.",
+                    self.file_name,
+                    name,
+                    part,
+                )
+                continue
+            block: list[tuple[int, str]] = []
+            for row in _sheet_rows(ws, shared):
+                block.append(row)
+                if len(block) == self.rows_per_chunk:
+                    yield self._sheet_chunk(block, name, number, part, hidden)
+                    block = []
+            if block:
+                yield self._sheet_chunk(block, name, number, part, hidden)
+
+    @staticmethod
+    def _sheet_chunk(
+        block: list[tuple[int, str]], name: str, number: int, part: str, hidden: bool
+    ) -> dict[str, Any]:
+        return {
+            "text": "\n".join(line for _, line in block),
+            "section_type": SectionType.TABLE.value,
+            "part": part,
+            "page_number": number,
+            "sheet": name,
+            "row_start": block[0][0],
+            "row_end": block[-1][0],
+            "hidden": hidden,
+        }
 
 
 def _notes_text(root: Any) -> str:

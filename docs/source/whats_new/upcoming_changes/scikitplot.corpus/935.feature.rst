@@ -1,7 +1,9 @@
-- New ``OfficeReader`` reads Word and PowerPoint files in the Office Open XML
-  format (``.docx``, ``.docm``, ``.dotx``, ``.dotm``, ``.pptx``, ``.pptm``,
-  ``.potx``, ``.potm``, ``.ppsx``, ``.ppsm``) with the standard library only:
-  body text and tables in document order, slides in deck order, speaker
-  notes, footnotes and endnotes (``notes=``), hidden slides (``hidden_slides=``).
-  XML parts are parsed with entity declarations refused, sizes are bounded,
-  and macros are flagged (``has_macros``), never run.
+- New ``OfficeReader`` reads Word, PowerPoint and Excel files in the Office
+  Open XML format (``.docx``, ``.docm``, ``.dotx``, ``.dotm``, ``.pptx``,
+  ``.pptm``, ``.potx``, ``.potm``, ``.ppsx``, ``.ppsm``, ``.xlsx``, ``.xlsm``,
+  ``.xltx``, ``.xltm``) with the standard library only: body text and tables
+  in document order, slides in deck order, sheets as tab-separated rows
+  (``rows_per_chunk=``, stored values, formulas never computed), speaker
+  notes, footnotes and endnotes (``notes=``), hidden slides and sheets
+  (``hidden=``). XML parts are parsed with entity declarations refused,
+  sizes are bounded, and macros are flagged (``has_macros``), never run.

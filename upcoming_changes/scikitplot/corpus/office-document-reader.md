@@ -106,8 +106,12 @@ Phased, one pull request each:
    tables in order, footnotes and endnotes, slides in deck order, notes,
    hidden slides. Left for later: heading levels from styles, headers and
    footers, comments, `.sldx`/`.sldm` (a single-slide package).
-2. **OOXML Excel** (`.xlsx` family): one chunk per sheet or per row block,
-   with a `max_rows` limit; shared strings; cached values.
+2. **OOXML Excel** (`.xlsx` family): done in PR 935. Sheets in workbook
+   order, `rows_per_chunk` rows a chunk (`row_start`, `row_end`), shared
+   and inline strings (phonetic runs left out), cached formula results,
+   booleans, errors; chartsheets skipped; hidden sheets under `hidden=`.
+   Left for later: number formats (dates read as serial numbers), merged
+   cells, a streamed parse (memory bounded by `max_part_bytes`), `.xlsb`.
 3. **ODF** (`.odt .ods .odp .odg .odf`, flat variants): the same chunk
    model from `content.xml`.
 4. **Legacy binary**: optional backends (for example an OLE2 parser, or a

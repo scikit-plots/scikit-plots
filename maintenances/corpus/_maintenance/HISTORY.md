@@ -47,6 +47,14 @@
   suite: the same 15 network failures with and without the change. Usage
   skill API regenerated for `scikitplot.corpus` only (other modules need
   a compiled build).
+- **Office reader, phase 2: Excel.** `.xlsx .xlsm .xltx .xltm`: worksheets
+  in `<sheets>` order, cells tab-separated at their column, empty rows
+  dropped, `rows_per_chunk` rows a chunk (`sheet`, `row_start`,
+  `row_end`), values as stored (cached formula result, never computed;
+  `TRUE`/`FALSE`; errors; dates as serial numbers). `hidden_slides`
+  becomes `hidden` (slides and sheets; not yet released). 50 tests; 7
+  mutants, 6 caught; the 7th (follow a chartsheet relationship) reads the
+  chartsheet part, which has no rows: no difference in output.
 - Evidence: `evidence/round-2026-11-13-pdf-stable-layout.log`.
 
 ## 2026-11-13 — ZIP member warnings name the archive, PR 934

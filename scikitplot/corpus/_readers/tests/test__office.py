@@ -218,9 +218,7 @@ class TestPowerPoint:
             ("a", False),
             ("b", True),
         ]
-        got = [
-            (c["page_number"], c["text"]) for c in _chunks(path, hidden_slides=False)
-        ]
+        got = [(c["page_number"], c["text"]) for c in _chunks(path, hidden=False)]
         assert got == [(0, "a")]
 
     def test_a_table_reads_as_rows_once(self, tmp_path):
@@ -317,11 +315,13 @@ class TestUntrustedInput:
         path = _write(
             tmp_path / "d.docx",
             {
-                "_rels/.rels": _rels(("rId1", "officeDocument", "x/workbook.xml")),
-                "x/workbook.xml": '<?xml version="1.0"?><workbook/>',
+                "_rels/.rels": _rels(("rId1", "officeDocument", "x/other.xml")),
+                "x/other.xml": '<?xml version="1.0"?><other/>',
             },
         )
-        with pytest.raises(ValueError, match="not a Word document or a presentation"):
+        with pytest.raises(
+            ValueError, match="not a Word document, a presentation or a workbook"
+        ):
             _chunks(path)
 
     def test_malformed_xml_names_the_part(self, tmp_path):
@@ -345,7 +345,8 @@ class TestUntrustedInput:
     ("option", "value", "error"),
     [
         ("notes", "yes", TypeError),
-        ("hidden_slides", 1, TypeError),
+        ("hidden", 1, TypeError),
+        ("rows_per_chunk", 0, ValueError),
         ("max_part_bytes", 0, ValueError),
         ("max_parts", True, ValueError),
         ("max_file_bytes", -1, ValueError),
@@ -361,3 +362,135 @@ def test_two_reads_give_the_same_chunks(tmp_path):
     slides = [(f"slide{i}.xml", _slide(f"s{i}")) for i in range(1, 6)]
     path = _pptx(tmp_path / "d.pptx", slides, [n for n, _ in slides])
     assert _chunks(path) == _chunks(path)
+
+
+# ---------------------------------------------------------------------------
+# Excel
+# ---------------------------------------------------------------------------
+
+S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+
+
+def _sheet(rows: str) -> str:
+    return f'<?xml version="1.0"?><worksheet xmlns="{S}"><sheetData>{rows}</sheetData></worksheet>'
+
+
+def _xlsx(path: Path, sheets: list, shared: list | None = None, extra=None) -> Path:
+    """``sheets``: (name, xml or None for a chartsheet, state or None)."""
+    entries = "".join(
+        f'<sheet name="{name}" sheetId="{i + 1}" r:id="rW{i}"'
+        + (f' state="{state}"' if state else "")
+        + "/>"
+        for i, (name, _, state) in enumerate(sheets)
+    )
+    rels = [
+        (
+            f"rW{i}",
+            "worksheet" if xml is not None else "chartsheet",
+            f"worksheets/s{i}.xml",
+        )
+        for i, (_, xml, _) in enumerate(sheets)
+    ]
+    parts = {
+        "_rels/.rels": _rels(("rId1", "officeDocument", "xl/workbook.xml")),
+        "xl/workbook.xml": (
+            f'<?xml version="1.0"?><workbook xmlns="{S}" xmlns:r="{REL}">'
+            f"<sheets>{entries}</sheets></workbook>"
+        ),
+    }
+    if shared is not None:
+        rels.append(("rSS", "sharedStrings", "sharedStrings.xml"))
+        parts["xl/sharedStrings.xml"] = (
+            f'<?xml version="1.0"?><sst xmlns="{S}">'
+            + "".join(f"<si>{item}</si>" for item in shared)
+            + "</sst>"
+        )
+    parts["xl/_rels/workbook.xml.rels"] = _rels(*rels)
+    for i, (_, xml, _) in enumerate(sheets):
+        if xml is not None:
+            parts[f"xl/worksheets/s{i}.xml"] = xml
+    parts.update(extra or {})
+    return _write(path, parts)
+
+
+class TestExcel:
+    def test_cell_kinds_read_as_stored(self, tmp_path):
+        rows = (
+            '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row>'
+            '<row r="2"><c r="A2"><v>3.5</v></c><c r="B2" t="b"><v>1</v></c>'
+            '<c r="C2" t="str"><f>A2*2</f><v>7</v></c>'
+            '<c r="D2" t="inlineStr"><is><t>in</t></is></c>'
+            '<c r="E2" t="e"><v>#DIV/0!</v></c><c r="F2"><f>NOW()</f></c></row>'
+        )
+        shared = ["<t>name</t>", "<r><t>ri</t></r><r><t>ch</t></r><rPh><t>x</t></rPh>"]
+        path = _xlsx(tmp_path / "b.xlsx", [("Data", _sheet(rows), None)], shared)
+        (chunk,) = _chunks(path)
+        assert chunk["text"] == "name\trich\n3.5\tTRUE\t7\tin\t#DIV/0!"
+        assert (chunk["section_type"], chunk["sheet"], chunk["page_number"]) == (
+            "table",
+            "Data",
+            0,
+        )
+        assert (chunk["row_start"], chunk["row_end"]) == (1, 2)
+
+    def test_a_gap_keeps_the_column_and_empty_rows_are_dropped(self, tmp_path):
+        rows = (
+            '<row r="1"><c r="A1"><v>1</v></c><c r="C1"><v>3</v></c></row>'
+            '<row r="2"><c r="B2" t="inlineStr"><is><t> </t></is></c></row>'
+            '<row r="5"><c r="B5"><v>2</v></c></row>'
+        )
+        (chunk,) = _chunks(_xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)]))
+        assert chunk["text"] == "1\t\t3\n\t2"
+        assert (chunk["row_start"], chunk["row_end"]) == (1, 5)
+
+    def test_sheets_in_workbook_order_chartsheets_skipped(self, tmp_path):
+        one = _sheet('<row r="1"><c r="A1"><v>1</v></c></row>')
+        two = _sheet('<row r="1"><c r="A1"><v>2</v></c></row>')
+        path = _xlsx(
+            tmp_path / "b.xlsx",
+            [("Z", one, None), ("Chart", None, None), ("A", two, None)],
+        )
+        assert [(c["page_number"], c["sheet"], c["text"]) for c in _chunks(path)] == [
+            (0, "Z", "1"),
+            (2, "A", "2"),
+        ]
+
+    def test_rows_per_chunk_splits_a_long_sheet(self, tmp_path):
+        rows = "".join(
+            f'<row r="{i}"><c r="A{i}"><v>{i}</v></c></row>' for i in range(1, 6)
+        )
+        path = _xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)])
+        got = [
+            (c["row_start"], c["row_end"], c["text"])
+            for c in _chunks(path, rows_per_chunk=2)
+        ]
+        assert got == [(1, 2, "1\n2"), (3, 4, "3\n4"), (5, 5, "5")]
+
+    @pytest.mark.parametrize("state", ["hidden", "veryHidden"])
+    def test_hidden_sheets_are_marked_or_left_out(self, tmp_path, state):
+        cell = _sheet('<row r="1"><c r="A1"><v>1</v></c></row>')
+        path = _xlsx(tmp_path / "b.xlsx", [("V", cell, None), ("H", cell, state)])
+        assert [(c["sheet"], c["hidden"]) for c in _chunks(path)] == [
+            ("V", False),
+            ("H", True),
+        ]
+        assert [c["sheet"] for c in _chunks(path, hidden=False)] == ["V"]
+
+    def test_cells_without_references_follow_one_another(self, tmp_path):
+        rows = '<row><c t="inlineStr"><is><t>a</t></is></c><c><v>2</v></c></row>'
+        (chunk,) = _chunks(_xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)]))
+        assert (chunk["text"], chunk["row_start"]) == ("a\t2", 1)
+
+    def test_a_shared_string_index_out_of_range_reads_empty(self, tmp_path):
+        rows = '<row r="1"><c r="A1" t="s"><v>9</v></c><c r="B1"><v>1</v></c></row>'
+        path = _xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)], ["<t>a</t>"])
+        assert [c["text"] for c in _chunks(path)] == ["\t1"]
+
+    def test_an_empty_workbook_gives_no_chunk(self, tmp_path):
+        path = _xlsx(tmp_path / "b.xlsx", [("S", _sheet(""), None)])
+        assert _chunks(path) == []
+
+    @pytest.mark.parametrize("suffix", [".xlsx", ".xlsm", ".xltx", ".xltm"])
+    def test_every_excel_extension_dispatches(self, tmp_path, suffix):
+        path = _xlsx(tmp_path / f"b{suffix}", [("S", _sheet(""), None)])
+        assert isinstance(DocumentReader.create(path), OfficeReader)
