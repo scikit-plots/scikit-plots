@@ -1,5 +1,19 @@
 # Corpus maintenance history
 
+## 2026-11-13 — ZIP member warnings name the archive, PR 934
+
+- **CX-25: member warnings named the temporary extraction path.** When a
+  member reader failed, `ZipReader` logged the exception text, and readers
+  whose errors come from a library (Pillow: "cannot identify image file
+  '/tmp/skplt_zip_k4irkxw0/bad.png'") named the random extraction path. The
+  same archive gave a different warning on every run, and the path did not
+  exist after the read. New `_archive_relative(text, extract_dir,
+  archive_name)` rewrites `<extract_dir>/` (as created and resolved, `/`
+  and `os.sep`) to `<archive_name>/`; the ZipSlip warning names the
+  archive instead of the directory.
+- Tests: `test__zip_messages.py` (2 fail with the exception text logged as
+  before; the mutant without the resolved form fails 1).
+- Evidence: `evidence/round-2026-11-13-zip-member-names.log`.
 ## 2026-11-13 — empty audio files fail fast, PR 933
 
 - **CX-24: a 0-byte audio file gave 0 documents with misleading advice.**

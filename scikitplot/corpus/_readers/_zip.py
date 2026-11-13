@@ -170,6 +170,45 @@ def _is_within(child: Path, parent: Path) -> bool:
         return False
 
 
+def _archive_relative(text: str, extract_dir: Path, archive_name: str) -> str:
+    """
+    Replace the temporary extraction directory in *text* with the archive.
+
+    Parameters
+    ----------
+    text : str
+        A message that may name an extracted member by its temporary path,
+        such as a member reader's exception text.
+    extract_dir : Path
+        The temporary directory the members were extracted into.
+    archive_name : str
+        The archive's display name.
+
+    Returns
+    -------
+    str
+        *text* with every ``<extract_dir>/`` prefix replaced by
+        ``<archive_name>/``, so ``/tmp/skplt_zip_x1y2/a/b.png`` reads
+        ``docs.zip/a/b.png``. The same archive gives the same message on
+        every run.
+
+    Notes
+    -----
+    Both the directory as created and its resolved form are replaced: on
+    some systems the temporary directory is reached through a symbolic
+    link (macOS ``/var`` -> ``/private/var``), and members are extracted to
+    resolved paths. The longer form is replaced first so the shorter one
+    cannot match inside it.
+    """
+    import os  # noqa: PLC0415
+
+    roots = {str(extract_dir), str(extract_dir.resolve())}
+    for root in sorted(roots, key=len, reverse=True):
+        for sep in {os.sep, "/"}:
+            text = text.replace(root + sep, archive_name + "/")
+    return text
+
+
 # ===========================================================================
 # ZipReader
 # ===========================================================================
@@ -476,7 +515,7 @@ class ZipReader(DocumentReader):
                             "ZipReader: ZipSlip detected for member %r — "
                             "skipping (escapes %s).",
                             member_path,
-                            tmp_dir,
+                            archive_name,
                         )
                         continue
 
@@ -587,7 +626,7 @@ class ZipReader(DocumentReader):
                             "ZipReader: failed to read member %s from %s: %s",
                             member_path,
                             archive_name,
-                            exc,
+                            _archive_relative(str(exc), tmp_dir, archive_name),
                         )
 
         finally:

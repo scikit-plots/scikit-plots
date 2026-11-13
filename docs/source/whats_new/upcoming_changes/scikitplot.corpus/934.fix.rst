@@ -1,0 +1,4 @@
+- ``ZipReader`` warnings for a member that cannot be read name it inside
+  the archive (``docs.zip/a/bad.png``), as other member warnings do. They
+  named the random temporary extraction path, so the same archive gave a
+  different message on every run.
