@@ -1,0 +1,6 @@
+- ``generate_apis_reference coverage`` compares each module's ``__all__``,
+  read from the source without importing it, with the API reference, and
+  fails on a public name missing from it or a documented name no longer
+  public that is not already in ``coverage_baseline.json`` (known gaps,
+  which may only shrink). It needs no build and runs as the pre-commit
+  hook ``apis-reference-coverage``.
