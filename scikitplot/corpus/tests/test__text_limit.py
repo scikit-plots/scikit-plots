@@ -245,3 +245,119 @@ class TestZip:
         reader = ZipReader(input_path=self._archive(tmp_path), max_text_chars=1_000)
         with pytest.raises(ValueError, match="a.zip yields more than max_text_chars=1,000"):
             _texts(reader)
+
+
+_MI = 1024 * 1024
+
+
+def _zip_of(path: Path, members: dict, level: int = 9) -> Path:
+    """An archive of ``{name: bytes}``, deflated (highly compressible content)."""
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=level) as zf:
+        for name, data in members.items():
+            zf.writestr(name, data)
+    return path
+
+
+class TestZipInProportionToTheArchive:
+    """Defaults and the extraction bound derived from the ratio (CX-41)."""
+
+    def test_defaults_are_those_of_the_amplifying_formats(self, tmp_path):
+        reader = ZipReader(input_path=_zip_of(tmp_path / "a.zip", {"a.txt": b"x"}))
+        assert reader.max_text_chars == _DEFAULT
+        assert reader.max_text_chars_per_byte == 50
+
+    @pytest.mark.parametrize(
+        ("size", "kwargs", "limit", "names"),
+        [
+            (0, {}, 4 * _MI, "max_text_chars_per_byte=50"),
+            (_MI // 50, {}, 4 * _MI, "max_text_chars_per_byte=50"),
+            (_MI // 50 + 1, {}, 4 * 50 * (_MI // 50 + 1), "max_text_chars_per_byte=50"),
+            (3 * _MI + 1, {"max_text_chars_per_byte": 0.5}, 4 * (3 * _MI // 2 + 1), "=0.5"),
+            (100 * _MI, {}, 2 * 1024 * _MI, "max_total_bytes=2,147,483,648"),
+            (_MI, {"max_total_bytes": 1000}, 1000, "max_total_bytes=1,000"),
+            (1, {"max_text_chars_per_byte": None}, 2 * 1024 * _MI, "max_total_bytes="),
+            # An absolute text limit says nothing about the members' size.
+            (1, {"max_text_chars": 10}, 4 * _MI, "max_text_chars_per_byte=50"),
+        ],
+    )
+    def test_the_extraction_limit_in_force(self, tmp_path, size, kwargs, limit, names):
+        reader = ZipReader(input_path=_zip_of(tmp_path / "a.zip", {"a.txt": b"x"}), **kwargs)
+        found, described = reader._extract_limit(size)
+        assert found == limit
+        assert names in described
+
+    def test_a_member_past_the_limit_is_refused_before_it_is_extracted(
+        self, tmp_path, monkeypatch
+    ):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * (4 * _MI + 1)})
+        assert archive.stat().st_size * 200 < 4 * _MI  # the floor decides
+        copied = []
+        monkeypatch.setattr(
+            "scikitplot.corpus._archive_handler.stream_copy_bounded",
+            lambda *a, **k: copied.append(k["member_name"]) or 0,
+        )
+        with pytest.raises(ValueError) as caught:
+            _texts(ZipReader(input_path=archive))
+        message = str(caught.value)
+        assert "'a.txt' declares 4,194,305 bytes" in message
+        assert f"4,194,304 bytes for an archive of {archive.stat().st_size:,} bytes" in message
+        assert "max_text_chars_per_byte=50" in message
+        assert copied == []
+
+    def test_a_member_of_exactly_the_limit_is_extracted(self, tmp_path):
+        # Extracted (4 Mi bytes), then refused as text: 4 Mi characters > 1 Mi.
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * (4 * _MI)})
+        with pytest.raises(ValueError, match="a.zip yields more than 1,048,576 characters"):
+            _texts(ZipReader(input_path=archive))
+
+    def test_the_limit_is_cumulative_over_members(self, tmp_path):
+        # Blank members yield no text, so only the byte bound can decide.
+        members = {f"{i}.txt": b" " * _MI for i in range(5)}
+        archive = _zip_of(tmp_path / "a.zip", members)
+        with pytest.raises(ValueError) as caught:
+            _texts(ZipReader(input_path=archive))
+        message = str(caught.value)
+        assert "'4.txt' declares 1,048,576 bytes (4,194,304 already extracted)" in message
+
+    def test_the_copy_is_given_what_is_left_of_the_limit(self, tmp_path, monkeypatch):
+        # zipfile never yields more than a member declares, so the budget of
+        # the copy (the guard against a container that lies) is checked here.
+        import scikitplot.corpus._archive_handler as handler
+
+        real, budgets = handler.stream_copy_bounded, []
+
+        def recording(src, dst, *, max_bytes, **kwargs):
+            budgets.append(max_bytes)
+            return real(src, dst, max_bytes=max_bytes, **kwargs)
+
+        monkeypatch.setattr(handler, "stream_copy_bounded", recording)
+        archive = _zip_of(tmp_path / "a.zip", {"1.txt": b" " * 1000, "2.txt": b" " * 10})
+        assert _texts(ZipReader(input_path=archive)) == []
+        assert budgets == [4 * _MI, 4 * _MI - 1000]
+
+    def test_text_at_the_floor_is_read(self, tmp_path):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * _MI})
+        assert [len(t) for t in _texts(ZipReader(input_path=archive))] == [_MI]
+
+    def test_one_character_past_the_floor_is_refused_as_text(self, tmp_path):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * (_MI + 1)})
+        with pytest.raises(ValueError, match="max_text_chars_per_byte=50"):
+            _texts(ZipReader(input_path=archive))
+
+    def test_truncate_keeps_exactly_the_limit(self, tmp_path):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * (_MI + 5)})
+        kept = _texts(ZipReader(input_path=archive, on_text_limit="truncate"))
+        assert [len(t) for t in kept] == [_MI]
+
+    def test_none_turns_both_bounds_off(self, tmp_path):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x" * (4 * _MI + 1)})
+        kept = _texts(ZipReader(input_path=archive, max_text_chars_per_byte=None))
+        assert [len(t) for t in kept] == [4 * _MI + 1]
+
+    def test_an_archive_that_is_not_compressible_is_unaffected(self, tmp_path):
+        import hashlib
+
+        noise = b"".join(hashlib.sha256(bytes([i % 256, i // 256])).digest() for i in range(2048))
+        text = noise.hex().encode("ascii")  # 131,072 characters, about 2:1
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": text})
+        assert [len(t) for t in _texts(ZipReader(input_path=archive))] == [len(text)]

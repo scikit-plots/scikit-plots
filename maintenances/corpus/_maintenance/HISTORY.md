@@ -1,5 +1,34 @@
 # Corpus maintenance history
 
+## 2026-11-14 — archive bounded in proportion to its size, PR 941
+
+- **CX-41 (fixed): an archive's text had no budget.** `ZipReader`
+  inherited `max_text_chars=None` and no ratio, so its archive-wide
+  budget (CX-36) was a no-op; a member's own reader cannot help, because
+  an extracted member's size is already the inflated size. Reproduced on
+  `main`: 52 kB -> 25,165,824 characters, 49.5 s, 102 MiB traced.
+  Step 1: `ZipReader` defaults to `max_text_chars` 256 Mi and
+  `max_text_chars_per_byte` 50, measured against the archive on disk:
+  refused in 0.1 s, but the member was still extracted and read whole
+  (75 MiB; up to `max_total_bytes`, 2 GB). Step 2, the maintainer's choice
+  among three (derived bound, new option, text only): the extraction
+  limit is derived, no new option: 4 bytes (the most one character
+  takes) for each character the ratio allows, `max(200 x archive size,
+  4 Mi)` by default, never more than `max_total_bytes`, cumulative over
+  members and checked on the declared size before a member is copied;
+  the copy's budget is what is left. Text refused there would be refused
+  by the text limit anyway; only a non-text member inflating more than
+  200 times is newly refused. An absolute `max_text_chars` (used with
+  `truncate` to sample) does not set the extraction limit. After: the
+  bomb is refused in 0.003 s, 0.08 MiB; a 2.3 kB archive at the 1 Mi
+  floor is read in 2 s, 4 MiB (a gate sample that must be read).
+- 18 tests (14 fail on the previous reader); 12 mutants killed (the
+  copy-budget one only after a test that records each copy's budget:
+  `zipfile` never yields past the declared size, so a refusal test
+  could not see it). Affected suites without the build: the same 11
+  network failures and 7 fixture errors as `main`; 1053 -> 1055 passed
+  plus the 18 new.
+
 ## 2026-11-14 — security review report in CI, PR 940
 
 - **Security review report (maintainer request, PR 940).** New

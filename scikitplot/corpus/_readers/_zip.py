@@ -60,13 +60,14 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import math
 import tempfile
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Generator, Optional  # noqa: F401
 
-from .._base import DocumentReader
+from .._base import _TEXT_RATIO_FLOOR, DocumentReader
 from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,10 @@ class ArchiveNestingError(ValueError):
 
 #: Default maximum number of files inside a ZIP.
 _DEFAULT_MAX_FILES: int = 10_000
+#: Most bytes one character of text takes in any Unicode encoding: members
+#: are extracted up to this many bytes for each character the ratio limit
+#: allows, so text refused at extraction would be refused as text too.
+_MAX_BYTES_PER_CHAR: int = 4
 
 #: Default maximum cumulative uncompressed size in bytes (2 GB).
 _DEFAULT_MAX_TOTAL_BYTES: int = 2 * 1024 * 1024 * 1024
@@ -253,6 +258,28 @@ class ZipReader(DocumentReader):
     max_total_bytes : int, optional
         Maximum cumulative uncompressed size.  Extraction halts if this
         limit is exceeded (zip-bomb prevention).  Default: 2 GB.
+    max_text_chars : int or None, optional
+        Most characters of text the archive may yield, over all members.
+        Default: 256 Mi; ``None``: no limit.
+    max_text_chars_per_byte : float or None, optional
+        Most characters of text per byte of the archive on disk: the limit
+        is the smaller of ``max_text_chars`` and
+        ``max(max_text_chars_per_byte x archive size, 1 Mi)``. A member is
+        read after extraction, so its own reader measures it against its
+        inflated size; only the archive's size on disk shows what deflate
+        (about 1000 times at most) made of a small file. Default: 50
+        (text compresses 3 to 10 times); ``None``: no ratio limit.
+        The ratio also bounds extraction: the archive is refused once its
+        members inflate past 4 bytes (the most one character takes) for
+        each character this ratio allows, by default
+        ``max(200 x archive size, 4 Mi)`` bytes and never more than
+        ``max_total_bytes``. Text refused there would be refused by the
+        text limit anyway, without first being extracted and read; a
+        member that is not text and inflates more than that (a blank
+        bitmap) needs a larger ratio or ``None``.
+    on_text_limit : {"refuse", "truncate"}, optional
+        What happens past the limit; see
+        :class:`~scikitplot.corpus._base.DocumentReader`.
     skip_unsupported : bool, optional
         When ``True`` (default), members whose extension is not
         registered in :class:`DocumentReader` are silently skipped.
@@ -339,6 +366,20 @@ class ZipReader(DocumentReader):
     Default: 10 GB.
     """
     """Maximum cumulative extracted size. Default: 2 GB."""
+
+    max_text_chars: int | None = field(default=256 * 1024 * 1024)
+    """Most characters of text the archive yields; ``None``: no limit. Default: 256 Mi.
+
+    Enforced by :class:`~scikitplot.corpus._base.DocumentReader` with
+    ``on_text_limit``; this reader only sets the default.
+    """
+
+    max_text_chars_per_byte: float | None = field(default=50)
+    """Most characters of text per byte of the archive (floor: 1 Mi characters).
+
+    Default: 50; ``None``: no ratio limit. See
+    :attr:`~scikitplot.corpus._base.DocumentReader.max_text_chars_per_byte`.
+    """
 
     skip_unsupported: bool = field(default=True)
     """Skip members with unregistered extensions instead of raising."""
@@ -461,6 +502,41 @@ class ZipReader(DocumentReader):
         """
         yield from self._within_text_limit(self._iter_members())
 
+    def _extract_limit(self, archive_size: int) -> tuple[int, str]:
+        """
+        Return the extraction limit in force for an archive of *archive_size* bytes.
+
+        Returns
+        -------
+        tuple of (int, str)
+            The most bytes the members may inflate to in total, and how a
+            message names it (the option that decides, with its value).
+
+        Notes
+        -----
+        The smaller of ``max_total_bytes`` and, with a ratio,
+        ``4 x max(max_text_chars_per_byte x archive size, 1 Mi)``. Derived
+        from the ratio only: an absolute ``max_text_chars`` (as set with
+        ``on_text_limit="truncate"`` to sample large documents) says
+        nothing about how large the members may be.
+        """
+        limit = self.max_total_bytes
+        described = f"max_total_bytes={limit:,}"
+        ratio = self.max_text_chars_per_byte
+        if ratio is not None:
+            chars = max(math.ceil(ratio * archive_size), _TEXT_RATIO_FLOOR)
+            by_ratio = _MAX_BYTES_PER_CHAR * chars
+            if by_ratio < limit:
+                limit = by_ratio
+                described = (
+                    f"{by_ratio:,} bytes for an archive of {archive_size:,} bytes"
+                    f" ({_MAX_BYTES_PER_CHAR} bytes for each character that"
+                    f" max_text_chars_per_byte={ratio} allows); pass a larger"
+                    " max_text_chars_per_byte (or None) for an archive of"
+                    " highly compressible members"
+                )
+        return limit, described
+
     def _iter_members(  # noqa: PLR0912
         self,
     ) -> Generator[dict[str, Any], None, None]:
@@ -521,6 +597,9 @@ class ZipReader(DocumentReader):
                     )
 
                 total_bytes = 0
+                extract_limit, extract_described = self._extract_limit(
+                    archive_path.stat().st_size
+                )
 
                 for info in members:
                     member_path = info.filename
@@ -562,11 +641,11 @@ class ZipReader(DocumentReader):
                         )
 
                     # ── Bomb guard: declared pre-check + actual-byte budget ──
-                    if info.file_size > self.max_total_bytes:
+                    if total_bytes + info.file_size > extract_limit:
                         raise ValueError(
                             f"ZipReader: member {member_path!r} declares "
-                            f"{info.file_size:,} bytes, exceeding "
-                            f"max_total_bytes={self.max_total_bytes:,}. "
+                            f"{info.file_size:,} bytes ({total_bytes:,} already"
+                            f" extracted), exceeding {extract_described}. "
                             f"Possible zip-bomb in {archive_path.name!r}."
                         )
 
@@ -580,7 +659,7 @@ class ZipReader(DocumentReader):
                         total_bytes += stream_copy_bounded(
                             src,
                             dst,
-                            max_bytes=self.max_total_bytes - total_bytes,
+                            max_bytes=extract_limit - total_bytes,
                             member_name=member_path,
                             archive_name=archive_path.name,
                         )

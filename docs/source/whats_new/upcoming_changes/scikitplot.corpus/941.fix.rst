@@ -1,0 +1,10 @@
+- ``ZipReader`` bounds an archive in proportion to its size on disk: it now
+  defaults to ``max_text_chars=256 Mi`` and ``max_text_chars_per_byte=50``
+  (as ``OfficeReader`` and ``PDFReader``), and members are extracted only up
+  to 4 bytes for each character that ratio allows (by default
+  ``max(200 x archive size, 4 Mi)`` bytes, never more than
+  ``max_total_bytes``). Before, a 52 kB archive of one compressed text file
+  yielded 25 million characters in 50 seconds (100 MiB), and only the 2 GB
+  extraction limit applied; it is now refused before extraction. An archive
+  of highly compressible members past these limits needs a larger
+  ``max_text_chars_per_byte`` (or ``None``, which turns both off).
