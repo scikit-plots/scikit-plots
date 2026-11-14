@@ -6,3 +6,5 @@
   paragraph marked hidden and a section that is not displayed.
   In Word a character style, a paragraph style or the document default
   that hides text counts as well.
+  In OpenDocument, a span or paragraph style that is not displayed counts
+  too.

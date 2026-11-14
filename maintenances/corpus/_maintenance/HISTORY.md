@@ -52,6 +52,13 @@ now use it. Package reads are wrapped in `_Package.xml`.
   and a `DeprecationWarning`); now `styles is not None`. The office tests
   pass with `-W error::DeprecationWarning`. 9 tests; 6 mutants, each
   caught (the cycle mutant hangs until the test timeout).
+- **CX-33: OpenDocument hiding set by a style was not seen.**
+  `_OdfHiding` reads `style:style` from `content.xml` (automatic styles)
+  and `styles.xml`, or the flat file: a style hides when its
+  `style:text-properties` has `text:display="none"`, else as its
+  `style:parent-style-name` (cycles end), by family (`text` for spans,
+  `paragraph` for paragraphs). The hiding is passed to each function, not
+  kept on the reader. 7 tests; 6 mutants, each caught.
 - Start template: the pull request number is `937`. `orient.py` derives
   the number when the template line is missing or reads `auto`, or with
   `--pr auto`: one more than the highest number among the fragment names

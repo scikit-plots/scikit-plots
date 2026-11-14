@@ -1409,3 +1409,89 @@ class TestHiddenByStyle:
             doc_rels=[("rSt", "styles", "styles.xml")],
         )
         assert [c["text"] for c in _chunks(path)] == ["x"]
+
+
+# ---------------------------------------------------------------------------
+# OpenDocument hiding set by a style
+# ---------------------------------------------------------------------------
+
+ODF_STYLE = f'xmlns:style="{ODF}style:1.0"'
+
+
+def _odf_style(family: str, name: str, display: str | None = None, parent=None) -> str:
+    props = f'<style:text-properties text:display="{display}"/>' if display else ""
+    base = f' style:parent-style-name="{parent}"' if parent else ""
+    return f'<style:style style:name="{name}" style:family="{family}"{base}>{props}</style:style>'
+
+
+def _odf_styled(path: Path, inner: str, automatic: str = "", shared: str = "") -> Path:
+    content = (
+        f'<?xml version="1.0"?><office:document-content {ODF_NS} {ODF_STYLE}>'
+        f"<office:automatic-styles>{automatic}</office:automatic-styles>"
+        f"<office:body><office:text>{inner}</office:text></office:body>"
+        "</office:document-content>"
+    )
+    styles = (
+        f'<?xml version="1.0"?><office:document-styles {ODF_NS} {ODF_STYLE}>'
+        f"<office:styles>{shared}</office:styles></office:document-styles>"
+    )
+    return _write(path, {"content.xml": content, "styles.xml": styles})
+
+
+class TestOpenDocumentHiddenByStyle:
+    def test_a_span_style_in_content(self, tmp_path):
+        inner = '<text:p>seen <text:span text:style-name="T1">secret</text:span> end</text:p>'
+        path = _odf_styled(tmp_path / "d.odt", inner, _odf_style("text", "T1", "none"))
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret end", True)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == "seen  end"
+        assert "has_hidden_text" not in out
+
+    def test_a_paragraph_style_in_styles_xml_through_a_parent(self, tmp_path):
+        inner = '<text:p>seen</text:p><text:p text:style-name="P1">secret</text:p>'
+        path = _odf_styled(
+            tmp_path / "d.odt",
+            inner,
+            automatic=_odf_style("paragraph", "P1", parent="Hidden"),
+            shared=_odf_style("paragraph", "Hidden", "none"),
+        )
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") is True
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen"]
+
+    @pytest.mark.parametrize(
+        ("styles", "hidden"),
+        [
+            (_odf_style("text", "T1", "true"), False),
+            (
+                _odf_style("text", "T1", "none")
+                + _odf_style("text", "T2", "true", "T1"),
+                False,
+            ),
+            (_odf_style("paragraph", "T2", "none"), False),  # another family
+            (
+                _odf_style("text", "T2", parent="T3")
+                + _odf_style("text", "T3", parent="T2"),
+                False,
+            ),
+        ],
+    )
+    def test_shown_styles(self, tmp_path, styles, hidden):
+        inner = '<text:p>seen <text:span text:style-name="T2">x</text:span></text:p>'
+        path = _odf_styled(tmp_path / "d.odt", inner, styles)
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") == (True if hidden else None)
+
+    def test_flat_file_styles(self, tmp_path):
+        xml = (
+            f'<?xml version="1.0"?><office:document {ODF_NS} {ODF_STYLE}>'
+            "<office:automatic-styles>"
+            + _odf_style("text", "T1", "none")
+            + "</office:automatic-styles><office:body><office:text>"
+            '<text:p>a<text:span text:style-name="T1">b</text:span></text:p>'
+            "</office:text></office:body></office:document>"
+        )
+        path = tmp_path / "d.fodt"
+        path.write_text(xml, encoding="utf-8")
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["a"]

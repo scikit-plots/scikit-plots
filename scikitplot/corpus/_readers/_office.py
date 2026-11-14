@@ -58,6 +58,7 @@ _O_TABLE = _ODF + "table:1.0"
 _O_DRAW = _ODF + "drawing:1.0"
 _O_PRESENTATION = _ODF + "presentation:1.0"
 _O_MANIFEST = _ODF + "manifest:1.0"
+_O_STYLE = _ODF + "style:1.0"
 
 #: Sheet size limits of the common spreadsheet applications; a repeat count
 #: beyond them is refused instead of expanded.
@@ -749,14 +750,73 @@ def _odf_hidden_section(element: Any) -> bool:
     return display == "condition" and _odf_hidden(element)
 
 
-def _odf_text(node: Any, *, keep_hidden: bool = True) -> Any:  # noqa: PLR0912
+class _OdfHiding:
+    """
+    Which OpenDocument styles hide text (``text:display="none"``).
+
+    Parameters
+    ----------
+    *roots : Element or None
+        Parts that hold styles: ``content.xml`` (automatic styles) and
+        ``styles.xml``, or the one root of a flat file.
+
+    Notes
+    -----
+    A ``style:style`` hides when its ``style:text-properties`` has
+    ``text:display="none"``; one without the setting takes its
+    ``style:parent-style-name`` style's value (cycles end). A style is
+    looked up by family (``text`` for spans, ``paragraph`` for paragraphs
+    and headings) and name.
+    """
+
+    def __init__(self, *roots: Any) -> None:
+        own: dict[tuple[str, str], bool | None] = {}
+        parents: dict[tuple[str, str], str] = {}
+        family_attr, name_attr = _q(_O_STYLE, "family"), _q(_O_STYLE, "name")
+        for root in roots:
+            if root is None:
+                continue
+            for style in root.iter(_q(_O_STYLE, "style")):
+                key = (style.get(family_attr) or "", style.get(name_attr) or "")
+                props = style.find(_q(_O_STYLE, "text-properties"))
+                display = None if props is None else props.get(_q(_O_TEXT, "display"))
+                own[key] = None if display is None else display.lower() == "none"
+                parent = style.get(_q(_O_STYLE, "parent-style-name"))
+                if parent:
+                    parents[key] = parent
+        self.styles: dict[tuple[str, str], bool] = {}
+        for key in own:
+            seen: set[tuple[str, str]] = set()
+            current = key
+            while current in own and current not in seen:
+                if own[current] is not None:
+                    self.styles[key] = bool(own[current])
+                    break
+                seen.add(current)
+                current = (key[0], parents.get(current, ""))
+
+    def hides(self, element: Any, family: str) -> bool:
+        """Whether *element*'s ``text:style-name`` style of *family* hides it."""
+        name = element.get(_q(_O_TEXT, "style-name"))
+        return bool(name) and self.styles.get((family, name), False)
+
+
+#: No styles: only hiding marked on the elements themselves counts.
+_NO_ODF_STYLES = _OdfHiding()
+
+
+def _odf_text(  # noqa: PLR0912
+    node: Any, *, keep_hidden: bool = True, hiding: _OdfHiding = _NO_ODF_STYLES
+) -> Any:
     """
     Return the running text under *node* as :class:`_Text`.
 
     Spaces, tabs and breaks are expanded. A conditional hidden text
     (``text:hidden-text``, its ``text:string-value``) is read when
     *keep_hidden* and left out otherwise; ``hidden`` says whether any was.
+    So is a ``text:span`` whose style in *hiding* is not displayed.
     """
+    span = _q(_O_TEXT, "span")
     space, tab, line_break = (_q(_O_TEXT, n) for n in ("s", "tab", "line-break"))
     hidden_text = _q(_O_TEXT, "hidden-text")
     hidden = False
@@ -770,6 +830,11 @@ def _odf_text(node: Any, *, keep_hidden: bool = True) -> Any:  # noqa: PLR0912
         tag = item.tag
         if tag in _ODF_NOT_TEXT:
             continue
+        if tag == span and hiding.hides(item, "text"):
+            if not keep_hidden:
+                continue
+            if "".join(item.itertext()).strip():
+                hidden = True
         if tag == hidden_text:
             value = item.get(_q(_O_TEXT, "string-value")) or ""
             if not _odf_hidden(item):
@@ -806,6 +871,7 @@ def _odf_blocks(  # noqa: PLR0912
     tables: bool,
     skip: frozenset = frozenset(),
     keep_hidden: bool = True,
+    hiding: _OdfHiding = _NO_ODF_STYLES,
 ) -> Iterator[Any]:
     """
     Yield the paragraphs under *container* in document order.
@@ -842,10 +908,12 @@ def _odf_blocks(  # noqa: PLR0912
             continue
         if tag in blocks:
             marker = node.find(hidden_paragraph)
-            hidden_paragraph_now = marker is not None and _odf_hidden(marker)
+            hidden_paragraph_now = (
+                marker is not None and _odf_hidden(marker)
+            ) or hiding.hides(node, "paragraph")
             if hidden_paragraph_now and not keep_hidden:
                 continue
-            text = _odf_text(node, keep_hidden=keep_hidden)
+            text = _odf_text(node, keep_hidden=keep_hidden, hiding=hiding)
             hidden = text.hidden or hidden_paragraph_now or bool(hidden_from)
             hidden = hidden and bool(text.strip())
             if tag == heading:
@@ -863,7 +931,11 @@ def _odf_blocks(  # noqa: PLR0912
 
 
 def _odf_rows(
-    table: Any, what: str, *, keep_hidden: bool = True
+    table: Any,
+    what: str,
+    *,
+    keep_hidden: bool = True,
+    hiding: _OdfHiding = _NO_ODF_STYLES,
 ) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row of a ``table:table`` with a value.
@@ -895,7 +967,9 @@ def _odf_rows(
             text = ""
             if cell.tag == cell_tag:
                 text = "\n".join(
-                    _odf_blocks(cell, tables=False, keep_hidden=keep_hidden)
+                    _odf_blocks(
+                        cell, tables=False, keep_hidden=keep_hidden, hiding=hiding
+                    )
                 ).strip()
             if not text:
                 gap += count
@@ -1019,8 +1093,9 @@ class OfficeReader(DocumentReader):
     A table in a hidden section is left out with ``hidden=False`` but not
     flagged otherwise. In Word a style hides text too: a character style,
     the paragraph's style or the document default with ``w:vanish``, each
-    through the styles it is based on. OpenDocument hiding that comes from
-    a style is not detected.
+    through the styles it is based on. In OpenDocument a span or paragraph
+    style with ``text:display="none"`` hides too, through its parent
+    styles, from ``content.xml`` and ``styles.xml``.
 
     **Headings.** In Word and OpenDocument text, a heading starts a new
     chunk (its text is the chunk's first line), and that chunk and the
@@ -1177,7 +1252,9 @@ class OfficeReader(DocumentReader):
                 has_macros = any(
                     n.startswith(("Basic/", "Scripts/")) for n in pkg.names()
                 )
-                chunks = self._opendocument(pkg.xml("content.xml"), "content.xml")
+                chunks = self._opendocument(
+                    pkg.xml("content.xml"), "content.xml", pkg.xml("styles.xml")
+                )
             else:
                 raise ValueError(
                     f"OfficeReader: {self.file_name} has no main document part"
@@ -1222,7 +1299,9 @@ class OfficeReader(DocumentReader):
             chunk["has_macros"] = has_macros
             yield chunk
 
-    def _opendocument(self, root: Any, part: str) -> Iterator[dict[str, Any]]:
+    def _opendocument(
+        self, root: Any, part: str, styles: Any = None
+    ) -> Iterator[dict[str, Any]]:
         if root is not None and root.tag.endswith("}math"):
             # A formula: the annotation holds its source text.
             text = "\n".join(
@@ -1239,13 +1318,14 @@ class OfficeReader(DocumentReader):
             return
         body = None if root is None else root.find(_q(_O_OFFICE, "body"))
         kind = None if body is None or not len(body) else body[0]
+        hiding = _OdfHiding(root, styles)
         if kind is None:
             raise ValueError(
                 f"OfficeReader: {self.file_name}: {part} has no office:body"
                 " with a document in it."
             )
         if kind.tag == _q(_O_OFFICE, "text"):
-            yield from self._odf_text_document(kind, part)
+            yield from self._odf_text_document(kind, part, hiding)
         elif kind.tag == _q(_O_OFFICE, "spreadsheet"):
             tables = kind.findall(_q(_O_TABLE, "table"))
             for number, table in enumerate(tables):
@@ -1254,6 +1334,7 @@ class OfficeReader(DocumentReader):
                     table,
                     f"{self.file_name} sheet {name!r}",
                     keep_hidden=self.hidden,
+                    hiding=hiding,
                 )
                 yield from self._row_chunks(rows, name, number, part, None)
         elif kind.tag in (_q(_O_OFFICE, "presentation"), _q(_O_OFFICE, "drawing")):
@@ -1264,6 +1345,7 @@ class OfficeReader(DocumentReader):
                     tables=False,
                     skip=frozenset({notes_tag}),
                     keep_hidden=self.hidden,
+                    hiding=hiding,
                 )
                 text = "\n".join(line for line in shown if line.strip()).strip()
                 if text:
@@ -1279,7 +1361,7 @@ class OfficeReader(DocumentReader):
                 spoken = "\n".join(
                     line
                     for line in _odf_blocks(
-                        notes, tables=False, keep_hidden=self.hidden
+                        notes, tables=False, keep_hidden=self.hidden, hiding=hiding
                     )
                     if line.strip()
                 ).strip()
@@ -1297,13 +1379,22 @@ class OfficeReader(DocumentReader):
                 " drawing."
             )
 
-    def _odf_text_document(self, body: Any, part: str) -> Iterator[dict[str, Any]]:
+    def _odf_text_document(
+        self, body: Any, part: str, hiding: _OdfHiding = _NO_ODF_STYLES
+    ) -> Iterator[dict[str, Any]]:
         def blocks() -> Iterator[Any]:
-            for block in _odf_blocks(body, tables=True, keep_hidden=self.hidden):
+            for block in _odf_blocks(
+                body, tables=True, keep_hidden=self.hidden, hiding=hiding
+            ):
                 if isinstance(block, str):
                     yield block
                 else:
-                    rows = _odf_rows(block, self.file_name, keep_hidden=self.hidden)
+                    rows = _odf_rows(
+                        block,
+                        self.file_name,
+                        keep_hidden=self.hidden,
+                        hiding=hiding,
+                    )
                     yield ("table", "\n".join(line for _, line in rows))
 
         yield from self._sections(blocks(), part)
@@ -1314,7 +1405,14 @@ class OfficeReader(DocumentReader):
             if note_body is None:
                 continue
             joined = _joined(
-                list(_odf_blocks(note_body, tables=False, keep_hidden=self.hidden))
+                list(
+                    _odf_blocks(
+                        note_body,
+                        tables=False,
+                        keep_hidden=self.hidden,
+                        hiding=hiding,
+                    )
+                )
             )
             if joined.strip():
                 chunk = {
