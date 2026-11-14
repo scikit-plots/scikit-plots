@@ -3901,6 +3901,76 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Astrostatistics: Robust Biweight Estimators",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "biweight")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "biweight_location",
+                    "biweight_midcorrelation",
+                    "biweight_midcovariance",
+                    "biweight_midvariance",
+                    "biweight_scale",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Sigma Clipping",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "sigma_clipping")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "SigmaClip",
+                    "SigmaClippedStats",
+                    "sigma_clip",
+                    "sigma_clipped_stats",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Circular Statistics",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "circstats")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "circcorrcoef",
+                    "circmean",
+                    "circmoment",
+                    "circstd",
+                    "circvar",
+                    "rayleightest",
+                    "vonmisesmle",
+                    "vtest",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Jackknife Resampling",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "jackknife")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "jackknife_resampling",
+                    "jackknife_stats",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Spatial Statistics",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "spatial")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "RipleysKEstimator",
+                ],
+            },
+            {
                 "title": "Discrete Distributions Tools",
                 "description": (
                     _get_submodule("scikitplot.externals._tweedie", "_tweedie_dist")

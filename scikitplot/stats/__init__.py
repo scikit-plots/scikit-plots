@@ -24,9 +24,17 @@ from ..exceptions import ScikitplotException as _ScikitplotException
 
 logger = _logging.getLogger(__name__)
 
+# The declared public API: each optional backend adds its names only when it
+# imports, so ``__all__`` never lists a name that is absent (and
+# ``import *`` no longer leaks ``logger``, ``suppress`` or ``annotations``).
+__all__: list[str] = []
+
 try:
     with suppress(ImportError):
+        from ..cexternals._astropy import stats as _astropy_stats
         from ..cexternals._astropy.stats import *  # noqa: F401,F403
+
+        __all__ += _astropy_stats.__all__
 except _ScikitplotException:
     logger.warning(
         "Failed to import astropy.stats. Some features may not work as expected.",
@@ -34,7 +42,10 @@ except _ScikitplotException:
 
 try:
     with suppress(ImportError):
+        from ..externals import _tweedie
         from ..externals._tweedie import *  # noqa: F401,F403
+
+        __all__ += _tweedie.__all__
 except _ScikitplotException:
     logger.warning(
         "Failed to import tweedie. Some features may not work as expected.",

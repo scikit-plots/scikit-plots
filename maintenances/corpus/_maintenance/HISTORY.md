@@ -29,6 +29,16 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **stats read statically; optional backends.** The reader follows
+  `__all__` changes in `try` bodies, their `else`, and `with` bodies (the
+  import-succeeded branches); `except` handlers stay out. `stats` gets a
+  conditional `__all__` (each backend adds its names after it imports), so
+  it never lists an absent name: in a sandbox without the compiled astropy
+  part it lists only the Tweedie names, and all resolve. `import *` stops
+  leaking `logger`, `suppress`, `annotations`. The check then found 20
+  undocumented stats names, now in five sections. Tests hold with or
+  without backends and fail on the old code; 3 reader mutants killed.
+  Unread: 7 -> 6.
 - **Three more modules read statically: utils, datasets, nc.** Each
   declares `__all__` equal to what `import *` already exported, except
   `utils`, whose star import leaked `logger` and `annotations` (no

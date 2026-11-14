@@ -189,44 +189,60 @@ def static_all(  # noqa: PLR0912
             f"{dotted}: __all__ is built in a way not read statically"
         )
 
-    for node in tree.body:
-        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            names = [t.id for t in targets if isinstance(t, ast.Name)]
-            if "__all__" in names:
-                state["all"] = value(node.value)
-            for name in names:
-                if name != "__all__":
-                    try:
-                        variables[name] = value(node.value)
-                    except UnresolvedError:
-                        variables.pop(name, None)
-        elif (
-            isinstance(node, ast.AugAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id == "__all__"
-        ):
-            state["all"] = (state["all"] or []) + value(node.value)
-        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            func = node.value.func
-            if (
-                isinstance(func, ast.Attribute)
-                and isinstance(func.value, ast.Name)
-                and func.value.id == "__all__"
+    def visit(statements: list[ast.stmt]) -> None:  # noqa: PLR0912
+        # The import-succeeded branches of an optional backend: ``try``
+        # bodies and their ``else``, and ``with`` bodies. ``except``
+        # handlers are fallbacks, not the declared API.
+        for node in statements:
+            if isinstance(node, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+                visit(node.body)
+                visit(node.orelse)
+                continue
+            if isinstance(node, ast.With):
+                visit(node.body)
+                continue
+            if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+                targets = (
+                    node.targets if isinstance(node, ast.Assign) else [node.target]
+                )
+                names = [t.id for t in targets if isinstance(t, ast.Name)]
+                if "__all__" in names:
+                    state["all"] = value(node.value)
+                for name in names:
+                    if name != "__all__":
+                        try:
+                            variables[name] = value(node.value)
+                        except UnresolvedError:
+                            variables.pop(name, None)
+            elif (
+                isinstance(node, ast.AugAssign)
+                and isinstance(node.target, ast.Name)
+                and node.target.id == "__all__"
             ):
-                if func.attr == "extend" and len(node.value.args) == 1:
-                    state["all"] = (state["all"] or []) + value(node.value.args[0])
-                elif func.attr == "append" and len(node.value.args) == 1:
-                    item = node.value.args[0]
-                    if not (
-                        isinstance(item, ast.Constant) and isinstance(item.value, str)
-                    ):
-                        raise UnresolvedError(
-                            f"{dotted}: __all__.append of a non-string"
-                        )
-                    state["all"] = (state["all"] or []) + [item.value]
-                else:
-                    raise UnresolvedError(f"{dotted}: __all__.{func.attr}(...)")
+                state["all"] = (state["all"] or []) + value(node.value)
+            elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                func = node.value.func
+                if (
+                    isinstance(func, ast.Attribute)
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "__all__"
+                ):
+                    if func.attr == "extend" and len(node.value.args) == 1:
+                        state["all"] = (state["all"] or []) + value(node.value.args[0])
+                    elif func.attr == "append" and len(node.value.args) == 1:
+                        item = node.value.args[0]
+                        if not (
+                            isinstance(item, ast.Constant)
+                            and isinstance(item.value, str)
+                        ):
+                            raise UnresolvedError(
+                                f"{dotted}: __all__.append of a non-string"
+                            )
+                        state["all"] = (state["all"] or []) + [item.value]
+                    else:
+                        raise UnresolvedError(f"{dotted}: __all__.{func.attr}(...)")
+
+    visit(tree.body)
     if state["all"] is None:
         raise UnresolvedError(f"{dotted}: no __all__")
     return list(dict.fromkeys(state["all"]))

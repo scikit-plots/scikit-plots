@@ -59,6 +59,27 @@ class TestStaticAll:
         _module(tmp_path, "pkg", source)
         assert sc.static_all(tmp_path, "pkg") == expected
 
+    def test_optional_backends_in_try_and_with_are_followed(self, tmp_path):
+        """``__all__ +=`` under ``try:``/``with:`` counts; ``except`` does not."""
+        _module(
+            tmp_path,
+            "pkg",
+            """
+            from contextlib import suppress
+            __all__ = []
+            try:
+                with suppress(ImportError):
+                    from . import _a
+                    __all__ += _a.__all__
+            except RuntimeError:
+                __all__ += ['fallback']
+            else:
+                __all__.append('ok')
+            """,
+        )
+        (tmp_path / "pkg" / "_a.py").write_text("__all__ = ['A']\n", encoding="utf-8")
+        assert sc.static_all(tmp_path, "pkg") == ["A", "ok"]
+
     def test_a_submodules_all_is_followed(self, tmp_path):
         _module(
             tmp_path,

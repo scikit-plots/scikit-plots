@@ -16,4 +16,6 @@
   the scikit-learn imputers re-exported by ``scikitplot.impute``; and the
   remaining ``agent``, ``mcp`` and ``api`` names. An entry of
   ``DEPRECATED_APIS_REFERENCE`` now documents its name for its module.
-  The known gaps fall from 209 to none.
+  The known gaps fall from 209 to none. ``__all__`` built under ``try:``
+  (and its ``else``) or ``with:`` is followed, as for an optional backend;
+  ``except`` fallbacks are not.
