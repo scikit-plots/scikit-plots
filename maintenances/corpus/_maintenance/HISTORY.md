@@ -1,5 +1,79 @@
 # Corpus maintenance history
 
+## 2026-11-14 — office reader review: text read twice, untyped package errors, PR 936
+
+Review of `_readers/_office.py` after PR 935, each finding reproduced on
+`main` first:
+
+- **CX-26: a markup-compatibility fallback was read as well as its
+  choice.** A Word text box (`mc:Choice` with `wps`, `mc:Fallback` with
+  `w:pict`) gave "box" twice; a slide equation the same.
+- **CX-27: moved text was read at both places.** `w:moveFrom` holds `w:t`
+  (unlike `w:del`, which holds `w:delText`).
+- **CX-28: a table nested in a cell was read twice**, as the cell's text
+  and again as rows of the outer table (Word `tbl.iter(tr)`, OpenDocument
+  `table.iter(table-row)`); a text box in a cell paragraph likewise. Rows
+  and cells wrapped in a content control were not found at all.
+- **CX-29: `BadZipFile` and `RuntimeError` escaped** for a damaged member
+  and for one encrypted at the ZIP level; the reader documents
+  `ValueError`.
+
+One cause for the first three: descendants were collected with
+`Element.iter`, which enters everything. `_walk(root, skip=, leaves=)`
+visits each descendant once, never enters `mc:Fallback` or a `skip` tag,
+and yields a `leaves` tag without entering it, so nested content is read
+by its container only. Paragraphs, tables, rows, cells, slides and notes
+now use it. Package reads are wrapped in `_Package.xml`.
+
+- Tests: 9 new (115); all 9 fail on `main`; 7 mutants, each caught.
+  Research snapshot unchanged (139 files); corpus suite unchanged.
+- Evidence: `evidence/round-2026-11-14-office-review.log`.
+- **CX-30: Word hidden text was read with no sign.** A run with
+  `w:vanish` is not displayed but was read as ordinary text, so text
+  hidden in a document (to steer a model that reads it) reached the
+  corpus unmarked. Chunks holding any carry `has_hidden_text=True`;
+  `hidden=False` leaves the runs out, as it does hidden slides and sheets.
+  A `w:vanish` from a style is not detected (recorded). `_walk` takes a
+  `drop` predicate. 10 tests; 7 mutants, each caught.
+- **CX-31: OpenDocument hidden content.** A conditional hidden text
+  (`text:hidden-text`) was dropped silently (its text is an attribute,
+  `text:string-value`); a paragraph marked hidden and a section not
+  displayed were read unmarked. All three are now read with
+  `has_hidden_text=True`, or left out with `hidden=False`; a hidden text
+  whose condition currently shows it is ordinary text. 10 tests; 7
+  mutants: 6 caught, 1 equivalent (`is-hidden` read as `!= "false"` or
+  `== "true"`: the same for every value the format allows).
+- **CX-32: Word hiding set by a style was not seen.** `_WordHiding`
+  reads `w:vanish` from the styles part: a run's own setting, else its
+  character style, else its paragraph's style, else the document default;
+  a style without the setting takes its `w:basedOn` style's (cycles end).
+  Also fixed on the way: `if self.headings and styles` tested an
+  ElementTree element's truth value (`False` for an empty `w:styles`,
+  and a `DeprecationWarning`); now `styles is not None`. The office tests
+  pass with `-W error::DeprecationWarning`. 9 tests; 6 mutants, each
+  caught (the cycle mutant hangs until the test timeout).
+- **CX-33: OpenDocument hiding set by a style was not seen.**
+  `_OdfHiding` reads `style:style` from `content.xml` (automatic styles)
+  and `styles.xml`, or the flat file: a style hides when its
+  `style:text-properties` has `text:display="none"`, else as its
+  `style:parent-style-name` (cycles end), by family (`text` for spans,
+  `paragraph` for paragraphs). The hiding is passed to each function, not
+  kept on the reader. 7 tests; 6 mutants, each caught.
+- **Outline and slide titles.** Chunks under a heading carried only that
+  heading; a chunk under "Sampling" did not say it was in "Methods". They
+  now carry `heading_path` (every open heading of a higher level, then
+  their own; a skipped level leaves no gap). A slide's chunks and its
+  notes carry its title (`title` or `ctrTitle` placeholder, on one line)
+  as `heading` at level 1. Research deck: 11 of 13 chunks now carry their
+  slide's title; text unchanged (`--text-only`: 0 differences). 5 tests;
+  5 mutants: 4 caught, 1 equivalent.
+- Start template: the pull request number is `937`. `orient.py` derives
+  the number when the template line is missing or reads `auto`, or with
+  `--pr auto`: one more than the highest number among the fragment names
+  and the `(#N)` merge subjects of the last 200 commits (no git: fragments
+  only), reported as `pr_source: derived`. 6 new tests (18 in
+  `test_orient_deliver.py`).
+
 ## 2026-11-13 — PDF page text the same on every read, PR 935
 
 - **CX-16 (c): pdfminer.six grouped tied text boxes by memory address.**

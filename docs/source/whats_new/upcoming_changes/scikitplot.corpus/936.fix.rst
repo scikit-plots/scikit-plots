@@ -1,0 +1,6 @@
+- ``OfficeReader`` reads every piece of text once: a text box or equation
+  that a file also stores as a compatibility fallback, text that tracked
+  changes moved, and a table nested in a table cell (Word and OpenDocument)
+  no longer appear twice. A package member that is damaged, or encrypted at
+  the ZIP level, raises ``ValueError`` naming the part instead of
+  ``BadZipFile`` or ``RuntimeError``.

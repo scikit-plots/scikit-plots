@@ -1,0 +1,22 @@
+Office reader review, PR 936 (2026-11-14)
+
+Reproductions, origin/main (03af277):
+fallback ['body boxbox']
+moved ['movedstay\nmoved']
+nested ['outer\ninner\tb\ninner']
+odf-nested ['outer\ninner\tb\ninner']
+pptx-fallback ['title\nmath\nmath']
+corrupt BadZipFile
+zip-encrypted RuntimeError
+
+Branch:
+fallback ['body box']
+moved ['stay\nmoved']
+nested ['outer\ninner\tb']
+odf-nested ['outer\ninner\tb']
+pptx-fallback ['title\nmath']
+corrupt ValueError OfficeReader: part 'word/document.xml' of corrupt.docx cannot be read from the package (BadZipFile: F
+zip-encrypted ValueError OfficeReader: part '_rels/.rels' of zipenc.docx cannot be read from the package (RuntimeError:
+
+test__office.py: 115 passed; on main's _office.py: 9 failed, 106 passed. 7 mutants: each fails 1 or 2 tests.
+Corpus suite: the same 15 network failures. Research snapshot (images excluded): 139 files, 0 differences.

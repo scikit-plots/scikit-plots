@@ -163,3 +163,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 935: CX-16 (c), PDF page text the same on every read
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-13).
 - Next: CX-23 (XMLReader error type); D11, D13.
+
+### PR 936: office reader review (CX-26 to CX-29)
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-14).
+- Next: office plan phases 4 and 5; CX-23; a source type for presentations.

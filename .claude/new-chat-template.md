@@ -9,13 +9,16 @@ checkout (hidden folders included, so `.claude/` is inside) and say: "Read
 works too. Fill in only the block marked FILL IN; everything else stays
 the same in every chat. `orient.py` (section 2) reads that block, so keep its
 three bullet lines in this shape. The pull request number defaults to the
-last pull request opened, plus one; set it when a chat starts.
+last pull request opened, plus one; set it when a chat starts. Write
+`auto`, or leave the line out, and `orient.py` derives it: one more than the
+highest number among the release-note fragments and the merged commit
+subjects of the checkout, reported as "derived".
 
 ---
 
 ## FILL IN (the only part that changes)
 
-- Pull request number for new fragments: `932`
+- Pull request number for new fragments: `937`
 - Task for this chat: `continue the open ledger`
 - Notes I am deferring (do not work on them unless I name them):
   - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`

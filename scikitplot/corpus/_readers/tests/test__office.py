@@ -1022,3 +1022,557 @@ class TestHeadings:
         ]
         joined = "\n".join(c["text"] for c in _chunks(path, headings=False))
         assert joined == "preface\nOne\na\ncell\nDeep\nb\nPlain\nFar"
+
+
+# ---------------------------------------------------------------------------
+# Every piece of text is read once
+# ---------------------------------------------------------------------------
+
+MC = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+
+
+def _alternate(choice: str, fallback: str) -> str:
+    return (
+        f'<mc:AlternateContent xmlns:mc="{MC}"><mc:Choice Requires="x">{choice}'
+        f"</mc:Choice><mc:Fallback>{fallback}</mc:Fallback></mc:AlternateContent>"
+    )
+
+
+class TestReadOnce:
+    def test_a_word_text_box_is_not_read_from_its_fallback_too(self, tmp_path):
+        box = "<w:txbxContent>" + _p("box") + "</w:txbxContent>"
+        body = (
+            "<w:p><w:r><w:t>body </w:t></w:r><w:r>"
+            + _alternate(box, f"<w:pict>{box}</w:pict>")
+            + "</w:r></w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "body box"
+
+    def test_moved_text_is_read_at_its_new_place_only(self, tmp_path):
+        body = (
+            "<w:p><w:moveFrom><w:r><w:t>moved</w:t></w:r></w:moveFrom>"
+            "<w:r><w:t>stay</w:t></w:r></w:p>"
+            "<w:p><w:moveTo><w:r><w:t>moved</w:t></w:r></w:moveTo></w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "stay\nmoved"
+
+    def test_a_nested_word_table_is_its_cells_text(self, tmp_path):
+        inner = "<w:tbl><w:tr><w:tc>" + _p("inner") + "</w:tc></w:tr></w:tbl>"
+        body = (
+            "<w:tbl><w:tr><w:tc>"
+            + _p("outer")
+            + inner
+            + "</w:tc><w:tc>"
+            + _p("b")
+            + "</w:tc></w:tr></w:tbl>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "outer\ninner\tb"
+
+    def test_rows_and_cells_inside_content_controls_are_found(self, tmp_path):
+        body = (
+            "<w:tbl><w:sdt><w:sdtContent><w:tr><w:sdt><w:sdtContent><w:tc>"
+            + _p("a")
+            + "</w:tc></w:sdtContent></w:sdt><w:tc>"
+            + _p("b")
+            + "</w:tc></w:tr></w:sdtContent></w:sdt></w:tbl>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "a\tb"
+
+    def test_a_text_box_in_a_table_cell_paragraph_is_read_once(self, tmp_path):
+        cell = (
+            "<w:p><w:r><w:t>cell </w:t></w:r><w:r><w:txbxContent>"
+            + _p("box")
+            + "</w:txbxContent></w:r></w:p>"
+        )
+        body = f"<w:tbl><w:tr><w:tc>{cell}</w:tc></w:tr></w:tbl>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "cell box"
+
+    def test_a_slide_shape_is_not_read_from_its_fallback_too(self, tmp_path):
+        def shape(text: str) -> str:
+            return f"<p:sp><p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>"
+
+        slides = [
+            ("slide1.xml", _slide("title", table=_alternate(shape("m"), shape("m"))))
+        ]
+        (chunk,) = _chunks(_pptx(tmp_path / "d.pptx", slides, ["slide1.xml"]))
+        assert chunk["text"] == "title\nm"
+
+    def test_a_nested_opendocument_table_is_its_cells_text(self, tmp_path):
+        inner = "<table:table>" + _row(_cell("inner")) + "</table:table>"
+        outer_cell = (
+            f"<table:table-cell><text:p>outer</text:p>{inner}</table:table-cell>"
+        )
+        body = "<table:table>" + _row(outer_cell + _cell("b")) + "</table:table>"
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", body))
+        assert chunk["text"] == "outer\ninner\tb"
+
+
+class TestDamagedPackage:
+    def _flagged(self, source: Path, target: Path) -> Path:
+        """Copy *source* with every member marked encrypted at the ZIP level."""
+        raw = bytearray(source.read_bytes())
+        for signature, offset in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+            at = raw.find(signature)
+            while at >= 0:
+                raw[at + offset] |= 1
+                at = raw.find(signature, at + 4)
+        target.write_bytes(bytes(raw))
+        return target
+
+    def test_a_member_encrypted_at_the_zip_level_is_a_value_error(self, tmp_path):
+        plain = _docx(tmp_path / "plain.docx", _p("x"))
+        with pytest.raises(ValueError, match="cannot be read from the package"):
+            _chunks(self._flagged(plain, tmp_path / "d.docx"))
+
+    def test_a_damaged_member_is_a_value_error_naming_the_part(self, tmp_path):
+        path = tmp_path / "d.docx"
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as zf:
+            zf.writestr(
+                "_rels/.rels", _rels(("rId1", "officeDocument", "word/document.xml"))
+            )
+            zf.writestr("word/document.xml", f'<w:document xmlns:w="{W}"/>' + " " * 200)
+        raw = bytearray(path.read_bytes())
+        at = raw.find(b"<w:document")
+        raw[at + 60 : at + 70] = (
+            b"\xff" * 10
+        )  # the stored bytes no longer match the CRC
+        path.write_bytes(bytes(raw))
+        with pytest.raises(ValueError, match=r"word/document\.xml"):
+            _chunks(path)
+
+
+# ---------------------------------------------------------------------------
+# Word hidden text is flagged, and left out on request
+# ---------------------------------------------------------------------------
+
+
+def _run(text: str, vanish: str | None = None) -> str:
+    if vanish is None:
+        return f"<w:r><w:t>{text}</w:t></w:r>"
+    value = "" if vanish == "" else f' w:val="{vanish}"'
+    return f"<w:r><w:rPr><w:vanish{value}/></w:rPr><w:t>{text}</w:t></w:r>"
+
+
+class TestHiddenText:
+    @pytest.mark.parametrize("vanish", ["", "1", "true", "on"])
+    def test_hidden_runs_are_read_and_flagged(self, tmp_path, vanish):
+        body = f"<w:p>{_run('seen ')}{_run('secret', vanish)}</w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret", True)
+
+    @pytest.mark.parametrize("vanish", ["0", "false", "off"])
+    def test_vanish_turned_off_is_ordinary_text(self, tmp_path, vanish):
+        body = f"<w:p>{_run('seen ')}{_run('shown', vanish)}</w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert chunk["text"] == "seen shown"
+        assert "has_hidden_text" not in chunk
+
+    def test_hidden_false_leaves_hidden_runs_out(self, tmp_path):
+        body = (
+            f"<w:p>{_run('seen')}{_run(' secret', '')}</w:p>"
+            f"<w:p>{_run('all hidden', '')}</w:p>"
+        )
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body), hidden=False)
+        assert chunk["text"] == "seen"
+        assert "has_hidden_text" not in chunk
+
+    def test_tables_footnotes_and_headings_carry_the_flag(self, tmp_path):
+        table = f"<w:tbl><w:tr><w:tc><w:p>{_run('x', '')}</w:p></w:tc></w:tr></w:tbl>"
+        heading = f'<w:p><w:pPr><w:outlineLvl w:val="0"/></w:pPr>{_run("H", "")}</w:p>'
+        notes = (
+            f'<?xml version="1.0"?><w:footnotes xmlns:w="{W}"><w:footnote w:id="1">'
+            f"<w:p>{_run('n', '')}</w:p></w:footnote></w:footnotes>"
+        )
+        path = _docx(
+            tmp_path / "d.docx",
+            _p("plain") + table + heading + _p("under"),
+            extra={"word/footnotes.xml": notes},
+            doc_rels=[("rF", "footnotes", "footnotes.xml")],
+        )
+        got = [
+            (c["section_type"], c["text"], c.get("has_hidden_text"))
+            for c in _chunks(path)
+        ]
+        assert got == [
+            ("text", "plain", None),
+            ("table", "x", True),
+            ("text", "H\nunder", True),
+            ("footnote", "n", True),
+        ]
+        hidden_out = [
+            (c["section_type"], c["text"]) for c in _chunks(path, hidden=False)
+        ]
+        assert hidden_out == [("text", "plain"), ("text", "under")]
+
+    def test_a_hidden_run_without_text_sets_no_flag(self, tmp_path):
+        body = f"<w:p>{_run('seen')}<w:r><w:rPr><w:vanish/></w:rPr><w:tab/></w:r></w:p>"
+        (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
+        assert "has_hidden_text" not in chunk
+
+
+class TestOpenDocumentHiddenText:
+    def test_conditional_hidden_text_is_read_and_flagged(self, tmp_path):
+        inner = (
+            '<text:p>seen <text:hidden-text text:condition="x" text:string-value="secret"'
+            ' text:is-hidden="true"/></text:p>'
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret", True)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == "seen"
+        assert "has_hidden_text" not in out
+
+    def test_hidden_text_shown_by_its_condition_is_ordinary(self, tmp_path):
+        inner = (
+            '<text:p>seen <text:hidden-text text:string-value="shown"'
+            ' text:is-hidden="false"/></text:p>'
+        )
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", inner), hidden=False)
+        assert chunk["text"] == "seen shown"
+        assert "has_hidden_text" not in chunk
+
+    def test_a_hidden_paragraph(self, tmp_path):
+        inner = (
+            "<text:p>seen</text:p>"
+            '<text:p><text:hidden-paragraph text:is-hidden="true"/>secret</text:p>'
+            '<text:p><text:hidden-paragraph text:is-hidden="false"/>shown</text:p>'
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == (
+            "seen\nsecret\nshown",
+            True,
+        )
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen\nshown"]
+
+    @pytest.mark.parametrize(
+        ("attributes", "is_hidden"),
+        [
+            ('text:display="none"', True),
+            ('text:display="condition" text:is-hidden="true"', True),
+            ('text:display="condition" text:is-hidden="false"', False),
+            ('text:display="true"', False),
+            ("", False),
+        ],
+    )
+    def test_sections(self, tmp_path, attributes, is_hidden):
+        inner = (
+            f"<text:p>seen</text:p><text:section {attributes}>"
+            "<text:section><text:p>inside</text:p></text:section></text:section>"
+            "<text:p>after</text:p>"
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert chunk["text"] == "seen\ninside\nafter"
+        assert chunk.get("has_hidden_text") == (True if is_hidden else None)
+        expected = "seen\nafter" if is_hidden else "seen\ninside\nafter"
+        assert [c["text"] for c in _chunks(path, hidden=False)] == [expected]
+
+    def test_after_a_hidden_section_text_is_not_flagged(self, tmp_path):
+        inner = (
+            '<text:section text:display="none"><text:p>secret</text:p></text:section>'
+            '<text:h text:outline-level="1">Next</text:h><text:p>after</text:p>'
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [(c["text"], c.get("has_hidden_text")) for c in chunks] == [
+            ("secret", True),
+            ("Next\nafter", None),
+        ]
+
+    def test_hidden_text_in_a_note_is_flagged(self, tmp_path):
+        inner = (
+            "<text:p>body<text:note><text:note-body><text:p>"
+            '<text:hidden-text text:string-value="n"/></text:p>'
+            "</text:note-body></text:note></text:p>"
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [
+            (c["section_type"], c["text"], c.get("has_hidden_text")) for c in chunks
+        ] == [
+            ("text", "body", None),
+            ("footnote", "n", True),
+        ]
+
+
+# ---------------------------------------------------------------------------
+# Word hiding set by a style
+# ---------------------------------------------------------------------------
+
+
+def _hiding_styles(default_vanish: bool = False) -> str:
+    def style(kind, style_id, vanish=None, based=None):
+        rpr = ""
+        if vanish is not None:
+            value = "" if vanish == "on" else f' w:val="{vanish}"'
+            rpr = f"<w:rPr><w:vanish{value}/></w:rPr>"
+        base = f'<w:basedOn w:val="{based}"/>' if based else ""
+        return f'<w:style w:type="{kind}" w:styleId="{style_id}">{base}{rpr}</w:style>'
+
+    defaults = (
+        "<w:docDefaults><w:rPrDefault><w:rPr><w:vanish/></w:rPr></w:rPrDefault>"
+        "</w:docDefaults>"
+        if default_vanish
+        else ""
+    )
+    return (
+        f'<?xml version="1.0"?><w:styles xmlns:w="{W}">{defaults}'
+        + style("character", "HiddenChar", "on")
+        + style("character", "ChildChar", None, "HiddenChar")
+        + style("character", "ShownChar", "0", "HiddenChar")
+        + style("paragraph", "HiddenPara", "on")
+        + style("paragraph", "LoopA", None, "LoopB")
+        + style("paragraph", "LoopB", None, "LoopA")
+        + "</w:styles>"
+    )
+
+
+def _styled_docx(path: Path, body: str, default_vanish: bool = False) -> Path:
+    return _docx(
+        path,
+        body,
+        extra={"word/styles.xml": _hiding_styles(default_vanish)},
+        doc_rels=[("rSt", "styles", "styles.xml")],
+    )
+
+
+def _styled_run(
+    text: str, char_style: str | None = None, vanish: str | None = None
+) -> str:
+    props = ""
+    if char_style:
+        props += f'<w:rStyle w:val="{char_style}"/>'
+    if vanish is not None:
+        props += f'<w:vanish w:val="{vanish}"/>'
+    rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+    return f"<w:r>{rpr}<w:t>{text}</w:t></w:r>"
+
+
+class TestHiddenByStyle:
+    @pytest.mark.parametrize(
+        ("run", "hidden"),
+        [
+            (_styled_run("s", "HiddenChar"), True),
+            (_styled_run("s", "ChildChar"), True),  # based on a hiding style
+            (_styled_run("s", "ShownChar"), False),  # its own w:val="0" wins
+            (_styled_run("s", "HiddenChar", "0"), False),  # the run's own setting wins
+            (_styled_run("s", "Missing"), False),
+        ],
+    )
+    def test_a_character_style(self, tmp_path, run, hidden):
+        body = f"<w:p>{_styled_run('seen ')}{run}</w:p>"
+        path = _styled_docx(tmp_path / "d.docx", body)
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") == (True if hidden else None)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == ("seen" if hidden else "seen s")
+
+    def test_a_paragraph_style_hides_its_runs_unless_a_run_says_otherwise(
+        self, tmp_path
+    ):
+        body = (
+            _p("seen")
+            + '<w:p><w:pPr><w:pStyle w:val="HiddenPara"/></w:pPr>'
+            + _styled_run("secret ")
+            + _styled_run("shown", vanish="0")
+            + "</w:p>"
+        )
+        path = _styled_docx(tmp_path / "d.docx", body)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen\nsecret shown", True)
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen\nshown"]
+
+    def test_the_document_default(self, tmp_path):
+        body = f"<w:p>{_styled_run('secret ')}{_styled_run('shown', vanish='0')}</w:p>"
+        path = _styled_docx(tmp_path / "d.docx", body, default_vanish=True)
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["shown"]
+
+    def test_styles_based_on_each_other_end(self, tmp_path):
+        body = (
+            '<w:p><w:pPr><w:pStyle w:val="LoopA"/></w:pPr>'
+            + _styled_run("x")
+            + "</w:p>"
+        )
+        (chunk,) = _chunks(_styled_docx(tmp_path / "d.docx", body))
+        assert "has_hidden_text" not in chunk
+
+    def test_an_empty_styles_part_with_headings_reads(self, tmp_path):
+        path = _docx(
+            tmp_path / "d.docx",
+            _p("x"),
+            extra={"word/styles.xml": f'<w:styles xmlns:w="{W}"/>'},
+            doc_rels=[("rSt", "styles", "styles.xml")],
+        )
+        assert [c["text"] for c in _chunks(path)] == ["x"]
+
+
+# ---------------------------------------------------------------------------
+# OpenDocument hiding set by a style
+# ---------------------------------------------------------------------------
+
+ODF_STYLE = f'xmlns:style="{ODF}style:1.0"'
+
+
+def _odf_style(family: str, name: str, display: str | None = None, parent=None) -> str:
+    props = f'<style:text-properties text:display="{display}"/>' if display else ""
+    base = f' style:parent-style-name="{parent}"' if parent else ""
+    return f'<style:style style:name="{name}" style:family="{family}"{base}>{props}</style:style>'
+
+
+def _odf_styled(path: Path, inner: str, automatic: str = "", shared: str = "") -> Path:
+    content = (
+        f'<?xml version="1.0"?><office:document-content {ODF_NS} {ODF_STYLE}>'
+        f"<office:automatic-styles>{automatic}</office:automatic-styles>"
+        f"<office:body><office:text>{inner}</office:text></office:body>"
+        "</office:document-content>"
+    )
+    styles = (
+        f'<?xml version="1.0"?><office:document-styles {ODF_NS} {ODF_STYLE}>'
+        f"<office:styles>{shared}</office:styles></office:document-styles>"
+    )
+    return _write(path, {"content.xml": content, "styles.xml": styles})
+
+
+class TestOpenDocumentHiddenByStyle:
+    def test_a_span_style_in_content(self, tmp_path):
+        inner = '<text:p>seen <text:span text:style-name="T1">secret</text:span> end</text:p>'
+        path = _odf_styled(tmp_path / "d.odt", inner, _odf_style("text", "T1", "none"))
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret end", True)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == "seen  end"
+        assert "has_hidden_text" not in out
+
+    def test_a_paragraph_style_in_styles_xml_through_a_parent(self, tmp_path):
+        inner = '<text:p>seen</text:p><text:p text:style-name="P1">secret</text:p>'
+        path = _odf_styled(
+            tmp_path / "d.odt",
+            inner,
+            automatic=_odf_style("paragraph", "P1", parent="Hidden"),
+            shared=_odf_style("paragraph", "Hidden", "none"),
+        )
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") is True
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen"]
+
+    @pytest.mark.parametrize(
+        ("styles", "hidden"),
+        [
+            (_odf_style("text", "T1", "true"), False),
+            (
+                _odf_style("text", "T1", "none")
+                + _odf_style("text", "T2", "true", "T1"),
+                False,
+            ),
+            (_odf_style("paragraph", "T2", "none"), False),  # another family
+            (
+                _odf_style("text", "T2", parent="T3")
+                + _odf_style("text", "T3", parent="T2"),
+                False,
+            ),
+        ],
+    )
+    def test_shown_styles(self, tmp_path, styles, hidden):
+        inner = '<text:p>seen <text:span text:style-name="T2">x</text:span></text:p>'
+        path = _odf_styled(tmp_path / "d.odt", inner, styles)
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") == (True if hidden else None)
+
+    def test_flat_file_styles(self, tmp_path):
+        xml = (
+            f'<?xml version="1.0"?><office:document {ODF_NS} {ODF_STYLE}>'
+            "<office:automatic-styles>"
+            + _odf_style("text", "T1", "none")
+            + "</office:automatic-styles><office:body><office:text>"
+            '<text:p>a<text:span text:style-name="T1">b</text:span></text:p>'
+            "</office:text></office:body></office:document>"
+        )
+        path = tmp_path / "d.fodt"
+        path.write_text(xml, encoding="utf-8")
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["a"]
+
+
+# ---------------------------------------------------------------------------
+# The outline above a chunk, and slide titles
+# ---------------------------------------------------------------------------
+
+
+def _titled_slide(title: str | None, body: str, kind: str = "title") -> str:
+    def shape(text: str, ph: str | None) -> str:
+        nv = f'<p:nvSpPr><p:nvPr><p:ph type="{ph}"/></p:nvPr></p:nvSpPr>' if ph else ""
+        return f"<p:sp>{nv}<p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>"
+
+    shapes = (shape(title, kind) if title is not None else "") + shape(body, None)
+    return (
+        f'<?xml version="1.0"?><p:sld xmlns:p="{P}" xmlns:a="{A}"><p:cSld><p:spTree>'
+        f"{shapes}</p:spTree></p:cSld></p:sld>"
+    )
+
+
+class TestOutline:
+    def test_the_heading_path_follows_the_outline(self, tmp_path):
+        inner = (
+            '<text:h text:outline-level="1">A</text:h><text:p>a</text:p>'
+            '<text:h text:outline-level="2">A1</text:h><text:p>a1</text:p>'
+            '<text:h text:outline-level="4">deep</text:h><text:p>d</text:p>'
+            '<text:h text:outline-level="2">A2</text:h><text:p>a2</text:p>'
+            '<text:h text:outline-level="1">B</text:h><text:p>b</text:p>'
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [c["heading_path"] for c in chunks] == [
+            ["A"],
+            ["A", "A1"],
+            ["A", "A1", "deep"],  # a skipped level does not leave a gap
+            ["A", "A2"],
+            ["B"],
+        ]
+
+    def test_the_heading_path_in_word(self, tmp_path):
+        body = _styled("One", "Nadpis1") + _styled("Two", "Nadpis2") + _p("x")
+        chunks = _chunks(_headed_docx(tmp_path / "d.docx", body))
+        assert [c["heading_path"] for c in chunks] == [["One"], ["One", "Two"]]
+
+    def test_slides_carry_their_title(self, tmp_path):
+        slides = [
+            ("slide1.xml", _titled_slide("Intro", "hello")),
+            ("slide2.xml", _titled_slide("Cover", "x", kind="ctrTitle")),
+            ("slide3.xml", _titled_slide(None, "untitled")),
+            ("slide4.xml", _titled_slide("  ", "blank title")),
+        ]
+        extra = {
+            "ppt/slides/_rels/slide1.xml.rels": _rels(
+                ("rN", "notesSlide", "../notesSlides/notesSlide1.xml")
+            ),
+            "ppt/notesSlides/notesSlide1.xml": _notes("say"),
+        }
+        path = _pptx(tmp_path / "d.pptx", slides, [n for n, _ in slides], extra)
+        got = [
+            (c["text"], c.get("heading"), c.get("heading_level")) for c in _chunks(path)
+        ]
+        assert got == [
+            ("Intro\nhello", "Intro", 1),
+            ("say", "Intro", 1),
+            ("Cover\nx", "Cover", 1),
+            ("untitled", None, None),
+            ("blank title", None, None),
+        ]
+        assert _chunks(path)[0]["heading_path"] == ["Intro"]
+
+    def test_a_title_reads_on_one_line(self, tmp_path):
+        title = (
+            '<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody>'
+            "<a:p><a:r><a:t>Two </a:t></a:r><a:br/><a:r><a:t> lines</a:t></a:r></a:p>"
+            "<a:p><a:r><a:t>and more</a:t></a:r></a:p></p:txBody></p:sp>"
+        )
+        xml = (
+            f'<?xml version="1.0"?><p:sld xmlns:p="{P}" xmlns:a="{A}"><p:cSld>'
+            f"<p:spTree>{title}</p:spTree></p:cSld></p:sld>"
+        )
+        path = _pptx(tmp_path / "d.pptx", [("slide1.xml", xml)], ["slide1.xml"])
+        assert _chunks(path)[0]["heading"] == "Two lines and more"
+        assert all("heading" not in c for c in _chunks(path, headings=False))

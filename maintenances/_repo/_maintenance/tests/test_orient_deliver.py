@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
+
 TOOLS = Path(__file__).resolve().parent.parent / "tools"
 orient = runpy.run_path(str(TOOLS / "orient.py"))
 deliver = runpy.run_path(str(TOOLS / "deliver.py"))
@@ -84,9 +86,24 @@ class TestOrient:
         report = orient["state"](checkout)
         assert report["pr"] == "42"
         assert report["open_notes"] == [
-            {"path": "upcoming_changes/a/later.md", "title": "Later", "status": "open", "deferred": True},
-            {"path": "upcoming_changes/a/now.md", "title": "Now", "status": "open", "deferred": False},
-            {"path": "upcoming_changes/a/wait.md", "title": "Wait", "status": "blocked", "deferred": False},
+            {
+                "path": "upcoming_changes/a/later.md",
+                "title": "Later",
+                "status": "open",
+                "deferred": True,
+            },
+            {
+                "path": "upcoming_changes/a/now.md",
+                "title": "Now",
+                "status": "open",
+                "deferred": False,
+            },
+            {
+                "path": "upcoming_changes/a/wait.md",
+                "title": "Wait",
+                "status": "blocked",
+                "deferred": False,
+            },
         ]
         assert report["fragments"] == ["sec/42.fix.rst"]
         assert report["areas"] == [
@@ -145,14 +162,61 @@ class TestOrient:
         root = orient["repository_root"](Path(__file__).resolve())
         assert orient["dead_paths"](root) == []
 
-    def test_missing_template_asks_for_a_number(self, checkout):
+    def test_without_a_number_the_next_one_is_derived(self, checkout):
         (checkout / ".claude/new-chat-template.md").unlink()
+        report = orient["state"](checkout)
+        # Fragments are filed under 41 and 42; no git history here.
+        assert (report["pr"], report["pr_source"]) == ("43", "derived")
+        assert not any("no fragments" in p for p in report["problems"])
+        assert orient["render"](report).startswith("pull request: 43 (derived")
+
+    def test_auto_in_the_template_derives_the_number(self, checkout):
+        template = checkout / ".claude/new-chat-template.md"
+        template.write_text(
+            template.read_text(encoding="utf-8").replace("`42`", "`auto`"),
+            encoding="utf-8",
+        )
+        report = orient["state"](checkout)
+        assert (report["pr"], report["pr_source"]) == ("43", "derived")
+
+    def test_an_explicit_number_wins(self, checkout):
+        assert orient["state"](checkout)["pr_source"] == "template"
+        report = orient["state"](checkout, "7")
+        assert (report["pr"], report["pr_source"]) == ("7", "--pr")
+        assert orient["state"](checkout, "auto")["pr"] == "43"
+
+    def test_nothing_known_asks_for_a_number(self, checkout):
+        (checkout / ".claude/new-chat-template.md").unlink()
+        shutil.rmtree(checkout / "docs")
         report = orient["state"](checkout)
         assert report["pr"] is None
         assert any("pull request number" in p for p in report["problems"])
 
+    @needs_git
+    def test_merged_subjects_count(self, checkout):
+        import subprocess
 
-needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
+        def git(*args):
+            subprocess.run(
+                ["git", "-C", str(checkout), *args],
+                check=True,
+                capture_output=True,
+            )
+
+        git("init", "-q")
+        git(
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+            "commit",
+            "-q",
+            "--allow-empty",
+            "-m",
+            "fix: something (#120)",
+        )
+        (checkout / ".claude/new-chat-template.md").unlink()
+        assert orient["state"](checkout)["pr"] == "121"
 
 
 def _trees(tmp_path):
