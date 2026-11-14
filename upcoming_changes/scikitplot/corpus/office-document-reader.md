@@ -144,7 +144,8 @@ hook every reader has.
   Left: the path of parent headings, and titles of slides.
 - Hidden text: Word run-level `w:vanish` is flagged (`has_hidden_text`,
   PR 936), and OpenDocument `text:hidden-text`, `text:hidden-paragraph`
-  and undisplayed sections (PR 936). Left: hiding set by a style,
+  and undisplayed sections (PR 936); Word hiding set by a style or the
+  document default (PR 936). Left: OpenDocument hiding set by a style,
   white-on-white or tiny text, a table in a hidden section (left out
   with `hidden=False`, not flagged otherwise).
 - Decision: a `SourceType` for presentations (and drawings). Today they

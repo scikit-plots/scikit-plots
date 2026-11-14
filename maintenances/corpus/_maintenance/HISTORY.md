@@ -43,6 +43,15 @@ now use it. Package reads are wrapped in `_Package.xml`.
   whose condition currently shows it is ordinary text. 10 tests; 7
   mutants: 6 caught, 1 equivalent (`is-hidden` read as `!= "false"` or
   `== "true"`: the same for every value the format allows).
+- **CX-32: Word hiding set by a style was not seen.** `_WordHiding`
+  reads `w:vanish` from the styles part: a run's own setting, else its
+  character style, else its paragraph's style, else the document default;
+  a style without the setting takes its `w:basedOn` style's (cycles end).
+  Also fixed on the way: `if self.headings and styles` tested an
+  ElementTree element's truth value (`False` for an empty `w:styles`,
+  and a `DeprecationWarning`); now `styles is not None`. The office tests
+  pass with `-W error::DeprecationWarning`. 9 tests; 6 mutants, each
+  caught (the cycle mutant hangs until the test timeout).
 - Start template: the pull request number is `937`. `orient.py` derives
   the number when the template line is missing or reads `auto`, or with
   `--pr auto`: one more than the highest number among the fragment names

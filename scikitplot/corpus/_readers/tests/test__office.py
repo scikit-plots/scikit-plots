@@ -1298,3 +1298,114 @@ class TestOpenDocumentHiddenText:
             ("text", "body", None),
             ("footnote", "n", True),
         ]
+
+
+# ---------------------------------------------------------------------------
+# Word hiding set by a style
+# ---------------------------------------------------------------------------
+
+
+def _hiding_styles(default_vanish: bool = False) -> str:
+    def style(kind, style_id, vanish=None, based=None):
+        rpr = ""
+        if vanish is not None:
+            value = "" if vanish == "on" else f' w:val="{vanish}"'
+            rpr = f"<w:rPr><w:vanish{value}/></w:rPr>"
+        base = f'<w:basedOn w:val="{based}"/>' if based else ""
+        return f'<w:style w:type="{kind}" w:styleId="{style_id}">{base}{rpr}</w:style>'
+
+    defaults = (
+        "<w:docDefaults><w:rPrDefault><w:rPr><w:vanish/></w:rPr></w:rPrDefault>"
+        "</w:docDefaults>"
+        if default_vanish
+        else ""
+    )
+    return (
+        f'<?xml version="1.0"?><w:styles xmlns:w="{W}">{defaults}'
+        + style("character", "HiddenChar", "on")
+        + style("character", "ChildChar", None, "HiddenChar")
+        + style("character", "ShownChar", "0", "HiddenChar")
+        + style("paragraph", "HiddenPara", "on")
+        + style("paragraph", "LoopA", None, "LoopB")
+        + style("paragraph", "LoopB", None, "LoopA")
+        + "</w:styles>"
+    )
+
+
+def _styled_docx(path: Path, body: str, default_vanish: bool = False) -> Path:
+    return _docx(
+        path,
+        body,
+        extra={"word/styles.xml": _hiding_styles(default_vanish)},
+        doc_rels=[("rSt", "styles", "styles.xml")],
+    )
+
+
+def _styled_run(
+    text: str, char_style: str | None = None, vanish: str | None = None
+) -> str:
+    props = ""
+    if char_style:
+        props += f'<w:rStyle w:val="{char_style}"/>'
+    if vanish is not None:
+        props += f'<w:vanish w:val="{vanish}"/>'
+    rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+    return f"<w:r>{rpr}<w:t>{text}</w:t></w:r>"
+
+
+class TestHiddenByStyle:
+    @pytest.mark.parametrize(
+        ("run", "hidden"),
+        [
+            (_styled_run("s", "HiddenChar"), True),
+            (_styled_run("s", "ChildChar"), True),  # based on a hiding style
+            (_styled_run("s", "ShownChar"), False),  # its own w:val="0" wins
+            (_styled_run("s", "HiddenChar", "0"), False),  # the run's own setting wins
+            (_styled_run("s", "Missing"), False),
+        ],
+    )
+    def test_a_character_style(self, tmp_path, run, hidden):
+        body = f"<w:p>{_styled_run('seen ')}{run}</w:p>"
+        path = _styled_docx(tmp_path / "d.docx", body)
+        (chunk,) = _chunks(path)
+        assert chunk.get("has_hidden_text") == (True if hidden else None)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == ("seen" if hidden else "seen s")
+
+    def test_a_paragraph_style_hides_its_runs_unless_a_run_says_otherwise(
+        self, tmp_path
+    ):
+        body = (
+            _p("seen")
+            + '<w:p><w:pPr><w:pStyle w:val="HiddenPara"/></w:pPr>'
+            + _styled_run("secret ")
+            + _styled_run("shown", vanish="0")
+            + "</w:p>"
+        )
+        path = _styled_docx(tmp_path / "d.docx", body)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen\nsecret shown", True)
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen\nshown"]
+
+    def test_the_document_default(self, tmp_path):
+        body = f"<w:p>{_styled_run('secret ')}{_styled_run('shown', vanish='0')}</w:p>"
+        path = _styled_docx(tmp_path / "d.docx", body, default_vanish=True)
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["shown"]
+
+    def test_styles_based_on_each_other_end(self, tmp_path):
+        body = (
+            '<w:p><w:pPr><w:pStyle w:val="LoopA"/></w:pPr>'
+            + _styled_run("x")
+            + "</w:p>"
+        )
+        (chunk,) = _chunks(_styled_docx(tmp_path / "d.docx", body))
+        assert "has_hidden_text" not in chunk
+
+    def test_an_empty_styles_part_with_headings_reads(self, tmp_path):
+        path = _docx(
+            tmp_path / "d.docx",
+            _p("x"),
+            extra={"word/styles.xml": f'<w:styles xmlns:w="{W}"/>'},
+            doc_rels=[("rSt", "styles", "styles.xml")],
+        )
+        assert [c["text"] for c in _chunks(path)] == ["x"]

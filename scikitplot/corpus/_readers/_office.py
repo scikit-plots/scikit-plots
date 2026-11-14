@@ -344,24 +344,96 @@ class _Text(str):
         return made
 
 
-def _vanished(run: Any) -> bool:
-    """Whether a ``w:r`` is formatted as hidden text (``w:vanish``)."""
-    properties = run.find(_q(_W, "rPr"))
+def _vanish_of(properties: Any) -> bool | None:
+    """Return what a ``w:rPr`` says about hiding: ``True``, ``False`` or ``None``."""
     vanish = None if properties is None else properties.find(_q(_W, "vanish"))
     if vanish is None:
-        return False
+        return None
     return (vanish.get(_q(_W, "val")) or "true").lower() not in ("0", "false", "off")
 
 
-def _word_paragraph(p: Any, *, keep_hidden: bool = True) -> Any:
+class _WordHiding:
+    """
+    Which styles hide text, read from a Word styles part.
+
+    Parameters
+    ----------
+    styles : Element or None
+        The root of ``word/styles.xml``; ``None`` for a document without one.
+
+    Notes
+    -----
+    A run is hidden by, in order: its own ``w:rPr/w:vanish``; its
+    character style (``w:rStyle``); its paragraph's style (``w:pStyle``);
+    the document default (``w:docDefaults``). A style without ``w:vanish``
+    takes its ``w:basedOn`` style's value; a cycle of styles ends.
+    """
+
+    def __init__(self, styles: Any = None) -> None:
+        own: dict[str, bool | None] = {}
+        parents: dict[str, str] = {}
+        self.default = False
+        if styles is None:
+            self.styles: dict[str, bool] = {}
+            return
+        defaults = styles.find(f"{_q(_W, 'docDefaults')}/{_q(_W, 'rPrDefault')}")
+        if defaults is not None:
+            self.default = bool(_vanish_of(defaults.find(_q(_W, "rPr"))))
+        for style in styles.iter(_q(_W, "style")):
+            style_id = style.get(_q(_W, "styleId")) or ""
+            own[style_id] = _vanish_of(style.find(_q(_W, "rPr")))
+            based = style.find(_q(_W, "basedOn"))
+            if based is not None:
+                parents[style_id] = based.get(_q(_W, "val")) or ""
+        self.styles = {}
+        for style_id in own:
+            seen: set[str] = set()
+            current = style_id
+            while current in own and current not in seen:
+                if own[current] is not None:
+                    self.styles[style_id] = bool(own[current])
+                    break
+                seen.add(current)
+                current = parents.get(current, "")
+
+    def paragraph(self, p: Any) -> bool | None:
+        """Return what the paragraph's style says about hiding its runs."""
+        style = p.find(f"{_q(_W, 'pPr')}/{_q(_W, 'pStyle')}")
+        return (
+            None if style is None else self.styles.get(style.get(_q(_W, "val")) or "")
+        )
+
+    def run(self, run: Any, paragraph: bool | None) -> bool:
+        """Whether a ``w:r`` is hidden, given its paragraph's style setting."""
+        properties = run.find(_q(_W, "rPr"))
+        own = _vanish_of(properties)
+        if own is not None:
+            return own
+        style = None if properties is None else properties.find(_q(_W, "rStyle"))
+        if style is not None:
+            by_style = self.styles.get(style.get(_q(_W, "val")) or "")
+            if by_style is not None:
+                return by_style
+        return self.default if paragraph is None else paragraph
+
+
+#: No styles: only a run's own ``w:vanish`` hides it.
+_NO_STYLES = _WordHiding()
+
+
+def _word_paragraph(
+    p: Any, *, keep_hidden: bool = True, hiding: _WordHiding = _NO_STYLES
+) -> Any:
     """
     Return the text of a ``w:p``: runs, tabs and breaks, as :class:`_Text`.
 
     Tracked deletions and the old place of moved text are dropped; a
     markup-compatibility fallback is not read a second time. Runs
-    formatted as hidden (``w:vanish``) are read when *keep_hidden* and
-    left out otherwise; the result's ``hidden`` says whether any was read.
+    formatted as hidden (``w:vanish``, directly or by a style in
+    *hiding*) are read when *keep_hidden* and left out otherwise; the
+    result's ``hidden`` says whether any was read.
     """
+    by_paragraph = hiding.paragraph(p)
     out: list[str] = []
     t, tab, br, cr, run = (_q(_W, n) for n in ("t", "tab", "br", "cr", "r"))
     hyphen = _q(_W, "noBreakHyphen")
@@ -369,7 +441,7 @@ def _word_paragraph(p: Any, *, keep_hidden: bool = True) -> Any:
 
     def drop(node: Any) -> bool:
         nonlocal hidden
-        if node.tag != run or not _vanished(node):
+        if node.tag != run or not hiding.run(node, by_paragraph):
             return False
         if keep_hidden and any(True for _ in node.iter(t)):
             hidden = True
@@ -388,12 +460,14 @@ def _word_paragraph(p: Any, *, keep_hidden: bool = True) -> Any:
     return _Text("".join(out), hidden)
 
 
-def _word_paragraphs(container: Any, *, keep_hidden: bool = True) -> list[Any]:
+def _word_paragraphs(
+    container: Any, *, keep_hidden: bool = True, hiding: _WordHiding = _NO_STYLES
+) -> list[Any]:
     """Return each ``w:p`` under *container* as :class:`_Text`, nested ones in their parent."""
     p = _q(_W, "p")
     found = _walk(container, skip=_WORD_REMOVED, leaves=frozenset({p}))
     return [
-        _word_paragraph(node, keep_hidden=keep_hidden)
+        _word_paragraph(node, keep_hidden=keep_hidden, hiding=hiding)
         for node in found
         if node.tag == p
     ]
@@ -471,7 +545,9 @@ def _word_heading(p: Any, levels: dict[str, int]) -> int | None:
     return None if style is None else levels.get(style.get(_q(_W, "val")) or "")
 
 
-def _word_table(tbl: Any, *, keep_hidden: bool = True) -> Any:
+def _word_table(
+    tbl: Any, *, keep_hidden: bool = True, hiding: _WordHiding = _NO_STYLES
+) -> Any:
     """
     Return a ``w:tbl`` as lines of tab-separated cells; empty rows dropped.
 
@@ -486,7 +562,9 @@ def _word_table(tbl: Any, *, keep_hidden: bool = True) -> Any:
         cells = []
         for cell in _walk(row, leaves=frozenset({tc})):
             if cell.tag == tc:
-                text = _joined(_word_paragraphs(cell, keep_hidden=keep_hidden))
+                text = _joined(
+                    _word_paragraphs(cell, keep_hidden=keep_hidden, hiding=hiding)
+                )
                 cells.append(_Text(text.strip(), text.hidden))
         if any(cells):
             rows.append(_joined(cells, "\t"))
@@ -939,8 +1017,10 @@ class OfficeReader(DocumentReader):
     paragraph marked hidden (``text:hidden-paragraph``) and a section not
     displayed (``text:display="none"``, or ``"condition"`` while hidden).
     A table in a hidden section is left out with ``hidden=False`` but not
-    flagged otherwise. Hidden formatting that comes from a style, not from
-    the run or element, is not detected.
+    flagged otherwise. In Word a style hides text too: a character style,
+    the paragraph's style or the document default with ``w:vanish``, each
+    through the styles it is based on. OpenDocument hiding that comes from
+    a style is not detected.
 
     **Headings.** In Word and OpenDocument text, a heading starts a new
     chunk (its text is the chunk's first line), and that chunk and the
@@ -1288,11 +1368,15 @@ class OfficeReader(DocumentReader):
 
     def _word(self, pkg: _Package, main: str, root: Any) -> Iterator[dict[str, Any]]:
         body = root.find(_q(_W, "body"))
-        styles = pkg.first(main, _STYLES) if self.headings else None
-        levels = _word_style_levels(pkg.xml(styles)) if styles else {}
+        styles_part = pkg.first(main, _STYLES)
+        styles = pkg.xml(styles_part) if styles_part else None
+        levels = (
+            _word_style_levels(styles) if self.headings and styles is not None else {}
+        )
+        hiding = _WordHiding(styles)
 
         def paragraph(p: Any) -> Any:
-            text = _word_paragraph(p, keep_hidden=self.hidden)
+            text = _word_paragraph(p, keep_hidden=self.hidden, hiding=hiding)
             level = _word_heading(p, levels) if self.headings else None
             return text if level is None else _Heading(text, level, text.hidden)
 
@@ -1301,7 +1385,8 @@ class OfficeReader(DocumentReader):
                 if node.tag == _q(_W, "p"):
                     yield paragraph(node)
                 elif node.tag == _q(_W, "tbl"):
-                    yield ("table", _word_table(node, keep_hidden=self.hidden))
+                    table = _word_table(node, keep_hidden=self.hidden, hiding=hiding)
+                    yield ("table", table)
                 elif node.tag == _q(_W, "sdt"):
                     # A content control: its paragraphs read as body text.
                     p_tag = _q(_W, "p")
@@ -1320,7 +1405,9 @@ class OfficeReader(DocumentReader):
             for note in notes_root.iter(_q(_W, element)):
                 if note.get(_q(_W, "type")) in ("separator", "continuationSeparator"):
                     continue
-                joined = _joined(_word_paragraphs(note, keep_hidden=self.hidden))
+                joined = _joined(
+                    _word_paragraphs(note, keep_hidden=self.hidden, hiding=hiding)
+                )
                 if joined.strip():
                     chunk = {
                         "text": joined.strip(),
