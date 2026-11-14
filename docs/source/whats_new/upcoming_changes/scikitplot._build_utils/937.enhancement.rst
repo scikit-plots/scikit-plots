@@ -5,3 +5,6 @@
   which may only shrink). It needs no build and runs as the pre-commit
   hook ``apis-reference-coverage``.
   A ``_name`` in ``__all__`` is reported as a gap of its own (``private``).
+  Names a module exports lazily (imported under ``if TYPE_CHECKING:`` with
+  a module ``__getattr__``) count as public, and an entry written
+  ``"sub.Name"`` documents ``Name``.

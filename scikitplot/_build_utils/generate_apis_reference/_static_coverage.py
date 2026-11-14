@@ -12,6 +12,10 @@ source with :mod:`ast`, never importing it, and compares it with the
 * **missing**: in ``__all__`` but in no section of its module (and not in
   the module's ``ignore`` or a section's ``exclude``);
 * **stale**: documented, but no longer in ``__all__``;
+A module's lazily exported names (imported under ``if TYPE_CHECKING:`` in
+a module with a module-level ``__getattr__``, :func:`static_lazy`) count
+as public: documented, they are not stale; undocumented, they are missing.
+
 * **private**: a ``_name`` (not a dunder) in ``__all__``: exported by
   ``import *`` although its name says it is internal. Import it by name
   from its own module instead.
@@ -224,6 +228,63 @@ def static_all(  # noqa: PLR0912
     return list(dict.fromkeys(state["all"]))
 
 
+def static_lazy(package_root: Path, dotted: str) -> list[str]:
+    """
+    Return the names a module exports lazily, read from its source.
+
+    Parameters
+    ----------
+    package_root : Path
+        Directory that holds the top-level package.
+    dotted : str
+        Module name.
+
+    Returns
+    -------
+    list of str
+        The names the package itself provides (relative imports, or
+        imports from its own top-level package) in a top-level
+        ``if TYPE_CHECKING:`` block of a module that defines a module-level
+        ``__getattr__``: the convention
+        for a public name resolved on first access (an optional tier kept
+        out of ``__all__`` so that ``import *`` does not import its
+        dependency). Empty for any other module.
+    """
+    path = module_file(package_root, dotted)
+    if path is None:
+        return []
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    has_getattr = any(
+        isinstance(node, ast.FunctionDef) and node.name == "__getattr__"
+        for node in tree.body
+    )
+    if not has_getattr:
+        return []
+    top = dotted.split(".", maxsplit=1)[0]
+    names: list[str] = []
+    for node in tree.body:
+        test = node.test if isinstance(node, ast.If) else None
+        guarded = (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+            isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+        )
+        if not guarded:
+            continue
+        for inner in ast.walk(node):
+            # Only the package's own names: a typing helper imported for
+            # annotations (``from typing import Optional``) is not an export.
+            if isinstance(inner, ast.ImportFrom) and (
+                inner.level or (inner.module or "").split(".")[0] == top
+            ):
+                names.extend(a.asname or a.name for a in inner.names)
+            elif isinstance(inner, ast.Import):
+                names.extend(
+                    a.asname or a.name.split(".")[-1]
+                    for a in inner.names
+                    if a.name.split(".")[0] == top
+                )
+    return list(dict.fromkeys(n for n in names if n != "*"))
+
+
 @dataclass
 class CoverageReport:
     """Gaps between ``__all__`` and the reference, per module."""
@@ -271,7 +332,12 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
         except UnresolvedError as exc:
             report.unresolved[name] = str(exc)
             continue
+        lazy = static_lazy(package_root, name)
+        public = public + [n for n in lazy if n not in public]
+        # "sub.Name" documents Name through its submodule (as autosummary
+        # resolves it); a name counts as documented either way.
         documented = set(entry.documented)
+        documented |= {n.rsplit(".", 1)[-1] for n in entry.documented if "." in n}
         skipped = set(entry.ignore)
         for section in entry.sections:
             skipped |= set(section.exclude)
@@ -283,7 +349,11 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
             if n not in documented and n not in skipped and n not in private
         ]
         listed = set(public)
-        report.stale[name] = sorted(n for n in documented if n not in listed)
+        report.stale[name] = sorted(
+            n
+            for n in entry.documented
+            if n not in listed and n.rsplit(".", 1)[-1] not in listed
+        )
     return report
 
 

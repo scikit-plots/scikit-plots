@@ -29,6 +29,15 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **API reference coverage, cleanprompt.** The static check now counts
+  names a module exports lazily (imported under `if TYPE_CHECKING:` with a
+  module `__getattr__`, from the package itself) as public, so
+  cleanprompt's optional tier (NerDetector, create_app, encrypt_mapping,
+  ...) is no longer "stale"; and an entry written `"sub.Name"` documents
+  `Name` (scikitplot.impute's `_ann.ANNImputer`). 44 cleanprompt names
+  added in five new sections and existing ones; `__version__` ignored as
+  metadata. Baseline 177 -> 96. cleanprompt `imports`: 131 targets, 0
+  errors, 7 optional dependencies absent.
 - Tests: 24 new (179); on `main` the file does not import (the new
   constants). 3 mutants, each caught. Research snapshot and corpus suite
   unchanged.

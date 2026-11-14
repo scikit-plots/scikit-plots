@@ -1038,6 +1038,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "describe_outcome",
                     "diagnose",
                     "suggest_terms",
+                    # _diagnostics: what each engine detects, per entity
+                    "CoverageRow",
+                    "coverage_matrix",
                 ],
             },
             # {
@@ -1075,6 +1078,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "describe_engines",
                     "resolve_engine",
                     "trim_entity_span",
+                    # readiness of an engine before use
+                    "EngineReadiness",
+                    "engine_readiness",
                 ],
             },
             # {
@@ -1142,6 +1148,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "REQUIRED_CORPORA",
                     "NltkDetector",
                     "nltk_detector",
+                    "corpora_status",
                 ],
             },
             # {
@@ -1177,6 +1184,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "default_patterns",
                     "get_pattern",
                     "luhn_ok",
+                    # _pattern_risk: catastrophic-backtracking analysis of a pattern
+                    "PatternRiskWarning",
+                    "analyse_pattern",
                 ],
             },
             {
@@ -1199,6 +1209,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "DEFAULT_LIMITS",
                     "DEFAULT_POLICY",
                     "DEFAULT_TAG_STYLE",
+                    "ACTIONS",
+                    "Action",
                     "Limits",
                     "OverlapStrategy",
                     "RedactionPolicy",
@@ -1299,11 +1311,76 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "PORTABLE_CIPHER",
                     "decrypt_mapping",
                     "encrypt_mapping",
+                    "new_key",
                     # "new_passphrase",
                     # "resolve_cipher",
                 ],
             },
+            {
+                "title": "Results and Types",
+                "autosummary": [
+                    "Entry",
+                    "RedactionResult",
+                    "RestorationResult",
+                    "Span",
+                    "Stats",
+                    "as_dict",
+                ],
+            },
+            {
+                "title": "Errors and Warnings",
+                "autosummary": [
+                    "CleanPromptError",
+                    "BlockedError",
+                    "CapabilityError",
+                    "DetectorError",
+                    "LeakError",
+                    "LimitExceededError",
+                    "OverlapError",
+                    "PatternError",
+                    "PatternTimeoutError",
+                    "PolicyError",
+                    "RestorationError",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "CleanPromptError",
+                ],
+            },
+            {
+                "title": "Logging and Audit",
+                "autosummary": [
+                    "AUDIT_LOGGER_NAME",
+                    "LOGGER_NAME",
+                    "JsonFormatter",
+                    "SecretFilter",
+                    "VaultScrubber",
+                    "audit",
+                    "configure_logging",
+                    "get_logger",
+                    "log_level_from_env",
+                    "redacting",
+                ],
+            },
+            {
+                "title": "Pattern Catalog and Surrogate Sets",
+                "autosummary": [
+                    "Catalog",
+                    "builtin_catalog",
+                    "SurrogateSet",
+                    "load_surrogate_set",
+                ],
+            },
+            {
+                "title": "Corpus Integration",
+                "autosummary": [
+                    "redact_documents",
+                    "register_corpus_readers",
+                ],
+            },
         ],
+        # The distribution version is metadata, not an API object.
+        "generator": {"ignore": ["__version__"]},
     },
     "scikitplot.config": {
         "short_summary": "config.",

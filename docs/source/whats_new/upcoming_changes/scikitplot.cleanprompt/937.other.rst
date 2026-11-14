@@ -1,0 +1,5 @@
+- The API reference of ``scikitplot.cleanprompt`` lists 44 public names it
+  lacked: the error classes, result types, logging and audit helpers, the
+  pattern catalog and surrogate sets, pattern-risk analysis, engine
+  readiness and coverage, policy actions, ``new_key``, ``corpora_status``
+  and the corpus integration functions.

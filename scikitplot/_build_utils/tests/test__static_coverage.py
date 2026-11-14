@@ -235,3 +235,49 @@ def test_the_script_entry_point_runs_without_the_package(tmp_path):
         timeout=120,
     )
     assert done.stdout.strip().splitlines()[-1] == "0 False", done.stdout + done.stderr
+
+
+class TestLazyExports:
+    def test_type_checking_imports_of_a_lazy_module(self, tmp_path):
+        _module(
+            tmp_path,
+            "pkg",
+            """
+            from typing import TYPE_CHECKING
+            import typing
+            __all__ = ["a"]
+            if TYPE_CHECKING:
+                from typing import Optional
+                import numpy
+                from ._opt import Heavy, helper as alias
+            if typing.TYPE_CHECKING:
+                import pkg.other
+            def __getattr__(name):
+                raise AttributeError(name)
+            """,
+        )
+        assert sc.static_lazy(tmp_path, "pkg") == ["Heavy", "alias", "other"]
+
+    def test_without_getattr_nothing_is_lazy(self, tmp_path):
+        _module(
+            tmp_path,
+            "pkg",
+            "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from x import Y\n",
+        )
+        assert sc.static_lazy(tmp_path, "pkg") == []
+
+    def test_lazy_names_are_neither_stale_nor_left_undocumented(self, repo):
+        _module(
+            repo,
+            "pkg",
+            """
+            from typing import TYPE_CHECKING
+            __all__ = ['a', 'b', 'hidden']
+            if TYPE_CHECKING:
+                from ._opt import gone, extra
+            def __getattr__(name):
+                raise AttributeError(name)
+            """,
+        )
+        model = api_ref.load_reference(repo / "docs" / "source" / "apis_reference.py")
+        assert sc.coverage(repo, model.modules).gaps() == {"missing:pkg": ["extra"]}

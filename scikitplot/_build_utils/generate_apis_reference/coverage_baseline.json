@@ -12,67 +12,11 @@
    "decomposition",
    "estimators",
    "metrics",
-   "plot_calibration",
-   "plot_classifier_eval",
-   "plot_confusion_matrix",
-   "plot_elbow",
-   "plot_feature_importances",
-   "plot_learning_curve",
-   "plot_pca_2d_projection",
-   "plot_pca_component_variance",
-   "plot_precision_recall",
    "plot_precision_recall_curve",
-   "plot_residuals_distribution",
-   "plot_roc",
    "plot_roc_curve",
-   "plot_silhouette",
    "plotters",
    "stack",
    "test"
-  ],
-  "missing:scikitplot.cleanprompt": [
-   "ACTIONS",
-   "AUDIT_LOGGER_NAME",
-   "Action",
-   "BlockedError",
-   "CapabilityError",
-   "Catalog",
-   "CleanPromptError",
-   "CoverageRow",
-   "DetectorError",
-   "EngineReadiness",
-   "Entry",
-   "JsonFormatter",
-   "LOGGER_NAME",
-   "LeakError",
-   "LimitExceededError",
-   "OverlapError",
-   "PatternError",
-   "PatternRiskWarning",
-   "PatternTimeoutError",
-   "PolicyError",
-   "RedactionResult",
-   "RestorationError",
-   "RestorationResult",
-   "SecretFilter",
-   "Span",
-   "Stats",
-   "SurrogateSet",
-   "VaultScrubber",
-   "__version__",
-   "analyse_pattern",
-   "as_dict",
-   "audit",
-   "builtin_catalog",
-   "configure_logging",
-   "coverage_matrix",
-   "engine_readiness",
-   "get_logger",
-   "load_surrogate_set",
-   "log_level_from_env",
-   "redact_documents",
-   "redacting",
-   "register_corpus_readers"
   ],
   "missing:scikitplot.config": [
    "config_context",
@@ -106,9 +50,6 @@
    "ScikitplotWarning",
    "TooHardError"
   ],
-  "missing:scikitplot.experimental": [
-   "pipeline"
-  ],
   "missing:scikitplot.impute": [
    "MissingIndicator",
    "SimpleImputer"
@@ -137,38 +78,11 @@
    "_get_thread_id",
    "_is_jupyter_notebook"
   ],
-  "stale:scikitplot.annoy": [
-   "_annoy.Index"
-  ],
   "stale:scikitplot.api": [
    "_utils.binary_ks_curve",
    "_utils.cumulative_gain_curve",
    "_utils.validate_labels",
-   "_utils.validate_plotting_kwargs",
-   "decomposition.plot_pca_2d_projection",
-   "decomposition.plot_pca_component_variance",
-   "estimators.plot_elbow",
-   "estimators.plot_feature_importances",
-   "estimators.plot_learning_curve",
-   "metrics.plot_calibration",
-   "metrics.plot_classifier_eval",
-   "metrics.plot_confusion_matrix",
-   "metrics.plot_precision_recall",
-   "metrics.plot_residuals_distribution",
-   "metrics.plot_roc",
-   "metrics.plot_silhouette"
-  ],
-  "stale:scikitplot.cleanprompt": [
-   "DEFAULT_ENTITY_LABELS",
-   "DEFAULT_MODEL",
-   "NerDetector",
-   "NltkDetector",
-   "SessionStore",
-   "create_app",
-   "decrypt_mapping",
-   "encrypt_mapping",
-   "nltk_detector",
-   "spacy_detector"
+   "_utils.validate_plotting_kwargs"
   ],
   "stale:scikitplot.decile": [
    "kds.decile_table",
@@ -177,8 +91,7 @@
    "kds.plot_lift",
    "kds.plot_lift_decile_wise",
    "kds.print_labels",
-   "kds.report",
-   "modelplotpy.ModelPlotPy"
+   "kds.report"
   ],
   "stale:scikitplot.experimental": [
    "_doremi.ENVELOPES",
@@ -191,8 +104,7 @@
    "_doremi.serialize_sheet",
    "_doremi.sheet_converter",
    "_doremi.sheet_to_note",
-   "enable_ann_imputer",
-   "pipeline.pipeline"
+   "enable_ann_imputer"
   ],
   "stale:scikitplot.externals": [
    "_probscale.ProbScale",
@@ -209,9 +121,6 @@
    "_tweedie",
    "_tweedie.tweedie",
    "_tweedie.tweedie_gen"
-  ],
-  "stale:scikitplot.impute": [
-   "_ann.ANNImputer"
   ],
   "stale:scikitplot.logging": [
    "TaskLevelStatusMessage"
