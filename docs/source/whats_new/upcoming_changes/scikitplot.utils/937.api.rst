@@ -1,0 +1,3 @@
+- ``scikitplot.utils`` declares ``__all__``: ``from scikitplot.utils import *``
+  no longer leaks ``logger`` and ``annotations``. ``get_path`` and
+  ``remove_path`` are now in the API reference.

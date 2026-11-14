@@ -274,3 +274,11 @@ class TestPublicAPI:
 # Module-level sentinel for optional attribute removal
 # ---------------------------------------------------------------------------
 _SENTINEL = object()
+
+
+def test_all_is_declared_and_resolves():
+    """``__all__`` is the wrapper API plus ``get_include`` (read statically too)."""
+    import scikitplot.nc as pkg
+
+    assert pkg.__all__ == ["dot", "get_include"]
+    assert all(hasattr(pkg, name) for name in pkg.__all__)

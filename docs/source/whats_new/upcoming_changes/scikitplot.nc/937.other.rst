@@ -1,0 +1,2 @@
+- ``scikitplot.nc`` declares ``__all__`` (``dot`` and ``get_include``, as
+  exported before), so the API-reference check reads it.

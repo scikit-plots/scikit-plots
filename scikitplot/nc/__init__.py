@@ -37,8 +37,13 @@ Compilers:
 #     └── test__wrappers.py    ← pure Python tests (comprehensive)
 
 # PUBLIC, user-facing API: Python wrapper that accepts array_like (lists, tuples, ndarrays)
+from . import _linalg
 from ._linalg import *  # noqa: F403
 from ._version import *  # noqa: F403
+
+__all__ = []
+__all__ += _linalg.__all__
+__all__ += ["get_include"]
 
 __author__ = "David Pilger"
 __author_email__ = "dpilger26@gmail.com"

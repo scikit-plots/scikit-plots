@@ -1,0 +1,2 @@
+- ``scikitplot.datasets`` declares ``__all__`` (the loader functions it
+  already exported), so the API-reference check reads it.

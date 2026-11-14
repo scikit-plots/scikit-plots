@@ -33,4 +33,14 @@ import logging as _logging
 from ._path import PathNamer, get_path, make_path, remove_path  # noqa: F401
 from ._time import Timer  # noqa: F401
 
+# The declared public API: ``import *`` and the API reference read this
+# (without it, ``import *`` also leaked ``logger`` and ``annotations``).
+__all__ = [
+    "PathNamer",
+    "Timer",
+    "get_path",
+    "make_path",
+    "remove_path",
+]
+
 logger = _logging.getLogger(__name__)

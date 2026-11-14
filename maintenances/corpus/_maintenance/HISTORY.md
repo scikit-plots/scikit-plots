@@ -29,6 +29,15 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **Three more modules read statically: utils, datasets, nc.** Each
+  declares `__all__` equal to what `import *` already exported, except
+  `utils`, whose star import leaked `logger` and `annotations` (no
+  `__all__`); those are dropped. `utils` documents `get_path` and
+  `remove_path`. Their usage-skill exclusion reason ("declares no
+  `__all__`") is no longer true and is corrected (still excluded: no usage
+  skill yet). Tests fail on the old code. Unread: 10 -> 7 (root,
+  `_externals`, `cexperimental`, `cexternals`, `stats`, compiled `memmap`
+  and `random`); 0 known gaps.
 - **API reference coverage closed: agent, mcp, decile, api.** `agent`
   gains a "Schemas and canonical values" section (5 names); `mcp` a
   "Command Line and Validation" section (4) and ignores `__version__`;

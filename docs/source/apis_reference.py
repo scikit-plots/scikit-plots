@@ -3932,7 +3932,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
           "description": _get_submodule("scikitplot.utils", "_path"),
           "autosummary": [
             '_path.PathNamer',
+            '_path.get_path',
             '_path.make_path',
+            '_path.remove_path',
           ],
         },
         # {
