@@ -650,6 +650,24 @@ def _slide_text(root: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _join_capped(parts: list[str], sep: str, cap: int | None) -> str:
+    """
+    Join *parts* with *sep*; with a *cap*, only as many as it takes to pass it.
+
+    A result cut short is always longer than *cap*, so the text limit
+    (which refuses or truncates it) decides exactly as for the full text,
+    without the full text ever being built.
+    """
+    if cap is not None:
+        total = 0
+        for index, part in enumerate(parts):
+            total += len(part) + (len(sep) if index else 0)
+            if total > cap:
+                parts = parts[: index + 1]
+                break
+    return sep.join(parts)
+
+
 def _string_item(si: Any) -> str:
     """Return a shared or inline string: its ``t`` runs, phonetic runs left out."""
     t, phonetic = _q(_S, "t"), _q(_S, "rPh")
@@ -713,13 +731,14 @@ def _cell_text(cell: Any, shared: list[str]) -> str:
 
 
 def _sheet_rows(
-    root: Any, shared: list[str], what: str = "sheet"
+    root: Any, shared: list[str], what: str = "sheet", cap: int | None = None
 ) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row with a value.
 
     Cells are tab-separated at their column, so a gap keeps its place;
-    trailing empty cells are dropped.
+    trailing empty cells are dropped. A line stops just past *cap*
+    characters (:func:`_join_capped`).
 
     Raises
     ------
@@ -750,7 +769,7 @@ def _sheet_rows(
         while values and not values[-1].strip():
             values.pop()
         if values:
-            yield number, "\t".join(values)
+            yield number, _join_capped(values, "\t", cap)
 
 
 # ---------------------------------------------------------------------------
@@ -989,12 +1008,14 @@ def _odf_rows(
     *,
     keep_hidden: bool = True,
     hiding: _OdfHiding = _NO_ODF_STYLES,
+    cap: int | None = None,
 ) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row of a ``table:table`` with a value.
 
     Repeated cells and rows are expanded; runs of empty ones only move the
-    position, so the usual "rest of the sheet" filler costs nothing.
+    position, so the usual "rest of the sheet" filler costs nothing. A line
+    stops just past *cap* characters (:func:`_join_capped`).
 
     Raises
     ------
@@ -1041,7 +1062,7 @@ def _odf_rows(
                     f"OfficeReader: {what}: row {number + 1} is repeated"
                     f" {rows:,} times, past row {_MAX_ROWS:,}."
                 )
-            line = "\t".join(cells)
+            line = _join_capped(cells, "\t", cap)
             for offset in range(rows):
                 yield number + 1 + offset, line
         number += rows
@@ -1453,6 +1474,7 @@ class OfficeReader(DocumentReader):
                     f"{self.file_name} sheet {name!r}",
                     keep_hidden=self.hidden,
                     hiding=hiding,
+                    cap=self._text_limit()[0],
                 )
                 yield from self._row_chunks(rows, name, number, part, None)
         elif kind.tag in (_q(_O_OFFICE, "presentation"), _q(_O_OFFICE, "drawing")):
@@ -1500,6 +1522,8 @@ class OfficeReader(DocumentReader):
     def _odf_text_document(
         self, body: Any, part: str, hiding: _OdfHiding = _NO_ODF_STYLES
     ) -> Iterator[dict[str, Any]]:
+        cap = self._text_limit()[0]
+
         def blocks() -> Iterator[Any]:
             for block in _odf_blocks(
                 body, tables=True, keep_hidden=self.hidden, hiding=hiding
@@ -1512,8 +1536,17 @@ class OfficeReader(DocumentReader):
                         self.file_name,
                         keep_hidden=self.hidden,
                         hiding=hiding,
+                        cap=cap,
                     )
-                    yield ("table", "\n".join(line for _, line in rows))
+                    # Rows are taken only until the table passes the limit.
+                    lines: list[str] = []
+                    size = -1
+                    for _, line in rows:
+                        lines.append(line)
+                        size += len(line) + 1
+                        if cap is not None and size > cap:
+                            break
+                    yield ("table", "\n".join(lines))
 
         yield from self._sections(blocks(), part)
         if not self.notes:
@@ -1739,7 +1772,12 @@ class OfficeReader(DocumentReader):
                 )
                 continue
             yield from self._row_chunks(
-                _sheet_rows(ws, shared, f"{self.file_name} sheet {name!r}"),
+                _sheet_rows(
+                    ws,
+                    shared,
+                    f"{self.file_name} sheet {name!r}",
+                    self._text_limit()[0],
+                ),
                 name,
                 number,
                 part,
@@ -1754,8 +1792,16 @@ class OfficeReader(DocumentReader):
         part: str,
         hidden: bool | None,
     ) -> Iterator[dict[str, Any]]:
-        """Yield a sheet's rows as chunks of ``rows_per_chunk`` rows."""
+        """
+        Yield a sheet's rows as chunks of ``rows_per_chunk`` rows.
+
+        A chunk also ends once it passes the text limit in force, so no
+        chunk is built much larger than the limit that will refuse or
+        truncate it; within the limit, chunks are as without one.
+        """
         block: list[tuple[int, str]] = []
+        cap = self._text_limit()[0]
+        size = -1
 
         def chunk() -> dict[str, Any]:
             made = {
@@ -1773,9 +1819,11 @@ class OfficeReader(DocumentReader):
 
         for row in rows:
             block.append(row)
-            if len(block) == self.rows_per_chunk:
+            size += len(row[1]) + 1
+            if len(block) == self.rows_per_chunk or (cap is not None and size > cap):
                 yield chunk()
                 block = []
+                size = -1
         if block:
             yield chunk()
 

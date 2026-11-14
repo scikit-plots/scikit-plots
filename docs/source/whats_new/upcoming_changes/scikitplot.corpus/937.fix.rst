@@ -3,3 +3,6 @@
   OpenDocument. Before, one such cell in a tiny workbook expanded its row
   to the referenced width: a seven-letter reference took 2.9 GB and 28
   seconds, and longer ones ran out of memory.
+  A spreadsheet row or chunk is also no longer built past the text limit
+  before the limit refuses it: a 485-byte OpenDocument file took 845 MB
+  to refuse (far more with longer cells), now 55 MB.

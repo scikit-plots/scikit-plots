@@ -29,6 +29,21 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **CX-38: a row or chunk was built whole before the budget saw it.**
+  The budget counts finished chunks, and a chunk is `rows_per_chunk`
+  (500) rows of a line that may repeat one cell 16,384 times: a 485-byte
+  `.ods` was refused only after an 827 MB chunk (845 MB peak; a 100 KB
+  cell text makes it terabytes). Now a line stops once strictly past the
+  limit in force (`_join_capped`), a chunk ends once past it, and a table
+  in a text document takes rows only until past it; a cut text is always
+  longer than the limit, so refuse/truncate decide exactly as before and
+  files within the limit chunk as before. After: 55 MB, 0.0 s for both
+  sizes. 10 tests; 5 mutants killed (the "equal to the limit" one after a
+  direct `_join_capped` test). Also fixed: the py3.9 partial-distribution
+  failure of `test_truncate_keeps_exactly_the_limit_and_warns` (it
+  captured the office logger; since CX-36 the warning is logged by
+  `scikitplot.corpus._base`, and on pytest < 9.1 a record of another
+  logger is not seen). Corpus 6,307 passed + the same 15.
 - **CX-37: output in proportion to input (`max_text_chars_per_byte`).**
   CX-36 bounded memory, not CPU: pdfminer spends about 9 us a character,
   so the 4 KB shared-stream PDF ran about 40 min before the 256 Mi limit

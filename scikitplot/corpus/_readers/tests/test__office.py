@@ -1768,7 +1768,7 @@ class TestTextLimit:
         self, tmp_path, caplog, captured_logger
     ):
         path = self._repeated(tmp_path, 3, 1_000)
-        with captured_logger(logging.WARNING, _office.__name__):
+        with captured_logger(logging.WARNING, "scikitplot.corpus._base"):
             chunks = _bounded(
                 path, max_text_chars=2_000, on_text_limit="truncate", rows_per_chunk=100
             )
@@ -1803,3 +1803,77 @@ class TestTextLimit:
         path = self._repeated(tmp_path, 1, 1)
         with pytest.raises(ValueError, match=option):
             OfficeReader(input_path=path, **{option: value})
+
+
+class TestChunkSizeUnderTheLimit:
+    """No row or chunk is built much past the text limit (memory)."""
+
+    LIMIT = 1_000
+    CELL = 100
+    #: A chunk stops growing once past the limit, and a line once past it:
+    #: at most the limit, one more line (limit + one cell), and separators.
+    BOUND = 2 * LIMIT + CELL + 8
+
+    def _largest(self, path, **kwargs) -> int:
+        reader = OfficeReader(input_path=path, max_text_chars=self.LIMIT, **kwargs)
+        return max(len(c["text"]) for c in reader.get_raw_chunks())
+
+    @pytest.mark.parametrize(
+        ("cap", "expected"),
+        [
+            (None, "ab\tcd\tef"),
+            (8, "ab\tcd\tef"),  # exactly the limit: complete
+            (5, "ab\tcd\tef"),  # "ab\tcd" is 5: not past it yet, so one more
+            (4, "ab\tcd"),  # cut short only once strictly past the limit
+            (1, "ab"),
+        ],
+    )
+    def test_a_line_cut_short_is_always_past_the_limit(self, cap, expected):
+        assert _office._join_capped(["ab", "cd", "ef"], "\t", cap) == expected
+
+    def test_opendocument_repeated_cells_and_rows(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        assert self._largest(path) <= self.BOUND
+
+    def test_excel_cells_sharing_one_string(self, tmp_path):
+        cells = "".join(f'<c t="s"><v>0</v></c>' for _ in range(1_000))
+        rows = "".join(f'<row r="{i}">{cells}</row>' for i in range(1, 41))
+        path = _xlsx(
+            tmp_path / "b.xlsx",
+            [("S", _sheet(rows), None)],
+            [f"<t>{'x' * self.CELL}</t>"],
+        )
+        assert self._largest(path) <= self.BOUND
+
+    def test_a_table_in_a_text_document(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.odt", "text", inner)
+        assert self._largest(path) <= self.BOUND
+
+    def test_within_the_limit_chunks_are_unchanged(self, tmp_path):
+        inner = '<table:table table:name="T">' + _row(_cell("ab", 3), 7) + "</table:table>"
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        plain = _chunks(path, max_text_chars=None, max_text_chars_per_byte=None)
+        assert _chunks(path, rows_per_chunk=500) == plain
+        assert len(plain) == 1
+
+    def test_the_budget_still_decides_refuse_or_truncate(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        with pytest.raises(ValueError, match="max_text_chars=1,000"):
+            _bounded(path, max_text_chars=self.LIMIT)
+        kept = _bounded(path, max_text_chars=self.LIMIT, on_text_limit="truncate")
+        assert sum(len(c["text"]) for c in kept) == self.LIMIT
