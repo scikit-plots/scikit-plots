@@ -1101,6 +1101,10 @@ class OfficeReader(DocumentReader):
     chunk (its text is the chunk's first line), and that chunk and the
     tables under it carry ``heading`` and ``heading_level`` (1 is the top)
     until the next heading, so a chunk keeps the section it belongs to.
+    ``heading_path`` lists the headings it sits under, from the top down
+    (``["Methods", "Sampling"]``). A slide's chunks, and its notes, carry
+    its title (the ``title`` or ``ctrTitle`` placeholder) the same way, at
+    level 1.
     Word headings are found by outline level, by the built-in ``heading
     1`` to ``heading 9`` styles, and by styles based on them.
 
@@ -1433,10 +1437,12 @@ class OfficeReader(DocumentReader):
         *blocks* holds ``str`` (a paragraph), :class:`_Heading` and
         ``("table", text)``. With ``headings=True`` a heading starts a new
         chunk and every chunk until the next heading carries ``heading``
-        and ``heading_level``.
+        and ``heading_level``, and ``heading_path``: the texts of the
+        headings it sits under, from the top down to its own.
         """
         paragraphs: list[str] = []
         current: dict[str, Any] = {}
+        trail: list[tuple[int, str]] = []
 
         def made(text: Any, kind: SectionType, hidden: bool) -> dict[str, Any]:
             chunk = {"text": str(text), "section_type": kind.value, "part": part}
@@ -1460,7 +1466,15 @@ class OfficeReader(DocumentReader):
                 continue
             if self.headings and isinstance(block, _Heading) and block.strip():
                 yield from flush()
-                current = {"heading": block.strip(), "heading_level": block.level}
+                # The outline above this heading: every open heading of a
+                # higher level (a smaller number) stays, the rest close.
+                trail = [(lvl, txt) for lvl, txt in trail if lvl < block.level]
+                trail.append((block.level, block.strip()))
+                current = {
+                    "heading": block.strip(),
+                    "heading_level": block.level,
+                    "heading_path": [txt for _, txt in trail],
+                }
             paragraphs.append(block)
         yield from flush()
 
@@ -1548,6 +1562,12 @@ class OfficeReader(DocumentReader):
             if hidden and not self.hidden:
                 continue
             text = _slide_text(slide)
+            title = _slide_title(slide) if self.headings else ""
+            heading = (
+                {"heading": title, "heading_level": 1, "heading_path": [title]}
+                if title
+                else {}
+            )
             if text:
                 yield {
                     "text": text,
@@ -1555,6 +1575,7 @@ class OfficeReader(DocumentReader):
                     "part": part,
                     "page_number": number,
                     "hidden": hidden,
+                    **heading,
                 }
             if not self.notes:
                 continue
@@ -1570,6 +1591,7 @@ class OfficeReader(DocumentReader):
                     "part": notes_part,
                     "page_number": number,
                     "hidden": hidden,
+                    **heading,
                 }
 
     # -- Excel ---------------------------------------------------------------
@@ -1638,6 +1660,21 @@ class OfficeReader(DocumentReader):
                 block = []
         if block:
             yield chunk()
+
+
+def _slide_title(root: Any) -> str:
+    """Return a slide's title placeholder text on one line, or ``""``."""
+    nv_sp, nv_pr, ph = (_q(_P, n) for n in ("nvSpPr", "nvPr", "ph"))
+    for sp in _walk(root):
+        if sp.tag != _q(_P, "sp"):
+            continue
+        placeholder = sp.find(f"{nv_sp}/{nv_pr}/{ph}")
+        if placeholder is not None and placeholder.get("type") in ("title", "ctrTitle"):
+            # One line: a title's breaks and paragraphs are layout.
+            title = " ".join(" ".join(_drawing_paragraphs(sp)).split())
+            if title:
+                return title
+    return ""
 
 
 def _notes_text(root: Any) -> str:

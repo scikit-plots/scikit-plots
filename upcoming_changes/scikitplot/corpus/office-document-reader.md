@@ -141,7 +141,8 @@ hook every reader has.
 - Formula text next to the cached value for spreadsheets, as an option.
 - Heading levels for Word and OpenDocument text: done in PR 935
   (`headings=`; `heading`, `heading_level` on each chunk of a section).
-  Left: the path of parent headings, and titles of slides.
+  The path of parent headings (`heading_path`) and slide titles: done
+  in PR 936.
 - Hidden text: Word run-level `w:vanish` is flagged (`has_hidden_text`,
   PR 936), and OpenDocument `text:hidden-text`, `text:hidden-paragraph`
   and undisplayed sections (PR 936); Word hiding set by a style or the

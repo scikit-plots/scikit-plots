@@ -1495,3 +1495,84 @@ class TestOpenDocumentHiddenByStyle:
         path = tmp_path / "d.fodt"
         path.write_text(xml, encoding="utf-8")
         assert [c["text"] for c in _chunks(path, hidden=False)] == ["a"]
+
+
+# ---------------------------------------------------------------------------
+# The outline above a chunk, and slide titles
+# ---------------------------------------------------------------------------
+
+
+def _titled_slide(title: str | None, body: str, kind: str = "title") -> str:
+    def shape(text: str, ph: str | None) -> str:
+        nv = f'<p:nvSpPr><p:nvPr><p:ph type="{ph}"/></p:nvPr></p:nvSpPr>' if ph else ""
+        return f"<p:sp>{nv}<p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>"
+
+    shapes = (shape(title, kind) if title is not None else "") + shape(body, None)
+    return (
+        f'<?xml version="1.0"?><p:sld xmlns:p="{P}" xmlns:a="{A}"><p:cSld><p:spTree>'
+        f"{shapes}</p:spTree></p:cSld></p:sld>"
+    )
+
+
+class TestOutline:
+    def test_the_heading_path_follows_the_outline(self, tmp_path):
+        inner = (
+            '<text:h text:outline-level="1">A</text:h><text:p>a</text:p>'
+            '<text:h text:outline-level="2">A1</text:h><text:p>a1</text:p>'
+            '<text:h text:outline-level="4">deep</text:h><text:p>d</text:p>'
+            '<text:h text:outline-level="2">A2</text:h><text:p>a2</text:p>'
+            '<text:h text:outline-level="1">B</text:h><text:p>b</text:p>'
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [c["heading_path"] for c in chunks] == [
+            ["A"],
+            ["A", "A1"],
+            ["A", "A1", "deep"],  # a skipped level does not leave a gap
+            ["A", "A2"],
+            ["B"],
+        ]
+
+    def test_the_heading_path_in_word(self, tmp_path):
+        body = _styled("One", "Nadpis1") + _styled("Two", "Nadpis2") + _p("x")
+        chunks = _chunks(_headed_docx(tmp_path / "d.docx", body))
+        assert [c["heading_path"] for c in chunks] == [["One"], ["One", "Two"]]
+
+    def test_slides_carry_their_title(self, tmp_path):
+        slides = [
+            ("slide1.xml", _titled_slide("Intro", "hello")),
+            ("slide2.xml", _titled_slide("Cover", "x", kind="ctrTitle")),
+            ("slide3.xml", _titled_slide(None, "untitled")),
+            ("slide4.xml", _titled_slide("  ", "blank title")),
+        ]
+        extra = {
+            "ppt/slides/_rels/slide1.xml.rels": _rels(
+                ("rN", "notesSlide", "../notesSlides/notesSlide1.xml")
+            ),
+            "ppt/notesSlides/notesSlide1.xml": _notes("say"),
+        }
+        path = _pptx(tmp_path / "d.pptx", slides, [n for n, _ in slides], extra)
+        got = [
+            (c["text"], c.get("heading"), c.get("heading_level")) for c in _chunks(path)
+        ]
+        assert got == [
+            ("Intro\nhello", "Intro", 1),
+            ("say", "Intro", 1),
+            ("Cover\nx", "Cover", 1),
+            ("untitled", None, None),
+            ("blank title", None, None),
+        ]
+        assert _chunks(path)[0]["heading_path"] == ["Intro"]
+
+    def test_a_title_reads_on_one_line(self, tmp_path):
+        title = (
+            f'<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody>'
+            "<a:p><a:r><a:t>Two </a:t></a:r><a:br/><a:r><a:t> lines</a:t></a:r></a:p>"
+            "<a:p><a:r><a:t>and more</a:t></a:r></a:p></p:txBody></p:sp>"
+        )
+        xml = (
+            f'<?xml version="1.0"?><p:sld xmlns:p="{P}" xmlns:a="{A}"><p:cSld>'
+            f"<p:spTree>{title}</p:spTree></p:cSld></p:sld>"
+        )
+        path = _pptx(tmp_path / "d.pptx", [("slide1.xml", xml)], ["slide1.xml"])
+        assert _chunks(path)[0]["heading"] == "Two lines and more"
+        assert all("heading" not in c for c in _chunks(path, headings=False))

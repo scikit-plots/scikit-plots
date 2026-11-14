@@ -8,3 +8,6 @@
   that hides text counts as well.
   In OpenDocument, a span or paragraph style that is not displayed counts
   too.
+  Chunks of a text document also carry ``heading_path``, the headings they
+  sit under from the top down, and a slide's chunks and notes carry its
+  title as their heading.

@@ -59,6 +59,14 @@ now use it. Package reads are wrapped in `_Package.xml`.
   `style:parent-style-name` (cycles end), by family (`text` for spans,
   `paragraph` for paragraphs). The hiding is passed to each function, not
   kept on the reader. 7 tests; 6 mutants, each caught.
+- **Outline and slide titles.** Chunks under a heading carried only that
+  heading; a chunk under "Sampling" did not say it was in "Methods". They
+  now carry `heading_path` (every open heading of a higher level, then
+  their own; a skipped level leaves no gap). A slide's chunks and its
+  notes carry its title (`title` or `ctrTitle` placeholder, on one line)
+  as `heading` at level 1. Research deck: 11 of 13 chunks now carry their
+  slide's title; text unchanged (`--text-only`: 0 differences). 5 tests;
+  5 mutants: 4 caught, 1 equivalent.
 - Start template: the pull request number is `937`. `orient.py` derives
   the number when the template line is missing or reads `auto`, or with
   `--pr auto`: one more than the highest number among the fragment names
