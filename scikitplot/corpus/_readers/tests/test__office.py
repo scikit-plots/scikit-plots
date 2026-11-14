@@ -1213,3 +1213,88 @@ class TestHiddenText:
         body = f"<w:p>{_run('seen')}<w:r><w:rPr><w:vanish/></w:rPr><w:tab/></w:r></w:p>"
         (chunk,) = _chunks(_docx(tmp_path / "d.docx", body))
         assert "has_hidden_text" not in chunk
+
+
+class TestOpenDocumentHiddenText:
+    def test_conditional_hidden_text_is_read_and_flagged(self, tmp_path):
+        inner = (
+            '<text:p>seen <text:hidden-text text:condition="x" text:string-value="secret"'
+            ' text:is-hidden="true"/></text:p>'
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == ("seen secret", True)
+        (out,) = _chunks(path, hidden=False)
+        assert out["text"] == "seen"
+        assert "has_hidden_text" not in out
+
+    def test_hidden_text_shown_by_its_condition_is_ordinary(self, tmp_path):
+        inner = (
+            '<text:p>seen <text:hidden-text text:string-value="shown"'
+            ' text:is-hidden="false"/></text:p>'
+        )
+        (chunk,) = _chunks(_odf(tmp_path / "d.odt", "text", inner), hidden=False)
+        assert chunk["text"] == "seen shown"
+        assert "has_hidden_text" not in chunk
+
+    def test_a_hidden_paragraph(self, tmp_path):
+        inner = (
+            "<text:p>seen</text:p>"
+            '<text:p><text:hidden-paragraph text:is-hidden="true"/>secret</text:p>'
+            '<text:p><text:hidden-paragraph text:is-hidden="false"/>shown</text:p>'
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert (chunk["text"], chunk["has_hidden_text"]) == (
+            "seen\nsecret\nshown",
+            True,
+        )
+        assert [c["text"] for c in _chunks(path, hidden=False)] == ["seen\nshown"]
+
+    @pytest.mark.parametrize(
+        ("attributes", "is_hidden"),
+        [
+            ('text:display="none"', True),
+            ('text:display="condition" text:is-hidden="true"', True),
+            ('text:display="condition" text:is-hidden="false"', False),
+            ('text:display="true"', False),
+            ("", False),
+        ],
+    )
+    def test_sections(self, tmp_path, attributes, is_hidden):
+        inner = (
+            f"<text:p>seen</text:p><text:section {attributes}>"
+            "<text:section><text:p>inside</text:p></text:section></text:section>"
+            "<text:p>after</text:p>"
+        )
+        path = _odf(tmp_path / "d.odt", "text", inner)
+        (chunk,) = _chunks(path)
+        assert chunk["text"] == "seen\ninside\nafter"
+        assert chunk.get("has_hidden_text") == (True if is_hidden else None)
+        expected = "seen\nafter" if is_hidden else "seen\ninside\nafter"
+        assert [c["text"] for c in _chunks(path, hidden=False)] == [expected]
+
+    def test_after_a_hidden_section_text_is_not_flagged(self, tmp_path):
+        inner = (
+            '<text:section text:display="none"><text:p>secret</text:p></text:section>'
+            '<text:h text:outline-level="1">Next</text:h><text:p>after</text:p>'
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [(c["text"], c.get("has_hidden_text")) for c in chunks] == [
+            ("secret", True),
+            ("Next\nafter", None),
+        ]
+
+    def test_hidden_text_in_a_note_is_flagged(self, tmp_path):
+        inner = (
+            "<text:p>body<text:note><text:note-body><text:p>"
+            '<text:hidden-text text:string-value="n"/></text:p>'
+            "</text:note-body></text:note></text:p>"
+        )
+        chunks = _chunks(_odf(tmp_path / "d.odt", "text", inner))
+        assert [
+            (c["section_type"], c["text"], c.get("has_hidden_text")) for c in chunks
+        ] == [
+            ("text", "body", None),
+            ("footnote", "n", True),
+        ]

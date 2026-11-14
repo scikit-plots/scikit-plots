@@ -35,6 +35,14 @@ now use it. Package reads are wrapped in `_Package.xml`.
   `hidden=False` leaves the runs out, as it does hidden slides and sheets.
   A `w:vanish` from a style is not detected (recorded). `_walk` takes a
   `drop` predicate. 10 tests; 7 mutants, each caught.
+- **CX-31: OpenDocument hidden content.** A conditional hidden text
+  (`text:hidden-text`) was dropped silently (its text is an attribute,
+  `text:string-value`); a paragraph marked hidden and a section not
+  displayed were read unmarked. All three are now read with
+  `has_hidden_text=True`, or left out with `hidden=False`; a hidden text
+  whose condition currently shows it is ordinary text. 10 tests; 7
+  mutants: 6 caught, 1 equivalent (`is-hidden` read as `!= "false"` or
+  `== "true"`: the same for every value the format allows).
 - Start template: the pull request number is `937`. `orient.py` derives
   the number when the template line is missing or reads `auto`, or with
   `--pr auto`: one more than the highest number among the fragment names

@@ -656,9 +656,32 @@ def _repeat(element: Any, attribute: str) -> int:
     return max(count, 1)
 
 
-def _odf_text(node: Any) -> str:
-    """Return the running text under *node*: spaces, tabs and breaks expanded."""
+def _odf_hidden(element: Any) -> bool:
+    """Whether a conditional ``text:hidden-*`` element currently hides."""
+    return (element.get(_q(_O_TEXT, "is-hidden")) or "true").lower() != "false"
+
+
+def _odf_hidden_section(element: Any) -> bool:
+    """Whether a ``text:section`` is not displayed."""
+    if element.tag != _q(_O_TEXT, "section"):
+        return False
+    display = (element.get(_q(_O_TEXT, "display")) or "true").lower()
+    if display == "none":
+        return True
+    return display == "condition" and _odf_hidden(element)
+
+
+def _odf_text(node: Any, *, keep_hidden: bool = True) -> Any:  # noqa: PLR0912
+    """
+    Return the running text under *node* as :class:`_Text`.
+
+    Spaces, tabs and breaks are expanded. A conditional hidden text
+    (``text:hidden-text``, its ``text:string-value``) is read when
+    *keep_hidden* and left out otherwise; ``hidden`` says whether any was.
+    """
     space, tab, line_break = (_q(_O_TEXT, n) for n in ("s", "tab", "line-break"))
+    hidden_text = _q(_O_TEXT, "hidden-text")
+    hidden = False
     out: list[str] = []
     stack: list[tuple[bool, Any]] = [(False, node)]
     while stack:
@@ -668,6 +691,14 @@ def _odf_text(node: Any) -> str:
             continue
         tag = item.tag
         if tag in _ODF_NOT_TEXT:
+            continue
+        if tag == hidden_text:
+            value = item.get(_q(_O_TEXT, "string-value")) or ""
+            if not _odf_hidden(item):
+                out.append(value)
+            elif keep_hidden and value:
+                out.append(value)
+                hidden = True
             continue
         if tag == space:
             try:
@@ -688,11 +719,15 @@ def _odf_text(node: Any) -> str:
                 if child.tail:
                     items.append((True, child.tail))
             stack.extend(reversed(items))
-    return "".join(out)
+    return _Text("".join(out), hidden)
 
 
-def _odf_blocks(
-    container: Any, *, tables: bool, skip: frozenset = frozenset()
+def _odf_blocks(  # noqa: PLR0912
+    container: Any,
+    *,
+    tables: bool,
+    skip: frozenset = frozenset(),
+    keep_hidden: bool = True,
 ) -> Iterator[Any]:
     """
     Yield the paragraphs under *container* in document order.
@@ -700,9 +735,14 @@ def _odf_blocks(
     A paragraph or heading is yielded as its text (``str``) and not entered
     again, so a text box inside it is read once. With ``tables=True`` a
     ``table:table`` is yielded as its element instead of being entered.
-    Subtrees in *skip*, tracked changes and annotations are left out.
+    Subtrees in *skip*, tracked changes and annotations are left out. A
+    section that is not displayed, and a paragraph marked hidden
+    (``text:hidden-paragraph``), are read with ``hidden`` set when
+    *keep_hidden* and left out otherwise.
     """
     heading = _q(_O_TEXT, "h")
+    hidden_paragraph = _q(_O_TEXT, "hidden-paragraph")
+    hidden_from: list[int] = []  # stack depths of hidden sections
     blocks = {_q(_O_TEXT, "p"), heading}
     table = _q(_O_TABLE, "table")
     stack = [iter(container)]
@@ -710,27 +750,43 @@ def _odf_blocks(
         node = next(stack[-1], None)
         if node is None:
             stack.pop()
+            if hidden_from and hidden_from[-1] > len(stack):
+                hidden_from.pop()
             continue
         tag = node.tag
         if tag in _ODF_NOT_TEXT or tag in skip:
             continue
+        if _odf_hidden_section(node):
+            if not keep_hidden:
+                continue
+            hidden_from.append(len(stack) + 1)
+            stack.append(iter(node))
+            continue
         if tag in blocks:
-            text = _odf_text(node)
+            marker = node.find(hidden_paragraph)
+            hidden_paragraph_now = marker is not None and _odf_hidden(marker)
+            if hidden_paragraph_now and not keep_hidden:
+                continue
+            text = _odf_text(node, keep_hidden=keep_hidden)
+            hidden = text.hidden or hidden_paragraph_now or bool(hidden_from)
+            hidden = hidden and bool(text.strip())
             if tag == heading:
                 try:
                     level = int(node.get(_q(_O_TEXT, "outline-level")) or 1)
                 except ValueError:
                     level = 1
-                yield _Heading(text, level)
+                yield _Heading(text, level, hidden)
             else:
-                yield text
+                yield _Text(text, hidden)
         elif tables and tag == table:
             yield node
         else:
             stack.append(iter(node))
 
 
-def _odf_rows(table: Any, what: str) -> Iterator[tuple[int, str]]:
+def _odf_rows(
+    table: Any, what: str, *, keep_hidden: bool = True
+) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row of a ``table:table`` with a value.
 
@@ -760,7 +816,9 @@ def _odf_rows(table: Any, what: str) -> Iterator[tuple[int, str]]:
             count = _repeat(cell, "number-columns-repeated")
             text = ""
             if cell.tag == cell_tag:
-                text = "\n".join(_odf_blocks(cell, tables=False)).strip()
+                text = "\n".join(
+                    _odf_blocks(cell, tables=False, keep_hidden=keep_hidden)
+                ).strip()
             if not text:
                 gap += count
                 continue
@@ -876,8 +934,13 @@ class OfficeReader(DocumentReader):
     reader but is in the file; text placed there to steer a model that
     reads the document is one reason to know. A chunk that holds any
     carries ``has_hidden_text=True`` (the key is absent otherwise), and
-    ``hidden=False`` leaves the hidden runs out. Hidden formatting that
-    comes from a style, not from the run, is not detected.
+    ``hidden=False`` leaves the hidden runs out. OpenDocument text counts
+    the same way: a conditional hidden text (``text:hidden-text``), a
+    paragraph marked hidden (``text:hidden-paragraph``) and a section not
+    displayed (``text:display="none"``, or ``"condition"`` while hidden).
+    A table in a hidden section is left out with ``hidden=False`` but not
+    flagged otherwise. Hidden formatting that comes from a style, not from
+    the run or element, is not detected.
 
     **Headings.** In Word and OpenDocument text, a heading starts a new
     chunk (its text is the chunk's first line), and that chunk and the
@@ -1107,12 +1170,21 @@ class OfficeReader(DocumentReader):
             tables = kind.findall(_q(_O_TABLE, "table"))
             for number, table in enumerate(tables):
                 name = table.get(_q(_O_TABLE, "name")) or f"Sheet{number + 1}"
-                rows = _odf_rows(table, f"{self.file_name} sheet {name!r}")
+                rows = _odf_rows(
+                    table,
+                    f"{self.file_name} sheet {name!r}",
+                    keep_hidden=self.hidden,
+                )
                 yield from self._row_chunks(rows, name, number, part, None)
         elif kind.tag in (_q(_O_OFFICE, "presentation"), _q(_O_OFFICE, "drawing")):
             notes_tag = _q(_O_PRESENTATION, "notes")
             for number, page in enumerate(kind.findall(_q(_O_DRAW, "page"))):
-                shown = _odf_blocks(page, tables=False, skip=frozenset({notes_tag}))
+                shown = _odf_blocks(
+                    page,
+                    tables=False,
+                    skip=frozenset({notes_tag}),
+                    keep_hidden=self.hidden,
+                )
                 text = "\n".join(line for line in shown if line.strip()).strip()
                 if text:
                     yield {
@@ -1125,7 +1197,11 @@ class OfficeReader(DocumentReader):
                 if not self.notes or notes is None:
                     continue
                 spoken = "\n".join(
-                    line for line in _odf_blocks(notes, tables=False) if line.strip()
+                    line
+                    for line in _odf_blocks(
+                        notes, tables=False, keep_hidden=self.hidden
+                    )
+                    if line.strip()
                 ).strip()
                 if spoken:
                     yield {
@@ -1143,11 +1219,11 @@ class OfficeReader(DocumentReader):
 
     def _odf_text_document(self, body: Any, part: str) -> Iterator[dict[str, Any]]:
         def blocks() -> Iterator[Any]:
-            for block in _odf_blocks(body, tables=True):
+            for block in _odf_blocks(body, tables=True, keep_hidden=self.hidden):
                 if isinstance(block, str):
                     yield block
                 else:
-                    rows = _odf_rows(block, self.file_name)
+                    rows = _odf_rows(block, self.file_name, keep_hidden=self.hidden)
                     yield ("table", "\n".join(line for _, line in rows))
 
         yield from self._sections(blocks(), part)
@@ -1157,13 +1233,18 @@ class OfficeReader(DocumentReader):
             note_body = note.find(_q(_O_TEXT, "note-body"))
             if note_body is None:
                 continue
-            text = "\n".join(_odf_blocks(note_body, tables=False)).strip()
-            if text:
-                yield {
-                    "text": text,
+            joined = _joined(
+                list(_odf_blocks(note_body, tables=False, keep_hidden=self.hidden))
+            )
+            if joined.strip():
+                chunk = {
+                    "text": joined.strip(),
                     "section_type": SectionType.FOOTNOTE.value,
                     "part": part,
                 }
+                if joined.hidden:
+                    chunk["has_hidden_text"] = True
+                yield chunk
 
     # -- Word ---------------------------------------------------------------
 

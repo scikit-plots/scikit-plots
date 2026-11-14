@@ -143,8 +143,10 @@ hook every reader has.
   (`headings=`; `heading`, `heading_level` on each chunk of a section).
   Left: the path of parent headings, and titles of slides.
 - Hidden text: Word run-level `w:vanish` is flagged (`has_hidden_text`,
-  PR 936). Left: `w:vanish` set by a style, OpenDocument
-  `text:hidden-text`/`text:hidden-paragraph`, white-on-white or tiny text.
+  PR 936), and OpenDocument `text:hidden-text`, `text:hidden-paragraph`
+  and undisplayed sections (PR 936). Left: hiding set by a style,
+  white-on-white or tiny text, a table in a hidden section (left out
+  with `hidden=False`, not flagged otherwise).
 - Decision: a `SourceType` for presentations (and drawings). Today they
   infer `unknown`; text files infer `article`, sheets `spreadsheet`.
 - The two lists of downloadable extensions (`_base.py`, `_url_handler.py`)
