@@ -167,3 +167,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 936: office reader review (CX-26 to CX-29)
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-14).
 - Next: office plan phases 4 and 5; CX-23; a source type for presentations.
+
+### PR 937: office add-ins refused, legacy names identified
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-14).
+- Next: office plan phase 4 (legacy binary backend, a decision); CX-23.

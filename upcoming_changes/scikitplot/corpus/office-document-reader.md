@@ -123,8 +123,9 @@ Phased, one pull request each:
    style), headers and footers from `styles.xml`, `.odm` master documents.
 4. **Legacy binary**: optional backends (for example an OLE2 parser, or a
    conversion through a LibreOffice process), off unless installed.
-5. **Add-ins**: registered so they are refused with a reason instead of
-   "no reader".
+5. **Add-ins**: done in PR 937. Refused by name with what each one is;
+   legacy names registered (a real legacy file is refused with the
+   reason, a modern package under such a name is read).
 
 Common to all: one class per family, a shared part loader (manifest order,
 byte budget, hardened XML), chunk keys `text`, `section_type`,

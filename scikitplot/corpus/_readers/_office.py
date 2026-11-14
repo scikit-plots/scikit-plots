@@ -86,6 +86,39 @@ _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _WORD_EXTENSIONS = [".docx", ".docm", ".dotx", ".dotm"]
 _POWERPOINT_EXTENSIONS = [".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm"]
 _EXCEL_EXTENSIONS = [".xlsx", ".xlsm", ".xltx", ".xltm"]
+#: Legacy binary formats (OLE2 compound files). Registered so that a file
+#: under one of these names is identified: a real legacy file is refused
+#: with the reason, and a modern package under a legacy name is read.
+_LEGACY_EXTENSIONS = [
+    ".doc",
+    ".dot",
+    ".wbk",
+    ".xls",
+    ".xlt",
+    ".ppt",
+    ".pot",
+    ".pps",
+]
+
+#: Office add-ins, macro sheets and workspaces: code or settings, not
+#: documents. Refused by name, whatever the content, so a corpus never
+#: takes in a program and its text is not mistaken for a document's.
+_CODE_EXTENSIONS = {
+    ".wll": "a Word add-in (a program)",
+    ".wwl": "a Word add-in (a program)",
+    ".xll": "an Excel add-in (a program library)",
+    ".xll_": "an Excel add-in (a program library)",
+    ".xla": "an Excel add-in (macros)",
+    ".xla_": "an Excel add-in (macros)",
+    ".xla5": "an Excel add-in (macros)",
+    ".xla8": "an Excel add-in (macros)",
+    ".xlam": "an Excel add-in (macros)",
+    ".xlm": "an Excel macro sheet",
+    ".xlw": "an Excel workspace (window settings)",
+    ".ppa": "a PowerPoint add-in (macros)",
+    ".ppam": "a PowerPoint add-in (macros)",
+}
+
 _OPENDOCUMENT_EXTENSIONS = [
     ".odt",
     ".ott",
@@ -1110,7 +1143,14 @@ class OfficeReader(DocumentReader):
 
     **What decides.** The content, not the extension: a ``.docx`` that is
     a presentation reads as one, and the Strict and Transitional
-    conformance classes of Office Open XML read alike.
+    conformance classes of Office Open XML read alike. The legacy names
+    (``.doc``, ``.dot``, ``.wbk``, ``.xls``, ``.xlt``, ``.ppt``, ``.pot``,
+    ``.pps``) are registered too: a legacy binary file under them is
+    refused with the reason, and a modern package saved under such a name
+    is read. Add-ins, macro sheets and workspaces (``.wll``, ``.wwl``,
+    ``.xll``, ``.xla``, ``.xlam``, ``.xlm``, ``.xlw``, ``.ppa``,
+    ``.ppam`` and the Mac variants) are code or settings, not documents,
+    and are refused by name.
 
     **Order.** Slides follow the deck's list (``p:sldIdLst``), not their
     part names, so ``slide11.xml`` can come before ``slide2.xml``.
@@ -1149,6 +1189,8 @@ class OfficeReader(DocumentReader):
         + _POWERPOINT_EXTENSIONS
         + _EXCEL_EXTENSIONS
         + _OPENDOCUMENT_EXTENSIONS
+        + _LEGACY_EXTENSIONS
+        + sorted(_CODE_EXTENSIONS)
     )
 
     notes: bool = field(default=True)
@@ -1201,6 +1243,13 @@ class OfficeReader(DocumentReader):
         ValueError
             See :class:`OfficeReader`.
         """
+        code = _CODE_EXTENSIONS.get(self.input_path.suffix.lower())
+        if code is not None:
+            raise ValueError(
+                f"OfficeReader: {self.file_name} is {code}, not a document;"
+                " it is not read. Remove it from the input, or export the"
+                " document it belongs to."
+            )
         size = self.input_path.stat().st_size
         if size > self.max_file_bytes:
             raise ValueError(

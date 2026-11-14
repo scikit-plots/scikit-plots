@@ -278,6 +278,12 @@ _DOWNLOADABLE_EXTENSIONS: frozenset[str] = frozenset(
         ".odg",
         ".otg",
         ".fodg",
+        ".dot",
+        ".wbk",
+        ".xlt",
+        ".ppt",
+        ".pot",
+        ".pps",
         ".odf",
         # Spreadsheets
         ".csv",

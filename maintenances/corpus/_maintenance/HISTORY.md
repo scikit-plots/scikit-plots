@@ -1,5 +1,22 @@
 # Corpus maintenance history
 
+## 2026-11-14 — office add-ins refused, legacy names identified, PR 937
+
+- **Office plan phase 5: add-ins.** `.wll .wwl .xll .xll_ .xla .xla_
+  .xla5 .xla8 .xlam .xlm .xlw .ppa .ppam` failed with "No DocumentReader
+  registered", which did not say they are programs. `OfficeReader`
+  registers them and refuses each by name, whatever the content, with
+  what it is ("an Excel add-in (macros)"); case is ignored.
+- **Legacy names.** `.doc .dot .wbk .xls .xlt .ppt .pot .pps` are
+  registered: a real legacy file (OLE2) is refused with the existing
+  reason, and a modern package saved under a legacy name is read (the
+  content decides). `from_url` downloads them; `SourceType.infer` gives
+  `article` for `.dot`/`.wbk` and `spreadsheet` for `.xlt`. Add-ins stay
+  out of the download lists.
+- Tests: 24 new (179); on `main` the file does not import (the new
+  constants). 3 mutants, each caught. Research snapshot and corpus suite
+  unchanged.
+
 ## 2026-11-14 — office reader review: text read twice, untyped package errors, PR 936
 
 Review of `_readers/_office.py` after PR 935, each finding reproduced on

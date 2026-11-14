@@ -23,7 +23,7 @@ import pytest
 from ... import _url_handler
 from ..._base import DocumentReader
 from ..._schema import SourceType
-from .._office import OfficeReader
+from .._office import _CODE_EXTENSIONS, _LEGACY_EXTENSIONS, OfficeReader
 
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -867,14 +867,27 @@ class TestExtensionsAreKnownElsewhere:
             DocumentReader._DOWNLOADABLE_EXTENSIONS,
             _url_handler._DOWNLOADABLE_EXTENSIONS,
         ):
-            assert set(OfficeReader.file_types) <= set(known)
+            # Add-ins are code: a URL naming one is not fetched as a document.
+            documents = set(OfficeReader.file_types) - set(_CODE_EXTENSIONS)
+            assert documents <= set(known)
 
     @pytest.mark.parametrize(
         ("suffixes", "expected"),
         [
-            ([".docx", ".docm", ".dotx", ".dotm", ".odt", ".ott", ".fodt"], "article"),
             (
-                [".xlsx", ".xlsm", ".xltx", ".xltm", ".ods", ".ots", ".fods"],
+                [
+                    *(".docx", ".docm", ".dotx", ".dotm"),
+                    *(".odt", ".ott", ".fodt"),
+                    *(".doc", ".dot", ".wbk"),
+                ],
+                "article",
+            ),
+            (
+                [
+                    *(".xlsx", ".xlsm", ".xltx", ".xltm"),
+                    *(".ods", ".ots", ".fods"),
+                    *(".xls", ".xlt"),
+                ],
                 "spreadsheet",
             ),
         ],
@@ -1576,3 +1589,61 @@ class TestOutline:
         path = _pptx(tmp_path / "d.pptx", [("slide1.xml", xml)], ["slide1.xml"])
         assert _chunks(path)[0]["heading"] == "Two lines and more"
         assert all("heading" not in c for c in _chunks(path, headings=False))
+
+
+# ---------------------------------------------------------------------------
+# Legacy names and add-ins
+# ---------------------------------------------------------------------------
+
+OLE2 = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 504
+
+
+class TestLegacyAndCode:
+    @pytest.mark.parametrize(
+        "suffix", [".doc", ".dot", ".wbk", ".xls", ".xlt", ".ppt", ".pot", ".pps"]
+    )
+    def test_a_legacy_binary_file_is_refused_with_the_reason(self, tmp_path, suffix):
+        path = tmp_path / f"old{suffix}"
+        path.write_bytes(OLE2)
+        reader = DocumentReader.create(path)
+        assert isinstance(reader, OfficeReader)
+        with pytest.raises(ValueError, match="legacy binary document"):
+            list(reader.get_raw_chunks())
+
+    def test_a_modern_package_under_a_legacy_name_is_read(self, tmp_path):
+        path = _docx(tmp_path / "saved-as.doc", _p("modern"))
+        assert [c["text"] for c in _chunks(path)] == ["modern"]
+
+    @pytest.mark.parametrize(
+        ("suffix", "kind"),
+        [
+            (".wll", "Word add-in"),
+            (".wwl", "Word add-in"),
+            (".xll", "program library"),
+            (".xll_", "program library"),
+            (".xla", "Excel add-in"),
+            (".xla_", "Excel add-in"),
+            (".xla5", "Excel add-in"),
+            (".xla8", "Excel add-in"),
+            (".xlam", "Excel add-in"),
+            (".xlm", "macro sheet"),
+            (".xlw", "workspace"),
+            (".ppa", "PowerPoint add-in"),
+            (".ppam", "PowerPoint add-in"),
+            (".XLAM", "Excel add-in"),
+        ],
+    )
+    def test_add_ins_are_refused_by_name_whatever_the_content(
+        self, tmp_path, suffix, kind
+    ):
+        # A readable package: the name, not the content, decides here.
+        path = _docx(tmp_path / f"tool{suffix}", _p("looks like text"))
+        reader = DocumentReader.create(path)
+        assert isinstance(reader, OfficeReader)
+        with pytest.raises(ValueError, match=f"{kind}.*not a document"):
+            list(reader.get_raw_chunks())
+
+    def test_every_registered_extension_is_known_to_the_reader(self):
+        registered = set(OfficeReader.file_types)
+        assert set(_LEGACY_EXTENSIONS) <= registered
+        assert set(_CODE_EXTENSIONS) <= registered
