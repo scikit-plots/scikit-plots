@@ -202,6 +202,12 @@ class TestRender:
         doc = sr.render([sr.Hit("S3", "a.md", 1, "doc", "subprocess")])
         assert "approval" not in doc
 
+    def test_a_pipe_does_not_break_the_table(self):
+        out = sr.render(_hits(_diff("m.py", ["eval(a | b)"])))
+        row = next(line for line in out.splitlines() if line.startswith("| S3 |"))
+        assert row.replace("\\|", "").count("|") == 4  # four cell borders
+        assert "eval(a \\| b)" in row
+
     def test_long_lists_are_cut(self):
         text = _diff("m.py", [f"eval(x{i})" for i in range(30)])
         out = sr.render(_hits(text), max_per_check=5)

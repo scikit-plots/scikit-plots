@@ -136,7 +136,8 @@ class Hit:
 
     def render(self) -> str:
         """``path:line [kind] snippet`` (no snippet for S1)."""
-        where = f"`{self.path}:{self.line}`" if self.line else f"`{self.path}`"
+        path = self.path.replace("|", "\\|")
+        where = f"`{path}:{self.line}`" if self.line else f"`{path}`"
         text = f" `{self.snippet}`" if self.snippet else ""
         return f"{where} [{self.kind}]{text}"
 
@@ -222,7 +223,9 @@ def _label(path: str) -> str:
 
 def _short(line: str, width: int = 80) -> str:
     line = line.strip().replace("`", "'")
-    return line if len(line) <= width else line[: width - 3] + "..."
+    line = line if len(line) <= width else line[: width - 3] + "..."
+    # A pipe would end the Markdown table cell.
+    return line.replace("|", "\\|")
 
 
 def review(files: Iterable[FileChange]) -> list[Hit]:

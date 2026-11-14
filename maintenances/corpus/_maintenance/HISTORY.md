@@ -17,10 +17,13 @@
   repository's `requirements/*.txt` layout was not a dependency file; the
   tool failed its own pull request on a test's literal password and found
   this session's link in a test (both inputs are now built at run time).
+  The first CI run showed one more: a snippet with `|` (the tool's own
+  regex text) split its Markdown table cell; pipes are now escaped (test
+  fails on the first version).
 - **Tried on real pull requests:** 939 all `none`; 938 lists its
   `subprocess` child process (S3), archive writes (S5), ZIP building
   (S6) and its strict `xfail` and `skip` rows (S8) for approval.
-- 46 tests; 10 mutants killed (credential does not fail, secret printed,
+- 47 tests; 10 mutants killed (credential does not fail, secret printed,
   `---` in a hunk read as a header, two-point diff, unpinned action
   accepted, documentation asks for approval, a reformatted test counted
   as removed, code patterns on documentation, exit 0 on a credential,
