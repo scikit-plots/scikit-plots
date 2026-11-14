@@ -1,10 +1,14 @@
-- Every corpus reader takes ``max_text_chars`` and ``on_text_limit``
-  (``"refuse"`` or ``"truncate"``): a bound on the text one input yields,
-  counted as chunks stream at the one place every chunk passes, custom
-  extractors and archive members included. It is off by default, except
-  for the formats where a small file can expand: ``OfficeReader`` (a cell
-  repeated across columns and rows: 483 bytes could yield 34 billion
-  characters) and ``PDFReader`` (pages sharing one compressed stream:
-  4 KB yielded 4 million characters) default to 256 Mi characters.
-  ``ZipReader`` bounds each member by its own reader and the archive total
-  by its own setting; a truncated chunk is marked ``text_truncated``.
+- Every corpus reader takes ``max_text_chars``, ``max_text_chars_per_byte``
+  and ``on_text_limit`` (``"refuse"`` or ``"truncate"``): a bound on the
+  text one input yields, counted as chunks stream at the one place every
+  chunk passes, custom extractors and archive members included. The limit
+  is the smaller of ``max_text_chars`` and
+  ``max(max_text_chars_per_byte x file size, 1 Mi)`` characters, so output,
+  and the work of extracting it, stay in proportion to the input. Both are
+  off by default, except where a small file can expand: ``OfficeReader``
+  (a cell repeated across columns and rows: 483 bytes could yield 34
+  billion characters) and ``PDFReader`` (pages sharing one compressed
+  stream: 4 KB yielded 4 million characters) default to 256 Mi characters
+  and 50 characters per byte. ``ZipReader`` bounds each member by its own
+  reader and the archive total by its own setting; a truncated chunk is
+  marked ``text_truncated``.

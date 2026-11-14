@@ -1245,6 +1245,13 @@ class OfficeReader(DocumentReader):
     code_files: str = field(default="refuse")
     """``"refuse"`` or ``"skip"`` an add-in, macro sheet or workspace. Default: ``"refuse"``."""
 
+    max_text_chars_per_byte: float | None = field(default=50)
+    """Most characters of text per byte of the file (floor: 1 Mi characters).
+
+    Default: 50; ``None``: no ratio limit. See
+    :attr:`~scikitplot.corpus._base.DocumentReader.max_text_chars_per_byte`.
+    """
+
     max_file_bytes: int = field(default=500 * 1024 * 1024)
     """Largest file read. Default: 500 MB."""
 

@@ -1739,8 +1739,14 @@ class TestTextLimit:
         """481 bytes, within both repeat limits, would yield ~34e9 characters."""
         path = self._repeated(tmp_path, 16_384, 1_048_575)
         assert path.stat().st_size < 1_000
-        with pytest.raises(ValueError, match=r"max_text_chars=268,435,456"):
+        # By default the ratio stops it first, at the 1 Mi floor ...
+        with pytest.raises(ValueError, match=r"max_text_chars_per_byte=50"):
             for _ in OfficeReader(input_path=path)._iter_raw_chunks():
+                pass
+        # ... and without the ratio, the absolute limit still does.
+        reader = OfficeReader(input_path=path, max_text_chars_per_byte=None)
+        with pytest.raises(ValueError, match=r"max_text_chars=268,435,456"):
+            for _ in reader._iter_raw_chunks():
                 pass
 
     def test_within_the_limit_nothing_changes(self, tmp_path):

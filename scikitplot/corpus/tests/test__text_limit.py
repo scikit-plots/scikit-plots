@@ -131,6 +131,87 @@ class TestBase:
             _reader(tmp_path, ["x"], **{option: value})
 
 
+class TestRatio:
+    """``max_text_chars_per_byte``: output in proportion to the input size."""
+
+    FLOOR = 1024 * 1024
+
+    def _big(self, tmp_path, size, texts, **kwargs):
+        path = tmp_path / "in.txt"
+        path.write_bytes(b"x" * size)
+        return DocumentReader.create(
+            path, custom_extractor=lambda _p: list(texts), **kwargs
+        )
+
+    def test_off_by_default_and_50_for_the_amplifying_formats(self, tmp_path):
+        assert _reader(tmp_path, ["x"]).max_text_chars_per_byte is None
+        ods = _odf(tmp_path / "b.ods", "spreadsheet", "")
+        assert OfficeReader(input_path=ods).max_text_chars_per_byte == 50
+        pdf = _shared_stream_pdf(tmp_path / "b.pdf", 100, 1)
+        assert PDFReader(input_path=pdf).max_text_chars_per_byte == 50
+
+    def test_a_small_file_may_always_yield_the_floor(self, tmp_path):
+        """10 bytes x 1 char/byte = 10, but the floor of 1 Mi characters holds."""
+        texts = ["a" * (self.FLOOR // 2)] * 2
+        reader = self._big(tmp_path, 10, texts, max_text_chars_per_byte=1)
+        assert _texts(reader) == texts
+        over = self._big(tmp_path, 10, [*texts, "a"], max_text_chars_per_byte=1)
+        with pytest.raises(ValueError, match=r"more than 1,048,576 characters.*10 bytes.*max_text_chars_per_byte=1\b"):
+            _texts(over)
+
+    def test_past_the_floor_the_limit_follows_the_file_size(self, tmp_path):
+        size = self.FLOOR  # 1 Mi bytes x 2 chars/byte = 2 Mi characters
+        texts = ["a" * self.FLOOR] * 2
+        assert _texts(self._big(tmp_path, size, texts, max_text_chars_per_byte=2)) == texts
+        with pytest.raises(ValueError, match="max_text_chars_per_byte=2"):
+            _texts(self._big(tmp_path, size, [*texts, "a"], max_text_chars_per_byte=2))
+
+    def test_the_smaller_of_the_two_limits_applies(self, tmp_path):
+        reader = self._big(
+            tmp_path, 10, ["abc", "def"], max_text_chars=5, max_text_chars_per_byte=1
+        )
+        with pytest.raises(ValueError, match="max_text_chars=5"):
+            _texts(reader)
+
+    def test_truncate_applies_to_the_ratio_too(self, tmp_path):
+        reader = self._big(
+            tmp_path,
+            10,
+            ["a" * self.FLOOR, "bcd"],
+            max_text_chars_per_byte=1,
+            on_text_limit="truncate",
+        )
+        chunks = list(reader._iter_raw_chunks())
+        assert [len(c["text"]) for c in chunks] == [self.FLOOR]
+
+    def test_the_hostile_pdf_stops_at_the_floor_by_default(self, tmp_path):
+        """4 KB sharing one stream: refused after 1 Mi characters, not 256 Mi."""
+        pytest.importorskip("pypdf")
+        path = _shared_stream_pdf(tmp_path / "b.pdf", 100_000, 20)
+        reader = PDFReader(input_path=path, prefer_backend="pypdf")
+        seen = 0
+        with pytest.raises(ValueError, match="max_text_chars_per_byte=50"):
+            for chunk in reader._iter_raw_chunks():
+                seen += len(chunk["text"])
+        assert seen <= self.FLOOR
+
+    def test_none_turns_the_ratio_off(self, tmp_path):
+        ods = _odf(
+            tmp_path / "b.ods",
+            "spreadsheet",
+            '<table:table table:name="T">' + _row(_cell("x", 1_000), 2_000) + "</table:table>",
+        )
+        with pytest.raises(ValueError, match="max_text_chars_per_byte=50"):
+            _texts(OfficeReader(input_path=ods))
+        texts = _texts(OfficeReader(input_path=ods, max_text_chars_per_byte=None))
+        assert sum(map(len, texts)) > self.FLOOR
+
+    @pytest.mark.parametrize("value", [0, -1, True, "5", float("inf"), float("nan")])
+    def test_bad_ratios_are_refused(self, tmp_path, value):
+        with pytest.raises(ValueError, match="max_text_chars_per_byte"):
+            _reader(tmp_path, ["x"], max_text_chars_per_byte=value)
+
+
 class TestPDF:
     def test_a_shared_compressed_stream_is_bounded(self, tmp_path):
         """A few KB, 20 pages sharing one stream of 20,000 characters each."""

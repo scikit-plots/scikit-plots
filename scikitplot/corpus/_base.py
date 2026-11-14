@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import abc
 import logging
+import math
 import pathlib
 import re
 import sys  # noqa: F401
@@ -108,6 +109,10 @@ from ._types import (  # CRITICAL-02: get_documents iterates ChunkResult
 #     pass  # reserved for future static-analysis-only imports
 
 logger = logging.getLogger(__name__)
+
+#: Characters of text any file may yield before ``max_text_chars_per_byte``
+#: applies, so a small file with honestly repeated content is not refused.
+_TEXT_RATIO_FLOOR: Final[int] = 1024 * 1024
 
 __all__ = [
     "ChunkerBase",
@@ -1033,9 +1038,24 @@ class DocumentReader(abc.ABC):
     included.
     """
 
+    max_text_chars_per_byte: float | None = field(default=None)
+    """
+    Most characters of text per byte of the input file.
+
+    Keeps the output, and so the work of extracting it, in proportion to
+    the input: with it, the limit is the smaller of :attr:`max_text_chars`
+    and ``max(max_text_chars_per_byte x file size, 1 Mi)`` characters (a
+    small file may always yield 1 Mi). It covers compression, shared and
+    repeated content alike. ``None`` (the default here): no ratio limit;
+    ``OfficeReader`` and ``PDFReader`` default to 50 (ordinary documents
+    yield under 10 characters per byte). Not applied when the input is not
+    a file on disk.
+    """
+
     on_text_limit: str = field(default="refuse")
     """
-    What happens past :attr:`max_text_chars`: ``"refuse"`` (default) raises
+    What happens past the text limit (:attr:`max_text_chars`,
+    :attr:`max_text_chars_per_byte`): ``"refuse"`` (default) raises
     ``ValueError``; ``"truncate"`` keeps exactly the first
     ``max_text_chars`` characters, marks the chunk it cuts
     ``text_truncated=True`` (none when the limit falls between chunks) and
@@ -1109,6 +1129,16 @@ class DocumentReader(abc.ABC):
         ):
             raise ValueError(
                 f"{name}: max_text_chars must be an int > 0 or None; got {limit!r}."
+            )
+        ratio = self.max_text_chars_per_byte
+        if ratio is not None and (
+            isinstance(ratio, bool)
+            or not isinstance(ratio, (int, float))
+            or not 0 < ratio < float("inf")
+        ):
+            raise ValueError(
+                f"{name}: max_text_chars_per_byte must be a finite number > 0"
+                f" or None; got {ratio!r}."
             )
 
     # ------------------------------------------------------------------
@@ -1281,6 +1311,39 @@ class DocumentReader(abc.ABC):
             chunks = self.get_raw_chunks()
         yield from self._within_text_limit(chunks)
 
+    def _text_limit(self) -> tuple[int | None, str, str]:
+        """
+        Return the text limit in force: ``(characters, option, description)``.
+
+        The smaller of :attr:`max_text_chars` and, for a file on disk,
+        ``max(max_text_chars_per_byte x size, _TEXT_RATIO_FLOOR)``;
+        ``(None, "", "")`` when neither applies. *option* names the setting
+        that decides, for the message.
+        """
+        limit = self.max_text_chars
+        option = "max_text_chars"
+        described = "" if limit is None else f"max_text_chars={limit:,} characters"
+        ratio = self.max_text_chars_per_byte
+        if ratio is not None:
+            try:
+                size = (
+                    self.input_path.stat().st_size
+                    if self.input_path.is_file()
+                    else None
+                )
+            except OSError:
+                size = None
+            if size is not None:
+                by_size = max(math.ceil(ratio * size), _TEXT_RATIO_FLOOR)
+                if limit is None or by_size < limit:
+                    limit = by_size
+                    option = "max_text_chars_per_byte"
+                    described = (
+                        f"{by_size:,} characters for a file of {size:,} bytes"
+                        f" (max_text_chars_per_byte={ratio})"
+                    )
+        return limit, option, described
+
     def _within_text_limit(
         self, chunks: Iterator[dict[str, Any]]
     ) -> Generator[dict[str, Any], None, None]:
@@ -1310,7 +1373,7 @@ class DocumentReader(abc.ABC):
         stream changes nothing (idempotent): a truncated stream is exactly
         at the limit.
         """
-        limit = self.max_text_chars
+        limit, option, described = self._text_limit()
         if limit is None:
             yield from chunks
             return
@@ -1323,13 +1386,13 @@ class DocumentReader(abc.ABC):
                 continue
             message = (
                 f"{type(self).__name__}: {self.file_name} yields more than"
-                f" max_text_chars={limit:,} characters of text"
+                f" {described} of text"
             )
             if self.on_text_limit == "refuse":
                 raise ValueError(
-                    f"{message}. Pass a larger max_text_chars (or None), or"
-                    " on_text_limit='truncate' to keep the first"
-                    " max_text_chars characters."
+                    f"{message}. Pass a larger {option} (or None), or"
+                    " on_text_limit='truncate' to keep the text up to the"
+                    " limit."
                 )
             logger.warning("%s; truncated (on_text_limit='truncate').", message)
             if limit > used:

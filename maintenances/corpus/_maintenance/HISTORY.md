@@ -29,6 +29,26 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **CX-37: output in proportion to input (`max_text_chars_per_byte`).**
+  CX-36 bounded memory, not CPU: pdfminer spends about 9 us a character,
+  so the 4 KB shared-stream PDF ran about 40 min before the 256 Mi limit
+  (pypdf about 2 min). A shared-page cache was first recommended and
+  chosen, then withdrawn before any code: distinct, highly compressible
+  streams (Flat about 1000x, a 256 KB file) reach the same cost without
+  sharing, and a memory-safe cache must be capped, which the same file
+  exceeds. The maintainer then chose the ratio limit. `DocumentReader`
+  gains `max_text_chars_per_byte` (default `None`; 50 for `OfficeReader`
+  and `PDFReader`): the limit is the smaller of `max_text_chars` and
+  `max(ratio x file size, 1 Mi)`; the 1 Mi floor keeps a small file with
+  honestly repeated content readable; not applied when the input is not a
+  file on disk. The message names the setting that decided. Measured:
+  the 4 KB PDF is refused after 1 Mi characters (pypdf 0.7 s, pdfminer
+  11 s); 14 real documents reach at most 0.34 characters per byte. Not
+  bounded further: a hostile file of N bytes may still cost what 50 x N
+  characters cost (a 315 KB file: pypdf 7 s, pdfminer minutes), up to the
+  256 Mi cap. Blank pages were measured and are not an amplification
+  (158 bytes, 0.3 ms a page). 13 ratio tests; 5 mutants killed. Corpus
+  6,297 passed + the same 15; cleanprompt unchanged.
 - **CX-36: the text budget moves to every reader; PDF amplification.**
   The same class as CX-35 in `PDFReader`: one Flat stream shared by
   many pages (about 100 bytes a page) gave 4 KB -> 4e6 characters
