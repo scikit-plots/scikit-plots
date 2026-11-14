@@ -1071,6 +1071,11 @@ class OfficeReader(DocumentReader):
         Start a new chunk at each heading of a text document and record
         the heading on the chunks under it. ``False`` reads headings as
         paragraphs. Default: ``True``.
+    code_files : {"refuse", "skip"}, optional
+        What happens to an add-in, macro sheet or workspace: ``"refuse"``
+        raises ``ValueError`` saying what the file is; ``"skip"`` logs that
+        warning and yields nothing, so a large folder is read past such
+        files. Neither ever reads one. Default: ``"refuse"``.
     max_file_bytes : int, optional
         Largest file read. Default: 500 MB.
     max_part_bytes : int, optional
@@ -1205,6 +1210,9 @@ class OfficeReader(DocumentReader):
     headings: bool = field(default=True)
     """Split text documents at headings and record them. Default: ``True``."""
 
+    code_files: str = field(default="refuse")
+    """``"refuse"`` or ``"skip"`` an add-in, macro sheet or workspace. Default: ``"refuse"``."""
+
     max_file_bytes: int = field(default=500 * 1024 * 1024)
     """Largest file read. Default: 500 MB."""
 
@@ -1217,6 +1225,11 @@ class OfficeReader(DocumentReader):
     def __post_init__(self) -> None:
         """Validate the options."""
         super().__post_init__()
+        if self.code_files not in ("refuse", "skip"):
+            raise ValueError(
+                "OfficeReader: code_files must be 'refuse' or 'skip';"
+                f" got {self.code_files!r}."
+            )
         for name in ("notes", "hidden", "headings"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(
@@ -1245,10 +1258,16 @@ class OfficeReader(DocumentReader):
         """
         code = _CODE_EXTENSIONS.get(self.input_path.suffix.lower())
         if code is not None:
-            raise ValueError(
+            message = (
                 f"OfficeReader: {self.file_name} is {code}, not a document;"
-                " it is not read. Remove it from the input, or export the"
-                " document it belongs to."
+                " it is not read."
+            )
+            if self.code_files == "skip":
+                logger.warning("%s Skipped (code_files='skip').", message)
+                return
+            raise ValueError(
+                f"{message} Remove it from the input, export the document it"
+                " belongs to, or pass code_files='skip' to pass over such files."
             )
         size = self.input_path.stat().st_size
         if size > self.max_file_bytes:

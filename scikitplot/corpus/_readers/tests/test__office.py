@@ -15,6 +15,7 @@ Run with::
 
 from __future__ import annotations
 
+import logging
 import zipfile
 from pathlib import Path
 
@@ -23,7 +24,9 @@ import pytest
 from ... import _url_handler
 from ..._base import DocumentReader
 from ..._schema import SourceType
+from .. import _office
 from .._office import _CODE_EXTENSIONS, _LEGACY_EXTENSIONS, OfficeReader
+from .._zip import ZipReader
 
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -349,6 +352,9 @@ class TestUntrustedInput:
         ("notes", "yes", TypeError),
         ("hidden", 1, TypeError),
         ("rows_per_chunk", 0, ValueError),
+        ("headings", None, TypeError),
+        ("code_files", "ignore", ValueError),
+        ("code_files", None, ValueError),
         ("max_part_bytes", 0, ValueError),
         ("max_parts", True, ValueError),
         ("max_file_bytes", -1, ValueError),
@@ -1647,3 +1653,40 @@ class TestLegacyAndCode:
         registered = set(OfficeReader.file_types)
         assert set(_LEGACY_EXTENSIONS) <= registered
         assert set(_CODE_EXTENSIONS) <= registered
+
+    def test_code_files_skip_passes_over_an_add_in_with_a_warning(
+        self, tmp_path, caplog, captured_logger
+    ):
+        path = _docx(tmp_path / "tool.xlam", _p("looks like text"))
+        with captured_logger(logging.WARNING, _office.__name__):
+            assert _chunks(path, code_files="skip") == []
+        (record,) = caplog.records
+        assert "an Excel add-in (macros), not a document" in record.getMessage()
+        assert "code_files='skip'" in record.getMessage()
+
+    def test_code_files_skip_changes_nothing_for_documents(self, tmp_path):
+        path = _docx(tmp_path / "d.docx", _p("x"))
+        assert _chunks(path, code_files="skip") == _chunks(path)
+        old = tmp_path / "old.doc"
+        old.write_bytes(OLE2)
+        with pytest.raises(ValueError, match="legacy binary"):
+            _chunks(old, code_files="skip")
+
+    def test_the_refusal_names_the_skip_option(self, tmp_path):
+        path = _docx(tmp_path / "tool.ppam", _p("x"))
+        with pytest.raises(ValueError, match="code_files='skip'"):
+            _chunks(path)
+
+    def test_an_add_in_inside_a_zip_follows_the_policy(self, tmp_path):
+        inner = _docx(tmp_path / "tool.xlam", _p("x")).read_bytes()
+        archive = tmp_path / "bundle.zip"
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("tool.xlam", inner)
+            zf.writestr("note.txt", "a plain note")
+        texts = [
+            c["text"]
+            for c in ZipReader(
+                input_path=archive, reader_kwargs={".xlam": {"code_files": "skip"}}
+            ).get_raw_chunks()
+        ]
+        assert texts == ["a plain note"]

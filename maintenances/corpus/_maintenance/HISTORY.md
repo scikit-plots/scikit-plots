@@ -13,6 +13,11 @@
   content decides). `from_url` downloads them; `SourceType.infer` gives
   `article` for `.dot`/`.wbk` and `spreadsheet` for `.xlt`. Add-ins stay
   out of the download lists.
+- **Policy `code_files`** (`"refuse"` default, `"skip"`): skip logs the
+  same message as a warning and yields nothing, so a folder or archive is
+  read past add-ins; the refusal names the option. Inside a ZIP the
+  member reader gets it through `reader_kwargs`. 7 tests; 3 mutants
+  caught.
 - Tests: 24 new (179); on `main` the file does not import (the new
   constants). 3 mutants, each caught. Research snapshot and corpus suite
   unchanged.
