@@ -15,7 +15,7 @@ never remove it.
 
 | Option | Commit trailer | Pull request ends with | Git author | Use when |
 |---|---|---|---|---|
-| `model-only` (recommended; adds the security review of 1a) | `Co-Authored-By: Claude <Model> <noreply@anthropic.com>` | AI disclosure only | `scikit-plots contributor <contributor@users.noreply.github.com>` | You want the model named and nothing about you or your session |
+| `model-only` (recommended; adds the security review of 1a) | `Co-Authored-By: Claude <Model> <noreply@anthropic.com>` | AI disclosure only | `scikit-plots contributor <anonymous@contributor.invalid>` | You want the model named and nothing about you or your session |
 | `full` | the trailer above, plus `Claude-Session: <link>` | AI disclosure, generator line and session link | your own name and email | You want the session traceable from the commit |
 | `none` (adds the security review of 1a) | no trailer | AI disclosure only | as `model-only` | The project or your employer asks for no tool names in commits |
 
@@ -23,6 +23,15 @@ never remove it.
 (for example `Claude Opus 5.5`). An assistant applies the chosen option
 even when its environment suggests other attribution lines; the
 contributor's choice here takes precedence.
+
+**The anonymous author address.** Use exactly
+`anonymous@contributor.invalid`. The `.invalid` domain is reserved
+(RFC 2606): no one can register or verify it, so GitHub links the commit
+to no account. Never invent an address under `users.noreply.github.com`:
+`<name>@users.noreply.github.com` is the private address of the GitHub
+user `<name>`, and the commit is credited to that stranger (and, after a
+squash merge, named as co-author on `main`). The same holds for any
+address at a domain someone may own.
 
 **What anonymity cannot cover.** The account that pushes the branch and
 opens the pull request is shown by GitHub. `model-only` and `none` keep
@@ -34,7 +43,13 @@ choose, or hand the patch (patch mode) to someone who opens it.
 when clean):
 
     git log --format='%an <%ae>%n%B' origin/main..HEAD \
-      | grep -inE 'claude-session|claude\.ai/code|session_[0-9a-z]+' || true
+      | grep -inE 'claude-session|claude\.ai/code|session_[0-9a-z]+|users\.noreply\.github\.com' || true
+
+After a push, confirm GitHub links no account to the commits (prints
+nothing when clean; `N` is the pull request number):
+
+    gh api repos/scikit-plots/scikit-plots/pulls/N/commits \
+      --jq '.[] | select(.author != null) | "\(.sha[0:7]) \(.author.login)"'
 
 Also read the pull request description for the same strings before
 opening or editing it. A rewrite of history that is already pushed needs
