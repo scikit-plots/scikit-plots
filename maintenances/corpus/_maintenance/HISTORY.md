@@ -1,5 +1,40 @@
 # Corpus maintenance history
 
+## 2026-11-14 — hostile-sample gate, PR 938
+
+- **Gate.** `_readers/tests/test__hostile_samples.py`: one crafted file
+  per reader format (xlsx far column, ods repeat on both axes, docx and
+  pptx compressible body, pdf shared stream, zip compressed member, xml
+  nested entities), each under 64 KiB, read through
+  `DocumentReader.create(...).get_documents()` with default settings in a
+  child process (the time ceiling stops a runaway read). Ceilings: 20 s,
+  64 MiB traced peak, 64 Mi characters yielded. Bounded reads measure
+  0.02 to 0.4 s and under 2 MiB, the blow-ups 5 s to minutes and 128 MiB
+  and more, so neither side is near a ceiling. A refusal must be
+  `ValueError` (or lxml's `SyntaxError`, open note
+  `xml-error-type-depends-on-lxml`); a crash of the child or an oversized
+  sample is `RuntimeError`, never taken for a finding. A format without a
+  sample fails `test_every_reader_format_has_a_sample`.
+- **Result on `main`:** xlsx, ods, xml pass. Four samples exceed a
+  ceiling and are strict `xfail` entries in `_OPEN`, each with a ledger
+  note; a fix must remove its entry.
+- **CX-39 (open): a Word body or slide is joined whole before the
+  budget.** 50 KB `.docx`: refused after 6.8 s (212 MiB at 66 KB);
+  `_sections` has no early end, the CX-38 class for paragraph runs.
+- **CX-40 (open, maintainer decision): PDF cost per character.** 63 KB,
+  400 pages on one stream: refused at 3.1 M characters after 217 s with
+  pdfminer (about 70 us a character; CX-37 accepted its residual at 9).
+- **CX-41 (open): an archive's text member has no budget.** 147 KB ->
+  50 M characters, 100 s, 240 MiB; bound only by `max_total_bytes`.
+- **Mutation check:** removing the CX-34 column bound, or disabling
+  `_within_text_limit`, fails the xlsx and ods rows (time ceiling);
+  unmutated control passes in 1.2 s.
+- **Not run here:** the full corpus suite (needs the compiled build); the
+  module was run alone with `--noconftest`. CI runs it in the build.
+- `.claude/new-chat-template.md`: pull request line 937 -> 938, the
+  number `orient.py` derived at the start of the chat (`auto`); once the
+  938 fragment exists `auto` gives 939, so the derived value is recorded.
+
 ## 2026-11-14 — office add-ins refused, legacy names identified, PR 937
 
 - **Office plan phase 5: add-ins.** `.wll .wwl .xll .xll_ .xla .xla_
