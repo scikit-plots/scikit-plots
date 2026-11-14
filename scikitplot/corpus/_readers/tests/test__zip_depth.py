@@ -65,7 +65,7 @@ class TestNestingDepthCap:
         z = tmp_path / "simple.zip"
         z.write_bytes(_zip_bytes({"a.txt": b"text"}))
         reader = DocumentReader.create(z)
-        _archive_ctx.set((reader.max_depth, reader.max_depth))
+        _archive_ctx.set((reader.max_depth, reader.max_depth, None))
         with pytest.raises(ArchiveNestingError):
             list(reader.get_raw_chunks())
 
@@ -83,6 +83,22 @@ class TestNestingDepthCap:
         reader.max_depth = 5
         list(reader.get_raw_chunks())  # must not raise
         assert _archive_ctx.get() is None
+
+    def test_the_top_archive_counts_on_every_entry_point(self, tmp_path):
+        # One level of nesting needs max_depth 2 (the top archive and the
+        # inner one), whether read through get_raw_chunks or get_documents.
+        nested = _make_nested(tmp_path / "outer.zip", levels=1)
+        for read in (
+            lambda r: list(r.get_raw_chunks()),
+            lambda r: list(r.get_documents()),
+        ):
+            reader = DocumentReader.create(nested)
+            reader.max_depth = 1
+            with pytest.raises(ArchiveNestingError):
+                read(reader)
+            reader.max_depth = 2
+            read(reader)  # must not raise
+            assert _archive_ctx.get() is None
 
     def test_error_is_valueerror_subclass(self):
         assert issubclass(ArchiveNestingError, ValueError)

@@ -128,6 +128,18 @@ def _zip_compressed_member(path: Path) -> Path:
     return path
 
 
+def _zip_member_at_the_text_floor(path: Path) -> Path:
+    """
+    The most text a tiny archive may yield: one member of 1 Mi characters.
+
+    Within both archive limits (4 Mi bytes extracted, 1 Mi characters), so
+    it must be read.
+    """
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+        zf.writestr("a.txt", ("x" * 1023 + "\n") * 1024)
+    return path
+
+
 def _xml_nested_entities(path: Path) -> Path:
     """Nested entity expansion ("billion laughs")."""
     entities = '<!ENTITY e0 "' + "x" * 16 + '">' + "".join(
@@ -143,7 +155,6 @@ def _xml_nested_entities(path: Path) -> Path:
 #: mark is strict, so the fix of a finding must remove its entry.
 _OPEN = {
     "pdf-shared-stream": "CX-40: pdfminer costs about 70 us a character on this input",
-    "zip-compressed-member": "CX-41: an archive member's inflated text has no budget",
 }
 
 #: (sample id, file name, builder).
@@ -155,6 +166,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("docx-part-at-the-ratio-limit", "b.docx", _docx_part_at_the_ratio_limit),
     ("pdf-shared-stream", "a.pdf", _pdf_shared_stream),
     ("zip-compressed-member", "a.zip", _zip_compressed_member),
+    ("zip-member-at-the-text-floor", "b.zip", _zip_member_at_the_text_floor),
     ("xml-nested-entities", "a.xml", _xml_nested_entities),
 ]
 
@@ -178,7 +190,7 @@ def _params() -> list:
 
 #: Samples within every limit: the gate measures the cost a limit accepts,
 #: so they must be read, not refused.
-_MUST_READ = {"docx-part-at-the-ratio-limit"}
+_MUST_READ = {"docx-part-at-the-ratio-limit", "zip-member-at-the-text-floor"}
 
 #: Every format the gate must cover (one sample each at least).
 _REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml"}
