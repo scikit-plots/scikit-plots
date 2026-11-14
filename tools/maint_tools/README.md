@@ -425,6 +425,28 @@ changelog settings that no rule defines (`manual_labels` lists the ones set
 by hand). Curated globs that match no file are warnings (errors with
 `--strict`).
 
+## Security review of a change
+
+`security_review.py` prints the S1 to S8 table of
+`.claude/contributor-profile.md` (section 1a) for a diff: each hit as
+`file:line [kind]`, `none` when a check finds nothing. The workflow "CI
+Security Review" runs it on every pull request and writes the table to the
+job summary.
+
+```bash
+# Against the merge base of main (what a pull request would show).
+python tools/maint_tools/security_review.py --base origin/main
+# Any diff on standard input.
+git diff -U0 origin/main...HEAD | python tools/maint_tools/security_review.py -
+```
+
+A hit is a place to look, not a verdict: hits in documentation are labelled
+`doc` and do not ask for approval. Exit status 1 only when S1 finds a
+credential pattern (a private key or a token format); the matched value is
+never printed. Session links and per-user noreply addresses are reported,
+not failed. Standard library only; the same diff always gives the same
+table.
+
 ## Prune old workflow runs
 
 `prune_workflow_runs.py` deletes old GitHub Actions runs (and their logs) in

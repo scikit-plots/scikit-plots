@@ -1,0 +1,7 @@
+- ``tools/maint_tools/security_review.py`` prints the S1 to S8 security
+  review of a change (secrets, dependencies, code execution, network, file
+  writes, untrusted parsing, CI and build files, weakened tests) as a table
+  with each hit's file and line, and the workflow "CI Security Review" runs it
+  on every pull request into the job summary. A hit is a place to look, not a
+  verdict; the job fails only when a credential pattern is added, and never
+  prints the matched value.

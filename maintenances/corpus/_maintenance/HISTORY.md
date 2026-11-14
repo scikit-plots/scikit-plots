@@ -1,5 +1,35 @@
 # Corpus maintenance history
 
+## 2026-11-14 — security review report in CI, PR 940
+
+- **Security review report (maintainer request, PR 940).** New
+  `tools/maint_tools/security_review.py` (standard library; parse, review
+  and render are pure functions) and the workflow `ci_security_review.yml`
+  on every pull request: the S1 to S8 table of
+  `.claude/contributor-profile.md` in the job summary, each hit as
+  `file:line [kind]`. Fails only on an added credential pattern (never
+  printed); session links and per-user noreply addresses are reported.
+  The workflow diffs the merge commit against its first parent; `--base`
+  uses `base...head` (merge base).
+- **Found while building it:** a two-point diff against today's `main`
+  showed PR 939 deleting PR 938's tests (939 was cut before 938 merged);
+  a removed line starting `--` was read as a file header; the
+  repository's `requirements/*.txt` layout was not a dependency file; the
+  tool failed its own pull request on a test's literal password and found
+  this session's link in a test (both inputs are now built at run time).
+- **Tried on real pull requests:** 939 all `none`; 938 lists its
+  `subprocess` child process (S3), archive writes (S5), ZIP building
+  (S6) and its strict `xfail` and `skip` rows (S8) for approval.
+- 46 tests; 10 mutants killed (credential does not fail, secret printed,
+  `---` in a hunk read as a header, two-point diff, unpinned action
+  accepted, documentation asks for approval, a reformatted test counted
+  as removed, code patterns on documentation, exit 0 on a credential,
+  requirements directory missed). zizmor offline: no findings.
+- Records: no ledger note (a request, not a finding). `orient.py` reports
+  938 on this branch: the template line still says 938 and an open pull
+  request (939) is not visible to it; the number 940 comes from the
+  repository's list of pull requests.
+
 ## 2026-11-14 — hostile-sample gate, part ratio limit, PR 938
 
 - **Gate.** `_readers/tests/test__hostile_samples.py`: one crafted file
