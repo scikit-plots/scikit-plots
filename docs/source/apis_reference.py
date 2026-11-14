@@ -679,6 +679,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "StateError",
                 ],
             },
+            {
+                "title": "Schemas and canonical values",
+                "autosummary": [
+                    "check_schema",
+                    "validate",
+                    "canonical_json",
+                    "digest",
+                    "plain",
+                ],
+            },
         ],
     },
     "scikitplot.annoy": {
@@ -798,7 +808,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_utils.validate_plotting_kwargs",
                 ],
             },
+            {
+                "title": "Figure Utilities",
+                "autosummary": [
+                    "stack",
+                ],
+            },
         ],
+        # Subpackages (their members are documented above), the deprecated
+        # ``plotters`` shim and the pytest runner are not API objects.
+        "generator": {
+            "ignore": ["decomposition", "estimators", "metrics", "plotters", "test"],
+        },
     },
     "scikitplot.cexperimental": {
         "short_summary": "C-Experimental Python modules based on C/CPP.",
@@ -2778,6 +2799,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
         ],
+        # Subpackages: their members are documented above ("kds.x", ...).
+        "generator": {"ignore": ["kds", "modelplotpy"]},
     },
     "scikitplot.exceptions": {
         "short_summary": "Exceptions and warnings.",
@@ -3406,7 +3429,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # for inheritance-diagram
                 "classes": [],
             },
+            {
+                "title": "MCP: Command Line and Validation",
+                "autosummary": [
+                    "RuntimeConfig",
+                    "main",
+                    "require_count",
+                    "require_index",
+                ],
+            },
         ],
+        # The distribution version is metadata, not an API object.
+        "generator": {"ignore": ["__version__"]},
     },
     "scikitplot.memmap": {
         "short_summary": "Cross-platform memory mapping module.",

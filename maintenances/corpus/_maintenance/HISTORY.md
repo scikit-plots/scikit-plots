@@ -29,6 +29,17 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **API reference coverage closed: agent, mcp, decile, api.** `agent`
+  gains a "Schemas and canonical values" section (5 names); `mcp` a
+  "Command Line and Validation" section (4) and ignores `__version__`;
+  `api` documents `stack` (Figure Utilities) and ignores its subpackages,
+  the deprecated `plotters` shim and `test`; `decile` ignores its
+  subpackages (members are documented as `kds.x`). The checker now reads
+  `DEPRECATED_APIS_REFERENCE`: an entry under a module documents its last
+  part (`api.metrics.plot_roc_curve` documents `api.plot_roc_curve`); a
+  non-literal table is refused (exit 2). Test on a nested module; three
+  mutants (any entry, bare prefix, lost union) are killed. Baseline
+  20 -> 0: every documented module is now fully covered.
 - **API reference coverage, config and impute.** `config_context`,
   `get_config`, `set_config` and `show_config` get a Global Configuration
   section; the pytest runner `test` is ignored as tooling. `config.__all__`

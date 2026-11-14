@@ -142,6 +142,42 @@ class TestCoverage:
         }
         assert list(report.unresolved) == ["nopkg"]
 
+    def test_a_deprecated_entry_documents_its_name(self, tmp_path):
+        """``DEPRECATED_APIS_REFERENCE`` entries (relative to the top package)."""
+        from types import SimpleNamespace  # noqa: PLC0415
+
+        _module(tmp_path, "top", "__all__ = []\n")
+        _module(tmp_path, "top.sub", "__all__ = ['old', 'gone', 'kept']\n")
+        _module(tmp_path, "top.subway", "")
+        entry = SimpleNamespace(documented=["kept"], ignore=[], sections=[])
+        source = (
+            "DEPRECATED_APIS_REFERENCE = "
+            "{'0.5': ['sub.metrics.old', 'subway.gone'], '0.6': ['sub']}\n"
+        )
+        deprecated = sc.deprecated_entries(source)
+        assert deprecated == ["sub.metrics.old", "subway.gone", "sub"]
+        report = sc.coverage(tmp_path, {"top.sub": entry}, deprecated=deprecated)
+        # "sub.metrics.old" documents old through a submodule of top.sub;
+        # "subway.gone" shares only a text prefix; bare "sub" names the
+        # module itself, not a member.
+        assert report.gaps() == {"missing:top.sub": ["gone"]}
+        assert sc.coverage(tmp_path, {"top.sub": entry}).gaps() == {
+            "missing:top.sub": ["gone", "old"]
+        }
+        assert sc.deprecated_entries("X = 1\n") == []
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "DEPRECATED_APIS_REFERENCE = {'0.5': 'c'}\n",
+            "DEPRECATED_APIS_REFERENCE = {'0.5': [1]}\n",
+            "DEPRECATED_APIS_REFERENCE = make()\n",
+        ],
+    )
+    def test_a_malformed_deprecated_table_is_refused(self, source):
+        with pytest.raises(sc.UnresolvedError, match="DEPRECATED_APIS_REFERENCE"):
+            sc.deprecated_entries(source)
+
     def test_compare_reports_new_and_fixed(self):
         new, fixed = sc.compare(
             {"missing:pkg": ["c", "d"]}, {"missing:pkg": ["c", "e"]}

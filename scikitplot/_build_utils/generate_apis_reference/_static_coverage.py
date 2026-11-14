@@ -401,7 +401,66 @@ class CoverageReport:
         return dict(sorted(out.items()))
 
 
-def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageReport:
+def deprecated_entries(source: str) -> list[str]:
+    """
+    Return the entries of ``DEPRECATED_APIS_REFERENCE`` in ``source``.
+
+    Parameters
+    ----------
+    source : str
+        Text of the API-reference file.
+
+    Returns
+    -------
+    list of str
+        Every entry, in file order; empty when the table is absent.
+
+    Raises
+    ------
+    UnresolvedError
+        If the table is not a literal mapping of version to list of strings.
+
+    Notes
+    -----
+    Entries are relative to the top-level package, as the "Recently
+    deprecated" autosummary resolves them (``"api.metrics.plot_roc_curve"``
+    is ``scikitplot.api.metrics.plot_roc_curve``).
+    """
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        else:
+            continue
+        if not any(
+            isinstance(t, ast.Name) and t.id == "DEPRECATED_APIS_REFERENCE"
+            for t in targets
+        ):
+            continue
+        try:
+            table = ast.literal_eval(value)
+        except ValueError as exc:
+            raise UnresolvedError(
+                "DEPRECATED_APIS_REFERENCE is not a literal mapping"
+            ) from exc
+        if not isinstance(table, dict) or not all(
+            isinstance(names, list) and all(isinstance(n, str) for n in names)
+            for names in table.values()
+        ):
+            raise UnresolvedError(
+                "DEPRECATED_APIS_REFERENCE must map each version to a list of strings"
+            )
+        return [n for names in table.values() for n in names]
+    return []
+
+
+def coverage(
+    package_root: Path,
+    modules: Mapping[str, object],
+    *,
+    deprecated: Iterable[str] = (),
+) -> CoverageReport:
     """
     Compare each reference module's statically read ``__all__`` with its sections.
 
@@ -412,12 +471,16 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
     modules : Mapping
         ``ReferenceModel.modules``: module name to an object with
         ``documented``, ``ignore`` and ``sections`` (each with ``exclude``).
+    deprecated : iterable of str, default=()
+        :func:`deprecated_entries`. An entry under a module documents its
+        last part for that module, as a section entry would.
 
     Returns
     -------
     CoverageReport
     """
     report = CoverageReport()
+    deprecated = list(deprecated)
     for name in sorted(modules):
         entry = modules[name]
         try:
@@ -431,6 +494,12 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
         # resolves it); a name counts as documented either way.
         documented = set(entry.documented)
         documented |= {n.rsplit(".", 1)[-1] for n in entry.documented if "." in n}
+        top = name.split(".", 1)[0]
+        documented |= {
+            n.rsplit(".", 1)[-1]
+            for n in deprecated
+            if f"{top}.{n}".startswith(f"{name}.")
+        }
         skipped = set(entry.ignore)
         for section in entry.sections:
             skipped |= set(section.exclude)

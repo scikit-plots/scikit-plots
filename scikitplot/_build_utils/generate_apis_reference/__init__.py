@@ -1856,7 +1856,12 @@ def _run_coverage(args, model, repo_root: Path, out: TextIO) -> int:
     from . import _static_coverage as sc  # noqa: PLC0415
 
     baseline_path = default_template_path().parent / sc.BASELINE_NAME
-    report = sc.coverage(repo_root, model.modules)
+    try:
+        deprecated = sc.deprecated_entries(model.source)
+    except sc.UnresolvedError as exc:
+        out.write("coverage: %s\n" % exc)
+        return 2
+    report = sc.coverage(repo_root, model.modules, deprecated=deprecated)
     gaps = report.gaps()
     if args.write:
         _atomic_write(baseline_path, sc.baseline_text(gaps))
