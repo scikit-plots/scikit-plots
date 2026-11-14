@@ -1,0 +1,9 @@
+- New command ``python -m scikitplot api [MODULE] [--name NAME]`` lists the
+  public API of the installed scikit-plots: each name in a module's
+  ``__all__`` with its kind, call signature and the first sentence of its
+  docstring, or one name in full with ``--name``. Output is ``text``,
+  ``markdown``, ``json``, ``yaml`` or ``toml``. It reads only the installed
+  package (read-only, no network), imports only ``scikitplot`` modules, lists
+  a package's submodules without importing them, and reports a name that does
+  not resolve in a partial install instead of failing. The usage skills are
+  rendered by the same code.

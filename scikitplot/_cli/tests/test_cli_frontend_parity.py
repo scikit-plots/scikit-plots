@@ -33,6 +33,9 @@ MATRIX = [
     ["greet", "--no-emoji", "Allen"],
     ["show_config", "--format", "json"],    # back-compat alias
     ["show_versions", "--format", "json"],  # back-compat alias
+    ["api", "scikitplot.logging"],
+    ["api", "scikitplot.logging", "--format", "json"],
+    ["api", "scikitplot.logging", "--name", "get_logger", "--format", "markdown"],
 ]
 
 
