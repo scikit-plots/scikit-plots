@@ -140,9 +140,6 @@ __all__ = [  # noqa: RUF022
     # Compatibility + helpers
     "AlwaysStdErrHandler",
     "GoogleLogFormatter",
-    "_default_logging_level",
-    "_get_thread_id",
-    "_is_jupyter_notebook",
     "getEffectiveLevel",
     "get_verbosity",
     "setLevel",
@@ -153,6 +150,7 @@ __all__ = [  # noqa: RUF022
     "error",
     "error_log",
     "exception",
+    "TaskLevelStatusMessage",
     "fatal",
     "info",
     "log",

@@ -1,0 +1,5 @@
+- ``scikitplot.logging`` no longer exports ``_default_logging_level``,
+  ``_get_thread_id`` and ``_is_jupyter_notebook`` by ``import *``; they stay
+  reachable as attributes. ``TaskLevelStatusMessage`` is now exported, and
+  the re-exported standard-library names (``Logger``, ``Handler``,
+  ``getLogger`` and others) are listed in the API reference.

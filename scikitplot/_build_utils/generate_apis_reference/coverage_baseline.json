@@ -29,42 +29,9 @@
    "kds",
    "modelplotpy"
   ],
-  "missing:scikitplot.exceptions": [
-   "AxisError",
-   "CommandError",
-   "ComplexWarning",
-   "DTypePromotionError",
-   "DuplicateRepresentationWarning",
-   "ExecutionException",
-   "InvalidUrlException",
-   "MissingConfigException",
-   "RankWarning",
-   "ScikitplotBackwardsIncompatibleChangeWarning",
-   "ScikitplotDeprecationWarning",
-   "ScikitplotPendingDeprecationWarning",
-   "ScikitplotTraceDataCorrupted",
-   "ScikitplotTraceDataException",
-   "ScikitplotTraceDataNotFound",
-   "ScikitplotTracingException",
-   "ScikitplotUserWarning",
-   "ScikitplotWarning",
-   "TooHardError"
-  ],
   "missing:scikitplot.impute": [
    "MissingIndicator",
    "SimpleImputer"
-  ],
-  "missing:scikitplot.logging": [
-   "BASIC_FORMAT",
-   "Filter",
-   "Formatter",
-   "Handler",
-   "LogRecord",
-   "Logger",
-   "NullHandler",
-   "StreamHandler",
-   "getLevelName",
-   "getLogger"
   ],
   "missing:scikitplot.mcp": [
    "RuntimeConfig",
@@ -72,14 +39,6 @@
    "main",
    "require_count",
    "require_index"
-  ],
-  "private:scikitplot.logging": [
-   "_default_logging_level",
-   "_get_thread_id",
-   "_is_jupyter_notebook"
-  ],
-  "stale:scikitplot.logging": [
-   "TaskLevelStatusMessage"
   ]
  }
 }

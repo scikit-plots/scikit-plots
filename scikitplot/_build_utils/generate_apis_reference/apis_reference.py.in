@@ -2772,10 +2772,39 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": None,
         "sections": [
             {
-                "title": None,
+                "title": "Errors",
                 "autosummary": [
-                    "ModuleDeprecationWarning",
                     "ScikitplotException",
+                    "CommandError",
+                    "ExecutionException",
+                    "InvalidUrlException",
+                    "MissingConfigException",
+                    "ScikitplotTracingException",
+                    "ScikitplotTraceDataException",
+                    "ScikitplotTraceDataCorrupted",
+                    "ScikitplotTraceDataNotFound",
+                ],
+            },
+            {
+                "title": "Numerical errors",
+                "autosummary": [
+                    "AxisError",
+                    "DTypePromotionError",
+                    "TooHardError",
+                ],
+            },
+            {
+                "title": "Warnings",
+                "autosummary": [
+                    "ScikitplotWarning",
+                    "ScikitplotUserWarning",
+                    "ScikitplotDeprecationWarning",
+                    "ScikitplotPendingDeprecationWarning",
+                    "ScikitplotBackwardsIncompatibleChangeWarning",
+                    "DuplicateRepresentationWarning",
+                    "ComplexWarning",
+                    "ModuleDeprecationWarning",
+                    "RankWarning",
                     "VisibleDeprecationWarning",
                 ],
             },
@@ -3202,6 +3231,25 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "get_verbosity",
                     "setLevel",
                     "set_verbosity",
+                ],
+            },
+            {
+                "title": "Standard Library Compatibility",
+                "description": (
+                    "Re-exported from :mod:`logging` so this module can be "
+                    "used as a drop-in replacement."
+                ),
+                "autosummary": [
+                    "BASIC_FORMAT",
+                    "Filter",
+                    "Formatter",
+                    "Handler",
+                    "LogRecord",
+                    "Logger",
+                    "NullHandler",
+                    "StreamHandler",
+                    "getLevelName",
+                    "getLogger",
                 ],
             },
             {

@@ -11,3 +11,6 @@
   An entry that names a submodule, or a name through one (also through
   ``from .x import *``), is resolved in the source as autosummary resolves
   it, so it is not reported stale.
+- The API reference now lists every exception and warning in
+  ``scikitplot.exceptions`` (19 were missing); known coverage gaps fall
+  from 60 to 27.

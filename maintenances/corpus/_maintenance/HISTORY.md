@@ -29,6 +29,14 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **API reference coverage, exceptions and logging.** All 19 missing
+  `scikitplot.exceptions` names are documented in three sections (Errors,
+  Numerical errors, Warnings). `scikitplot.logging` gains a Standard
+  Library Compatibility section (10 re-exported names); three private
+  helpers leave `__all__` (still reachable through the module
+  `__getattr__`, which the tests import from `_logging` directly), and
+  `TaskLevelStatusMessage`, documented but missing from `__all__`, is now
+  exported. A test pins the contract. Baseline 60 -> 27.
 - **API reference coverage, cleanprompt.** The static check now counts
   names a module exports lazily (imported under `if TYPE_CHECKING:` with a
   module `__getattr__`, from the package itself) as public, so
