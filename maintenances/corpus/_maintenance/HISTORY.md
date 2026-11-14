@@ -49,6 +49,16 @@
   11 more tests (9 fail on the PR's first commit); 10 more mutants killed
   (one, "own bound ignored", only after a test of a large honest archive
   holding a small inner bomb).
+- **CI on the review commit caught two of mine.** (1) The truncate test
+  read the warning through `caplog`, which on pytest < 9.1 does not see
+  this package's loggers: the CX-38 pitfall again (py3.9 partial
+  distribution). It now uses the repository's `captured_logger` fixture;
+  reproduced under pytest 8.3.5 (fails before, passes after). Rule: a
+  test that reads a scikitplot log record uses `captured_logger`, never
+  `caplog.at_level` alone. (2) The usage skill's `SKILL.md` counts the
+  names it does not show ("417 more names"): the hand-written row left it
+  stale; now 418, the generator's `len(rows) - SHOWN_NAMES`. A row written
+  by hand must also update that count; better, run `sync` in a full build.
 - 18 tests (14 fail on the previous reader); 12 mutants killed (the
   copy-budget one only after a test that records each copy's budget:
   `zipfile` never yields past the declared size, so a refusal test

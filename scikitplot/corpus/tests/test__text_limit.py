@@ -401,15 +401,17 @@ class TestZipTreeBudget:
         with pytest.raises(ArchiveBudgetError):
             _texts(ZipReader(input_path=archive))
 
-    def test_truncate_ends_the_archive_and_keeps_what_was_read(self, tmp_path, caplog):
+    def test_truncate_ends_the_archive_and_keeps_what_was_read(
+        self, tmp_path, caplog, captured_logger
+    ):
         archive = _zip_of(
             tmp_path / "a.zip", {"1.txt": b"first", "2.txt": b"x" * (5 * _MI)}
         )
         reader = ZipReader(input_path=archive, on_text_limit="truncate")
-        with caplog.at_level("WARNING", logger="scikitplot.corpus._readers._zip"):
+        with captured_logger(logging.WARNING, "scikitplot.corpus._readers._zip"):
             assert _texts(reader) == ["first"]
-        assert "on_text_limit='truncate'" in caplog.text
-        assert "'2.txt'" in caplog.text
+        messages = [r.getMessage() for r in caplog.records]
+        assert any("on_text_limit='truncate'" in m and "'2.txt'" in m for m in messages)
 
     def test_truncate_in_a_nested_reader_still_refuses_the_tree(self, tmp_path):
         # Only the top-level reader decides; a member's setting does not.
