@@ -18,20 +18,9 @@
    "stack",
    "test"
   ],
-  "missing:scikitplot.config": [
-   "config_context",
-   "get_config",
-   "set_config",
-   "show_config",
-   "test"
-  ],
   "missing:scikitplot.decile": [
    "kds",
    "modelplotpy"
-  ],
-  "missing:scikitplot.impute": [
-   "MissingIndicator",
-   "SimpleImputer"
   ],
   "missing:scikitplot.mcp": [
    "RuntimeConfig",

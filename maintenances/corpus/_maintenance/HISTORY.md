@@ -29,6 +29,15 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **API reference coverage, config and impute.** `config_context`,
+  `get_config`, `set_config` and `show_config` get a Global Configuration
+  section; the pytest runner `test` is ignored as tooling. `config.__all__`
+  listed `test` twice (statically and again after the runner import); the
+  static entry is removed, so it appears once, and only when the runner
+  imports. `impute` documents its re-exported `MissingIndicator` and
+  `SimpleImputer`. CI fixes: the logging usage skill is regenerated for the
+  new `TaskLevelStatusMessage` export, and the `_build_utils` fragment is
+  one bullet again. Baseline 27 -> 20.
 - **API reference coverage, exceptions and logging.** All 19 missing
   `scikitplot.exceptions` names are documented in three sections (Errors,
   Numerical errors, Warnings). `scikitplot.logging` gains a Standard

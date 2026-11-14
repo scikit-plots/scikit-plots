@@ -1395,7 +1395,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "citation",
                 ],
             },
+            {
+                "title": "Global Configuration",
+                "description": "Read, change and temporarily override package settings.",
+                "autosummary": [
+                    "config_context",
+                    "get_config",
+                    "set_config",
+                    "show_config",
+                ],
+            },
         ],
+        # The pytest runner is tooling, not an API object.
+        "generator": {"ignore": ["test"]},
     },
     "scikitplot.corpus": {
         "short_summary": "Document corpus ingestion, chunking, filtering, embedding, and export pipeline for NLP and ML workflows.",
@@ -3170,6 +3182,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # for inheritance-diagram
                 "classes": [
                     "_ann.ANNImputer",
+                ],
+            },
+            {
+                "title": "Re-exported scikit-learn imputers.",
+                "autosummary": [
+                    "MissingIndicator",
+                    "SimpleImputer",
                 ],
             },
         ],

@@ -1,0 +1,2 @@
+- ``scikitplot.config.__all__`` lists ``test`` once, and only when the
+  pytest runner imports; it was listed twice before.

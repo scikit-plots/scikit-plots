@@ -27,7 +27,6 @@ __all__ = [
     "set_config",
     # "__config__",
     "show_config",
-    "test",
 ]
 
 try:
