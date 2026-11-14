@@ -1,6 +1,6 @@
 # Corpus maintenance history
 
-## 2026-11-14 — hostile-sample gate, PR 938
+## 2026-11-14 — hostile-sample gate, part ratio limit, PR 938
 
 - **Gate.** `_readers/tests/test__hostile_samples.py`: one crafted file
   per reader format (xlsx far column, ods repeat on both axes, docx and
@@ -15,20 +15,51 @@
   `xml-error-type-depends-on-lxml`); a crash of the child or an oversized
   sample is `RuntimeError`, never taken for a finding. A format without a
   sample fails `test_every_reader_format_has_a_sample`.
-- **Result on `main`:** xlsx, ods, xml pass. Four samples exceed a
-  ceiling and are strict `xfail` entries in `_OPEN`, each with a ledger
+- **Result on `main`:** xlsx, ods, xml pass; docx and pptx (CX-39,
+  fixed below), pdf (CX-40) and zip (CX-41) exceeded a ceiling. The two
+  open ones are strict `xfail` entries in `_OPEN`, each with a ledger
   note; a fix must remove its entry.
-- **CX-39 (open): a Word body or slide is joined whole before the
-  budget.** 50 KB `.docx`: refused after 6.8 s (212 MiB at 66 KB);
-  `_sections` has no early end, the CX-38 class for paragraph runs.
+- **CX-39 (fixed here): a part parsed whole, out of proportion to the
+  file.** First recorded as "a Word body is joined whole before the
+  budget" from a time profile; the memory measurement corrected it: the
+  50 kB `.docx` inflates its main part 290 times (14.5 MB) and the
+  standard-library tree takes about 7.7 times that (112 MiB, 2.3 s to
+  parse; 58 MB -> 442 MiB, 14 s). Linear, so a file under 1 MB reached
+  `max_part_bytes` (256 Mi: about 2 GB). The paragraph join was a small
+  share and is not changed. Options put to the maintainer: ratio 50,
+  ratio 100, a streaming parse (no new option, a rewrite of every walker,
+  time still follows the inflated part), keep. Chosen: ratio 50.
+  `OfficeReader.max_part_bytes_per_byte` (default 50, `None` off): the
+  part limit in force is the smaller of `max_part_bytes` and
+  `max(ratio x file size, 1 Mi)` (`_part_limit`); the message names the
+  option that decided. Not applied to flat OpenDocument (not
+  compressed). Measured ratios of honest files: 1.0 (a real deck), 6 and
+  17 (200,000-row workbooks), 2.8 (prose), 48.5 (one sentence repeated
+  20,000 times: refused just past that, by design). After: the two
+  samples are refused in 0.1 s; the cost a 64 KiB file can still reach
+  (a part just within the limit) was measured at 5.5 s and 34 MiB; the
+  gate keeps a 32 kB sample of the same kind that must be read (2.7 s,
+  16 MiB), clear of the time ceiling on a slow runner. 21 tests (exact boundary at the floor, each package
+  kind, flat file exempt); 20 fail on the previous reader; 8 mutants
+  killed (no floor, floor off by one, ratio ignored, larger wins, floor
+  instead of ceil, message not passed, no validation, strict limit).
+  Reader suites without the build: the same 11 network failures and 7
+  fixture errors as `main`, 969 -> 990 passed.
 - **CX-40 (open, maintainer decision): PDF cost per character.** 63 KB,
   400 pages on one stream: refused at 3.1 M characters after 217 s with
   pdfminer (about 70 us a character; CX-37 accepted its residual at 9).
 - **CX-41 (open): an archive's text member has no budget.** 147 KB ->
   50 M characters, 100 s, 240 MiB; bound only by `max_total_bytes`.
-- **Mutation check:** removing the CX-34 column bound, or disabling
+- **Gate mutation check:** removing the CX-34 column bound, or disabling
   `_within_text_limit`, fails the xlsx and ods rows (time ceiling);
   unmutated control passes in 1.2 s.
+- **CI caught (first push):** in the corpus partial distribution no PDF
+  backend is installed, `PDFReader` raises `ImportError`, and the gate
+  reported "reader crashed". The child now reports
+  `unavailable: <reason>` and the sample is skipped with it; a test hides
+  both backends to hold that (it fails without the branch). Rule: a gate
+  that reads through optional backends is run once with them hidden
+  before it is pushed.
 - **Not run here:** the full corpus suite (needs the compiled build); the
   module was run alone with `--noconftest`. CI runs it in the build.
 - `.claude/new-chat-template.md`: pull request line 937 -> 938, the

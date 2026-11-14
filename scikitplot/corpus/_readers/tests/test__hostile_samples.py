@@ -9,7 +9,9 @@ with default settings, and requires that it
 
 - ends within a wall-clock ceiling and a traced-memory ceiling, and
 - either is refused with ``ValueError`` (the readers' refusal type,
-  ``XmlSecurityError`` included) or yields bounded text.
+  ``XmlSecurityError`` included) or yields bounded text. A sample in
+  ``_MUST_READ`` sits just within a limit and must be read: it measures
+  the most that limit accepts.
 
 Notes
 -----
@@ -31,6 +33,7 @@ finding (a strict ``xfail``), so the fix must remove it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -92,6 +95,24 @@ def _pptx_compressed_slide(path: Path) -> Path:
     return _pptx(path, [("s1.xml", _slide(*["x" * 64] * _REPEATED_PARAGRAPHS))], ["s1.xml"])
 
 
+def _docx_part_at_the_ratio_limit(path: Path) -> Path:
+    """
+    The most a small package may cost: a part just within the part limit.
+
+    Incompressible padding brings the file to about 32 kB, so its 1.55 MB
+    body is within ``max_part_bytes_per_byte`` and must be read. (At the
+    64 KiB sample bound the same read took 5.5 s and 34 MiB; the smaller
+    file keeps slow runners clear of the time ceiling.)
+    """
+    _docx(path, _p("x" * 64) * 16_000)
+    pad = b"".join(
+        hashlib.sha256(i.to_bytes(4, "big")).digest() for i in range(1024)
+    )[: 32_000 - path.stat().st_size]
+    with zipfile.ZipFile(path, "a", zipfile.ZIP_STORED) as zf:
+        zf.writestr("docProps/thumbnail.bin", pad)
+    return path
+
+
 def _pdf_shared_stream(path: Path) -> Path:
     """One compressed content stream shared by many pages."""
     return _shared_stream_pdf(path, 40_000, 400)
@@ -121,8 +142,6 @@ def _xml_nested_entities(path: Path) -> Path:
 #: Open findings: the sample exceeds a ceiling on the current code. The
 #: mark is strict, so the fix of a finding must remove its entry.
 _OPEN = {
-    "docx-compressed-body": "CX-39: a Word body run is joined whole before the budget",
-    "pptx-compressed-slide": "CX-39: a slide's paragraphs are joined whole before the budget",
     "pdf-shared-stream": "CX-40: pdfminer costs about 70 us a character on this input",
     "zip-compressed-member": "CX-41: an archive member's inflated text has no budget",
 }
@@ -133,6 +152,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("ods-repeat-both-axes", "a.ods", _ods_repeat_both_axes),
     ("docx-compressed-body", "a.docx", _docx_compressed_body),
     ("pptx-compressed-slide", "a.pptx", _pptx_compressed_slide),
+    ("docx-part-at-the-ratio-limit", "b.docx", _docx_part_at_the_ratio_limit),
     ("pdf-shared-stream", "a.pdf", _pdf_shared_stream),
     ("zip-compressed-member", "a.zip", _zip_compressed_member),
     ("xml-nested-entities", "a.xml", _xml_nested_entities),
@@ -155,6 +175,10 @@ def _params() -> list:
         )
         for sample_id, name, build in _SAMPLES
     ]
+
+#: Samples within every limit: the gate measures the cost a limit accepts,
+#: so they must be read, not refused.
+_MUST_READ = {"docx-part-at-the-ratio-limit"}
 
 #: Every format the gate must cover (one sample each at least).
 _REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml"}
@@ -179,21 +203,26 @@ except ValueError as exc:  # the readers' refusal type (XmlSecurityError too)
     outcome = "refused: " + type(exc).__name__
 except SyntaxError as exc:  # lxml's parse error; see xml-error-type-depends-on-lxml
     outcome = "refused: " + type(exc).__name__
+except ImportError as exc:  # no optional backend for this format is installed
+    outcome = "unavailable: " + str(exc).splitlines()[0]
 seconds = time.perf_counter() - start
 peak = tracemalloc.get_traced_memory()[1]
 print(json.dumps([outcome, chars, seconds, peak]))
 """
 
 
-def _measure(path: Path) -> tuple[str, int, float, int]:
+def _measure(path: Path, first_on_path: Path | None = None) -> tuple[str, int, float, int]:
     """
     Read *path* in a child process; return (outcome, chars, seconds, peak).
 
     A child process lets the time ceiling stop a runaway read instead of
     waiting for it; ``outcome`` is ``"timeout"`` then, with the ceiling as
-    ``seconds``.
+    ``seconds``. ``"unavailable: ..."`` means the format's optional
+    backend is not installed. *first_on_path* is put before the child's
+    import path (tests use it to hide a backend).
     """
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+    paths = [str(first_on_path)] if first_on_path else []
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(paths + [p for p in sys.path if p]))
     try:
         done = subprocess.run(
             [sys.executable, "-c", _CHILD, str(path), str(MAX_YIELDED_CHARS)],
@@ -216,19 +245,35 @@ def test_every_reader_format_has_a_sample():
     assert _REQUIRED_SUFFIXES <= {Path(name).suffix for _, name, _ in _SAMPLES}
 
 
+def test_a_format_without_its_optional_backend_is_reported_not_crashed(tmp_path):
+    hidden = tmp_path / "hidden"
+    (hidden / "pdfminer").mkdir(parents=True)
+    for module in (hidden / "pypdf.py", hidden / "pdfminer" / "__init__.py"):
+        module.write_text("raise ImportError('hidden by the test')\n", encoding="utf-8")
+    path = _shared_stream_pdf(tmp_path / "a.pdf", 100, 1)
+    outcome = _measure(path, first_on_path=hidden)[0]
+    assert outcome.startswith("unavailable: "), outcome
+
+
 def test_open_findings_name_known_samples():
-    assert set(_OPEN) <= {sample_id for sample_id, _, _ in _SAMPLES}
+    assert set(_OPEN) | _MUST_READ <= {sample_id for sample_id, _, _ in _SAMPLES}
 
 
 @pytest.mark.parametrize(("name", "build"), _params())
-def test_a_small_hostile_input_stays_within_the_ceilings(tmp_path, name, build):
+def test_a_small_hostile_input_stays_within_the_ceilings(
+    tmp_path, request, name, build
+):
     path = build(tmp_path / name)
     if path.stat().st_size > MAX_SAMPLE_BYTES:  # a gate error, never the finding
         raise RuntimeError(f"{name}: sample over {MAX_SAMPLE_BYTES} bytes")
 
     outcome, chars, seconds, peak = _measure(path)
+    if outcome.startswith("unavailable"):
+        pytest.skip(outcome)
     detail = f"{outcome}, {chars:,} chars, {seconds:.2f} s, peak {peak / 2**20:.0f} MiB"
     assert outcome not in {"unbounded", "timeout"}, detail
+    if request.node.callspec.id in _MUST_READ:
+        assert outcome == "read", detail
     assert seconds <= MAX_SECONDS, detail
     assert peak <= MAX_PEAK_BYTES, detail
 

@@ -19,6 +19,7 @@ Python 3.8-3.15. Standard library only.
 from __future__ import annotations
 
 import logging
+import math
 import posixpath
 import zipfile
 import zlib
@@ -63,6 +64,9 @@ _O_STYLE = _ODF + "style:1.0"
 #: Sheet size limits of the common spreadsheet applications; a repeat count
 #: beyond them is refused instead of expanded.
 _MAX_COLUMNS = 16_384
+#: Bytes any part may inflate to before ``max_part_bytes_per_byte`` applies:
+#: a small package with honestly repeated content stays readable.
+_PART_RATIO_FLOOR = 1024 * 1024
 _MAX_ROWS = 1_048_576
 #: Most spaces one ``text:s`` may stand for.
 _MAX_SPACES = 1_000
@@ -186,9 +190,11 @@ class _Package:
     name : str
         The file's display name, for messages.
     max_part_bytes : int
-        Largest XML part read, uncompressed.
+        Largest XML part read, uncompressed (the limit in force).
     max_parts : int
         Most parts the package may hold.
+    described : str, optional
+        The limit as messages name it; default ``max_part_bytes=N``.
 
     Raises
     ------
@@ -197,11 +203,17 @@ class _Package:
     """
 
     def __init__(
-        self, zf: zipfile.ZipFile, name: str, max_part_bytes: int, max_parts: int
+        self,
+        zf: zipfile.ZipFile,
+        name: str,
+        max_part_bytes: int,
+        max_parts: int,
+        described: str = "",
     ) -> None:
         self._zf = zf
         self._name = name
         self._max = max_part_bytes
+        self._described = described or f"max_part_bytes={max_part_bytes:,}"
         infos = zf.infolist()
         if len(infos) > max_parts:
             raise ValueError(
@@ -238,7 +250,7 @@ class _Package:
         if info.file_size > self._max:
             raise ValueError(
                 f"OfficeReader: part {part!r} of {self._name} is"
-                f" {info.file_size:,} bytes (max_part_bytes={self._max:,})."
+                f" {info.file_size:,} bytes ({self._described})."
             )
         try:
             with self._zf.open(info) as src:
@@ -261,7 +273,7 @@ class _Package:
             # The declared size understated the content.
             raise ValueError(
                 f"OfficeReader: part {part!r} of {self._name} is larger than"
-                f" max_part_bytes={self._max:,}."
+                f" {self._described}."
             )
         root = _parse(data, f"part {part!r} of {self._name}")
         if _STRICT_PREFIX.encode("ascii") in data:
@@ -1122,6 +1134,15 @@ class OfficeReader(DocumentReader):
     max_part_bytes : int, optional
         Largest XML part read, uncompressed: the bound on memory, and on a
         part that a small ZIP inflates into a huge one. Default: 256 MB.
+    max_part_bytes_per_byte : float or None, optional
+        Most uncompressed bytes of one XML part per byte of the file: a
+        part may be ``max(max_part_bytes_per_byte x file size, 1 Mi)``
+        bytes, and never more than ``max_part_bytes``. A part is parsed
+        whole, at several times its size in memory, and a ZIP can inflate
+        one about a thousand times, so this keeps the cost of a file in
+        proportion to its size. Not applied to a flat OpenDocument file
+        (one XML file, not compressed). Default: 50; ``None``: no ratio
+        limit.
     max_parts : int, optional
         Most parts a package may hold. Default: 100 000.
     max_text_chars : int or None, optional
@@ -1219,8 +1240,10 @@ class OfficeReader(DocumentReader):
     targets, or to targets above the package root, are not followed.
     Tracked deletions are dropped; fields read as their cached text.
 
-    **Memory.** Each part is parsed whole, so a sheet's memory is bounded by
-    ``max_part_bytes``, not streamed.
+    **Memory.** Each part is parsed whole, not streamed, at about eight
+    times its uncompressed size, so memory is bounded by the part limit in
+    force: the smaller of ``max_part_bytes`` and
+    ``max(max_part_bytes_per_byte x file size, 1 Mi)``.
 
     **OpenDocument specifics.** Cells give their displayed text, so dates
     read as shown. Repeated cells and rows are expanded; a repeat of cells
@@ -1279,6 +1302,12 @@ class OfficeReader(DocumentReader):
     max_part_bytes: int = field(default=256 * 1024 * 1024)
     """Largest XML part read, uncompressed. Default: 256 MB."""
 
+    max_part_bytes_per_byte: float | None = field(default=50)
+    """Most uncompressed bytes of a part per byte of the file (floor: 1 Mi bytes).
+
+    Default: 50; ``None``: no ratio limit.
+    """
+
     max_parts: int = field(default=100_000)
     """Most parts a package may hold. Default: 100 000."""
 
@@ -1308,6 +1337,40 @@ class OfficeReader(DocumentReader):
                 raise ValueError(
                     f"OfficeReader: {name} must be an int > 0; got {value!r}."
                 )
+        ratio = self.max_part_bytes_per_byte
+        if ratio is not None and (
+            isinstance(ratio, bool)
+            or not isinstance(ratio, (int, float))
+            or not 0 < ratio < float("inf")
+        ):
+            raise ValueError(
+                "OfficeReader: max_part_bytes_per_byte must be a finite number"
+                f" > 0 or None; got {ratio!r}."
+            )
+
+    def _part_limit(self, size: int) -> tuple[int, str]:
+        """
+        Return the part limit in force for a package of *size* bytes.
+
+        Returns
+        -------
+        tuple of (int, str)
+            The limit in bytes, and how a message names it (the option
+            that decides, with its value).
+        """
+        limit = self.max_part_bytes
+        described = f"max_part_bytes={limit:,}"
+        ratio = self.max_part_bytes_per_byte
+        if ratio is not None:
+            by_size = max(math.ceil(ratio * size), _PART_RATIO_FLOOR)
+            if by_size < limit:
+                limit = by_size
+                described = (
+                    f"{by_size:,} bytes for a file of {size:,} bytes,"
+                    f" max_part_bytes_per_byte={ratio}; pass a larger value"
+                    " (or None) for a file with highly repeated content"
+                )
+        return limit, described
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
@@ -1366,7 +1429,8 @@ class OfficeReader(DocumentReader):
                 f" package (not a ZIP file: {exc})."
             ) from exc
         with zf:
-            pkg = _Package(zf, self.file_name, self.max_part_bytes, self.max_parts)
+            limit, described = self._part_limit(size)
+            pkg = _Package(zf, self.file_name, limit, self.max_parts, described)
             main = pkg.first("", _OFFICE_DOCUMENT)
             root = pkg.xml(main) if main else None
             if root is not None:

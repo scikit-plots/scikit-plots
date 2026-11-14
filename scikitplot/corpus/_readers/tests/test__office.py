@@ -1877,3 +1877,105 @@ class TestChunkSizeUnderTheLimit:
             _bounded(path, max_text_chars=self.LIMIT)
         kept = _bounded(path, max_text_chars=self.LIMIT, on_text_limit="truncate")
         assert sum(len(c["text"]) for c in kept) == self.LIMIT
+
+
+# ---------------------------------------------------------------------------
+# The part limit in proportion to the file (max_part_bytes_per_byte, CX-39)
+# ---------------------------------------------------------------------------
+
+_MI = 1024 * 1024
+
+
+def _part_size(path: Path, part: str) -> int:
+    with zipfile.ZipFile(path) as zf:
+        return zf.getinfo(part).file_size
+
+
+def _docx_with_part_of(path: Path, size: int) -> Path:
+    """A ``.docx`` whose ``word/document.xml`` is exactly *size* bytes."""
+    empty = _part_size(_docx(path, _p("")), "word/document.xml")
+    _docx(path, _p("x" * (size - empty)))
+    assert _part_size(path, "word/document.xml") == size
+    return path
+
+
+class TestPartRatio:
+    """A part may inflate to ``max(ratio x file size, 1 Mi)`` bytes."""
+
+    def test_default_is_50(self, tmp_path):
+        reader = OfficeReader(input_path=_docx(tmp_path / "d.docx", _p("x")))
+        assert reader.max_part_bytes_per_byte == 50
+
+    @pytest.mark.parametrize(
+        ("size", "kwargs", "limit", "option"),
+        [
+            (0, {}, _MI, "max_part_bytes_per_byte=50"),
+            (_MI // 50, {}, _MI, "max_part_bytes_per_byte=50"),
+            (_MI // 50 + 1, {}, 50 * (_MI // 50 + 1), "max_part_bytes_per_byte=50"),
+            (3 * _MI + 1, {"max_part_bytes_per_byte": 0.5}, 3 * _MI // 2 + 1, "=0.5"),
+            (10 * _MI, {}, 256 * _MI, "max_part_bytes=268,435,456"),
+            (_MI, {"max_part_bytes": 1000}, 1000, "max_part_bytes=1,000"),
+            (1, {"max_part_bytes_per_byte": None}, 256 * _MI, "max_part_bytes="),
+        ],
+    )
+    def test_the_limit_in_force(self, tmp_path, size, kwargs, limit, option):
+        path = _docx(tmp_path / "d.docx", _p("x"))
+        found, described = OfficeReader(input_path=path, **kwargs)._part_limit(size)
+        assert found == limit
+        assert option in described
+
+    def test_a_part_of_exactly_the_floor_is_read(self, tmp_path):
+        path = _docx_with_part_of(tmp_path / "d.docx", _MI)
+        assert path.stat().st_size * 50 < _MI  # the floor decides
+        assert len(_chunks(path)) == 1
+
+    def test_a_part_one_byte_past_the_floor_is_refused(self, tmp_path):
+        path = _docx_with_part_of(tmp_path / "d.docx", _MI + 1)
+        size = path.stat().st_size
+        with pytest.raises(ValueError) as caught:
+            _chunks(path)
+        message = str(caught.value)
+        assert "'word/document.xml'" in message
+        assert f"{_MI + 1:,} bytes" in message
+        assert f"{_MI:,} bytes for a file of {size:,} bytes" in message
+        assert "max_part_bytes_per_byte=50" in message
+
+    @pytest.mark.parametrize("kwargs", [{"max_part_bytes_per_byte": None}, {"max_part_bytes_per_byte": 5000}])
+    def test_none_or_a_larger_ratio_reads_it(self, tmp_path, kwargs):
+        path = _docx_with_part_of(tmp_path / "d.docx", _MI + 1)
+        assert len(_chunks(path, **kwargs)) == 1
+
+    def test_the_limit_follows_the_file_size(self, tmp_path):
+        # The same part is read once the package is large enough for it.
+        path = _docx_with_part_of(tmp_path / "d.docx", _MI + 1)
+        with zipfile.ZipFile(path, "a", zipfile.ZIP_STORED) as zf:
+            zf.writestr("docProps/thumbnail.bin", bytes(range(256)) * 128)
+        assert path.stat().st_size * 50 > _MI + 1
+        assert len(_chunks(path)) == 1
+
+    def test_every_package_kind_is_bounded(self, tmp_path):
+        body = "x" * (_MI + 1)
+        slides = [("s.xml", _slide(body))]
+        for path in (
+            _pptx(tmp_path / "d.pptx", slides, ["s.xml"]),
+            _odf(tmp_path / "d.odt", "text", f"<text:p>{body}</text:p>"),
+            _xlsx(tmp_path / "d.xlsx", [("S", _sheet(f"<!--{body}-->"), None)]),
+        ):
+            with pytest.raises(ValueError, match="max_part_bytes_per_byte=50"):
+                _chunks(path)
+
+    def test_a_flat_file_is_not_compressed_so_the_ratio_does_not_apply(self, tmp_path):
+        path = tmp_path / "d.fodt"
+        text = "x" * (2 * _MI)
+        path.write_text(
+            _content("text", f"<text:p>{text}</text:p>", root="document"),
+            encoding="utf-8",
+        )
+        chunks = _chunks(path, max_part_bytes_per_byte=0.25)
+        assert [len(c["text"]) for c in chunks] == [2 * _MI]
+
+    @pytest.mark.parametrize("value", [0, -1, float("inf"), float("nan"), True, "50"])
+    def test_bad_ratios_are_refused(self, tmp_path, value):
+        path = _docx(tmp_path / "d.docx", _p("x"))
+        with pytest.raises(ValueError, match="max_part_bytes_per_byte"):
+            OfficeReader(input_path=path, max_part_bytes_per_byte=value)
