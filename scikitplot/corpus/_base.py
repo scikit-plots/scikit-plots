@@ -1020,6 +1020,28 @@ class DocumentReader(abc.ABC):
         )
     """
 
+    max_text_chars: int | None = field(default=None)
+    """
+    Most characters of text one input may yield, over all its chunks.
+
+    The bound on what a small input can expand into (compressed or
+    repeated content). ``None`` (the default here): no limit, for formats
+    whose text cannot outgrow their input, already bounded by their size
+    limit. Readers of amplifying formats (``OfficeReader``, ``PDFReader``)
+    default to 256 Mi characters. Counted as chunks stream, at the one
+    place every chunk passes (:meth:`_iter_raw_chunks`), custom extractors
+    included.
+    """
+
+    on_text_limit: str = field(default="refuse")
+    """
+    What happens past :attr:`max_text_chars`: ``"refuse"`` (default) raises
+    ``ValueError``; ``"truncate"`` keeps exactly the first
+    ``max_text_chars`` characters, marks the chunk it cuts
+    ``text_truncated=True`` (none when the limit falls between chunks) and
+    logs a warning either way.
+    """
+
     _backend_outcomes: list[Any] = field(default_factory=list, init=False, repr=False)
     """Internal structured reports from optional backend cascades."""
 
@@ -1074,6 +1096,19 @@ class DocumentReader(abc.ABC):
             raise TypeError(
                 f"DocumentReader: custom_extractor must be callable or None; "
                 f"got {type(self.custom_extractor).__name__!r}."
+            )
+        name = type(self).__name__
+        if self.on_text_limit not in ("refuse", "truncate"):
+            raise ValueError(
+                f"{name}: on_text_limit must be 'refuse' or 'truncate';"
+                f" got {self.on_text_limit!r}."
+            )
+        limit = self.max_text_chars
+        if limit is not None and (
+            isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0
+        ):
+            raise ValueError(
+                f"{name}: max_text_chars must be an int > 0 or None; got {limit!r}."
             )
 
     # ------------------------------------------------------------------
@@ -1241,9 +1276,69 @@ class DocumentReader(abc.ABC):
         changes needed.
         """  # noqa: D205
         if self.custom_extractor is not None:
-            yield from self._iter_custom_extractor_chunks()
+            chunks = self._iter_custom_extractor_chunks()
         else:
-            yield from self.get_raw_chunks()
+            chunks = self.get_raw_chunks()
+        yield from self._within_text_limit(chunks)
+
+    def _within_text_limit(
+        self, chunks: Iterator[dict[str, Any]]
+    ) -> Generator[dict[str, Any], None, None]:
+        """
+        Pass *chunks* through while their text stays within :attr:`max_text_chars`.
+
+        Parameters
+        ----------
+        chunks : iterator of dict
+            Raw chunks, each with ``"text"``.
+
+        Yields
+        ------
+        dict
+            The chunks; with ``on_text_limit="truncate"``, the one that
+            crosses the limit is cut to fit and marked ``text_truncated``.
+
+        Raises
+        ------
+        ValueError
+            Past the limit, with ``on_text_limit="refuse"``.
+
+        Notes
+        -----
+        The count is taken as chunks stream, so at most one chunk is built
+        past the limit, never the whole input. Applying it twice to the same
+        stream changes nothing (idempotent): a truncated stream is exactly
+        at the limit.
+        """
+        limit = self.max_text_chars
+        if limit is None:
+            yield from chunks
+            return
+        used = 0
+        for chunk in chunks:
+            text = chunk.get("text") or ""
+            if used + len(text) <= limit:
+                used += len(text)
+                yield chunk
+                continue
+            message = (
+                f"{type(self).__name__}: {self.file_name} yields more than"
+                f" max_text_chars={limit:,} characters of text"
+            )
+            if self.on_text_limit == "refuse":
+                raise ValueError(
+                    f"{message}. Pass a larger max_text_chars (or None), or"
+                    " on_text_limit='truncate' to keep the first"
+                    " max_text_chars characters."
+                )
+            logger.warning("%s; truncated (on_text_limit='truncate').", message)
+            if limit > used:
+                chunk["text"] = text[: limit - used]
+                if "raw_text" in chunk:
+                    chunk["raw_text"] = chunk["text"]
+                chunk["text_truncated"] = True
+                yield chunk
+            return
 
     def _iter_custom_extractor_chunks(
         self,

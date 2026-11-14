@@ -29,6 +29,26 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **CX-36: the text budget moves to every reader; PDF amplification.**
+  The same class as CX-35 in `PDFReader`: one Flat stream shared by
+  many pages (about 100 bytes a page) gave 4 KB -> 4e6 characters
+  (pypdf 1.7 s, pdfminer 36 s for 20 pages); a 2 MB file of 20,000 pages
+  would yield about 4e9 (hours of extraction), within `max_file_bytes`.
+  Rather than copy the CX-35 wrapper, `max_text_chars` and
+  `on_text_limit` move to `DocumentReader`, enforced in
+  `_iter_raw_chunks` (the only path to `get_documents`; custom extractors
+  included). Default `None`, because text, XML and ALTO output cannot
+  outgrow their input (already bounded: 500 MB text, 5 GB ALTO, where a
+  256 Mi default would refuse legitimate files); `OfficeReader` and
+  `PDFReader` override it to 256 Mi. `ZipReader` called members'
+  `get_raw_chunks` directly (bypassing the seam): each member is now
+  bounded by its own reader (a refused member is logged and skipped like
+  any member error), and the archive total by `ZipReader`'s own setting,
+  so it is never a silent no-op. The wrapper also syncs `raw_text` and is
+  idempotent. 15 cross-reader tests (14 fail on the previous code), the
+  office budget tests moved to the seam; 5 placement mutants killed
+  (seam, zip member, zip archive, PDF default, `raw_text`). Corpus suite
+  6,284 passed + the same 15; cleanprompt unchanged.
 - **CX-35: repeat amplification bounded by `max_text_chars`.** Each
   OpenDocument repeat limit held alone (16,384 columns, 1,048,576 rows),
   but they multiply: one cell repeated on both axes, 483 bytes, would

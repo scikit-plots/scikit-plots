@@ -1215,6 +1215,14 @@ class PDFReader(DocumentReader):
     max_file_bytes: int = field(default=_PDF_DEFAULT_MAX_FILE_BYTES)
     """Maximum file size in bytes. Default: 2 GB."""
 
+    max_text_chars: int | None = field(default=256 * 1024 * 1024)
+    """Most characters of text one file yields; ``None``: no limit. Default: 256 Mi.
+
+    Content streams are compressed and pages may share one, so a few
+    kilobytes can yield millions of characters per page. Enforced by
+    :class:`~scikitplot.corpus._base.DocumentReader` with ``on_text_limit``.
+    """
+
     prefer_backend: str | None = field(default=None)
     """
     Force a specific extraction backend. One of ``"pdfminer"``, ``"pypdf"``,

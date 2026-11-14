@@ -1110,11 +1110,9 @@ class OfficeReader(DocumentReader):
         a 500-byte file could yield 34 billion characters). ``None``: no
         limit. Default: 256 Mi characters.
     on_text_limit : {"refuse", "truncate"}, optional
-        What happens past ``max_text_chars``: ``"refuse"`` raises
-        ``ValueError``; ``"truncate"`` keeps exactly the first
-        ``max_text_chars`` characters, marks the chunk it cuts
-        ``text_truncated=True`` (none when the limit falls between chunks)
-        and logs a warning either way. Default: ``"refuse"``.
+        What happens past ``max_text_chars``, as for every reader (see
+        :attr:`~scikitplot.corpus._base.DocumentReader.on_text_limit`).
+        Default: ``"refuse"``.
     chunker, filter\_, filename_override, default_language : optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
 
@@ -1257,10 +1255,11 @@ class OfficeReader(DocumentReader):
     """Most parts a package may hold. Default: 100 000."""
 
     max_text_chars: int | None = field(default=256 * 1024 * 1024)
-    """Most characters of text one file yields; ``None``: no limit. Default: 256 Mi."""
+    """Most characters of text one file yields; ``None``: no limit. Default: 256 Mi.
 
-    on_text_limit: str = field(default="refuse")
-    """``"refuse"`` or ``"truncate"`` past ``max_text_chars``. Default: ``"refuse"``."""
+    Enforced by :class:`~scikitplot.corpus._base.DocumentReader` with
+    ``on_text_limit``; this reader only sets the default.
+    """
 
     def __post_init__(self) -> None:
         """Validate the options."""
@@ -1275,15 +1274,7 @@ class OfficeReader(DocumentReader):
                 raise TypeError(
                     f"OfficeReader: {name} must be a bool; got {getattr(self, name)!r}."
                 )
-        if self.on_text_limit not in ("refuse", "truncate"):
-            raise ValueError(
-                "OfficeReader: on_text_limit must be 'refuse' or 'truncate';"
-                f" got {self.on_text_limit!r}."
-            )
-        limits = ["max_file_bytes", "max_part_bytes", "max_parts", "rows_per_chunk"]
-        if self.max_text_chars is not None:
-            limits.append("max_text_chars")
-        for name in limits:
+        for name in ("max_file_bytes", "max_part_bytes", "max_parts", "rows_per_chunk"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise ValueError(
@@ -1335,7 +1326,7 @@ class OfficeReader(DocumentReader):
             )
         if head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<"):
             chunks: Iterator[dict[str, Any]] = self._flat_opendocument(size)
-            for chunk in self._within_text_limit(chunks):
+            for chunk in chunks:
                 chunk["raw_text"] = chunk["text"]
                 yield chunk
             return
@@ -1381,47 +1372,10 @@ class OfficeReader(DocumentReader):
                     " (no officeDocument relationship in _rels/.rels, and no"
                     " content.xml)."
                 )
-            for chunk in self._within_text_limit(chunks):
+            for chunk in chunks:
                 chunk["raw_text"] = chunk["text"]
                 chunk["has_macros"] = has_macros
                 yield chunk
-
-    def _within_text_limit(
-        self, chunks: Iterator[dict[str, Any]]
-    ) -> Iterator[dict[str, Any]]:
-        """
-        Pass *chunks* through while their text stays within ``max_text_chars``.
-
-        The count is taken as chunks stream, so at most one chunk is built
-        past the limit (``rows_per_chunk`` rows), never the whole file.
-        """
-        limit = self.max_text_chars
-        if limit is None:
-            yield from chunks
-            return
-        used = 0
-        for chunk in chunks:
-            text = chunk["text"]
-            if used + len(text) <= limit:
-                used += len(text)
-                yield chunk
-                continue
-            message = (
-                f"OfficeReader: {self.file_name} yields more than"
-                f" max_text_chars={limit:,} characters of text"
-            )
-            if self.on_text_limit == "refuse":
-                raise ValueError(
-                    f"{message}. Pass a larger max_text_chars (or None), or"
-                    " on_text_limit='truncate' to keep the first"
-                    " max_text_chars characters."
-                )
-            logger.warning("%s; truncated (on_text_limit='truncate').", message)
-            if limit > used:
-                chunk["text"] = text[: limit - used]
-                chunk["text_truncated"] = True
-                yield chunk
-            return
 
     # -- OpenDocument --------------------------------------------------------
 

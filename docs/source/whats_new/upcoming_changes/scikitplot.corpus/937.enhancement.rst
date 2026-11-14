@@ -1,6 +1,10 @@
-- ``OfficeReader`` gains ``max_text_chars`` (default 256 Mi characters,
-  ``None`` for no limit) and ``on_text_limit`` (``"refuse"`` or
-  ``"truncate"``): a bound on the text one file yields. A spreadsheet cell
-  repeated across columns and rows stays within each sheet limit, so a
-  483-byte OpenDocument file could yield about 34 billion characters; it is
-  now refused after 256 Mi, checked as chunks stream.
+- Every corpus reader takes ``max_text_chars`` and ``on_text_limit``
+  (``"refuse"`` or ``"truncate"``): a bound on the text one input yields,
+  counted as chunks stream at the one place every chunk passes, custom
+  extractors and archive members included. It is off by default, except
+  for the formats where a small file can expand: ``OfficeReader`` (a cell
+  repeated across columns and rows: 483 bytes could yield 34 billion
+  characters) and ``PDFReader`` (pages sharing one compressed stream:
+  4 KB yielded 4 million characters) default to 256 Mi characters.
+  ``ZipReader`` bounds each member by its own reader and the archive total
+  by its own setting; a truncated chunk is marked ``text_truncated``.
