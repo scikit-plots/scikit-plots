@@ -96,8 +96,8 @@ __all__ = [
     "DEFAULT_TEXT_MODEL",
     "LLMTrainingExporter",
     "MultimodalEmbeddingEngine",
-    "_coerce_documents",  # exported for testing and advanced reuse
 ]
+# ``_coerce_documents`` is private: imported by name where needed (tests).
 
 # ---------------------------------------------------------------------------
 # Constants

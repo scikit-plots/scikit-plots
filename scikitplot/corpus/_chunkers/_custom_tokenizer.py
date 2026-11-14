@@ -199,7 +199,6 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     "is_cjk_char",
     "is_rtl_char",
     "split_cjk_chars",
-    "_split_cjk_chars_legacy",
     "MULTI_SCRIPT_SENTENCE_RE_PATTERN",
     # Layer 1 — Script segmentation
     "ScriptSpan",

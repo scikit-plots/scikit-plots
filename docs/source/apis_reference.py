@@ -1451,6 +1451,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "capability_snapshot",
                     "distribution_version",
                     "probe_backend",
+                    # _capabilities: what a component needs, and whether it is there
+                    "CapabilityRegistry",
+                    "CapabilityReport",
+                    "CapabilitySpec",
+                    "capability_report",
+                    "component_capabilities",
+                    "default_capability_registry",
                 ],
                 # for inheritance-diagram
                 "classes": [],
@@ -1528,7 +1535,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "is_cjk_char",
                     "is_rtl_char",
                     "split_cjk_chars",
-                    "_split_cjk_chars_legacy",
                     "MULTI_SCRIPT_SENTENCE_RE_PATTERN",
                     # Layer 1 — Script segmentation
                     "ScriptSpan",
@@ -1568,7 +1574,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SentenceBackend",
                     "SentenceChunker",
                     "SentenceChunkerConfig",
-                    "_validate_text_input",
                     # _structure
                     "StructureChunker",
                     "StructureChunkerConfig",
@@ -1667,6 +1672,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "GoogleDriveDownloader",
                     "WebDownloader",
                     "YouTubeDownloader",
+                    # _downloader._policy, and the plan of one download
+                    "DownloadPlan",
+                    "DownloadPolicy",
+                    "download_policy",
                 ],
                 # for inheritance-diagram
                 "classes": [
@@ -1745,6 +1754,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "calibration_report",
                     "expected_calibration_error",
                     "reliability_table",
+                    "CALIBRATION_STRATEGIES",
                     # _metrics._text
                     "anls_score",
                     "edit_similarity",
@@ -1870,6 +1880,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "DocIdScheme",
+                    "IDENTITY_HEX_WIDTH",
                     "IncompatibleSchemaError",
                     "UUID7Generator",
                     "assign_doc_ids",
@@ -2117,6 +2128,35 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "RuntimeCorpus",
                     "RuntimePolicy",
                     "materialize_plan",
+                    "runtime_policy",
+                    # _policies: every policy of a corpus in one bundle
+                    "CorpusPolicyBundle",
+                    "corpus_policy_bundle",
+                ],
+            },
+            {
+                "title": "Optional Backend Policy",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _backends: which optional backend runs, in what order
+                    "BackendCandidate",
+                    "BackendOutcome",
+                    "BackendPlan",
+                    "BackendPolicy",
+                    "BackendSkip",
+                    "BackendStatus",
+                    "backend_policy",
+                    "plan_backend_chain",
+                    "run_backend_chain",
+                    # _readers._whisper: speech-recognition backends
+                    "ASRBackend",
+                    "ASRRequest",
+                    "WHISPER_MODELS",
+                    "asr_segment_metadata",
+                    "plan_whisper_backends",
+                    "transcribe_whisper",
                 ],
             },
             {

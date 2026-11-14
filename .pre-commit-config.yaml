@@ -107,6 +107,18 @@ repos:
         always_run: true
         pass_filenames: false
 
+      # API coverage without a build (Rule 172): each module's __all__, read
+      # from source, against docs/source/apis_reference.py; fails on a gap
+      # not in generate_apis_reference/coverage_baseline.json, or on a fixed
+      # gap still listed there. Fix: edit the .py.in template and rebuild, or
+      # accept with: python -m scikitplot._build_utils.generate_apis_reference coverage --write
+      - id: apis-reference-coverage
+        name: API reference covers every public name
+        entry: python -I -B scikitplot/_build_utils/generate_apis_reference/_static_coverage.py
+        language: unsupported
+        always_run: true
+        pass_filenames: false
+
       # Importability only (not API coverage): every module, _get_submodule
       # target and autosummary name of docs/source/apis_reference.py imports,
       # as the docs build (conf.py, templates, autosummary) imports it.

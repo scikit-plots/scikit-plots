@@ -99,8 +99,13 @@ class TestInitExports:
     def test_corpusdocument_in_all(self):
         assert "CorpusDocument" in m.__all__
 
-    def test_promoted_raw_keys_in_all(self):
-        assert "_PROMOTED_RAW_KEYS" in m.__all__
+    def test_private_constants_are_importable_but_not_exported(self):
+        # Private by name: imported from this module by name, never by
+        # ``import *`` (the API reference coverage check reports a ``_name``
+        # in ``__all__``).
+        assert isinstance(m._PROMOTED_RAW_KEYS, frozenset)
+        assert isinstance(m._SOURCE_EXT_MAP, dict)
+        assert not [name for name in m.__all__ if name.startswith("_")]
 
 
 # ===========================================================================

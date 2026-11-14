@@ -81,40 +81,6 @@
    "show_config",
    "test"
   ],
-  "missing:scikitplot.corpus": [
-   "ASRBackend",
-   "ASRRequest",
-   "BackendCandidate",
-   "BackendOutcome",
-   "BackendPlan",
-   "BackendPolicy",
-   "BackendSkip",
-   "BackendStatus",
-   "CALIBRATION_STRATEGIES",
-   "CapabilityRegistry",
-   "CapabilityReport",
-   "CapabilitySpec",
-   "CorpusPolicyBundle",
-   "DownloadPlan",
-   "DownloadPolicy",
-   "IDENTITY_HEX_WIDTH",
-   "WHISPER_MODELS",
-   "_PROMOTED_RAW_KEYS",
-   "_SOURCE_EXT_MAP",
-   "_coerce_documents",
-   "asr_segment_metadata",
-   "backend_policy",
-   "capability_report",
-   "component_capabilities",
-   "corpus_policy_bundle",
-   "default_capability_registry",
-   "download_policy",
-   "plan_backend_chain",
-   "plan_whisper_backends",
-   "run_backend_chain",
-   "runtime_policy",
-   "transcribe_whisper"
-  ],
   "missing:scikitplot.decile": [
    "kds",
    "modelplotpy"
@@ -156,9 +122,6 @@
    "Logger",
    "NullHandler",
    "StreamHandler",
-   "_default_logging_level",
-   "_get_thread_id",
-   "_is_jupyter_notebook",
    "getLevelName",
    "getLogger"
   ],
@@ -168,6 +131,11 @@
    "main",
    "require_count",
    "require_index"
+  ],
+  "private:scikitplot.logging": [
+   "_default_logging_level",
+   "_get_thread_id",
+   "_is_jupyter_notebook"
   ],
   "stale:scikitplot.annoy": [
    "_annoy.Index"

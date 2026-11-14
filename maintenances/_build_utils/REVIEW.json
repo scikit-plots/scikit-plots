@@ -71,6 +71,13 @@
       "status": "closed",
       "summary": "test_gitversion imports the production git-version APIs but never calls them; its green tests mostly re-simulate expected behavior and therefore miss the real error-path defects.",
       "resolution": "test_gitversion calls git_version on a real repository, a stand-in git (dubious ownership, other failures, a Git ignoring command-line trust), no git, and add_safe_directory's error paths; test_cython_generate, test_install_meson_features and test_copyfiles are new."
+    },
+    {
+      "id": "BLD-APIREF-001",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "The API reference was compared with the package's public names only by commands that import the package (check, plan), so a public name added without its reference entry (Rule 172) was caught only on a built install, by a pre-push hook.",
+      "resolution": "generate_apis_reference coverage reads each module's __all__ from source with ast (no import) and compares it with the reference; known gaps are in coverage_baseline.json, which may only shrink; the pre-commit hook apis-reference-coverage runs it without a build (PR 937)."
     }
   ]
 }

@@ -4,3 +4,4 @@
   public that is not already in ``coverage_baseline.json`` (known gaps,
   which may only shrink). It needs no build and runs as the pre-commit
   hook ``apis-reference-coverage``.
+  A ``_name`` in ``__all__`` is reported as a gap of its own (``private``).

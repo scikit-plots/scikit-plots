@@ -1,0 +1,7 @@
+- ``scikitplot.corpus`` no longer exports five private names by
+  ``import *``: ``_PROMOTED_RAW_KEYS``, ``_SOURCE_EXT_MAP``,
+  ``_coerce_documents``, ``_split_cjk_chars_legacy`` and
+  ``_validate_text_input``. They remain importable by name from their own
+  modules. 29 public names (capability registry, download and backend
+  policies, speech-recognition backends, ``runtime_policy`` and others)
+  are now in the API reference.

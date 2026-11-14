@@ -123,7 +123,11 @@ def repo(tmp_path):
     ref = tmp_path / "docs" / "source" / "apis_reference.py"
     ref.parent.mkdir(parents=True)
     ref.write_text(REFERENCE, encoding="utf-8")
-    _module(tmp_path, "pkg", "__all__ = ['a', 'b', 'c', 'hidden']\n")
+    _module(
+        tmp_path,
+        "pkg",
+        "__all__ = ['a', 'b', 'c', 'hidden', '_inner', '__version__']\n",
+    )
     return tmp_path
 
 
@@ -131,7 +135,11 @@ class TestCoverage:
     def test_missing_stale_excluded_and_unresolved(self, repo):
         model = api_ref.load_reference(repo / "docs" / "source" / "apis_reference.py")
         report = sc.coverage(repo, model.modules)
-        assert report.gaps() == {"missing:pkg": ["c"], "stale:pkg": ["gone"]}
+        assert report.gaps() == {
+            "missing:pkg": ["__version__", "c"],
+            "private:pkg": ["_inner"],
+            "stale:pkg": ["gone"],
+        }
         assert list(report.unresolved) == ["nopkg"]
 
     def test_compare_reports_new_and_fixed(self):
@@ -176,17 +184,23 @@ class TestCommand:
         self, repo, monkeypatch, tmp_path
     ):
         self._run(repo, monkeypatch, tmp_path, "--write")
-        _module(repo, "pkg", "__all__ = ['a', 'b', 'hidden', 'gone']\n")
+        _module(repo, "pkg", "__all__ = ['a', 'b', 'hidden', 'gone', '__version__']\n")
         code, text = self._run(repo, monkeypatch, tmp_path)
         assert code == 1
         assert "FIXED    missing:pkg: c" in text
         assert "FIXED    stale:pkg: gone" in text
+        assert "FIXED    private:pkg: _inner" in text
 
     def test_json(self, repo, monkeypatch, tmp_path):
         code, text = self._run(repo, monkeypatch, tmp_path, "--json")
         data = json.loads(text)
         assert code == 1
-        assert data["new"] == ["missing:pkg: c", "stale:pkg: gone"]
+        assert data["new"] == [
+            "missing:pkg: __version__",
+            "missing:pkg: c",
+            "private:pkg: _inner",
+            "stale:pkg: gone",
+        ]
         assert list(data["unresolved"]) == ["nopkg"]
 
 

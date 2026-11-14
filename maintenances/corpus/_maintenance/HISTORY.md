@@ -18,6 +18,17 @@
   read past add-ins; the refusal names the option. Inside a ZIP the
   member reader gets it through `reader_kwargs`. 7 tests; 3 mutants
   caught.
+- **API reference coverage for `scikitplot.corpus`.** The new static
+  check listed 32 corpus gaps. 29 public names are added to the template:
+  Capability Status (capability registry, report, spec), Downloader
+  (download plan and policy), calibration strategies, identity width,
+  Runtime Policy (`runtime_policy`, the policy bundle) and a new section,
+  Optional Backend Policy (`_backends`, the Whisper backends). Five
+  private names leave `__all__` (`_PROMOTED_RAW_KEYS`, `_SOURCE_EXT_MAP`,
+  `_coerce_documents`, `_split_cjk_chars_legacy`, `_validate_text_input`;
+  the last two were also documented): all are imported by name where
+  used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
+  Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
 - Tests: 24 new (179); on `main` the file does not import (the new
   constants). 3 mutants, each caught. Research snapshot and corpus suite
   unchanged.

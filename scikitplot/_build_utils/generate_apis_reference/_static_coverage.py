@@ -11,7 +11,10 @@ source with :mod:`ast`, never importing it, and compares it with the
 
 * **missing**: in ``__all__`` but in no section of its module (and not in
   the module's ``ignore`` or a section's ``exclude``);
-* **stale**: documented, but no longer in ``__all__``.
+* **stale**: documented, but no longer in ``__all__``;
+* **private**: a ``_name`` (not a dunder) in ``__all__``: exported by
+  ``import *`` although its name says it is internal. Import it by name
+  from its own module instead.
 
 Existing gaps are recorded in a baseline file next to the template; the
 check fails only on a *new* gap, or on a baseline entry that is no longer a
@@ -227,12 +230,17 @@ class CoverageReport:
 
     missing: dict[str, list[str]] = field(default_factory=dict)
     stale: dict[str, list[str]] = field(default_factory=dict)
+    private: dict[str, list[str]] = field(default_factory=dict)
     unresolved: dict[str, str] = field(default_factory=dict)
 
     def gaps(self) -> dict[str, list[str]]:
         """Return the gaps as ``{"missing:<module>": names, "stale:<module>": names}``."""
         out: dict[str, list[str]] = {}
-        for kind, table in (("missing", self.missing), ("stale", self.stale)):
+        for kind, table in (
+            ("missing", self.missing),
+            ("stale", self.stale),
+            ("private", self.private),
+        ):
             for module, names in table.items():
                 if names:
                     out[f"{kind}:{module}"] = sorted(names)
@@ -267,8 +275,12 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
         skipped = set(entry.ignore)
         for section in entry.sections:
             skipped |= set(section.exclude)
+        private = [n for n in public if n.startswith("_") and not n.startswith("__")]
+        report.private[name] = private
         report.missing[name] = [
-            n for n in public if n not in documented and n not in skipped
+            n
+            for n in public
+            if n not in documented and n not in skipped and n not in private
         ]
         listed = set(public)
         report.stale[name] = sorted(n for n in documented if n not in listed)
@@ -303,7 +315,8 @@ def compare(
     """
     Return ``(new, fixed)``: gaps not in the baseline, and baseline gaps now gone.
 
-    Each item reads ``"missing:<module>: <name>"`` or ``"stale:<module>: <name>"``.
+    Each item reads ``"<kind>:<module>: <name>"``, kind ``missing``,
+    ``stale`` or ``private``.
     """
     now = {f"{key}: {n}" for key, names in current.items() for n in names}
     before = {f"{key}: {n}" for key, names in baseline.items() for n in names}
