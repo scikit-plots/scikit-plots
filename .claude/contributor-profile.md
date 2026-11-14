@@ -59,7 +59,9 @@ file and line, never left out.
 | S7 | CI and release files: `.github/`, `tools/`, `_build_utils/`, `plugins/` | zizmor result; actions pinned to a commit; token permissions unchanged or narrowed |
 | S8 | Tests weakened: deleted, skipped, `xfail` added, ceilings raised | list each with its reason |
 
-The commands print only added lines, so an empty result is `none`:
+The commands print only added lines, so an empty result is `none`. A hit
+in documentation or test text is answered with what it is (file, line,
+"documentation"), not dropped:
 
     # deps
     git diff origin/main -- '*requirements*.txt' pyproject.toml | grep '^+[^+]'
