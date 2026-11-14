@@ -29,6 +29,18 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **CX-34: an Excel cell past column XFD expanded its row (memory).**
+  `_sheet_rows` built `range(max(column) + 1)` from the cell reference,
+  and `_column_index` had no bound: one cell `AAAAAAA1` in a workbook of a
+  few hundred bytes took 2.9 GB and 28 s; each letter multiplies by 26,
+  and a long reference also cost quadratic big-integer work first.
+  `_column_index` now stops once past `_MAX_COLUMNS`, and a cell past it
+  is refused with `ValueError` naming the sheet and row (the reference is
+  cut to 16 characters), matching the OpenDocument limit. After: 55 MB,
+  0.01 s. Tests at the boundary (`XFD` read, `XFE` refused, a
+  200,000-letter reference); 3 mutants killed (one, the early stop, only
+  after a direct `_column_index` test: the refusal alone hid its cost).
+  Corpus suite: the same 15 network failures.
 - **Root `scikitplot.__all__`: recorded, not changed.** It is built from
   `globals()` plus a hand list (82 names, 20 private, plus `annotations`),
   and since every name is lazy, `from scikitplot import *` imports about

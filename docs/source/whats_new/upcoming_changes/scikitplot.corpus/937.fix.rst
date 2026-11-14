@@ -1,0 +1,5 @@
+- ``OfficeReader`` refuses an Excel cell referenced past the last column
+  (``XFD``, 16,384) with ``ValueError``, as it already did for
+  OpenDocument. Before, one such cell in a tiny workbook expanded its row
+  to the referenced width: a seven-letter reference took 2.9 GB and 28
+  seconds, and longer ones ran out of memory.

@@ -451,6 +451,32 @@ class TestExcel:
         assert chunk["text"] == "1\t\t3\n\t2"
         assert (chunk["row_start"], chunk["row_end"]) == (1, 5)
 
+    @pytest.mark.parametrize(
+        ("ref", "column"), [("A1", 0), ("C7", 2), ("XFD1", 16_383), ("7", None)]
+    )
+    def test_column_index(self, ref, column):
+        assert _office._column_index(ref) == column
+
+    def test_a_long_reference_stops_just_past_the_limit(self):
+        """A reference of any length is read only until it passes the limit."""
+        limit = _office._MAX_COLUMNS
+        for ref in ("A" * 200_000 + "1", "Z" * 50 + "1"):
+            assert limit <= _office._column_index(ref) < 27 * limit
+
+    def test_the_last_column_is_read(self, tmp_path):
+        rows = '<row r="1"><c r="A1"><v>1</v></c><c r="XFD1"><v>2</v></c></row>'
+        (chunk,) = _chunks(_xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)]))
+        assert chunk["text"] == "1" + "\t" * 16_383 + "2"
+
+    @pytest.mark.parametrize("ref", ["XFE1", "AAAAAAA1", "A" * 200_000 + "1"])
+    def test_a_cell_past_the_last_column_is_refused_not_expanded(self, tmp_path, ref):
+        """One cell must not allocate a row of millions of columns."""
+        rows = f'<row r="3"><c r="{ref}"><v>1</v></c></row>'
+        path = _xlsx(tmp_path / "b.xlsx", [("Data", _sheet(rows), None)])
+        with pytest.raises(ValueError, match=r"sheet 'Data': row 3 .*column 16,384") as info:
+            _chunks(path)
+        assert len(str(info.value)) < 300  # the reference is not echoed whole
+
     def test_sheets_in_workbook_order_chartsheets_skipped(self, tmp_path):
         one = _sheet('<row r="1"><c r="A1"><v>1</v></c></row>')
         two = _sheet('<row r="1"><c r="A1"><v>2</v></c></row>')

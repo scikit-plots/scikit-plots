@@ -669,13 +669,20 @@ def _string_item(si: Any) -> str:
 
 
 def _column_index(ref: str) -> int | None:
-    """Return the 0-based column of a cell reference (``"C7"`` -> 2)."""
+    """
+    Return the 0-based column of a cell reference (``"C7"`` -> 2).
+
+    Reading stops once the column is past ``_MAX_COLUMNS`` (the caller
+    refuses it), so a reference of any length costs a few steps.
+    """
     index = 0
     letters = 0
     for char in ref:
         if "A" <= char <= "Z":
             index = index * 26 + (ord(char) - 64)
             letters += 1
+            if index > _MAX_COLUMNS:
+                break
         else:
             break
     return index - 1 if letters else None
@@ -705,12 +712,20 @@ def _cell_text(cell: Any, shared: list[str]) -> str:
     return text
 
 
-def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
+def _sheet_rows(
+    root: Any, shared: list[str], what: str = "sheet"
+) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row with a value.
 
     Cells are tab-separated at their column, so a gap keeps its place;
     trailing empty cells are dropped.
+
+    Raises
+    ------
+    ValueError
+        If a cell lies past column ``_MAX_COLUMNS`` (``XFD``): its row is
+        refused instead of expanded to that width. *what* names the sheet.
     """
     c_tag = _q(_S, "c")
     for position, row in enumerate(root.iter(_q(_S, "row")), start=1):
@@ -724,6 +739,11 @@ def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
             column = _column_index(cell.get("r") or "")
             if column is None:
                 column = following
+            if column >= _MAX_COLUMNS:
+                raise ValueError(
+                    f"OfficeReader: {what}: row {number} has a cell past"
+                    f" column {_MAX_COLUMNS:,} ({(cell.get('r') or '')[:16]!r})."
+                )
             following = column + 1
             cells[column] = _cell_text(cell, shared)
         values = [cells.get(i, "") for i in range(max(cells, default=-1) + 1)]
@@ -1098,7 +1118,9 @@ class OfficeReader(DocumentReader):
         large, is not a package or a flat OpenDocument file (a legacy
         ``.doc``/``.ppt`` or an encrypted file is named as such), has no
         main part the reader knows, holds a part twice, over a limit or not
-        well-formed XML, or repeats spreadsheet cells past a sheet's size.
+        well-formed XML, or has a spreadsheet cell past a sheet's size
+        (OpenDocument: repeated past it; Excel: referenced past column
+        ``XFD``).
 
     See Also
     --------
@@ -1693,7 +1715,11 @@ class OfficeReader(DocumentReader):
                 )
                 continue
             yield from self._row_chunks(
-                _sheet_rows(ws, shared), name, number, part, hidden
+                _sheet_rows(ws, shared, f"{self.file_name} sheet {name!r}"),
+                name,
+                number,
+                part,
+                hidden,
             )
 
     def _row_chunks(
