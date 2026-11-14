@@ -1,0 +1,122 @@
+# .github/workflows/ci_prune_workflow_runs.yml
+#
+# Delete old workflow runs (and their logs) in bulk; GitHub offers no such
+# action in the Actions tab.
+#
+# TRIGGERS
+#   workflow_dispatch  Manual, with the inputs below. A DRY RUN unless
+#                      "dry_run" is unticked.
+#   pull_request       Only when this workflow or its script changes: runs the
+#                      script's tests and a dry run (never deletes; its token
+#                      can only read).
+#
+# POLICY (tools/maint_tools/prune_workflow_runs.py)
+#   A run is deleted only when ALL hold: it is not among the newest
+#   "keep_latest" runs (25 = the first page of the Actions tab); it has
+#   completed; it is not this run; it was created before "before" and more
+#   than "older_than_days" days ago (each when given); its workflow matches
+#   "workflow" (when given). Running it again deletes nothing more. At most
+#   "max_delete" runs per run of this workflow (token rate limit: 1,000
+#   requests an hour); run it again for more.
+---
+name: "CI 🧹 Prune Workflow Runs"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only list what would be deleted"
+        type: boolean
+        default: true
+      keep_latest:
+        description: "Newest runs always kept (25 = first page)"
+        type: string
+        default: "25"
+      older_than_days:
+        description: "Only runs older than this many days (e.g. 1; empty = any age)"
+        type: string
+        default: ""
+      before:
+        description: "Only runs created before this date, YYYY-MM-DD (empty = any)"
+        type: string
+        default: ""
+      workflow:
+        description: "Only this workflow: name or file name (empty = all)"
+        type: string
+        default: ""
+      max_delete:
+        description: "Most runs deleted in one go"
+        type: string
+        default: "500"
+  pull_request:
+    paths:
+      - ".github/workflows/ci_prune_workflow_runs.yml"
+      - "tools/maint_tools/prune_workflow_runs.py"
+      - "tools/maint_tools/tests/test_prune_workflow_runs.py"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  preview:
+    name: "Test and dry run"
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test the script
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest -q -c /dev/null tools/maint_tools/tests/test_prune_workflow_runs.py
+      - name: Dry run (default policy)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/maint_tools/prune_workflow_runs.py | tee -a "$GITHUB_STEP_SUMMARY"
+
+  prune:
+    name: "Prune"
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prune workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          KEEP_LATEST: ${{ inputs.keep_latest }}
+          OLDER_THAN_DAYS: ${{ inputs.older_than_days }}
+          BEFORE: ${{ inputs.before }}
+          WORKFLOW: ${{ inputs.workflow }}
+          MAX_DELETE: ${{ inputs.max_delete }}
+        run: |
+          set -Eeuo pipefail
+          # Inputs arrive as environment variables, never as script text.
+          args=(
+            --keep-latest "$KEEP_LATEST"
+            --older-than-days "$OLDER_THAN_DAYS"
+            --before "$BEFORE"
+            --workflow "$WORKFLOW"
+            --max-delete "$MAX_DELETE"
+          )
+          if [[ "$DRY_RUN" != "true" ]]; then
+            args+=(--apply)
+          fi
+          python3 tools/maint_tools/prune_workflow_runs.py "${args[@]}" \
+            | tee -a "$GITHUB_STEP_SUMMARY"

@@ -29,6 +29,19 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **Workflow-run pruning (maintainer request, PR 937).** New
+  `tools/maint_tools/prune_workflow_runs.py` (standard library; selection
+  is a pure function) and the manual workflow `ci_prune_workflow_runs.yml`.
+  Policy: keep the newest `keep_latest` (25) runs; optional
+  `older_than_days`, `before`, `workflow`; completed runs only, never the
+  current run; `max_delete` 500 a go; dry run by default; idempotent. The
+  listing is read in full before any deletion (deleting shifts pages).
+  Inputs reach the script as environment variables; the pull-request job
+  has a read-only token and only tests and dry-runs. 31 tests. Dry run on
+  the real repository from here (read only): 655 runs, 500 selected at the
+  cap (630 beyond the first page), 96 with `older_than_days=1`. Nothing
+  was deleted from here: `workflow_dispatch` works only once the file is
+  on the default branch. zizmor offline: no findings.
 - **CX-38: a row or chunk was built whole before the budget saw it.**
   The budget counts finished chunks, and a chunk is `rows_per_chunk`
   (500) rows of a line that may repeat one cell 16,384 times: a 485-byte

@@ -424,3 +424,21 @@ template, a workflow `contains(...labels.*.name, '...')` or the gilesbot
 changelog settings that no rule defines (`manual_labels` lists the ones set
 by hand). Curated globs that match no file are warnings (errors with
 `--strict`).
+
+## Prune old workflow runs
+
+`prune_workflow_runs.py` deletes old GitHub Actions runs (and their logs) in
+bulk; the manual workflow "CI Prune Workflow Runs" runs it. A dry run unless
+`--apply` is given (in the workflow: untick `dry_run`).
+
+```bash
+# List what would go: everything but the newest 25 runs (the first page).
+GH_TOKEN=... python tools/maint_tools/prune_workflow_runs.py --repo OWNER/NAME
+# Delete runs older than one day, keeping the newest 25.
+GH_TOKEN=... python tools/maint_tools/prune_workflow_runs.py --repo OWNER/NAME \
+    --older-than-days 1 --apply
+```
+
+Filters (all must hold): `--keep-latest N`, `--older-than-days D`,
+`--before YYYY-MM-DD`, `--workflow NAME_OR_FILE`; `--max-delete` (default 500)
+bounds one go. Running or queued runs and the current run are never deleted.

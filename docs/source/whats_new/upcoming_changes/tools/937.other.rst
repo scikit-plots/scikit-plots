@@ -1,0 +1,7 @@
+- New manual workflow "CI Prune Workflow Runs" and
+  ``tools/maint_tools/prune_workflow_runs.py`` delete old GitHub Actions
+  runs and their logs in bulk: the newest ``keep_latest`` runs (default 25,
+  the first page) are always kept, with optional ``older_than_days``,
+  ``before`` and ``workflow`` filters. It is a dry run unless asked to
+  delete, never deletes a running run or itself, and deletes nothing more
+  when run again.

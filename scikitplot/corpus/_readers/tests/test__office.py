@@ -1841,7 +1841,7 @@ class TestChunkSizeUnderTheLimit:
         assert self._largest(path) <= self.BOUND
 
     def test_excel_cells_sharing_one_string(self, tmp_path):
-        cells = "".join(f'<c t="s"><v>0</v></c>' for _ in range(1_000))
+        cells = "".join('<c t="s"><v>0</v></c>' for _ in range(1_000))
         rows = "".join(f'<row r="{i}">{cells}</row>' for i in range(1, 41))
         path = _xlsx(
             tmp_path / "b.xlsx",
