@@ -1,0 +1,54 @@
+# .github/workflows/ci_security_review.yml
+#
+# The S1 to S8 security review of every pull request, as a table in the
+# job summary (`.claude/contributor-profile.md`, section 1a).
+#
+# TRIGGERS
+#   pull_request   Every pull request, whatever its attribution mode.
+#
+# WHAT IT DOES
+#   Diffs the pull request's merge commit against its first parent (the
+#   base branch at merge time), which is exactly the change, and runs
+#   tools/maint_tools/security_review.py on it. A hit is a place to look,
+#   not a verdict. The job fails only when S1 finds a credential pattern
+#   (a private key or a token format); remove it and rotate the secret.
+#
+# SECURITY
+#   Read-only token; credentials are not kept after checkout; no pull
+#   request text (title, body, branch name) is used in a command.
+---
+name: "CI 🔐 Security Review"
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  review:
+    name: "S1 to S8 report"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout (merge commit and its first parent)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Test the script
+        if: ${{ hashFiles('tools/maint_tools/security_review.py') != '' }}
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest -q -c /dev/null tools/maint_tools/tests/test_security_review.py
+      - name: Security review
+        run: |
+          set -Eeuo pipefail
+          git diff -U0 --no-color --no-ext-diff -M HEAD^1 HEAD -- \
+            | python3 tools/maint_tools/security_review.py - \
+            | tee -a "$GITHUB_STEP_SUMMARY"
