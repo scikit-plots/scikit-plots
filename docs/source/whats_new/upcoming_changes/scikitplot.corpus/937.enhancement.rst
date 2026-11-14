@@ -1,0 +1,6 @@
+- ``OfficeReader`` gains ``max_text_chars`` (default 256 Mi characters,
+  ``None`` for no limit) and ``on_text_limit`` (``"refuse"`` or
+  ``"truncate"``): a bound on the text one file yields. A spreadsheet cell
+  repeated across columns and rows stays within each sheet limit, so a
+  483-byte OpenDocument file could yield about 34 billion characters; it is
+  now refused after 256 Mi, checked as chunks stream.

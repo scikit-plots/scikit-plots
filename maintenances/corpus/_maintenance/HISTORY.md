@@ -29,6 +29,21 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **CX-35: repeat amplification bounded by `max_text_chars`.** Each
+  OpenDocument repeat limit held alone (16,384 columns, 1,048,576 rows),
+  but they multiply: one cell repeated on both axes, 483 bytes, would
+  stream about 34e9 characters (measured 655e6 from 481 bytes at 20,000
+  rows); a caller collecting the chunks holds it all. New options:
+  `max_text_chars` (default 256 Mi, same order as `max_part_bytes`;
+  `None` disables) and `on_text_limit` (`"refuse"` default, or
+  `"truncate"`: keeps exactly the limit, flags the cut chunk
+  `text_truncated=True`, warns). One wrapper covers the package and flat
+  XML paths and counts as chunks stream, so at most one chunk is built
+  past the limit. The worst case is now refused in 0.1 s, 86 MB. Checked
+  first: part reads are capped on inflated bytes, and XML entities are
+  refused by the hardened parser. 11 tests (exact boundary included); 5
+  mutants killed (the `<=` boundary only after an exact-fit test). Corpus
+  suite: the same 15 network failures; usage skill unchanged.
 - **CX-34: an Excel cell past column XFD expanded its row (memory).**
   `_sheet_rows` built `range(max(column) + 1)` from the cell reference,
   and `_column_index` had no bound: one cell `AAAAAAA1` in a workbook of a

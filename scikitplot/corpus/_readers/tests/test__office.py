@@ -1716,3 +1716,79 @@ class TestLegacyAndCode:
             ).get_raw_chunks()
         ]
         assert texts == ["a plain note"]
+
+
+class TestTextLimit:
+    """``max_text_chars`` bounds the text one file yields (repeat amplification)."""
+
+    @staticmethod
+    def _repeated(tmp_path, cols, rows, name="b.ods"):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x", cols), rows)
+            + "</table:table>"
+        )
+        return _odf(tmp_path / name, "spreadsheet", inner)
+
+    def test_the_default_refuses_a_tiny_file_that_repeats_into_billions(self, tmp_path):
+        """481 bytes, within both repeat limits, would yield ~34e9 characters."""
+        path = self._repeated(tmp_path, 16_384, 1_048_575)
+        assert path.stat().st_size < 1_000
+        with pytest.raises(ValueError, match=r"max_text_chars=268,435,456"):
+            for _ in OfficeReader(input_path=path).get_raw_chunks():
+                pass
+
+    def test_within_the_limit_nothing_changes(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 4)
+        total = sum(len(c["text"]) for c in _chunks(path))
+        # Exactly at the limit is within it; one character less is not.
+        assert _chunks(path, max_text_chars=total) == _chunks(path)
+        assert all("text_truncated" not in c for c in _chunks(path))
+        with pytest.raises(ValueError, match="max_text_chars"):
+            _chunks(path, max_text_chars=total - 1)
+
+    def test_refuse_names_the_file_and_the_ways_out(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 4)
+        with pytest.raises(ValueError, match="b.ods") as info:
+            _chunks(path, max_text_chars=10)
+        assert "on_text_limit='truncate'" in str(info.value)
+
+    def test_truncate_keeps_exactly_the_limit_and_warns(
+        self, tmp_path, caplog, captured_logger
+    ):
+        path = self._repeated(tmp_path, 3, 1_000)
+        with captured_logger(logging.WARNING, _office.__name__):
+            chunks = _chunks(
+                path, max_text_chars=2_000, on_text_limit="truncate", rows_per_chunk=100
+            )
+        assert sum(len(c["text"]) for c in chunks) == 2_000
+        assert [c.get("text_truncated", False) for c in chunks] == [False, False, False, True]
+        assert chunks[-1]["raw_text"] == chunks[-1]["text"]
+        (record,) = caplog.records
+        assert "truncated" in record.getMessage()
+
+    def test_none_disables_the_limit(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 50)
+        assert _chunks(path, max_text_chars=None) == _chunks(path)
+
+    def test_a_flat_opendocument_file_is_bounded_too(self, tmp_path):
+        inner = '<table:table table:name="T">' + _row(_cell("x", 10), 10) + "</table:table>"
+        path = tmp_path / "b.fods"
+        path.write_text(_content("spreadsheet", inner, root="document"), encoding="utf-8")
+        with pytest.raises(ValueError, match="max_text_chars=5"):
+            _chunks(path, max_text_chars=5)
+
+    @pytest.mark.parametrize(
+        ("option", "value"),
+        [
+            ("max_text_chars", 0),
+            ("max_text_chars", -1),
+            ("max_text_chars", True),
+            ("max_text_chars", 1.5),
+            ("on_text_limit", "skip"),
+        ],
+    )
+    def test_bad_options_are_refused(self, tmp_path, option, value):
+        path = self._repeated(tmp_path, 1, 1)
+        with pytest.raises(ValueError, match=option):
+            OfficeReader(input_path=path, **{option: value})
