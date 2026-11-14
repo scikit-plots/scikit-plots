@@ -15,9 +15,9 @@ never remove it.
 
 | Option | Commit trailer | Pull request ends with | Git author | Use when |
 |---|---|---|---|---|
-| `model-only` (recommended) | `Co-Authored-By: Claude <Model> <noreply@anthropic.com>` | AI disclosure only | `scikit-plots contributor <contributor@users.noreply.github.com>` | You want the model named and nothing about you or your session |
+| `model-only` (recommended; adds the security review of 1a) | `Co-Authored-By: Claude <Model> <noreply@anthropic.com>` | AI disclosure only | `scikit-plots contributor <contributor@users.noreply.github.com>` | You want the model named and nothing about you or your session |
 | `full` | the trailer above, plus `Claude-Session: <link>` | AI disclosure, generator line and session link | your own name and email | You want the session traceable from the commit |
-| `none` | no trailer | AI disclosure only | as `model-only` | The project or your employer asks for no tool names in commits |
+| `none` (adds the security review of 1a) | no trailer | AI disclosure only | as `model-only` | The project or your employer asks for no tool names in commits |
 
 `<Model>` is the model that wrote the change, as the session reports it
 (for example `Claude Opus 5.5`). An assistant applies the chosen option
@@ -39,6 +39,39 @@ when clean):
 Also read the pull request description for the same strings before
 opening or editing it. A rewrite of history that is already pushed needs
 the maintainer's consent; ask first.
+
+## 1a. Review depth follows attribution
+
+With `model-only` or `none`, nothing in the change leads back to the
+session that wrote it, so the change itself must carry the evidence a
+reviewer would otherwise look up. The pull request description then adds a
+**Security review** section: every line below answered `none` or with the
+file and line, never left out.
+
+| # | Check | How |
+|---|---|---|
+| S1 | Secrets, tokens, keys, personal data, session links | pre-commit `detect private key`; the pre-push check of section 1; read the diff |
+| S2 | New or changed dependencies (and their version ranges) | command `deps` below |
+| S3 | Code that runs other code: `subprocess`, `os.system`, `eval`, `exec`, `pickle`, dynamic import | command `runs` below |
+| S4 | Network access, downloads, URLs | command `net` below |
+| S5 | Paths built from input (traversal, symlinks, archive member names) | name the function and the test that refuses `../` |
+| S6 | Untrusted input parsed (XML, ZIP, PDF, JSON, YAML): size, time and depth bounds | name the limit and its test; a reader change adds a hostile sample to `test__hostile_samples.py` |
+| S7 | CI and release files: `.github/`, `tools/`, `_build_utils/`, `plugins/` | zizmor result; actions pinned to a commit; token permissions unchanged or narrowed |
+| S8 | Tests weakened: deleted, skipped, `xfail` added, ceilings raised | list each with its reason |
+
+The commands print only added lines, so an empty result is `none`:
+
+    # deps
+    git diff origin/main -- '*requirements*.txt' pyproject.toml | grep '^+[^+]'
+    # runs
+    git diff origin/main -U0 | grep -nE '^\+.*(subprocess|os\.system|eval\(|exec\(|pickle|importlib)'
+    # net
+    git diff origin/main -U0 | grep -nE '^\+.*(urllib|requests|https?://|socket)'
+
+Any S3, S4, S7 or S8 entry other than `none` waits for the maintainer's
+explicit approval in the pull request, in every mode. In `full` mode the
+section is recommended, not required. A reviewer may ask for it in any
+mode; a contributor never removes it once asked.
 
 ## 2. Guidance level (`Experience:` line)
 
