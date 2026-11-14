@@ -8,3 +8,6 @@
   Names a module exports lazily (imported under ``if TYPE_CHECKING:`` with
   a module ``__getattr__``) count as public, and an entry written
   ``"sub.Name"`` documents ``Name``.
+  An entry that names a submodule, or a name through one (also through
+  ``from .x import *``), is resolved in the source as autosummary resolves
+  it, so it is not reported stale.

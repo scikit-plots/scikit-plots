@@ -12,6 +12,10 @@ source with :mod:`ast`, never importing it, and compares it with the
 * **missing**: in ``__all__`` but in no section of its module (and not in
   the module's ``ignore`` or a section's ``exclude``);
 * **stale**: documented, but no longer in ``__all__``;
+A documented entry that names a submodule (``"_seaborn"``), or a name
+through one (``"_probscale.probplot"``), is not stale when that resolves in
+the source (:func:`documented_target_exists`), as autosummary resolves it.
+
 A module's lazily exported names (imported under ``if TYPE_CHECKING:`` in
 a module with a module-level ``__getattr__``, :func:`static_lazy`) count
 as public: documented, they are not stale; undocumented, they are missing.
@@ -285,6 +289,95 @@ def static_lazy(package_root: Path, dotted: str) -> list[str]:
     return list(dict.fromkeys(n for n in names if n != "*"))
 
 
+def _defines(  # noqa: PLR0911, PLR0912
+    package_root: Path, dotted: str, name: str, _seen: frozenset = frozenset()
+) -> bool:
+    """
+    Whether module *dotted*'s source binds *name* at its top level.
+
+    A definition, an assignment, an import, or ``from .x import *`` of a
+    module whose ``__all__`` (or, without one, whose public top-level
+    names) includes it; star imports are followed, each module once.
+    """
+    path = module_file(package_root, dotted)
+    if path is None or dotted in _seen:
+        return False
+    seen = _seen | {dotted}
+    try:
+        if name in static_all(package_root, dotted):
+            return True
+    except UnresolvedError:
+        pass
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name == name:
+                return True
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+                return True
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name == "*" and isinstance(node, ast.ImportFrom):
+                    source = _absolute(dotted, path, node)
+                    star_takes = not name.startswith("_") or _star_lists(
+                        package_root, source, name
+                    )
+                    if star_takes and _defines(package_root, source, name, seen):
+                        return True
+                    continue
+                bound = alias.asname or alias.name.split(".")[0]
+                if bound == name:
+                    return True
+    return False
+
+
+def _absolute(dotted: str, path: Path, node: ast.ImportFrom) -> str:
+    """Return the module an ``ImportFrom`` in *dotted* (at *path*) names."""
+    if not node.level:
+        return node.module or ""
+    package = dotted if path.name == "__init__.py" else dotted.rpartition(".")[0]
+    parts = package.split(".")
+    kept = parts[: len(parts) - (node.level - 1)]
+    return ".".join(kept + ([node.module] if node.module else []))
+
+
+def _star_lists(package_root: Path, dotted: str, name: str) -> bool:
+    """Whether ``import *`` of *dotted* takes the private *name* (it is in ``__all__``)."""
+    try:
+        return name in static_all(package_root, dotted)
+    except UnresolvedError:
+        return False
+
+
+def documented_target_exists(package_root: Path, module: str, entry: str) -> bool:
+    """
+    Whether a dotted reference entry ``"sub.Name"`` names something real.
+
+    Parameters
+    ----------
+    package_root : Path
+        Directory that holds the top-level package.
+    module : str
+        The reference module the entry is listed under.
+    entry : str
+        The entry, relative to *module*: ``"sub"``, ``"sub.inner"`` or
+        ``"sub.Name"``.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``<module>.<entry>`` is a module with source, or
+        when the part before the last dot is one and its source binds the
+        last part (as autosummary resolves the entry).
+    """
+    if module_file(package_root, f"{module}.{entry}") is not None:
+        return True
+    head, _, tail = entry.rpartition(".")
+    return bool(head) and _defines(package_root, f"{module}.{head}", tail)
+
+
 @dataclass
 class CoverageReport:
     """Gaps between ``__all__`` and the reference, per module."""
@@ -349,10 +442,14 @@ def coverage(package_root: Path, modules: Mapping[str, object]) -> CoverageRepor
             if n not in documented and n not in skipped and n not in private
         ]
         listed = set(public)
+        # A documented name is stale when it is not public and, for a
+        # dotted or submodule entry, does not resolve in the source either.
         report.stale[name] = sorted(
             n
             for n in entry.documented
-            if n not in listed and n.rsplit(".", 1)[-1] not in listed
+            if n not in listed
+            and n.rsplit(".", 1)[-1] not in listed
+            and not documented_target_exists(package_root, name, n)
         )
     return report
 

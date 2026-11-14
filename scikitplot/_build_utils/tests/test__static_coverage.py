@@ -281,3 +281,44 @@ class TestLazyExports:
         )
         model = api_ref.load_reference(repo / "docs" / "source" / "apis_reference.py")
         assert sc.coverage(repo, model.modules).gaps() == {"missing:pkg": ["extra"]}
+
+
+class TestDottedEntries:
+    def test_submodule_and_name_through_a_submodule(self, tmp_path):
+        _module(tmp_path, "pkg", "__all__ = []\n")
+        _module(
+            tmp_path,
+            "pkg._sub",
+            "__all__ = ['Exported']\nclass Defined: pass\nVALUE = 1\n",
+        )
+        (tmp_path / "pkg" / "_mod.py").write_text(
+            "from x import thing as alias\n", encoding="utf-8"
+        )
+        exists = sc.documented_target_exists
+        assert exists(tmp_path, "pkg", "_sub")
+        assert exists(tmp_path, "pkg", "_mod")
+        assert exists(tmp_path, "pkg", "_sub.Exported")
+        assert exists(tmp_path, "pkg", "_sub.Defined")
+        assert exists(tmp_path, "pkg", "_sub.VALUE")
+        assert exists(tmp_path, "pkg", "_mod.alias")
+        assert not exists(tmp_path, "pkg", "_sub.Gone")
+        assert not exists(tmp_path, "pkg", "_missing")
+        assert not exists(tmp_path, "pkg", "_missing.Name")
+
+    def test_names_through_a_star_import(self, tmp_path):
+        _module(tmp_path, "pkg", "__all__ = []\n")
+        _module(tmp_path, "pkg._sub", "from ._impl import *\nfrom ._loop import *\n")
+        (tmp_path / "pkg" / "_sub" / "_impl.py").write_text(
+            "__all__ = ['listed', '_private_listed']\n"
+            "def listed(): pass\ndef _private_listed(): pass\n"
+            "def _private_unlisted(): pass\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "pkg" / "_sub" / "_loop.py").write_text(
+            "from ._loop import *\n", encoding="utf-8"
+        )
+        exists = sc.documented_target_exists
+        assert exists(tmp_path, "pkg", "_sub.listed")
+        assert exists(tmp_path, "pkg", "_sub._private_listed")
+        assert not exists(tmp_path, "pkg", "_sub._private_unlisted")
+        assert not exists(tmp_path, "pkg", "_sub.absent")

@@ -78,50 +78,6 @@
    "_get_thread_id",
    "_is_jupyter_notebook"
   ],
-  "stale:scikitplot.api": [
-   "_utils.binary_ks_curve",
-   "_utils.cumulative_gain_curve",
-   "_utils.validate_labels",
-   "_utils.validate_plotting_kwargs"
-  ],
-  "stale:scikitplot.decile": [
-   "kds.decile_table",
-   "kds.plot_cumulative_gain",
-   "kds.plot_ks_statistic",
-   "kds.plot_lift",
-   "kds.plot_lift_decile_wise",
-   "kds.print_labels",
-   "kds.report"
-  ],
-  "stale:scikitplot.experimental": [
-   "_doremi.ENVELOPES",
-   "_doremi.compose_as_waveform",
-   "_doremi.export_sheet",
-   "_doremi.play_waveform",
-   "_doremi.plot_waveform",
-   "_doremi.save_waveform",
-   "_doremi.save_waveform_as_mp3",
-   "_doremi.serialize_sheet",
-   "_doremi.sheet_converter",
-   "_doremi.sheet_to_note",
-   "enable_ann_imputer"
-  ],
-  "stale:scikitplot.externals": [
-   "_probscale.ProbScale",
-   "_probscale.fit_line",
-   "_probscale.plot_pos",
-   "_probscale.probplot",
-   "_seaborn",
-   "_sphinxext",
-   "_sphinxext.figmpl_directive",
-   "_sphinxext.mathmpl",
-   "_sphinxext.plot_directive",
-   "_sphinxext.roles",
-   "_sphinxext.sphinx_tabs_patch",
-   "_tweedie",
-   "_tweedie.tweedie",
-   "_tweedie.tweedie_gen"
-  ],
   "stale:scikitplot.logging": [
    "TaskLevelStatusMessage"
   ]

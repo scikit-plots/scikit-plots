@@ -38,6 +38,15 @@
   added in five new sections and existing ones; `__version__` ignored as
   metadata. Baseline 177 -> 96. cleanprompt `imports`: 131 targets, 0
   errors, 7 optional dependencies absent.
+- **API reference coverage, stale entries.** 36 of the 37 "stale"
+  entries were not stale: they name a submodule (`"_seaborn"`,
+  `"enable_ann_imputer"`) or a name through one (`"kds.decile_table"`,
+  `"_doremi.ENVELOPES"`, `"_probscale.probplot"` through `from .viz import
+  *`), which autosummary resolves. `documented_target_exists` resolves such
+  an entry in the source (definitions, assignments, imports, star imports
+  followed once each); only an entry that resolves nowhere is stale.
+  Left: `logging.TaskLevelStatusMessage` (reached through the module's
+  `__getattr__`, not in `__all__`). Baseline 96 -> 60. 2 tests.
 - Tests: 24 new (179); on `main` the file does not import (the new
   constants). 3 mutants, each caught. Research snapshot and corpus suite
   unchanged.
