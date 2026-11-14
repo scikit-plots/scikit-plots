@@ -254,6 +254,7 @@
 | `transcribe_whisper(media_path: 'Path', model_size: 'str', language: 'str \| None', *, component: 'str', logger: 'Any', strict ...)` | function | Transcribe media with a shared, policy-driven ASR backend chain. |
 | `TEIReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | TEI/XML document reader with dramatic structure extraction. |
 | `XMLReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Generic XML document reader with configurable XPath. |
+| `ArchiveBudgetError(...)` | exception | Raised when the members of an archive tree inflate past its extraction budget. |
 | `ArchiveNestingError(...)` | exception | Raised when archive nesting exceeds ``max_depth`` (nested-archive bomb). |
 | `ZipReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Generic ZIP archive reader — dispatches each member to its natural reader. |
 | `ComponentRegistry() -> 'None'` | class | Central look-up table for corpus pipeline components. |

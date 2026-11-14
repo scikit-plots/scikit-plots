@@ -22,6 +22,33 @@
   `truncate` to sample) does not set the extraction limit. After: the
   bomb is refused in 0.003 s, 0.08 MiB; a 2.3 kB archive at the 1 Mi
   floor is read in 2 s, 4 MiB (a gate sample that must be read).
+- **Review before merge (same PR).** Reading the diff again found four
+  more: (1) nested archives each had their own 200x allowance, so a 5 kB
+  archive of 25 copies of an inner archive extracted 105 MB (25 times the
+  top limit; blank members, so the text budget never applied; before
+  this PR 2 GB per level); an inner refusal was also swallowed as one
+  member's error. Now one `_ExtractBudget`, set by the top archive and
+  carried in `_archive_ctx` with the depth, is shared by the whole tree;
+  each archive also keeps its own (tighter) bound; exhausting either
+  raises the new `ArchiveBudgetError` (a `ValueError`), re-raised through
+  member handlers like `ArchiveNestingError`. After: refused after 4 kB.
+  (2) `on_text_limit="truncate"` refused at the extraction limit: the
+  top-level reader now ends the archive with a warning and keeps what
+  was read (a nested reader's setting does not decide). (3)
+  `get_documents()` reached `_iter_raw_chunks` without the depth context
+  that only `get_raw_chunks()` set, so the top archive was not counted in
+  `max_depth` on the public path; the context now lives in
+  `_iter_raw_chunks`, the one path both take. (4) Docs: "text refused at
+  extraction would be refused as text anyway" holds for plain text, not
+  markup (measured: honest XML records compress about 15 times and are
+  read); the `max_total_bytes` docstring was attached to `max_depth` and
+  said 10 GB (the default is 2 GB). Rule 172: `ArchiveBudgetError` added
+  to the API reference template (rebuilt) and the usage skill row (the
+  generator needs a full build here; the row was checked against the
+  generator's own `_summary` and `_signature` and the `__all__` order).
+  11 more tests (9 fail on the PR's first commit); 10 more mutants killed
+  (one, "own bound ignored", only after a test of a large honest archive
+  holding a small inner bomb).
 - 18 tests (14 fail on the previous reader); 12 mutants killed (the
   copy-budget one only after a test that records each copy's budget:
   `zipfile` never yields past the declared size, so a refusal test

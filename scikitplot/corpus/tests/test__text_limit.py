@@ -18,7 +18,7 @@ import pytest
 from scikitplot.corpus._base import DocumentReader
 from scikitplot.corpus._readers._office import OfficeReader
 from scikitplot.corpus._readers._pdf import PDFReader
-from scikitplot.corpus._readers._zip import ZipReader
+from scikitplot.corpus._readers._zip import ArchiveBudgetError, ZipReader, _archive_ctx
 from scikitplot.corpus._readers.tests.test__office import _cell, _odf, _row
 
 _DEFAULT = 256 * 1024 * 1024
@@ -299,7 +299,7 @@ class TestZipInProportionToTheArchive:
         with pytest.raises(ValueError) as caught:
             _texts(ZipReader(input_path=archive))
         message = str(caught.value)
-        assert "'a.txt' declares 4,194,305 bytes" in message
+        assert "'a.txt' of 'a.zip' declares 4,194,305 bytes, 4,194,304 left" in message
         assert f"4,194,304 bytes for an archive of {archive.stat().st_size:,} bytes" in message
         assert "max_text_chars_per_byte=50" in message
         assert copied == []
@@ -317,7 +317,7 @@ class TestZipInProportionToTheArchive:
         with pytest.raises(ValueError) as caught:
             _texts(ZipReader(input_path=archive))
         message = str(caught.value)
-        assert "'4.txt' declares 1,048,576 bytes (4,194,304 already extracted)" in message
+        assert "'4.txt' of 'a.zip' declares 1,048,576 bytes, 0 left" in message
 
     def test_the_copy_is_given_what_is_left_of_the_limit(self, tmp_path, monkeypatch):
         # zipfile never yields more than a member declares, so the budget of
@@ -361,3 +361,86 @@ class TestZipInProportionToTheArchive:
         text = noise.hex().encode("ascii")  # 131,072 characters, about 2:1
         archive = _zip_of(tmp_path / "a.zip", {"a.txt": text})
         assert [len(t) for t in _texts(ZipReader(input_path=archive))] == [len(text)]
+
+
+class TestZipTreeBudget:
+    """One extraction budget for the whole archive tree, set by the top archive."""
+
+    def test_nested_archives_draw_from_the_top_budget(self, tmp_path):
+        inner = _zip_of(tmp_path / "inner.zip", {"blank.txt": b" " * (4 * _MI)})
+        # Each inner archive is within its own bound; together they are not.
+        members = {f"part{i}.zip": inner.read_bytes() for i in range(3)}
+        archive = _zip_of(tmp_path / "a.zip", members)
+        assert archive.stat().st_size * 200 < 4 * _MI
+        with pytest.raises(ArchiveBudgetError) as caught:
+            list(ZipReader(input_path=archive).get_documents())
+        assert "'blank.txt' of 'part0.zip'" in str(caught.value)
+        assert "4,194,304 bytes for an archive of" in str(caught.value)
+        assert _archive_ctx.get() is None
+
+    def test_a_small_nested_archive_keeps_its_own_tighter_bound(self, tmp_path):
+        import hashlib
+
+        # A large, honest outer archive (its budget: about 26 MB) holding a
+        # small inner archive whose blank member is past the inner's own 4 Mi.
+        noise = b"".join(hashlib.sha256(i.to_bytes(4, "big")).digest() for i in range(4096))
+        inner = _zip_of(tmp_path / "inner.zip", {"blank.txt": b" " * (5 * _MI)})
+        archive = _zip_of(
+            tmp_path / "a.zip", {"noise.bin": noise, "inner.zip": inner.read_bytes()}
+        )
+        assert archive.stat().st_size * 200 > 6 * _MI  # the top budget would allow it
+        with pytest.raises(ArchiveBudgetError) as caught:
+            _texts(ZipReader(input_path=archive))
+        assert f"for an archive of {inner.stat().st_size:,} bytes" in str(caught.value)
+
+    def test_a_nested_refusal_is_not_swallowed_as_a_member_error(self, tmp_path):
+        inner = _zip_of(tmp_path / "inner.zip", {"blank.txt": b" " * (5 * _MI)})
+        archive = _zip_of(
+            tmp_path / "a.zip", {"inner.zip": inner.read_bytes(), "note.txt": b"kept?"}
+        )
+        with pytest.raises(ArchiveBudgetError):
+            _texts(ZipReader(input_path=archive))
+
+    def test_truncate_ends_the_archive_and_keeps_what_was_read(self, tmp_path, caplog):
+        archive = _zip_of(
+            tmp_path / "a.zip", {"1.txt": b"first", "2.txt": b"x" * (5 * _MI)}
+        )
+        reader = ZipReader(input_path=archive, on_text_limit="truncate")
+        with caplog.at_level("WARNING", logger="scikitplot.corpus._readers._zip"):
+            assert _texts(reader) == ["first"]
+        assert "on_text_limit='truncate'" in caplog.text
+        assert "'2.txt'" in caplog.text
+
+    def test_truncate_in_a_nested_reader_still_refuses_the_tree(self, tmp_path):
+        # Only the top-level reader decides; a member's setting does not.
+        inner = _zip_of(tmp_path / "inner.zip", {"blank.txt": b" " * (5 * _MI)})
+        archive = _zip_of(tmp_path / "a.zip", {"inner.zip": inner.read_bytes()})
+        reader = ZipReader(
+            input_path=archive, reader_kwargs={".zip": {"on_text_limit": "truncate"}}
+        )
+        with pytest.raises(ArchiveBudgetError):
+            _texts(reader)
+
+    def test_content_past_its_header_is_a_budget_error(self, tmp_path, monkeypatch):
+        def overflow(*args, **kwargs):
+            raise ValueError("archive member 'a.txt' decompressed beyond the remaining budget")
+
+        monkeypatch.setattr(
+            "scikitplot.corpus._archive_handler.stream_copy_bounded", overflow
+        )
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b"x"})
+        with pytest.raises(ArchiveBudgetError, match="max_text_chars_per_byte=50"):
+            _texts(ZipReader(input_path=archive))
+
+    def test_the_budget_holds_on_both_entry_points(self, tmp_path):
+        archive = _zip_of(tmp_path / "a.zip", {"a.txt": b" " * (5 * _MI)})
+        for read in (
+            lambda r: list(r.get_raw_chunks()),
+            lambda r: list(r.get_documents()),
+        ):
+            with pytest.raises(ArchiveBudgetError):
+                read(ZipReader(input_path=archive))
+            assert _archive_ctx.get() is None
+
+    def test_a_budget_error_is_a_value_error(self):
+        assert issubclass(ArchiveBudgetError, ValueError)

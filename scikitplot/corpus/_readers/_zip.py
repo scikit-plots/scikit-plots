@@ -73,6 +73,7 @@ from .._schema import SectionType  # noqa: F401
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ArchiveBudgetError",
     "ArchiveNestingError",
     "ZipReader",
 ]
@@ -82,9 +83,10 @@ __all__ = [
 DEFAULT_MAX_ARCHIVE_DEPTH = 8
 
 #: Shared archive-nesting context ``(depth, max_depth)`` propagated through the
-#: synchronous re-dispatch of nested archives. ``None`` marks the top level,
-#: where the cap is taken from the top reader's ``max_depth`` and then shared
-#: with every nested level (a *global* cap, not per-reader). Deliberately not
+#: synchronous re-dispatch of nested archives: ``(depth, max_depth, budget)``.
+#: ``None`` marks the top level, where the cap is taken from the top reader's
+#: ``max_depth`` and the extraction budget from its size, and both are then
+#: shared with every nested level (*global* bounds, not per-reader). Deliberately not
 #: annotated with a subscripted generic — that is Python 3.9+ only.
 _archive_ctx = contextvars.ContextVar("_scikitplot_corpus_archive_ctx", default=None)
 
@@ -98,6 +100,26 @@ class ArchiveNestingError(ValueError):
     """
 
 
+class ArchiveBudgetError(ValueError):
+    """Raised when the members of an archive tree inflate past its extraction budget.
+
+    The budget belongs to the top-level archive and is shared by every
+    archive nested in it, so a small file cannot extract more through
+    nesting than it could directly. Like :class:`ArchiveNestingError`, it
+    aborts the whole tree instead of skipping one member (CX-41). With
+    ``on_text_limit="truncate"`` the top-level reader ends the archive with
+    a warning instead, keeping what it has read.
+    """
+
+
+@dataclass
+class _ExtractBudget:
+    """Bytes the whole archive tree may still extract, and how messages name the limit."""
+
+    remaining: int
+    described: str
+
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -106,7 +128,7 @@ class ArchiveNestingError(ValueError):
 _DEFAULT_MAX_FILES: int = 10_000
 #: Most bytes one character of text takes in any Unicode encoding: members
 #: are extracted up to this many bytes for each character the ratio limit
-#: allows, so text refused at extraction would be refused as text too.
+#: allows, so plain text refused at extraction would be refused as text too.
 _MAX_BYTES_PER_CHAR: int = 4
 
 #: Default maximum cumulative uncompressed size in bytes (2 GB).
@@ -273,10 +295,14 @@ class ZipReader(DocumentReader):
         members inflate past 4 bytes (the most one character takes) for
         each character this ratio allows, by default
         ``max(200 x archive size, 4 Mi)`` bytes and never more than
-        ``max_total_bytes``. Text refused there would be refused by the
-        text limit anyway, without first being extracted and read; a
-        member that is not text and inflates more than that (a blank
-        bitmap) needs a larger ratio or ``None``.
+        ``max_total_bytes``. The budget belongs to the top-level archive:
+        archives nested in it draw from the same budget. Plain text refused
+        there would be refused by the text limit anyway, without first
+        being extracted and read. Markup holds more bytes than text and
+        needs no more than this when it compresses less than 200 times
+        (honest XML: about 15); a member that compresses more (a blank
+        bitmap, a highly repetitive export) needs a larger ratio or
+        ``None``.
     on_text_limit : {"refuse", "truncate"}, optional
         What happens past the limit; see
         :class:`~scikitplot.corpus._base.DocumentReader`.
@@ -346,7 +372,6 @@ class ZipReader(DocumentReader):
     """Maximum file count inside the archive. Default: 10,000."""
 
     max_total_bytes: int = field(default=_DEFAULT_MAX_TOTAL_BYTES)
-    max_depth: int = field(default=DEFAULT_MAX_ARCHIVE_DEPTH)
     """
     Maximum **cumulative uncompressed** bytes across all extracted ZIP members.
 
@@ -363,9 +388,12 @@ class ZipReader(DocumentReader):
 
     Both limits exist because different threat models apply:
     pre-download (file size) vs post-extraction (total expanded size).
-    Default: 10 GB.
+    With ``max_text_chars_per_byte`` the bound in force is smaller (see
+    :meth:`_extract_limit`). Default: 2 GB.
     """
-    """Maximum cumulative extracted size. Default: 2 GB."""
+
+    max_depth: int = field(default=DEFAULT_MAX_ARCHIVE_DEPTH)
+    """Most levels of archives nested in one another, the top one included. Default: 8."""
 
     max_text_chars: int | None = field(default=256 * 1024 * 1024)
     """Most characters of text the archive yields; ``None``: no limit. Default: 256 Mi.
@@ -455,14 +483,7 @@ class ZipReader(DocumentReader):
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
         """
-        Yield raw chunks, enforcing an archive-nesting depth cap.
-
-        Nested archives are re-dispatched synchronously
-        (``yield from sub_reader.get_raw_chunks()``), so a shared
-        :data:`_archive_ctx` counter bounds recursion and refuses a
-        zip-quine / deeply nested-archive bomb (CORPUS-ARC-002). The actual
-        extraction and per-member dispatch is delegated to
-        :meth:`_iter_raw_chunks`.
+        Yield raw chunks of every supported member; see :meth:`_iter_raw_chunks`.
 
         Yields
         ------
@@ -470,15 +491,40 @@ class ZipReader(DocumentReader):
 
         Raises
         ------
-        ValueError
+        ArchiveNestingError
             If the archive nesting depth would exceed ``max_depth``.
+        ArchiveBudgetError
+            If the archive tree inflates past its extraction budget.
+        """
+        yield from self._iter_raw_chunks()
+
+    def _iter_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+        """
+        Yield every member's chunks within the archive's depth, bytes and text bounds.
+
+        This is the one path both :meth:`get_raw_chunks` and
+        :meth:`~scikitplot.corpus._base.DocumentReader.get_documents` take,
+        so the bounds hold whichever is called:
+
+        - **Depth.** Nested archives are re-dispatched synchronously; a
+          shared :data:`_archive_ctx` counter bounds recursion and refuses
+          a zip quine or a deeply nested archive (CORPUS-ARC-002).
+        - **Extraction bytes.** The top-level archive sets one budget
+          (:meth:`_extract_limit` of its size on disk) that every nested
+          archive draws from (CX-41).
+        - **Text.** This reader's ``max_text_chars`` (and ratio) bound the
+          total; each member is also bounded by its own reader.
+
+        With ``on_text_limit="truncate"``, the top-level reader ends the
+        archive with a warning when the extraction budget runs out,
+        keeping the chunks already yielded.
         """
         ctx = _archive_ctx.get()
         if ctx is None:
-            # Top of the chain: this reader's max_depth sets the shared cap.
-            depth, max_depth = 0, self.max_depth
+            # Top of the chain: this reader sets the shared cap and budget.
+            depth, max_depth, budget = 0, self.max_depth, None
         else:
-            depth, max_depth = ctx
+            depth, max_depth, budget = ctx
         if depth >= max_depth:
             raise ArchiveNestingError(
                 f"ZipReader: archive nesting depth would exceed "
@@ -486,21 +532,23 @@ class ZipReader(DocumentReader):
                 f"processing {str(self.input_path)!r}. Refusing to recurse "
                 f"further — possible nested-archive bomb (zip quine)."
             )
-        token = _archive_ctx.set((depth + 1, max_depth))
+        top = budget is None
+        if top:
+            budget = _ExtractBudget(
+                *self._extract_limit(self.input_path.stat().st_size)
+            )
+        token = _archive_ctx.set((depth + 1, max_depth, budget))
         try:
-            yield from self._iter_raw_chunks()
+            yield from self._within_text_limit(self._iter_members(budget))
+        except ArchiveBudgetError as exc:
+            if not top or self.on_text_limit != "truncate":
+                raise
+            logger.warning(
+                "%s The rest of the archive is not read (on_text_limit='truncate').",
+                exc,
+            )
         finally:
             _archive_ctx.reset(token)
-
-    def _iter_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
-        """
-        Yield every member's chunks within this reader's ``max_text_chars``.
-
-        The archive total is bounded here (``ZipReader(max_text_chars=...)``
-        is never a silent no-op); each member is also bounded by its own
-        reader's limit in :meth:`_iter_members`.
-        """
-        yield from self._within_text_limit(self._iter_members())
 
     def _extract_limit(self, archive_size: int) -> tuple[int, str]:
         """
@@ -539,6 +587,7 @@ class ZipReader(DocumentReader):
 
     def _iter_members(  # noqa: PLR0912
         self,
+        budget: _ExtractBudget,
     ) -> Generator[dict[str, Any], None, None]:
         """
         Extract ZIP and yield raw chunks from all supported members.
@@ -597,7 +646,8 @@ class ZipReader(DocumentReader):
                     )
 
                 total_bytes = 0
-                extract_limit, extract_described = self._extract_limit(
+                # This archive's own bound, and the tree's shared budget.
+                own_limit, own_described = self._extract_limit(
                     archive_path.stat().st_size
                 )
 
@@ -641,12 +691,16 @@ class ZipReader(DocumentReader):
                         )
 
                     # ── Bomb guard: declared pre-check + actual-byte budget ──
-                    if total_bytes + info.file_size > extract_limit:
-                        raise ValueError(
-                            f"ZipReader: member {member_path!r} declares "
-                            f"{info.file_size:,} bytes ({total_bytes:,} already"
-                            f" extracted), exceeding {extract_described}. "
-                            f"Possible zip-bomb in {archive_path.name!r}."
+                    if own_limit - total_bytes <= budget.remaining:
+                        allowed, described = own_limit - total_bytes, own_described
+                    else:
+                        allowed, described = budget.remaining, budget.described
+                    if info.file_size > allowed:
+                        raise ArchiveBudgetError(
+                            f"ZipReader: member {member_path!r} of"
+                            f" {archive_path.name!r} declares {info.file_size:,}"
+                            f" bytes, {allowed:,} left of {described}."
+                            " Possible zip bomb."
                         )
 
                     # ── Extract single member (streamed, memory-bounded) ──
@@ -656,13 +710,20 @@ class ZipReader(DocumentReader):
 
                     target.parent.mkdir(parents=True, exist_ok=True)
                     with zf.open(info) as src, open(target, "wb") as dst:
-                        total_bytes += stream_copy_bounded(
-                            src,
-                            dst,
-                            max_bytes=extract_limit - total_bytes,
-                            member_name=member_path,
-                            archive_name=archive_path.name,
-                        )
+                        try:
+                            copied = stream_copy_bounded(
+                                src,
+                                dst,
+                                max_bytes=allowed,
+                                member_name=member_path,
+                                archive_name=archive_path.name,
+                            )
+                        except ValueError as exc:  # the content outgrew its header
+                            raise ArchiveBudgetError(
+                                f"ZipReader: {exc} ({described})"
+                            ) from exc
+                    total_bytes += copied
+                    budget.remaining -= copied
 
                     # ── Dispatch to correct reader ────────────────────
                     provenance = dict(self.source_provenance)
@@ -727,8 +788,8 @@ class ZipReader(DocumentReader):
                             archive_name,
                             member_st,
                         )
-                    except ArchiveNestingError:
-                        # Security limit: abort the whole archive, never swallow.
+                    except (ArchiveNestingError, ArchiveBudgetError):
+                        # Security limits: abort the whole tree, never swallow.
                         raise
                     except Exception as exc:  # noqa: BLE001
                         logger.warning(

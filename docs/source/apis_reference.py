@@ -2131,6 +2131,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "hardened_lxml_parser",
                     # "parse_stdlib_secure",
                     # zip
+                    "ArchiveBudgetError",
                     "ArchiveNestingError",
                     "ZipReader",
                 ],

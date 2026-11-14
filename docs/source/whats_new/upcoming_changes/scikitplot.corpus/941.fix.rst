@@ -1,10 +1,13 @@
-- ``ZipReader`` bounds an archive in proportion to its size on disk: it now
+- ``ZipReader`` bounds an archive in proportion to its size on disk. It
   defaults to ``max_text_chars=256 Mi`` and ``max_text_chars_per_byte=50``
-  (as ``OfficeReader`` and ``PDFReader``), and members are extracted only up
-  to 4 bytes for each character that ratio allows (by default
-  ``max(200 x archive size, 4 Mi)`` bytes, never more than
-  ``max_total_bytes``). Before, a 52 kB archive of one compressed text file
-  yielded 25 million characters in 50 seconds (100 MiB), and only the 2 GB
-  extraction limit applied; it is now refused before extraction. An archive
-  of highly compressible members past these limits needs a larger
-  ``max_text_chars_per_byte`` (or ``None``, which turns both off).
+  (as ``OfficeReader`` and ``PDFReader``), and the whole archive tree,
+  nested archives included, may extract at most 4 bytes for each character
+  that ratio allows (by default ``max(200 x archive size, 4 Mi)`` bytes,
+  never more than ``max_total_bytes``). Before, a 52 kB archive of one
+  compressed text file yielded 25 million characters in 50 seconds, and a
+  5 kB archive of 25 nested archives extracted 105 MB; both are now refused
+  before extraction with the new ``ArchiveBudgetError`` (a ``ValueError``),
+  which ends the whole tree instead of skipping one member. With
+  ``on_text_limit="truncate"`` the archive ends with a warning and keeps
+  what was read. Highly compressible members past these limits need a
+  larger ``max_text_chars_per_byte`` (or ``None``, which turns both off).
