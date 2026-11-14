@@ -1565,7 +1565,7 @@ class TestOutline:
 
     def test_a_title_reads_on_one_line(self, tmp_path):
         title = (
-            f'<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody>'
+            '<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody>'
             "<a:p><a:r><a:t>Two </a:t></a:r><a:br/><a:r><a:t> lines</a:t></a:r></a:p>"
             "<a:p><a:r><a:t>and more</a:t></a:r></a:p></p:txBody></p:sp>"
         )
