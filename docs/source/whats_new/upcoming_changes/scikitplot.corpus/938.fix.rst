@@ -1,0 +1,9 @@
+- ``OfficeReader`` bounds a package part in proportion to the file: the new
+  option ``max_part_bytes_per_byte`` (default 50; ``None`` turns it off)
+  lets an XML part inflate to ``max(50 x file size, 1 Mi)`` bytes, and
+  never more than ``max_part_bytes``. Before, a 50 kB ``.docx`` or
+  ``.pptx`` whose main part inflated to 14.5 MB took 112 MiB and 7 seconds
+  to refuse, and a file under 1 MB could reach the 256 MB part limit
+  (about 2 GB of memory). Such a file is now refused before the part is
+  read, with a message that names the option; a file with honestly
+  repeated content past the ratio needs a larger value.

@@ -1,0 +1,5 @@
+- A hostile-sample test gate reads one small crafted file per reader
+  format (``.xlsx``, ``.ods``, ``.docx``, ``.pptx``, ``.pdf``, ``.zip``,
+  ``.xml``; each under 64 KiB) with the default settings, in a child
+  process, under a time ceiling (20 s) and a traced-memory ceiling
+  (64 MiB): a small input that expands far past its size now fails a test.
