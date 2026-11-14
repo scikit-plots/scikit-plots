@@ -29,6 +29,13 @@
   the last two were also documented): all are imported by name where
   used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
   Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **Root `scikitplot.__all__`: recorded, not changed.** It is built from
+  `globals()` plus a hand list (82 names, 20 private, plus `annotations`),
+  and since every name is lazy, `from scikitplot import *` imports about
+  70 submodules. The maintainer chose to leave it for a separate PR; it is
+  open finding BLD-APIREF-002. A CI gate running `check --strict-coverage`
+  on the built package was also considered and not added: it cannot be run
+  here, and an untested failing gate would be guesswork.
 - **stats read statically; optional backends.** The reader follows
   `__all__` changes in `try` bodies, their `else`, and `with` bodies (the
   import-succeeded branches); `except` handlers stay out. `stats` gets a
