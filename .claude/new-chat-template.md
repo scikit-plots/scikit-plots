@@ -33,10 +33,17 @@ subjects of the checkout, reported as "derived".
   - The directory policy is applied in `build_skills_repo.py` (render + validate), not in the publish workflow.
   - `LAUNCHER_REGISTRY_REDIRECT` (refused builds 246d056 to 5b6faa3) is closed: code in a published skill runs as written, examples as plain Python (Rule 170); a directory fix is proved by the directory's scan, not by Validate (Rule 171; `_plugins` CI-9).
   - macOS arm64 wheel jobs run on `macos-15` (pinned, not `macos-latest`).
+- Attribution: `ask` (`model-only`, `full` or `none`; see `.claude/contributor-profile.md`)
+- Experience: `ask` (`newcomer`, `contributor` or `maintainer`; see `.claude/contributor-profile.md`)
 
 ---
 
 ## 1. Who I am and how we work
+
+Before the first commit, settle the two contributor lines above
+(attribution and guidance level): if a line says `ask`, ask one
+multiple-choice question for both, recommended option first, and follow
+the answer for the whole chat (`.claude/contributor-profile.md`).
 
 I am maintainer of the open-source `scikit-plots` library. We work one
 fix at a time. For each fix you:

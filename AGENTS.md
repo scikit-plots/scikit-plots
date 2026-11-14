@@ -19,6 +19,11 @@ standing rules and the process, and points to
 `maintenances/_repo/_maintenance/tools/orient.py`, which prints the current
 state from this checkout's records.
 
+Attribution (`model-only`, `full`, `none`) and guidance level
+(`newcomer`, `contributor`, `maintainer`) are the contributor's choice,
+asked before the first commit: `.claude/contributor-profile.md`. The AI
+disclosure above is required in every mode.
+
 ## Working on an issue
 
 Before working on any issue, run `gh issue view <number>` to check current labels. Do
