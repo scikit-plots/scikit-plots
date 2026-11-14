@@ -15,6 +15,7 @@ Run with::
 
 from __future__ import annotations
 
+import logging
 import zipfile
 from pathlib import Path
 
@@ -23,7 +24,9 @@ import pytest
 from ... import _url_handler
 from ..._base import DocumentReader
 from ..._schema import SourceType
-from .._office import OfficeReader
+from .. import _office
+from .._office import _CODE_EXTENSIONS, _LEGACY_EXTENSIONS, OfficeReader
+from .._zip import ZipReader
 
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -349,6 +352,9 @@ class TestUntrustedInput:
         ("notes", "yes", TypeError),
         ("hidden", 1, TypeError),
         ("rows_per_chunk", 0, ValueError),
+        ("headings", None, TypeError),
+        ("code_files", "ignore", ValueError),
+        ("code_files", None, ValueError),
         ("max_part_bytes", 0, ValueError),
         ("max_parts", True, ValueError),
         ("max_file_bytes", -1, ValueError),
@@ -444,6 +450,32 @@ class TestExcel:
         (chunk,) = _chunks(_xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)]))
         assert chunk["text"] == "1\t\t3\n\t2"
         assert (chunk["row_start"], chunk["row_end"]) == (1, 5)
+
+    @pytest.mark.parametrize(
+        ("ref", "column"), [("A1", 0), ("C7", 2), ("XFD1", 16_383), ("7", None)]
+    )
+    def test_column_index(self, ref, column):
+        assert _office._column_index(ref) == column
+
+    def test_a_long_reference_stops_just_past_the_limit(self):
+        """A reference of any length is read only until it passes the limit."""
+        limit = _office._MAX_COLUMNS
+        for ref in ("A" * 200_000 + "1", "Z" * 50 + "1"):
+            assert limit <= _office._column_index(ref) < 27 * limit
+
+    def test_the_last_column_is_read(self, tmp_path):
+        rows = '<row r="1"><c r="A1"><v>1</v></c><c r="XFD1"><v>2</v></c></row>'
+        (chunk,) = _chunks(_xlsx(tmp_path / "b.xlsx", [("S", _sheet(rows), None)]))
+        assert chunk["text"] == "1" + "\t" * 16_383 + "2"
+
+    @pytest.mark.parametrize("ref", ["XFE1", "AAAAAAA1", "A" * 200_000 + "1"])
+    def test_a_cell_past_the_last_column_is_refused_not_expanded(self, tmp_path, ref):
+        """One cell must not allocate a row of millions of columns."""
+        rows = f'<row r="3"><c r="{ref}"><v>1</v></c></row>'
+        path = _xlsx(tmp_path / "b.xlsx", [("Data", _sheet(rows), None)])
+        with pytest.raises(ValueError, match=r"sheet 'Data': row 3 .*column 16,384") as info:
+            _chunks(path)
+        assert len(str(info.value)) < 300  # the reference is not echoed whole
 
     def test_sheets_in_workbook_order_chartsheets_skipped(self, tmp_path):
         one = _sheet('<row r="1"><c r="A1"><v>1</v></c></row>')
@@ -867,14 +899,27 @@ class TestExtensionsAreKnownElsewhere:
             DocumentReader._DOWNLOADABLE_EXTENSIONS,
             _url_handler._DOWNLOADABLE_EXTENSIONS,
         ):
-            assert set(OfficeReader.file_types) <= set(known)
+            # Add-ins are code: a URL naming one is not fetched as a document.
+            documents = set(OfficeReader.file_types) - set(_CODE_EXTENSIONS)
+            assert documents <= set(known)
 
     @pytest.mark.parametrize(
         ("suffixes", "expected"),
         [
-            ([".docx", ".docm", ".dotx", ".dotm", ".odt", ".ott", ".fodt"], "article"),
             (
-                [".xlsx", ".xlsm", ".xltx", ".xltm", ".ods", ".ots", ".fods"],
+                [
+                    *(".docx", ".docm", ".dotx", ".dotm"),
+                    *(".odt", ".ott", ".fodt"),
+                    *(".doc", ".dot", ".wbk"),
+                ],
+                "article",
+            ),
+            (
+                [
+                    *(".xlsx", ".xlsm", ".xltx", ".xltm"),
+                    *(".ods", ".ots", ".fods"),
+                    *(".xls", ".xlt"),
+                ],
                 "spreadsheet",
             ),
         ],
@@ -1576,3 +1621,259 @@ class TestOutline:
         path = _pptx(tmp_path / "d.pptx", [("slide1.xml", xml)], ["slide1.xml"])
         assert _chunks(path)[0]["heading"] == "Two lines and more"
         assert all("heading" not in c for c in _chunks(path, headings=False))
+
+
+# ---------------------------------------------------------------------------
+# Legacy names and add-ins
+# ---------------------------------------------------------------------------
+
+OLE2 = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 504
+
+
+class TestLegacyAndCode:
+    @pytest.mark.parametrize(
+        "suffix", [".doc", ".dot", ".wbk", ".xls", ".xlt", ".ppt", ".pot", ".pps"]
+    )
+    def test_a_legacy_binary_file_is_refused_with_the_reason(self, tmp_path, suffix):
+        path = tmp_path / f"old{suffix}"
+        path.write_bytes(OLE2)
+        reader = DocumentReader.create(path)
+        assert isinstance(reader, OfficeReader)
+        with pytest.raises(ValueError, match="legacy binary document"):
+            list(reader.get_raw_chunks())
+
+    def test_a_modern_package_under_a_legacy_name_is_read(self, tmp_path):
+        path = _docx(tmp_path / "saved-as.doc", _p("modern"))
+        assert [c["text"] for c in _chunks(path)] == ["modern"]
+
+    @pytest.mark.parametrize(
+        ("suffix", "kind"),
+        [
+            (".wll", "Word add-in"),
+            (".wwl", "Word add-in"),
+            (".xll", "program library"),
+            (".xll_", "program library"),
+            (".xla", "Excel add-in"),
+            (".xla_", "Excel add-in"),
+            (".xla5", "Excel add-in"),
+            (".xla8", "Excel add-in"),
+            (".xlam", "Excel add-in"),
+            (".xlm", "macro sheet"),
+            (".xlw", "workspace"),
+            (".ppa", "PowerPoint add-in"),
+            (".ppam", "PowerPoint add-in"),
+            (".XLAM", "Excel add-in"),
+        ],
+    )
+    def test_add_ins_are_refused_by_name_whatever_the_content(
+        self, tmp_path, suffix, kind
+    ):
+        # A readable package: the name, not the content, decides here.
+        path = _docx(tmp_path / f"tool{suffix}", _p("looks like text"))
+        reader = DocumentReader.create(path)
+        assert isinstance(reader, OfficeReader)
+        with pytest.raises(ValueError, match=f"{kind}.*not a document"):
+            list(reader.get_raw_chunks())
+
+    def test_every_registered_extension_is_known_to_the_reader(self):
+        registered = set(OfficeReader.file_types)
+        assert set(_LEGACY_EXTENSIONS) <= registered
+        assert set(_CODE_EXTENSIONS) <= registered
+
+    def test_code_files_skip_passes_over_an_add_in_with_a_warning(
+        self, tmp_path, caplog, captured_logger
+    ):
+        path = _docx(tmp_path / "tool.xlam", _p("looks like text"))
+        with captured_logger(logging.WARNING, _office.__name__):
+            assert _chunks(path, code_files="skip") == []
+        (record,) = caplog.records
+        assert "an Excel add-in (macros), not a document" in record.getMessage()
+        assert "code_files='skip'" in record.getMessage()
+
+    def test_code_files_skip_changes_nothing_for_documents(self, tmp_path):
+        path = _docx(tmp_path / "d.docx", _p("x"))
+        assert _chunks(path, code_files="skip") == _chunks(path)
+        old = tmp_path / "old.doc"
+        old.write_bytes(OLE2)
+        with pytest.raises(ValueError, match="legacy binary"):
+            _chunks(old, code_files="skip")
+
+    def test_the_refusal_names_the_skip_option(self, tmp_path):
+        path = _docx(tmp_path / "tool.ppam", _p("x"))
+        with pytest.raises(ValueError, match="code_files='skip'"):
+            _chunks(path)
+
+    def test_an_add_in_inside_a_zip_follows_the_policy(self, tmp_path):
+        inner = _docx(tmp_path / "tool.xlam", _p("x")).read_bytes()
+        archive = tmp_path / "bundle.zip"
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("tool.xlam", inner)
+            zf.writestr("note.txt", "a plain note")
+        texts = [
+            c["text"]
+            for c in ZipReader(
+                input_path=archive, reader_kwargs={".xlam": {"code_files": "skip"}}
+            ).get_raw_chunks()
+        ]
+        assert texts == ["a plain note"]
+
+
+def _bounded(path: Path, **kwargs) -> list:
+    """Chunks as ``get_documents`` sees them (the text budget applies here)."""
+    return list(OfficeReader(input_path=path, **kwargs)._iter_raw_chunks())
+
+
+class TestTextLimit:
+    """``max_text_chars`` bounds the text one file yields (repeat amplification)."""
+
+    @staticmethod
+    def _repeated(tmp_path, cols, rows, name="b.ods"):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x", cols), rows)
+            + "</table:table>"
+        )
+        return _odf(tmp_path / name, "spreadsheet", inner)
+
+    def test_the_default_refuses_a_tiny_file_that_repeats_into_billions(self, tmp_path):
+        """481 bytes, within both repeat limits, would yield ~34e9 characters."""
+        path = self._repeated(tmp_path, 16_384, 1_048_575)
+        assert path.stat().st_size < 1_000
+        # By default the ratio stops it first, at the 1 Mi floor ...
+        with pytest.raises(ValueError, match=r"max_text_chars_per_byte=50"):
+            for _ in OfficeReader(input_path=path)._iter_raw_chunks():
+                pass
+        # ... and without the ratio, the absolute limit still does.
+        reader = OfficeReader(input_path=path, max_text_chars_per_byte=None)
+        with pytest.raises(ValueError, match=r"max_text_chars=268,435,456"):
+            for _ in reader._iter_raw_chunks():
+                pass
+
+    def test_within_the_limit_nothing_changes(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 4)
+        total = sum(len(c["text"]) for c in _bounded(path))
+        # Exactly at the limit is within it; one character less is not.
+        assert _bounded(path, max_text_chars=total) == _bounded(path)
+        assert all("text_truncated" not in c for c in _bounded(path))
+        with pytest.raises(ValueError, match="max_text_chars"):
+            _bounded(path, max_text_chars=total - 1)
+
+    def test_refuse_names_the_file_and_the_ways_out(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 4)
+        with pytest.raises(ValueError, match="b.ods") as info:
+            _bounded(path, max_text_chars=10)
+        assert "on_text_limit='truncate'" in str(info.value)
+
+    def test_truncate_keeps_exactly_the_limit_and_warns(
+        self, tmp_path, caplog, captured_logger
+    ):
+        path = self._repeated(tmp_path, 3, 1_000)
+        with captured_logger(logging.WARNING, "scikitplot.corpus._base"):
+            chunks = _bounded(
+                path, max_text_chars=2_000, on_text_limit="truncate", rows_per_chunk=100
+            )
+        assert sum(len(c["text"]) for c in chunks) == 2_000
+        assert [c.get("text_truncated", False) for c in chunks] == [False, False, False, True]
+        assert chunks[-1]["raw_text"] == chunks[-1]["text"]
+        (record,) = caplog.records
+        assert "truncated" in record.getMessage()
+
+    def test_none_disables_the_limit(self, tmp_path):
+        path = self._repeated(tmp_path, 3, 50)
+        assert _bounded(path, max_text_chars=None) == _bounded(path)
+
+    def test_a_flat_opendocument_file_is_bounded_too(self, tmp_path):
+        inner = '<table:table table:name="T">' + _row(_cell("x", 10), 10) + "</table:table>"
+        path = tmp_path / "b.fods"
+        path.write_text(_content("spreadsheet", inner, root="document"), encoding="utf-8")
+        with pytest.raises(ValueError, match="max_text_chars=5"):
+            _bounded(path, max_text_chars=5)
+
+    @pytest.mark.parametrize(
+        ("option", "value"),
+        [
+            ("max_text_chars", 0),
+            ("max_text_chars", -1),
+            ("max_text_chars", True),
+            ("max_text_chars", 1.5),
+            ("on_text_limit", "skip"),
+        ],
+    )
+    def test_bad_options_are_refused(self, tmp_path, option, value):
+        path = self._repeated(tmp_path, 1, 1)
+        with pytest.raises(ValueError, match=option):
+            OfficeReader(input_path=path, **{option: value})
+
+
+class TestChunkSizeUnderTheLimit:
+    """No row or chunk is built much past the text limit (memory)."""
+
+    LIMIT = 1_000
+    CELL = 100
+    #: A chunk stops growing once past the limit, and a line once past it:
+    #: at most the limit, one more line (limit + one cell), and separators.
+    BOUND = 2 * LIMIT + CELL + 8
+
+    def _largest(self, path, **kwargs) -> int:
+        reader = OfficeReader(input_path=path, max_text_chars=self.LIMIT, **kwargs)
+        return max(len(c["text"]) for c in reader.get_raw_chunks())
+
+    @pytest.mark.parametrize(
+        ("cap", "expected"),
+        [
+            (None, "ab\tcd\tef"),
+            (8, "ab\tcd\tef"),  # exactly the limit: complete
+            (5, "ab\tcd\tef"),  # "ab\tcd" is 5: not past it yet, so one more
+            (4, "ab\tcd"),  # cut short only once strictly past the limit
+            (1, "ab"),
+        ],
+    )
+    def test_a_line_cut_short_is_always_past_the_limit(self, cap, expected):
+        assert _office._join_capped(["ab", "cd", "ef"], "\t", cap) == expected
+
+    def test_opendocument_repeated_cells_and_rows(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        assert self._largest(path) <= self.BOUND
+
+    def test_excel_cells_sharing_one_string(self, tmp_path):
+        cells = "".join('<c t="s"><v>0</v></c>' for _ in range(1_000))
+        rows = "".join(f'<row r="{i}">{cells}</row>' for i in range(1, 41))
+        path = _xlsx(
+            tmp_path / "b.xlsx",
+            [("S", _sheet(rows), None)],
+            [f"<t>{'x' * self.CELL}</t>"],
+        )
+        assert self._largest(path) <= self.BOUND
+
+    def test_a_table_in_a_text_document(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.odt", "text", inner)
+        assert self._largest(path) <= self.BOUND
+
+    def test_within_the_limit_chunks_are_unchanged(self, tmp_path):
+        inner = '<table:table table:name="T">' + _row(_cell("ab", 3), 7) + "</table:table>"
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        plain = _chunks(path, max_text_chars=None, max_text_chars_per_byte=None)
+        assert _chunks(path, rows_per_chunk=500) == plain
+        assert len(plain) == 1
+
+    def test_the_budget_still_decides_refuse_or_truncate(self, tmp_path):
+        inner = (
+            '<table:table table:name="T">'
+            + _row(_cell("x" * self.CELL, 1_000), 500)
+            + "</table:table>"
+        )
+        path = _odf(tmp_path / "b.ods", "spreadsheet", inner)
+        with pytest.raises(ValueError, match="max_text_chars=1,000"):
+            _bounded(path, max_text_chars=self.LIMIT)
+        kept = _bounded(path, max_text_chars=self.LIMIT, on_text_limit="truncate")
+        assert sum(len(c["text"]) for c in kept) == self.LIMIT

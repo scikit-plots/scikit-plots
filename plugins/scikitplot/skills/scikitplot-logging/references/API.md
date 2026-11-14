@@ -34,6 +34,7 @@
 | `error(msg, *args, **kwargs)` | function | Log a message at the ERROR log level. |
 | `error_log(error_msg, *args: 'any', level: 'int \| str' = 40, **kwargs: 'any') -> 'None'` | function | Log an error-like message at a specified level. |
 | `exception(msg, *args, exc_info=True, **kwargs)` | function | Log a message with severity 'ERROR' on the root logger. |
+| `TaskLevelStatusMessage(msg)` | function | Compatibility wrapper for legacy call sites. |
 | `fatal(msg, *args, **kwargs)` | function | Log a message at the FATAL -> CRITICAL log level. |
 | `info(msg, *args, **kwargs)` | function | Log a message at the INFO log level. |
 | `log(level, msg, *args, **kwargs)` | function | Log a message at the specified log level. |

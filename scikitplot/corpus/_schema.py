@@ -138,10 +138,9 @@ __all__ = [  # noqa: RUF022
     # Bulk helpers
     "documents_to_pandas",
     "documents_to_polars",
-    # Module-level constants (importable by tests and downstream consumers)
-    "_PROMOTED_RAW_KEYS",  # frozenset of raw-chunk keys promoted to first-class fields
-    "_SOURCE_EXT_MAP",  # MEDIUM-02: extension → SourceType lookup dict
 ]
+# ``_PROMOTED_RAW_KEYS`` and ``_SOURCE_EXT_MAP`` are private: imported by name
+# from this module where needed, never exported by ``import *``.
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -827,6 +826,8 @@ _SOURCE_EXT_MAP: Final[dict[str, SourceType]] = {
     ".rtf": SourceType.ARTICLE,
     ".pdf": SourceType.RESEARCH,
     ".doc": SourceType.ARTICLE,
+    ".dot": SourceType.ARTICLE,
+    ".wbk": SourceType.ARTICLE,
     ".docx": SourceType.ARTICLE,
     ".odt": SourceType.ARTICLE,
     ".docm": SourceType.ARTICLE,
@@ -844,6 +845,7 @@ _SOURCE_EXT_MAP: Final[dict[str, SourceType]] = {
     ".tsv": SourceType.DATASET,
     ".xlsx": SourceType.SPREADSHEET,
     ".xls": SourceType.SPREADSHEET,
+    ".xlt": SourceType.SPREADSHEET,
     ".ods": SourceType.SPREADSHEET,
     ".xlsm": SourceType.SPREADSHEET,
     ".xltx": SourceType.SPREADSHEET,

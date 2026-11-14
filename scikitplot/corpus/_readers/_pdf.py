@@ -1212,8 +1212,23 @@ class PDFReader(DocumentReader):
     password: str = field(default="")
     """Decryption password for encrypted PDFs. Empty string means unencrypted."""
 
+    max_text_chars_per_byte: float | None = field(default=50)
+    """Most characters of text per byte of the file (floor: 1 Mi characters).
+
+    Default: 50; ``None``: no ratio limit. See
+    :attr:`~scikitplot.corpus._base.DocumentReader.max_text_chars_per_byte`.
+    """
+
     max_file_bytes: int = field(default=_PDF_DEFAULT_MAX_FILE_BYTES)
     """Maximum file size in bytes. Default: 2 GB."""
+
+    max_text_chars: int | None = field(default=256 * 1024 * 1024)
+    """Most characters of text one file yields; ``None``: no limit. Default: 256 Mi.
+
+    Content streams are compressed and pages may share one, so a few
+    kilobytes can yield millions of characters per page. Enforced by
+    :class:`~scikitplot.corpus._base.DocumentReader` with ``on_text_limit``.
+    """
 
     prefer_backend: str | None = field(default=None)
     """

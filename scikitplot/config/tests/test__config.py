@@ -894,3 +894,10 @@ class TestIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+def test_package_all_lists_each_name_once():
+    """``scikitplot.config.__all__`` has no duplicate (``test`` was listed twice)."""
+    import scikitplot.config as pkg
+
+    assert len(pkg.__all__) == len(set(pkg.__all__))

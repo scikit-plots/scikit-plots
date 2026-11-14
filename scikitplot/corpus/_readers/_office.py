@@ -86,6 +86,39 @@ _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _WORD_EXTENSIONS = [".docx", ".docm", ".dotx", ".dotm"]
 _POWERPOINT_EXTENSIONS = [".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm"]
 _EXCEL_EXTENSIONS = [".xlsx", ".xlsm", ".xltx", ".xltm"]
+#: Legacy binary formats (OLE2 compound files). Registered so that a file
+#: under one of these names is identified: a real legacy file is refused
+#: with the reason, and a modern package under a legacy name is read.
+_LEGACY_EXTENSIONS = [
+    ".doc",
+    ".dot",
+    ".wbk",
+    ".xls",
+    ".xlt",
+    ".ppt",
+    ".pot",
+    ".pps",
+]
+
+#: Office add-ins, macro sheets and workspaces: code or settings, not
+#: documents. Refused by name, whatever the content, so a corpus never
+#: takes in a program and its text is not mistaken for a document's.
+_CODE_EXTENSIONS = {
+    ".wll": "a Word add-in (a program)",
+    ".wwl": "a Word add-in (a program)",
+    ".xll": "an Excel add-in (a program library)",
+    ".xll_": "an Excel add-in (a program library)",
+    ".xla": "an Excel add-in (macros)",
+    ".xla_": "an Excel add-in (macros)",
+    ".xla5": "an Excel add-in (macros)",
+    ".xla8": "an Excel add-in (macros)",
+    ".xlam": "an Excel add-in (macros)",
+    ".xlm": "an Excel macro sheet",
+    ".xlw": "an Excel workspace (window settings)",
+    ".ppa": "a PowerPoint add-in (macros)",
+    ".ppam": "a PowerPoint add-in (macros)",
+}
+
 _OPENDOCUMENT_EXTENSIONS = [
     ".odt",
     ".ott",
@@ -617,6 +650,24 @@ def _slide_text(root: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _join_capped(parts: list[str], sep: str, cap: int | None) -> str:
+    """
+    Join *parts* with *sep*; with a *cap*, only as many as it takes to pass it.
+
+    A result cut short is always longer than *cap*, so the text limit
+    (which refuses or truncates it) decides exactly as for the full text,
+    without the full text ever being built.
+    """
+    if cap is not None:
+        total = 0
+        for index, part in enumerate(parts):
+            total += len(part) + (len(sep) if index else 0)
+            if total > cap:
+                parts = parts[: index + 1]
+                break
+    return sep.join(parts)
+
+
 def _string_item(si: Any) -> str:
     """Return a shared or inline string: its ``t`` runs, phonetic runs left out."""
     t, phonetic = _q(_S, "t"), _q(_S, "rPh")
@@ -636,13 +687,20 @@ def _string_item(si: Any) -> str:
 
 
 def _column_index(ref: str) -> int | None:
-    """Return the 0-based column of a cell reference (``"C7"`` -> 2)."""
+    """
+    Return the 0-based column of a cell reference (``"C7"`` -> 2).
+
+    Reading stops once the column is past ``_MAX_COLUMNS`` (the caller
+    refuses it), so a reference of any length costs a few steps.
+    """
     index = 0
     letters = 0
     for char in ref:
         if "A" <= char <= "Z":
             index = index * 26 + (ord(char) - 64)
             letters += 1
+            if index > _MAX_COLUMNS:
+                break
         else:
             break
     return index - 1 if letters else None
@@ -672,12 +730,21 @@ def _cell_text(cell: Any, shared: list[str]) -> str:
     return text
 
 
-def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
+def _sheet_rows(
+    root: Any, shared: list[str], what: str = "sheet", cap: int | None = None
+) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row with a value.
 
     Cells are tab-separated at their column, so a gap keeps its place;
-    trailing empty cells are dropped.
+    trailing empty cells are dropped. A line stops just past *cap*
+    characters (:func:`_join_capped`).
+
+    Raises
+    ------
+    ValueError
+        If a cell lies past column ``_MAX_COLUMNS`` (``XFD``): its row is
+        refused instead of expanded to that width. *what* names the sheet.
     """
     c_tag = _q(_S, "c")
     for position, row in enumerate(root.iter(_q(_S, "row")), start=1):
@@ -691,13 +758,18 @@ def _sheet_rows(root: Any, shared: list[str]) -> Iterator[tuple[int, str]]:
             column = _column_index(cell.get("r") or "")
             if column is None:
                 column = following
+            if column >= _MAX_COLUMNS:
+                raise ValueError(
+                    f"OfficeReader: {what}: row {number} has a cell past"
+                    f" column {_MAX_COLUMNS:,} ({(cell.get('r') or '')[:16]!r})."
+                )
             following = column + 1
             cells[column] = _cell_text(cell, shared)
         values = [cells.get(i, "") for i in range(max(cells, default=-1) + 1)]
         while values and not values[-1].strip():
             values.pop()
         if values:
-            yield number, "\t".join(values)
+            yield number, _join_capped(values, "\t", cap)
 
 
 # ---------------------------------------------------------------------------
@@ -936,12 +1008,14 @@ def _odf_rows(
     *,
     keep_hidden: bool = True,
     hiding: _OdfHiding = _NO_ODF_STYLES,
+    cap: int | None = None,
 ) -> Iterator[tuple[int, str]]:
     """
     Yield ``(row number, line)`` for each row of a ``table:table`` with a value.
 
     Repeated cells and rows are expanded; runs of empty ones only move the
-    position, so the usual "rest of the sheet" filler costs nothing.
+    position, so the usual "rest of the sheet" filler costs nothing. A line
+    stops just past *cap* characters (:func:`_join_capped`).
 
     Raises
     ------
@@ -988,7 +1062,7 @@ def _odf_rows(
                     f"OfficeReader: {what}: row {number + 1} is repeated"
                     f" {rows:,} times, past row {_MAX_ROWS:,}."
                 )
-            line = "\t".join(cells)
+            line = _join_capped(cells, "\t", cap)
             for offset in range(rows):
                 yield number + 1 + offset, line
         number += rows
@@ -1038,6 +1112,11 @@ class OfficeReader(DocumentReader):
         Start a new chunk at each heading of a text document and record
         the heading on the chunks under it. ``False`` reads headings as
         paragraphs. Default: ``True``.
+    code_files : {"refuse", "skip"}, optional
+        What happens to an add-in, macro sheet or workspace: ``"refuse"``
+        raises ``ValueError`` saying what the file is; ``"skip"`` logs that
+        warning and yields nothing, so a large folder is read past such
+        files. Neither ever reads one. Default: ``"refuse"``.
     max_file_bytes : int, optional
         Largest file read. Default: 500 MB.
     max_part_bytes : int, optional
@@ -1045,6 +1124,16 @@ class OfficeReader(DocumentReader):
         part that a small ZIP inflates into a huge one. Default: 256 MB.
     max_parts : int, optional
         Most parts a package may hold. Default: 100 000.
+    max_text_chars : int or None, optional
+        Most characters of text one file may yield, over all its chunks:
+        the bound on what a small file can expand into (a spreadsheet cell
+        repeated across columns and rows stays within each sheet limit, yet
+        a 500-byte file could yield 34 billion characters). ``None``: no
+        limit. Default: 256 Mi characters.
+    on_text_limit : {"refuse", "truncate"}, optional
+        What happens past ``max_text_chars``, as for every reader (see
+        :attr:`~scikitplot.corpus._base.DocumentReader.on_text_limit`).
+        Default: ``"refuse"``.
     chunker, filter\_, filename_override, default_language : optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
 
@@ -1060,7 +1149,9 @@ class OfficeReader(DocumentReader):
         large, is not a package or a flat OpenDocument file (a legacy
         ``.doc``/``.ppt`` or an encrypted file is named as such), has no
         main part the reader knows, holds a part twice, over a limit or not
-        well-formed XML, or repeats spreadsheet cells past a sheet's size.
+        well-formed XML, or has a spreadsheet cell past a sheet's size
+        (OpenDocument: repeated past it; Excel: referenced past column
+        ``XFD``).
 
     See Also
     --------
@@ -1110,7 +1201,14 @@ class OfficeReader(DocumentReader):
 
     **What decides.** The content, not the extension: a ``.docx`` that is
     a presentation reads as one, and the Strict and Transitional
-    conformance classes of Office Open XML read alike.
+    conformance classes of Office Open XML read alike. The legacy names
+    (``.doc``, ``.dot``, ``.wbk``, ``.xls``, ``.xlt``, ``.ppt``, ``.pot``,
+    ``.pps``) are registered too: a legacy binary file under them is
+    refused with the reason, and a modern package saved under such a name
+    is read. Add-ins, macro sheets and workspaces (``.wll``, ``.wwl``,
+    ``.xll``, ``.xla``, ``.xlam``, ``.xlm``, ``.xlw``, ``.ppa``,
+    ``.ppam`` and the Mac variants) are code or settings, not documents,
+    and are refused by name.
 
     **Order.** Slides follow the deck's list (``p:sldIdLst``), not their
     part names, so ``slide11.xml`` can come before ``slide2.xml``.
@@ -1149,6 +1247,8 @@ class OfficeReader(DocumentReader):
         + _POWERPOINT_EXTENSIONS
         + _EXCEL_EXTENSIONS
         + _OPENDOCUMENT_EXTENSIONS
+        + _LEGACY_EXTENSIONS
+        + sorted(_CODE_EXTENSIONS)
     )
 
     notes: bool = field(default=True)
@@ -1163,6 +1263,16 @@ class OfficeReader(DocumentReader):
     headings: bool = field(default=True)
     """Split text documents at headings and record them. Default: ``True``."""
 
+    code_files: str = field(default="refuse")
+    """``"refuse"`` or ``"skip"`` an add-in, macro sheet or workspace. Default: ``"refuse"``."""
+
+    max_text_chars_per_byte: float | None = field(default=50)
+    """Most characters of text per byte of the file (floor: 1 Mi characters).
+
+    Default: 50; ``None``: no ratio limit. See
+    :attr:`~scikitplot.corpus._base.DocumentReader.max_text_chars_per_byte`.
+    """
+
     max_file_bytes: int = field(default=500 * 1024 * 1024)
     """Largest file read. Default: 500 MB."""
 
@@ -1172,9 +1282,21 @@ class OfficeReader(DocumentReader):
     max_parts: int = field(default=100_000)
     """Most parts a package may hold. Default: 100 000."""
 
+    max_text_chars: int | None = field(default=256 * 1024 * 1024)
+    """Most characters of text one file yields; ``None``: no limit. Default: 256 Mi.
+
+    Enforced by :class:`~scikitplot.corpus._base.DocumentReader` with
+    ``on_text_limit``; this reader only sets the default.
+    """
+
     def __post_init__(self) -> None:
         """Validate the options."""
         super().__post_init__()
+        if self.code_files not in ("refuse", "skip"):
+            raise ValueError(
+                "OfficeReader: code_files must be 'refuse' or 'skip';"
+                f" got {self.code_files!r}."
+            )
         for name in ("notes", "hidden", "headings"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(
@@ -1201,6 +1323,19 @@ class OfficeReader(DocumentReader):
         ValueError
             See :class:`OfficeReader`.
         """
+        code = _CODE_EXTENSIONS.get(self.input_path.suffix.lower())
+        if code is not None:
+            message = (
+                f"OfficeReader: {self.file_name} is {code}, not a document;"
+                " it is not read."
+            )
+            if self.code_files == "skip":
+                logger.warning("%s Skipped (code_files='skip').", message)
+                return
+            raise ValueError(
+                f"{message} Remove it from the input, export the document it"
+                " belongs to, or pass code_files='skip' to pass over such files."
+            )
         size = self.input_path.stat().st_size
         if size > self.max_file_bytes:
             raise ValueError(
@@ -1339,6 +1474,7 @@ class OfficeReader(DocumentReader):
                     f"{self.file_name} sheet {name!r}",
                     keep_hidden=self.hidden,
                     hiding=hiding,
+                    cap=self._text_limit()[0],
                 )
                 yield from self._row_chunks(rows, name, number, part, None)
         elif kind.tag in (_q(_O_OFFICE, "presentation"), _q(_O_OFFICE, "drawing")):
@@ -1386,6 +1522,8 @@ class OfficeReader(DocumentReader):
     def _odf_text_document(
         self, body: Any, part: str, hiding: _OdfHiding = _NO_ODF_STYLES
     ) -> Iterator[dict[str, Any]]:
+        cap = self._text_limit()[0]
+
         def blocks() -> Iterator[Any]:
             for block in _odf_blocks(
                 body, tables=True, keep_hidden=self.hidden, hiding=hiding
@@ -1398,8 +1536,17 @@ class OfficeReader(DocumentReader):
                         self.file_name,
                         keep_hidden=self.hidden,
                         hiding=hiding,
+                        cap=cap,
                     )
-                    yield ("table", "\n".join(line for _, line in rows))
+                    # Rows are taken only until the table passes the limit.
+                    lines: list[str] = []
+                    size = -1
+                    for _, line in rows:
+                        lines.append(line)
+                        size += len(line) + 1
+                        if cap is not None and size > cap:
+                            break
+                    yield ("table", "\n".join(lines))
 
         yield from self._sections(blocks(), part)
         if not self.notes:
@@ -1625,7 +1772,16 @@ class OfficeReader(DocumentReader):
                 )
                 continue
             yield from self._row_chunks(
-                _sheet_rows(ws, shared), name, number, part, hidden
+                _sheet_rows(
+                    ws,
+                    shared,
+                    f"{self.file_name} sheet {name!r}",
+                    self._text_limit()[0],
+                ),
+                name,
+                number,
+                part,
+                hidden,
             )
 
     def _row_chunks(
@@ -1636,8 +1792,16 @@ class OfficeReader(DocumentReader):
         part: str,
         hidden: bool | None,
     ) -> Iterator[dict[str, Any]]:
-        """Yield a sheet's rows as chunks of ``rows_per_chunk`` rows."""
+        """
+        Yield a sheet's rows as chunks of ``rows_per_chunk`` rows.
+
+        A chunk also ends once it passes the text limit in force, so no
+        chunk is built much larger than the limit that will refuse or
+        truncate it; within the limit, chunks are as without one.
+        """
         block: list[tuple[int, str]] = []
+        cap = self._text_limit()[0]
+        size = -1
 
         def chunk() -> dict[str, Any]:
             made = {
@@ -1655,9 +1819,11 @@ class OfficeReader(DocumentReader):
 
         for row in rows:
             block.append(row)
-            if len(block) == self.rows_per_chunk:
+            size += len(row[1]) + 1
+            if len(block) == self.rows_per_chunk or (cap is not None and size > cap):
                 yield chunk()
                 block = []
+                size = -1
         if block:
             yield chunk()
 

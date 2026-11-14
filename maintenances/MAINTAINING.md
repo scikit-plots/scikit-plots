@@ -260,7 +260,7 @@ places describe it; one change updates all of them (Rule 172):
 
 | Place | Source to edit | Command | Check |
 |---|---|---|---|
-| API reference (`docs/source/apis_reference.py`) | `scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in` | `python -m scikitplot._build_utils.generate_apis_reference rebuild --apply` | `... rebuild --check`; `... plan --json` |
+| API reference (`docs/source/apis_reference.py`) | `scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in` | `python -m scikitplot._build_utils.generate_apis_reference rebuild --apply` | pre-commit `apis-reference-coverage` (no build); `... rebuild --check`; `... plan --json` |
 | Usage skill (`plugins/scikitplot/skills/scikitplot-<module>/`) | the module's `__all__` and docstrings | `python tools/maint_tools/generate_usage_skills.py sync` | `... check` |
 | Release note | `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst` | written by hand | the towncrier gate |
 | Module docstring lists (for example `_readers/__init__.py`) | the docstring | written by hand | read it |
@@ -272,6 +272,13 @@ places describe it; one change updates all of them (Rule 172):
   build (`imports`).
 - **Public but not documented on purpose:** keep a commented line with the
   reason, so `plan` output can be read against it.
+- The `apis-reference-coverage` hook reads each module's `__all__` from
+  source and compares it with the reference. Gaps that predate it are in
+  `generate_apis_reference/coverage_baseline.json`; the hook fails on a
+  new gap and on a fixed gap still listed (run `... coverage --write`
+  after fixing one, so the baseline only shrinks). Modules whose
+  `__all__` is not static, or compiled, are listed as skipped and left
+  to `check` on a build.
 - Never edit `docs/source/apis_reference.py` by hand: `rebuild --check`
   fails and the next rebuild discards the edit.
 - `plan`, `check` and `imports` import the package: run them against a

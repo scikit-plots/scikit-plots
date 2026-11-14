@@ -1,0 +1,6 @@
+- ``scikitplot.stats`` declares ``__all__``: each optional backend
+  (astropy statistics, Tweedie) adds its names only when it imports, so
+  ``__all__`` never lists an absent name, and ``import *`` no longer leaks
+  ``logger``, ``suppress`` and ``annotations``. 20 functions and classes
+  (biweight, sigma clipping, circular statistics, jackknife, Ripley K) are
+  now in the API reference.

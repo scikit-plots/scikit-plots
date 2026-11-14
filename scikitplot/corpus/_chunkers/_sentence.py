@@ -90,8 +90,8 @@ __all__ = [
     "SentenceBackend",
     "SentenceChunker",
     "SentenceChunkerConfig",
-    "_validate_text_input",
 ]
+# ``_validate_text_input`` is private: the other chunkers import it by name.
 
 # ---------------------------------------------------------------------------
 # Constants

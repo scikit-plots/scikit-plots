@@ -25,6 +25,11 @@ Usage::
     python -m scikitplot._build_utils.generate_apis_reference check
     python -m scikitplot._build_utils.generate_apis_reference check --strict-coverage
 
+    # Without a build: each module's __all__ (read from source) against the
+    # reference; fails on a gap not in the baseline (Rule 172).
+    python -m scikitplot._build_utils.generate_apis_reference coverage
+    python -m scikitplot._build_utils.generate_apis_reference coverage --write
+
     # Only what the docs build needs: every documented target imports.
     python -m scikitplot._build_utils.generate_apis_reference imports
     python -m scikitplot._build_utils.generate_apis_reference imports --strict
@@ -1662,6 +1667,24 @@ def _parser() -> argparse.ArgumentParser:
         help="emit machine-readable JSON",
     )
 
+    cover = subparsers.add_parser(
+        "coverage",
+        help=(
+            "compare each module's __all__, read from source without importing,"
+            " with the reference; fail on gaps not in the baseline"
+        ),
+    )
+    cover.add_argument(
+        "--write",
+        action="store_true",
+        help="rewrite the baseline of known gaps from the current tree",
+    )
+    cover.add_argument(
+        "--json",
+        action="store_true",
+        help="emit machine-readable JSON",
+    )
+
     plan = subparsers.add_parser(
         "plan",
         help="show stale, missing, and safe section assignments",
@@ -1828,6 +1851,52 @@ def _run_imports(
     return 1 if failed else 0
 
 
+def _run_coverage(args, model, repo_root: Path, out: TextIO) -> int:
+    """Run ``coverage``: static ``__all__`` against the reference and baseline."""
+    from . import _static_coverage as sc  # noqa: PLC0415
+
+    baseline_path = default_template_path().parent / sc.BASELINE_NAME
+    try:
+        deprecated = sc.deprecated_entries(model.source)
+    except sc.UnresolvedError as exc:
+        out.write("coverage: %s\n" % exc)
+        return 2
+    report = sc.coverage(repo_root, model.modules, deprecated=deprecated)
+    gaps = report.gaps()
+    if args.write:
+        _atomic_write(baseline_path, sc.baseline_text(gaps))
+    new, fixed = sc.compare(gaps, sc.load_baseline(baseline_path))
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "new": new,
+                    "fixed": fixed,
+                    "known": sum(len(v) for v in gaps.values()),
+                    "unresolved": report.unresolved,
+                    "baseline": str(baseline_path),
+                },
+                indent=2,
+                sort_keys=True,
+            ),
+            file=out,
+        )
+    else:
+        for line in new:
+            print(f"NEW      {line}", file=out)
+        for line in fixed:
+            print(f"FIXED    {line} (remove it: coverage --write)", file=out)
+        for module, reason in sorted(report.unresolved.items()):
+            print(f"SKIPPED  {module}: {reason}", file=out)
+        print(
+            f"coverage: {len(new)} new gap(s), {len(fixed)} fixed,"
+            f" {sum(len(v) for v in gaps.values())} known,"
+            f" {len(report.unresolved)} module(s) not read statically",
+            file=out,
+        )
+    return 1 if (new or fixed) else 0
+
+
 def main(
     argv: Optional[Sequence[str]] = None,
     *,
@@ -1944,6 +2013,8 @@ def main(
 
         if args.command == "imports":
             return _run_imports(args, model, policy, module_filter, out)
+        if args.command == "coverage":
+            return _run_coverage(args, model, repo_root, out)
         report = inspect_reference(
             model,
             policy,

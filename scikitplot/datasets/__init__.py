@@ -19,4 +19,8 @@ Utilities to load popular datasets and artificial data generators.
         └── examples only
 """
 
+from . import _load_dataset
 from ._load_dataset import *  # noqa: F403
+
+__all__ = []
+__all__ += _load_dataset.__all__

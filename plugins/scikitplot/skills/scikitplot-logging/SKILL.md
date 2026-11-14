@@ -72,6 +72,7 @@ Declared in `scikitplot.logging.__all__`, in that order.
 | `error` | function | Log a message at the ERROR log level. |
 | `error_log` | function | Log an error-like message at a specified level. |
 | `exception` | function | Log a message with severity 'ERROR' on the root logger. |
+| `TaskLevelStatusMessage` | function | Compatibility wrapper for legacy call sites. |
 | `fatal` | function | Log a message at the FATAL -> CRITICAL log level. |
 | `info` | function | Log a message at the INFO log level. |
 | `log` | function | Log a message at the specified log level. |

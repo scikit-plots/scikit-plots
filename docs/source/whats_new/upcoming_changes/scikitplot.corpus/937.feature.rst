@@ -1,0 +1,10 @@
+- ``OfficeReader`` now identifies every Office file name. Office add-ins,
+  macro sheets and workspaces (``.wll``, ``.wwl``, ``.xll``, ``.xla``,
+  ``.xlam``, ``.xlm``, ``.xlw``, ``.ppa``, ``.ppam`` and the Mac variants)
+  are refused as code, not documents, instead of failing with "no reader
+  registered". Legacy names (``.doc``, ``.dot``, ``.wbk``, ``.xls``,
+  ``.xlt``, ``.ppt``, ``.pot``, ``.pps``) are registered: a legacy binary
+  file is refused with the reason, and a modern file saved under such a
+  name is read.
+  ``code_files="skip"`` passes over add-ins with a warning instead, so a
+  large folder or archive is read past them; neither setting reads one.

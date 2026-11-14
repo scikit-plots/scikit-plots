@@ -679,6 +679,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "StateError",
                 ],
             },
+            {
+                "title": "Schemas and canonical values",
+                "autosummary": [
+                    "check_schema",
+                    "validate",
+                    "canonical_json",
+                    "digest",
+                    "plain",
+                ],
+            },
         ],
     },
     "scikitplot.annoy": {
@@ -798,7 +808,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_utils.validate_plotting_kwargs",
                 ],
             },
+            {
+                "title": "Figure Utilities",
+                "autosummary": [
+                    "stack",
+                ],
+            },
         ],
+        # Subpackages (their members are documented above), the deprecated
+        # ``plotters`` shim and the pytest runner are not API objects.
+        "generator": {
+            "ignore": ["decomposition", "estimators", "metrics", "plotters", "test"],
+        },
     },
     "scikitplot.cexperimental": {
         "short_summary": "C-Experimental Python modules based on C/CPP.",
@@ -1038,6 +1059,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "describe_outcome",
                     "diagnose",
                     "suggest_terms",
+                    # _diagnostics: what each engine detects, per entity
+                    "CoverageRow",
+                    "coverage_matrix",
                 ],
             },
             # {
@@ -1075,6 +1099,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "describe_engines",
                     "resolve_engine",
                     "trim_entity_span",
+                    # readiness of an engine before use
+                    "EngineReadiness",
+                    "engine_readiness",
                 ],
             },
             # {
@@ -1142,6 +1169,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "REQUIRED_CORPORA",
                     "NltkDetector",
                     "nltk_detector",
+                    "corpora_status",
                 ],
             },
             # {
@@ -1177,6 +1205,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "default_patterns",
                     "get_pattern",
                     "luhn_ok",
+                    # _pattern_risk: catastrophic-backtracking analysis of a pattern
+                    "PatternRiskWarning",
+                    "analyse_pattern",
                 ],
             },
             {
@@ -1199,6 +1230,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "DEFAULT_LIMITS",
                     "DEFAULT_POLICY",
                     "DEFAULT_TAG_STYLE",
+                    "ACTIONS",
+                    "Action",
                     "Limits",
                     "OverlapStrategy",
                     "RedactionPolicy",
@@ -1299,11 +1332,76 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "PORTABLE_CIPHER",
                     "decrypt_mapping",
                     "encrypt_mapping",
+                    "new_key",
                     # "new_passphrase",
                     # "resolve_cipher",
                 ],
             },
+            {
+                "title": "Results and Types",
+                "autosummary": [
+                    "Entry",
+                    "RedactionResult",
+                    "RestorationResult",
+                    "Span",
+                    "Stats",
+                    "as_dict",
+                ],
+            },
+            {
+                "title": "Errors and Warnings",
+                "autosummary": [
+                    "CleanPromptError",
+                    "BlockedError",
+                    "CapabilityError",
+                    "DetectorError",
+                    "LeakError",
+                    "LimitExceededError",
+                    "OverlapError",
+                    "PatternError",
+                    "PatternTimeoutError",
+                    "PolicyError",
+                    "RestorationError",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "CleanPromptError",
+                ],
+            },
+            {
+                "title": "Logging and Audit",
+                "autosummary": [
+                    "AUDIT_LOGGER_NAME",
+                    "LOGGER_NAME",
+                    "JsonFormatter",
+                    "SecretFilter",
+                    "VaultScrubber",
+                    "audit",
+                    "configure_logging",
+                    "get_logger",
+                    "log_level_from_env",
+                    "redacting",
+                ],
+            },
+            {
+                "title": "Pattern Catalog and Surrogate Sets",
+                "autosummary": [
+                    "Catalog",
+                    "builtin_catalog",
+                    "SurrogateSet",
+                    "load_surrogate_set",
+                ],
+            },
+            {
+                "title": "Corpus Integration",
+                "autosummary": [
+                    "redact_documents",
+                    "register_corpus_readers",
+                ],
+            },
         ],
+        # The distribution version is metadata, not an API object.
+        "generator": {"ignore": ["__version__"]},
     },
     "scikitplot.config": {
         "short_summary": "config.",
@@ -1318,7 +1416,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "citation",
                 ],
             },
+            {
+                "title": "Global Configuration",
+                "description": "Read, change and temporarily override package settings.",
+                "autosummary": [
+                    "config_context",
+                    "get_config",
+                    "set_config",
+                    "show_config",
+                ],
+            },
         ],
+        # The pytest runner is tooling, not an API object.
+        "generator": {"ignore": ["test"]},
     },
     "scikitplot.corpus": {
         "short_summary": "Document corpus ingestion, chunking, filtering, embedding, and export pipeline for NLP and ML workflows.",
@@ -1451,6 +1561,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "capability_snapshot",
                     "distribution_version",
                     "probe_backend",
+                    # _capabilities: what a component needs, and whether it is there
+                    "CapabilityRegistry",
+                    "CapabilityReport",
+                    "CapabilitySpec",
+                    "capability_report",
+                    "component_capabilities",
+                    "default_capability_registry",
                 ],
                 # for inheritance-diagram
                 "classes": [],
@@ -1528,7 +1645,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "is_cjk_char",
                     "is_rtl_char",
                     "split_cjk_chars",
-                    "_split_cjk_chars_legacy",
                     "MULTI_SCRIPT_SENTENCE_RE_PATTERN",
                     # Layer 1 — Script segmentation
                     "ScriptSpan",
@@ -1568,7 +1684,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SentenceBackend",
                     "SentenceChunker",
                     "SentenceChunkerConfig",
-                    "_validate_text_input",
                     # _structure
                     "StructureChunker",
                     "StructureChunkerConfig",
@@ -1667,6 +1782,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "GoogleDriveDownloader",
                     "WebDownloader",
                     "YouTubeDownloader",
+                    # _downloader._policy, and the plan of one download
+                    "DownloadPlan",
+                    "DownloadPolicy",
+                    "download_policy",
                 ],
                 # for inheritance-diagram
                 "classes": [
@@ -1745,6 +1864,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "calibration_report",
                     "expected_calibration_error",
                     "reliability_table",
+                    "CALIBRATION_STRATEGIES",
                     # _metrics._text
                     "anls_score",
                     "edit_similarity",
@@ -1870,6 +1990,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "DocIdScheme",
+                    "IDENTITY_HEX_WIDTH",
                     "IncompatibleSchemaError",
                     "UUID7Generator",
                     "assign_doc_ids",
@@ -2117,6 +2238,35 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "RuntimeCorpus",
                     "RuntimePolicy",
                     "materialize_plan",
+                    "runtime_policy",
+                    # _policies: every policy of a corpus in one bundle
+                    "CorpusPolicyBundle",
+                    "corpus_policy_bundle",
+                ],
+            },
+            {
+                "title": "Optional Backend Policy",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _backends: which optional backend runs, in what order
+                    "BackendCandidate",
+                    "BackendOutcome",
+                    "BackendPlan",
+                    "BackendPolicy",
+                    "BackendSkip",
+                    "BackendStatus",
+                    "backend_policy",
+                    "plan_backend_chain",
+                    "run_backend_chain",
+                    # _readers._whisper: speech-recognition backends
+                    "ASRBackend",
+                    "ASRRequest",
+                    "WHISPER_MODELS",
+                    "asr_segment_metadata",
+                    "plan_whisper_backends",
+                    "transcribe_whisper",
                 ],
             },
             {
@@ -2649,16 +2799,47 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
         ],
+        # Subpackages: their members are documented above ("kds.x", ...).
+        "generator": {"ignore": ["kds", "modelplotpy"]},
     },
     "scikitplot.exceptions": {
         "short_summary": "Exceptions and warnings.",
         "description": None,
         "sections": [
             {
-                "title": None,
+                "title": "Errors",
                 "autosummary": [
-                    "ModuleDeprecationWarning",
                     "ScikitplotException",
+                    "CommandError",
+                    "ExecutionException",
+                    "InvalidUrlException",
+                    "MissingConfigException",
+                    "ScikitplotTracingException",
+                    "ScikitplotTraceDataException",
+                    "ScikitplotTraceDataCorrupted",
+                    "ScikitplotTraceDataNotFound",
+                ],
+            },
+            {
+                "title": "Numerical errors",
+                "autosummary": [
+                    "AxisError",
+                    "DTypePromotionError",
+                    "TooHardError",
+                ],
+            },
+            {
+                "title": "Warnings",
+                "autosummary": [
+                    "ScikitplotWarning",
+                    "ScikitplotUserWarning",
+                    "ScikitplotDeprecationWarning",
+                    "ScikitplotPendingDeprecationWarning",
+                    "ScikitplotBackwardsIncompatibleChangeWarning",
+                    "DuplicateRepresentationWarning",
+                    "ComplexWarning",
+                    "ModuleDeprecationWarning",
+                    "RankWarning",
                     "VisibleDeprecationWarning",
                 ],
             },
@@ -3026,6 +3207,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_ann.ANNImputer",
                 ],
             },
+            {
+                "title": "Re-exported scikit-learn imputers.",
+                "autosummary": [
+                    "MissingIndicator",
+                    "SimpleImputer",
+                ],
+            },
         ],
     },
     "scikitplot.levenshtein": {
@@ -3085,6 +3273,25 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "get_verbosity",
                     "setLevel",
                     "set_verbosity",
+                ],
+            },
+            {
+                "title": "Standard Library Compatibility",
+                "description": (
+                    "Re-exported from :mod:`logging` so this module can be "
+                    "used as a drop-in replacement."
+                ),
+                "autosummary": [
+                    "BASIC_FORMAT",
+                    "Filter",
+                    "Formatter",
+                    "Handler",
+                    "LogRecord",
+                    "Logger",
+                    "NullHandler",
+                    "StreamHandler",
+                    "getLevelName",
+                    "getLogger",
                 ],
             },
             {
@@ -3222,7 +3429,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # for inheritance-diagram
                 "classes": [],
             },
+            {
+                "title": "MCP: Command Line and Validation",
+                "autosummary": [
+                    "RuntimeConfig",
+                    "main",
+                    "require_count",
+                    "require_index",
+                ],
+            },
         ],
+        # The distribution version is metadata, not an API object.
+        "generator": {"ignore": ["__version__"]},
     },
     "scikitplot.memmap": {
         "short_summary": "Cross-platform memory mapping module.",
@@ -3683,6 +3901,76 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Astrostatistics: Robust Biweight Estimators",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "biweight")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "biweight_location",
+                    "biweight_midcorrelation",
+                    "biweight_midcovariance",
+                    "biweight_midvariance",
+                    "biweight_scale",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Sigma Clipping",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "sigma_clipping")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "SigmaClip",
+                    "SigmaClippedStats",
+                    "sigma_clip",
+                    "sigma_clipped_stats",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Circular Statistics",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "circstats")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "circcorrcoef",
+                    "circmean",
+                    "circmoment",
+                    "circstd",
+                    "circvar",
+                    "rayleightest",
+                    "vonmisesmle",
+                    "vtest",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Jackknife Resampling",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "jackknife")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "jackknife_resampling",
+                    "jackknife_stats",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Spatial Statistics",
+                "description": (
+                    _get_submodule("scikitplot.cexternals._astropy.stats", "spatial")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
+                ),
+                "autosummary": [
+                    "RipleysKEstimator",
+                ],
+            },
+            {
                 "title": "Discrete Distributions Tools",
                 "description": (
                     _get_submodule("scikitplot.externals._tweedie", "_tweedie_dist")
@@ -3714,7 +4002,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
           "description": _get_submodule("scikitplot.utils", "_path"),
           "autosummary": [
             '_path.PathNamer',
+            '_path.get_path',
             '_path.make_path',
+            '_path.remove_path',
           ],
         },
         # {

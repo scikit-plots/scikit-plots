@@ -1720,13 +1720,13 @@ usage_modules = [
 "scikitplot.config" = "its public names are re-exported by scikitplot (the root skill)"
 "scikitplot.cexperimental" = "declares no __all__"
 "scikitplot.cexternals" = "vendored third-party extensions"
-"scikitplot.datasets" = "declares no __all__"
+"scikitplot.datasets" = "dataset loaders; documented in the API reference, no usage skill yet"
 "scikitplot.experimental" = "empty __all__; its enable_* modules are imported for their side effect"
 "scikitplot.externals" = "vendored third-party code"
-"scikitplot.nc" = "declares no __all__"
+"scikitplot.nc" = "compiled NumCpp bindings; documented in the API reference, no usage skill yet"
 "scikitplot.neighbors" = "declares no __all__"
 "scikitplot.stats" = "declares no __all__"
-"scikitplot.utils" = "declares no __all__"
+"scikitplot.utils" = "development utilities; documented in the API reference, no usage skill yet"
 
 [tool.scikitplot.maintenance.towncrier]
 # Repository-derived Towncrier ownership policy consumed by

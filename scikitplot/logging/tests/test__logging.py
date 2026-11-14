@@ -1290,3 +1290,15 @@ class TestIntegrationSmoke:
     def test_google_log_prefix_is_log_prefix(self):
         """``_log_prefix`` must point to ``google2_log_prefix`` after module init."""
         assert splog._log_prefix is splog.google2_log_prefix
+
+
+# ---------------------------------------------------------------------------
+# Export contract (API reference coverage, Rule 172)
+# ---------------------------------------------------------------------------
+def test_all_exports_only_public_names_and_privates_stay_reachable():
+    """``__all__`` lists no private names; privates resolve lazily."""
+    import scikitplot.logging as pkg
+
+    assert not [n for n in splog.__all__ if n.startswith("_")]
+    assert "TaskLevelStatusMessage" in splog.__all__
+    assert pkg._is_jupyter_notebook is splog._is_jupyter_notebook

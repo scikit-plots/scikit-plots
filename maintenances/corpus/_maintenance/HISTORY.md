@@ -1,5 +1,205 @@
 # Corpus maintenance history
 
+## 2026-11-14 — office add-ins refused, legacy names identified, PR 937
+
+- **Office plan phase 5: add-ins.** `.wll .wwl .xll .xll_ .xla .xla_
+  .xla5 .xla8 .xlam .xlm .xlw .ppa .ppam` failed with "No DocumentReader
+  registered", which did not say they are programs. `OfficeReader`
+  registers them and refuses each by name, whatever the content, with
+  what it is ("an Excel add-in (macros)"); case is ignored.
+- **Legacy names.** `.doc .dot .wbk .xls .xlt .ppt .pot .pps` are
+  registered: a real legacy file (OLE2) is refused with the existing
+  reason, and a modern package saved under a legacy name is read (the
+  content decides). `from_url` downloads them; `SourceType.infer` gives
+  `article` for `.dot`/`.wbk` and `spreadsheet` for `.xlt`. Add-ins stay
+  out of the download lists.
+- **Policy `code_files`** (`"refuse"` default, `"skip"`): skip logs the
+  same message as a warning and yields nothing, so a folder or archive is
+  read past add-ins; the refusal names the option. Inside a ZIP the
+  member reader gets it through `reader_kwargs`. 7 tests; 3 mutants
+  caught.
+- **API reference coverage for `scikitplot.corpus`.** The new static
+  check listed 32 corpus gaps. 29 public names are added to the template:
+  Capability Status (capability registry, report, spec), Downloader
+  (download plan and policy), calibration strategies, identity width,
+  Runtime Policy (`runtime_policy`, the policy bundle) and a new section,
+  Optional Backend Policy (`_backends`, the Whisper backends). Five
+  private names leave `__all__` (`_PROMOTED_RAW_KEYS`, `_SOURCE_EXT_MAP`,
+  `_coerce_documents`, `_split_cjk_chars_legacy`, `_validate_text_input`;
+  the last two were also documented): all are imported by name where
+  used; `test_promoted_raw_keys_in_all` is rewritten to the new contract.
+  Corpus `imports` (no build): 458 targets, 0 errors. Baseline 209 -> 177.
+- **Workflow-run pruning (maintainer request, PR 937).** New
+  `tools/maint_tools/prune_workflow_runs.py` (standard library; selection
+  is a pure function) and the manual workflow `ci_prune_workflow_runs.yml`.
+  Policy: keep the newest `keep_latest` (25) runs; optional
+  `older_than_days`, `before`, `workflow`; completed runs only, never the
+  current run; `max_delete` 500 a go; dry run by default; idempotent. The
+  listing is read in full before any deletion (deleting shifts pages).
+  Inputs reach the script as environment variables; the pull-request job
+  has a read-only token and only tests and dry-runs. 31 tests. Dry run on
+  the real repository from here (read only): 655 runs, 500 selected at the
+  cap (630 beyond the first page), 96 with `older_than_days=1`. Nothing
+  was deleted from here: `workflow_dispatch` works only once the file is
+  on the default branch. zizmor offline: no findings.
+- **CX-38: a row or chunk was built whole before the budget saw it.**
+  The budget counts finished chunks, and a chunk is `rows_per_chunk`
+  (500) rows of a line that may repeat one cell 16,384 times: a 485-byte
+  `.ods` was refused only after an 827 MB chunk (845 MB peak; a 100 KB
+  cell text makes it terabytes). Now a line stops once strictly past the
+  limit in force (`_join_capped`), a chunk ends once past it, and a table
+  in a text document takes rows only until past it; a cut text is always
+  longer than the limit, so refuse/truncate decide exactly as before and
+  files within the limit chunk as before. After: 55 MB, 0.0 s for both
+  sizes. 10 tests; 5 mutants killed (the "equal to the limit" one after a
+  direct `_join_capped` test). Also fixed: the py3.9 partial-distribution
+  failure of `test_truncate_keeps_exactly_the_limit_and_warns` (it
+  captured the office logger; since CX-36 the warning is logged by
+  `scikitplot.corpus._base`, and on pytest < 9.1 a record of another
+  logger is not seen). Corpus 6,307 passed + the same 15.
+- **CX-37: output in proportion to input (`max_text_chars_per_byte`).**
+  CX-36 bounded memory, not CPU: pdfminer spends about 9 us a character,
+  so the 4 KB shared-stream PDF ran about 40 min before the 256 Mi limit
+  (pypdf about 2 min). A shared-page cache was first recommended and
+  chosen, then withdrawn before any code: distinct, highly compressible
+  streams (Flat about 1000x, a 256 KB file) reach the same cost without
+  sharing, and a memory-safe cache must be capped, which the same file
+  exceeds. The maintainer then chose the ratio limit. `DocumentReader`
+  gains `max_text_chars_per_byte` (default `None`; 50 for `OfficeReader`
+  and `PDFReader`): the limit is the smaller of `max_text_chars` and
+  `max(ratio x file size, 1 Mi)`; the 1 Mi floor keeps a small file with
+  honestly repeated content readable; not applied when the input is not a
+  file on disk. The message names the setting that decided. Measured:
+  the 4 KB PDF is refused after 1 Mi characters (pypdf 0.7 s, pdfminer
+  11 s); 14 real documents reach at most 0.34 characters per byte. Not
+  bounded further: a hostile file of N bytes may still cost what 50 x N
+  characters cost (a 315 KB file: pypdf 7 s, pdfminer minutes), up to the
+  256 Mi cap. Blank pages were measured and are not an amplification
+  (158 bytes, 0.3 ms a page). 13 ratio tests; 5 mutants killed. Corpus
+  6,297 passed + the same 15; cleanprompt unchanged.
+- **CX-36: the text budget moves to every reader; PDF amplification.**
+  The same class as CX-35 in `PDFReader`: one Flat stream shared by
+  many pages (about 100 bytes a page) gave 4 KB -> 4e6 characters
+  (pypdf 1.7 s, pdfminer 36 s for 20 pages); a 2 MB file of 20,000 pages
+  would yield about 4e9 (hours of extraction), within `max_file_bytes`.
+  Rather than copy the CX-35 wrapper, `max_text_chars` and
+  `on_text_limit` move to `DocumentReader`, enforced in
+  `_iter_raw_chunks` (the only path to `get_documents`; custom extractors
+  included). Default `None`, because text, XML and ALTO output cannot
+  outgrow their input (already bounded: 500 MB text, 5 GB ALTO, where a
+  256 Mi default would refuse legitimate files); `OfficeReader` and
+  `PDFReader` override it to 256 Mi. `ZipReader` called members'
+  `get_raw_chunks` directly (bypassing the seam): each member is now
+  bounded by its own reader (a refused member is logged and skipped like
+  any member error), and the archive total by `ZipReader`'s own setting,
+  so it is never a silent no-op. The wrapper also syncs `raw_text` and is
+  idempotent. 15 cross-reader tests (14 fail on the previous code), the
+  office budget tests moved to the seam; 5 placement mutants killed
+  (seam, zip member, zip archive, PDF default, `raw_text`). Corpus suite
+  6,284 passed + the same 15; cleanprompt unchanged.
+- **CX-35: repeat amplification bounded by `max_text_chars`.** Each
+  OpenDocument repeat limit held alone (16,384 columns, 1,048,576 rows),
+  but they multiply: one cell repeated on both axes, 483 bytes, would
+  stream about 34e9 characters (measured 655e6 from 481 bytes at 20,000
+  rows); a caller collecting the chunks holds it all. New options:
+  `max_text_chars` (default 256 Mi, same order as `max_part_bytes`;
+  `None` disables) and `on_text_limit` (`"refuse"` default, or
+  `"truncate"`: keeps exactly the limit, flags the cut chunk
+  `text_truncated=True`, warns). One wrapper covers the package and flat
+  XML paths and counts as chunks stream, so at most one chunk is built
+  past the limit. The worst case is now refused in 0.1 s, 86 MB. Checked
+  first: part reads are capped on inflated bytes, and XML entities are
+  refused by the hardened parser. 11 tests (exact boundary included); 5
+  mutants killed (the `<=` boundary only after an exact-fit test). Corpus
+  suite: the same 15 network failures; usage skill unchanged.
+- **CX-34: an Excel cell past column XFD expanded its row (memory).**
+  `_sheet_rows` built `range(max(column) + 1)` from the cell reference,
+  and `_column_index` had no bound: one cell `AAAAAAA1` in a workbook of a
+  few hundred bytes took 2.9 GB and 28 s; each letter multiplies by 26,
+  and a long reference also cost quadratic big-integer work first.
+  `_column_index` now stops once past `_MAX_COLUMNS`, and a cell past it
+  is refused with `ValueError` naming the sheet and row (the reference is
+  cut to 16 characters), matching the OpenDocument limit. After: 55 MB,
+  0.01 s. Tests at the boundary (`XFD` read, `XFE` refused, a
+  200,000-letter reference); 3 mutants killed (one, the early stop, only
+  after a direct `_column_index` test: the refusal alone hid its cost).
+  Corpus suite: the same 15 network failures.
+- **Root `scikitplot.__all__`: recorded, not changed.** It is built from
+  `globals()` plus a hand list (82 names, 20 private, plus `annotations`),
+  and since every name is lazy, `from scikitplot import *` imports about
+  70 submodules. The maintainer chose to leave it for a separate PR; it is
+  open finding BLD-APIREF-002. A CI gate running `check --strict-coverage`
+  on the built package was also considered and not added: it cannot be run
+  here, and an untested failing gate would be guesswork.
+- **stats read statically; optional backends.** The reader follows
+  `__all__` changes in `try` bodies, their `else`, and `with` bodies (the
+  import-succeeded branches); `except` handlers stay out. `stats` gets a
+  conditional `__all__` (each backend adds its names after it imports), so
+  it never lists an absent name: in a sandbox without the compiled astropy
+  part it lists only the Tweedie names, and all resolve. `import *` stops
+  leaking `logger`, `suppress`, `annotations`. The check then found 20
+  undocumented stats names, now in five sections. Tests hold with or
+  without backends and fail on the old code; 3 reader mutants killed.
+  Unread: 7 -> 6.
+- **Three more modules read statically: utils, datasets, nc.** Each
+  declares `__all__` equal to what `import *` already exported, except
+  `utils`, whose star import leaked `logger` and `annotations` (no
+  `__all__`); those are dropped. `utils` documents `get_path` and
+  `remove_path`. Their usage-skill exclusion reason ("declares no
+  `__all__`") is no longer true and is corrected (still excluded: no usage
+  skill yet). Tests fail on the old code. Unread: 10 -> 7 (root,
+  `_externals`, `cexperimental`, `cexternals`, `stats`, compiled `memmap`
+  and `random`); 0 known gaps.
+- **API reference coverage closed: agent, mcp, decile, api.** `agent`
+  gains a "Schemas and canonical values" section (5 names); `mcp` a
+  "Command Line and Validation" section (4) and ignores `__version__`;
+  `api` documents `stack` (Figure Utilities) and ignores its subpackages,
+  the deprecated `plotters` shim and `test`; `decile` ignores its
+  subpackages (members are documented as `kds.x`). The checker now reads
+  `DEPRECATED_APIS_REFERENCE`: an entry under a module documents its last
+  part (`api.metrics.plot_roc_curve` documents `api.plot_roc_curve`); a
+  non-literal table is refused (exit 2). Test on a nested module; three
+  mutants (any entry, bare prefix, lost union) are killed. Baseline
+  20 -> 0: every documented module is now fully covered.
+- **API reference coverage, config and impute.** `config_context`,
+  `get_config`, `set_config` and `show_config` get a Global Configuration
+  section; the pytest runner `test` is ignored as tooling. `config.__all__`
+  listed `test` twice (statically and again after the runner import); the
+  static entry is removed, so it appears once, and only when the runner
+  imports. `impute` documents its re-exported `MissingIndicator` and
+  `SimpleImputer`. CI fixes: the logging usage skill is regenerated for the
+  new `TaskLevelStatusMessage` export, and the `_build_utils` fragment is
+  one bullet again. Baseline 27 -> 20.
+- **API reference coverage, exceptions and logging.** All 19 missing
+  `scikitplot.exceptions` names are documented in three sections (Errors,
+  Numerical errors, Warnings). `scikitplot.logging` gains a Standard
+  Library Compatibility section (10 re-exported names); three private
+  helpers leave `__all__` (still reachable through the module
+  `__getattr__`, which the tests import from `_logging` directly), and
+  `TaskLevelStatusMessage`, documented but missing from `__all__`, is now
+  exported. A test pins the contract. Baseline 60 -> 27.
+- **API reference coverage, cleanprompt.** The static check now counts
+  names a module exports lazily (imported under `if TYPE_CHECKING:` with a
+  module `__getattr__`, from the package itself) as public, so
+  cleanprompt's optional tier (NerDetector, create_app, encrypt_mapping,
+  ...) is no longer "stale"; and an entry written `"sub.Name"` documents
+  `Name` (scikitplot.impute's `_ann.ANNImputer`). 44 cleanprompt names
+  added in five new sections and existing ones; `__version__` ignored as
+  metadata. Baseline 177 -> 96. cleanprompt `imports`: 131 targets, 0
+  errors, 7 optional dependencies absent.
+- **API reference coverage, stale entries.** 36 of the 37 "stale"
+  entries were not stale: they name a submodule (`"_seaborn"`,
+  `"enable_ann_imputer"`) or a name through one (`"kds.decile_table"`,
+  `"_doremi.ENVELOPES"`, `"_probscale.probplot"` through `from .viz import
+  *`), which autosummary resolves. `documented_target_exists` resolves such
+  an entry in the source (definitions, assignments, imports, star imports
+  followed once each); only an entry that resolves nowhere is stale.
+  Left: `logging.TaskLevelStatusMessage` (reached through the module's
+  `__getattr__`, not in `__all__`). Baseline 96 -> 60. 2 tests.
+- Tests: 24 new (179); on `main` the file does not import (the new
+  constants). 3 mutants, each caught. Research snapshot and corpus suite
+  unchanged.
+
 ## 2026-11-14 — office reader review: text read twice, untyped package errors, PR 936
 
 Review of `_readers/_office.py` after PR 935, each finding reproduced on

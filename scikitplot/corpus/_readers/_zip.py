@@ -451,7 +451,17 @@ class ZipReader(DocumentReader):
         finally:
             _archive_ctx.reset(token)
 
-    def _iter_raw_chunks(  # noqa: PLR0912
+    def _iter_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+        """
+        Yield every member's chunks within this reader's ``max_text_chars``.
+
+        The archive total is bounded here (``ZipReader(max_text_chars=...)``
+        is never a silent no-op); each member is also bounded by its own
+        reader's limit in :meth:`_iter_members`.
+        """
+        yield from self._within_text_limit(self._iter_members())
+
+    def _iter_members(  # noqa: PLR0912
         self,
     ) -> Generator[dict[str, Any], None, None]:
         """
@@ -620,7 +630,12 @@ class ZipReader(DocumentReader):
                         # archive reader and collapses every document to the
                         # archive filename / UNKNOWN source type.
                         member_label = f"{archive_name}/{member_path}"
-                        for raw_chunk in sub_reader.get_raw_chunks():
+                        # The member's own text limit (an OfficeReader or
+                        # PDFReader default, or reader_kwargs): a refused
+                        # member is logged and skipped like any member error.
+                        for raw_chunk in sub_reader._within_text_limit(
+                            sub_reader.get_raw_chunks()
+                        ):
                             bridged = dict(raw_chunk)
                             bridged.setdefault("input_path", member_label)
                             for key, value in sub_reader.source_provenance.items():
