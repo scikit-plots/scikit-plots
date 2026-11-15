@@ -171,7 +171,88 @@ class RenderTests(unittest.TestCase):
         self.assertIn("| `f` | function | Do f. |", skill)
         self.assertIn("```python\nf(1)\n```", skill)
         self.assertNotIn(">>>", skill)
-        self.assertIn("| `f(x)` | function | Do f. |", files["references/API.md"])
+        # No frozen list ships: the full API is read from the installed version.
+        self.assertEqual(list(files), ["SKILL.md"])
+        self.assertNotIn("references/", skill)
+
+    @staticmethod
+    def _lookup_block(skill):
+        section = skill.split("## Read the API of the installed version", 1)[1]
+        return re.findall(r"```sh\n(.*?)```", section, re.S)[0].splitlines()
+
+    def _render(self, api, module="scikitplot.misc"):
+        original_trees = MODULE._dist_trees
+        MODULE._dist_trees = lambda: []
+        try:
+            return MODULE.render(module, "scikitplot-misc", api, [])["SKILL.md"]
+        finally:
+            MODULE._dist_trees = original_trees
+
+    def test_the_api_is_read_from_the_installed_version_two_ways(self):
+        """The command for every name at once, and the standard library on any release."""
+        fn = {"name": "f", "kind": "function", "signature": "`f(x)`", "summary": "Do f.", "doc": ""}
+        api = {"doc": "", "rows": [fn], "children": [], "example": "", "example_source": ""}
+        skill = self._render(api)
+        self.assertEqual(
+            self._lookup_block(skill),
+            [
+                'python -c "import scikitplot; print(scikitplot.__version__)"',
+                "python -m scikitplot api scikitplot.misc",
+                'python -c "import scikitplot.misc as m; print(m.__all__)"',
+                'python -c "import scikitplot.misc as m; help(m.f)"',
+                'python -c "import inspect, scikitplot.misc as m; print(inspect.signature(m.f))"',
+            ],
+        )
+        self.assertIn("work on every release", skill)
+        self.assertIn("`help()` and\n  `inspect.signature` are the source of truth", skill)
+        self.assertIn(
+            "All names with their signatures, from the installed version:"
+            " `python -m scikitplot api scikitplot.misc`",
+            skill,
+        )
+
+    def test_a_long_api_names_how_many_more_the_command_lists(self):
+        rows = [
+            {"name": f"f{i}", "kind": "function", "signature": f"`f{i}()`", "summary": "", "doc": ""}
+            for i in range(MODULE.SHOWN_NAMES + 3)
+        ]
+        api = {"doc": "", "rows": rows, "children": [], "example": "", "example_source": ""}
+        skill = self._render(api)
+        self.assertIn(
+            "3 more names, and all signatures, from the installed version:"
+            " `python -m scikitplot api scikitplot.misc`",
+            skill,
+        )
+        self.assertEqual(skill.count("| `f"), MODULE.SHOWN_NAMES)
+
+    def test_the_example_is_the_first_name_with_a_call_signature(self):
+        rows = [
+            {"name": "CONSTANT", "kind": "str", "signature": "`CONSTANT`", "summary": "", "doc": ""},
+            {"name": "Compiled", "kind": "class", "signature": "`Compiled(...)`", "summary": "", "doc": ""},
+            {"name": "g", "kind": "function", "signature": "`g(a, b)`", "summary": "", "doc": ""},
+        ]
+        api = {"doc": "", "rows": rows, "children": [], "example": "", "example_source": ""}
+        block = self._lookup_block(self._render(api))
+        self.assertEqual(block[3], 'python -c "import scikitplot.misc as m; help(m.g)"')
+        self.assertEqual(
+            block[4], 'python -c "import inspect, scikitplot.misc as m; print(inspect.signature(m.g))"'
+        )
+
+    def test_without_a_call_signature_no_signature_line(self):
+        rows = [
+            {"name": "CONSTANT", "kind": "str", "signature": "`CONSTANT`", "summary": "", "doc": ""},
+            {"name": "Compiled", "kind": "class", "signature": "`Compiled(...)`", "summary": "", "doc": ""},
+        ]
+        api = {"doc": "", "rows": rows, "children": [], "example": "", "example_source": ""}
+        block = self._lookup_block(self._render(api))
+        self.assertEqual(block[-1], 'python -c "import scikitplot.misc as m; help(m.CONSTANT)"')
+        self.assertFalse(any("inspect.signature" in line for line in block))
+
+    def test_without_names_no_signature_line(self):
+        api = {"doc": "", "rows": [], "children": [], "example": "", "example_source": ""}
+        block = self._lookup_block(self._render(api))
+        self.assertEqual(block[-1], 'python -c "import scikitplot.misc as m; help(m)"')
+        self.assertFalse(any("inspect.signature" in line for line in block))
 
     def test_shell_blocks_run_as_written(self):
         """No placeholder in a ``sh`` block: ``<`` and ``>`` would be read as redirects."""

@@ -340,9 +340,10 @@ A copied skill does not update; copy it again after updating the repository.
   entry points (`get_logger`, `set_config`, `show_versions`, ...) and lists
   the other skills; `scikitplot-api` covers the plotting functions
   (`plot_confusion_matrix`, `plot_roc`, ...).
-- **Big modules have a reference file.** A skill shows up to 40 names; the
-  full list with signatures is in its `references/API.md`, which Claude opens
-  when needed.
+- **The full API comes from your installed version.** A skill shows up to 40
+  names; for the rest, and for signatures, Claude runs
+  `python -m scikitplot api <module>`, or `help()` on releases before that
+  command, so it reads the version your project has.
 - **Watch your plan's limits.** Claude Code shows usage in its status line.
   `/model sonnet` uses less of a plan's limit than larger models.
 

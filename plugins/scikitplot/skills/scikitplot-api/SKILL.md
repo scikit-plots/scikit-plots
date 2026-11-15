@@ -25,16 +25,29 @@ PyPI](https://pypi.org/project/scikit-plots/#history) lists each release, and
 [pip's user guide](https://pip.pypa.io/en/stable/user_guide/) explains
 upgrading.
 
-## Before writing code
+## Read the API of the installed version
 
-The API below was read from one version of the package. Check the version the
-project has, and read a name's docstring and signature before calling it
-(shown for `plot_calibration`; use the name you need):
+The table below was read from one version of scikit-plots; the project may
+have another, and the installed package decides. Check the version, then read
+what it declares (shown for `plot_calibration`; use the name you need):
 
 ```sh
 python -c "import scikitplot; print(scikitplot.__version__)"
+python -m scikitplot api scikitplot.api
+python -c "import scikitplot.api as m; print(m.__all__)"
 python -c "import scikitplot.api as m; help(m.plot_calibration)"
+python -c "import inspect, scikitplot.api as m; print(inspect.signature(m.plot_calibration))"
 ```
+
+- `python -m scikitplot api` lists every public name with its kind, signature
+  and summary (`--name NAME` for one in full, `--format json` for tools).
+  Releases before it report an error instead (an unknown command, or a
+  missing dependency of an older command line): then use the next lines,
+  which work on every release.
+- `__all__` is the public list; `help()` is the full documentation of one name,
+  methods included; `inspect.signature` is its exact call signature.
+- Both read the installed objects. If they ever differ, `help()` and
+  `inspect.signature` are the source of truth.
 
 ## Public API
 
@@ -59,7 +72,8 @@ Declared in `scikitplot.api.__all__`, in that order.
 | `stack` | function | Stack multiple matplotlib figures into a single combined figure. |
 | `test` | PytestTester |  |
 
-All names with signatures: [references/API.md](references/API.md).
+All names with their signatures, from the installed version: `python -m scikitplot api scikitplot.api`
+(or `print(m.__all__)` and `help()`, above).
 
 ## Example (from the docstring of `scikitplot.api.plot_calibration`)
 
