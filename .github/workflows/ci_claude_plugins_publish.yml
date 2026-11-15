@@ -3,13 +3,17 @@
 # One controller, in this repository; scikit-plots/skills holds no workflow of
 # its own. Refs are mirrored by name:
 #
-#   push to main                ->  scikit-plots/skills main               (unversioned)
-#   push to maintenance/X.Y.x   ->  scikit-plots/skills maintenance/X.Y.x  (unversioned)
-#   push of tag vX.Y.Z[.postN]  ->  scikit-plots/skills tag vX.Y.Z[.postN] (version X.Y.Z[.postN])
+#   push to main                ->  scikit-plots/skills main               (development version)
+#   push to maintenance/X.Y.x   ->  scikit-plots/skills maintenance/X.Y.x  (development version)
+#   push of tag vX.Y.Z[.postN]  ->  scikit-plots/skills tag vX.Y.Z[.postN] (release version)
 #                                   and branch `stable` when that release is the newest
+#   pull request (plugin paths) ->  tests and a preview build; nothing is pushed
 #
-# An unversioned build sets no `version` in plugin.json, so Claude Code versions
-# it by commit (https://code.claude.com/docs/en/plugins/marketplace-reference.md).
+# Every build sets `version` in plugin.json, in Semantic Versioning, derived from
+# the library's `scikitplot.__version__` (build_skills_repo.plugin_version):
+# 0.4.0.post11 -> 0.4.0+post.11; 0.5.dev0 at a commit ->
+# 0.5.0-0.dev.0.<UTC commit time>+g<hash>. Claude Code updates a plugin only
+# when its version changes, so a development version changes with every commit.
 # A tag is immutable: when it already exists in scikit-plots/skills with another
 # tree, the run fails instead of moving it.
 #
@@ -30,6 +34,20 @@ on:
       - "maintenance/**"
     tags:
       - "v*"
+  # A change to what is published, or to the tools that build it, is tested
+  # and built before it merges; a pull request never publishes (its ref is a
+  # preview, and `publish` runs only on push or on a dispatch that asks).
+  pull_request:
+    paths:
+      - ".github/workflows/ci_claude_plugins_publish.yml"
+      - "plugins/**"
+      - "scikitplot/__init__.py"
+      - "scikitplot/_api_listing.py"
+      - "tools/maint_tools/build_skills_repo.py"
+      - "tools/maint_tools/generate_usage_skills.py"
+      - "tools/maint_tools/tests/test_build_skills_repo.py"
+      - "tools/maint_tools/tests/test_generate_usage_skills.py"
+      - "maintenances/_repo/_maintenance/tools/check_records.py"
   workflow_dispatch:
     inputs:
       publish:
@@ -78,9 +96,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Reads the repository and uploads an artifact; it writes nothing here
+    # (Rule 166). The push happens in `publish`, with its own token.
     permissions:
-      # contents: read
-      contents: write
+      contents: read
 
     outputs:
       kind: ${{ steps.ref.outputs.kind }}
@@ -158,6 +177,10 @@ jobs:
             { echo "kind=preview"; echo "ref=$REF_NAME"; echo "version="; echo "base="; } >> "$GITHUB_OUTPUT"
           fi
 
+      - name: "🧪 Build script tests"
+        # Includes the plugin-version mapping and its order against PEP 440.
+        run: python -I -B tools/maint_tools/tests/test_build_skills_repo.py
+
       - name: "🔎 Records, skills and plugins are current"
         # Check only, never regenerate: the published tree is the committed
         # one, byte for byte, so scikit-plots/skills always equals this ref
@@ -187,7 +210,7 @@ jobs:
           if [ -n "$VERSION" ]; then
             python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --version "$VERSION"
           else
-            python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --unversioned
+            python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --dev
           fi
 
       - name: "📦 Upload the tree"

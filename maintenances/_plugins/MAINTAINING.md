@@ -307,7 +307,7 @@ Build and check by hand, from this checkout:
 ```sh
 git clone https://github.com/scikit-plots/skills ../skills
 python tools/maint_tools/build_skills_repo.py build --out ../skills --version 0.5.0   # a release
-python tools/maint_tools/build_skills_repo.py build --out ../skills --unversioned     # a branch
+python tools/maint_tools/build_skills_repo.py build --out ../skills --dev             # a branch
 python tools/maint_tools/build_skills_repo.py check --out ../skills --version 0.5.0   # ok, unchanged
 (cd ../skills && claude plugin validate . && for d in skills/*/; do agentskills validate "$d"; done)
 ```
@@ -366,7 +366,7 @@ Never put keys or secrets in `.mcp.json`: every user receives the file.
 | G5 | Skill names are global across both sets and other projects | Keep the `scikitplot` prefix; the check rejects a name used twice |
 | G6 | A plugin always loads its whole `skills/` folder | Never put developers' skills under `plugins/scikitplot/`; a skill for both goes in `plugins/_shared/skills/` |
 | G7 | A top-level `bin/` in a plugin makes claude.ai and Cowork refuse it | Keep executables out of plugin roots |
-| G8 | A pinned `version` freezes users on that copy | Only release tags have one: `build_skills_repo.py --version` refuses a development version, `--unversioned` (branches) sets none, and `check_records.py` (`plugins`) refuses one in this repository |
+| G8 | A pinned `version` freezes users on that copy (Claude Code updates only when it changes) | The published version is derived, never written by hand: a release tag gets the library's release (`--version`, refuses a development version); a branch gets the library's development version plus its commit's UTC time and hash (`--dev`), new with every commit; `check_records.py` (`plugins`) refuses a `version` in this repository's manifests |
 | G9 | A zip of the repository cannot delete renamed files | List them in `REMOVED_FILES.txt`, or apply with `git apply` |
 | G10 | Unquoted `: ` in a description is a different YAML value (it broke the mlflow skill once) | Quote it; the records check rejects it |
 | G11 | Agents' `skills:` preloading happens only in a live model session | Confirm by hand after changing agents: in a session, @-mention the agent (`@scikitplot:scikitplot-annoy`) and give it a task |

@@ -21,6 +21,15 @@ section 9 of `maintenances/_plugins/MAINTAINING.md` intend the listing to
 follow `stable`, the newest release, which does not exist yet. Status
 `blocked`: on the first release tag, and on the end of the current review.
 
+**Update (PR 944, CI-13):** the warning no longer depends on the channel.
+Every build now sets `version` in Semantic Versioning, derived from the
+library's `scikitplot.__version__` (`build_skills_repo.plugin_version`):
+`main` publishes `0.5.0-0.dev.0.<UTC commit time>+g<hash>`, new with every
+commit (Claude Code updates only when the version changes), and a release
+tag its release (`0.4.0.post11` becomes `0.4.0+post.11`). What stays open
+here is only the channel: the listing still follows `main`, the development
+build, until the first release tag gives `stable`.
+
 ## Why it matters
 
 Following `main` lists development builds: users of the listing get modules
