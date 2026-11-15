@@ -104,6 +104,34 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
         params=(FORMAT,),
     ),
     CommandSpec(
+        name="api",
+        summary="List the public API of an installed scikit-plots module.",
+        handler="scikitplot._cli._commands.api:run",
+        params=(
+            Param(
+                dest="module",
+                kind="argument",
+                default="scikitplot",
+                help="Module: scikitplot or a module below it (default: scikitplot).",
+            ),
+            Param(
+                dest="name",
+                flags=("--name",),
+                kind="option",
+                default=None,
+                help="Show one public name in full: whole signature and docstring.",
+            ),
+            Param(
+                dest="fmt",
+                flags=("--format",),
+                kind="option",
+                choices=("text", "markdown", "json", "yaml", "toml"),
+                default="text",
+                help="Output format (text, markdown, json, yaml, toml).",
+            ),
+        ),
+    ),
+    CommandSpec(
         name="greet",
         summary="Greet someone by name (example command).",
         handler="scikitplot._cli._commands.greet:run",
