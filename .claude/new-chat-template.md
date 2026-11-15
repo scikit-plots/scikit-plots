@@ -211,7 +211,7 @@ one line.
     publishes `plugins/scikitplot/`):
     `python tools/maint_tools/generate_usage_skills.py check` (needs the
     package installed with its optional dependencies; `sync` when stale) and
-    `python tools/maint_tools/build_skills_repo.py build --out DIR --unversioned`
+    `python tools/maint_tools/build_skills_repo.py build --out DIR --dev`
     (its validation must pass; compare DIR with a clone of
     `scikit-plots/skills` to list what the merge will publish)
 - Default output unchanged (cleanprompt):

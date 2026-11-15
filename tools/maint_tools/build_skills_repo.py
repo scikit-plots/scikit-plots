@@ -14,7 +14,8 @@ repository: ``main`` builds ``main``, ``maintenance/X.Y.x`` builds
 ``maintenance/X.Y.x`` and the tag ``vX.Y.Z`` builds the tag ``vX.Y.Z``
 (``.github/workflows/ci_claude_plugins_publish.yml`` pushes each). This
 script turns one checkout into that tree: it copies the generated skills,
-agents and README, adds the icon, the licenses and a one-plugin marketplace,
+agents and README, adds the icon (as a file only), the licenses and a
+one-plugin marketplace,
 sets ``version`` for a release (none for a branch, so Claude Code versions a
 branch build by its commit), reduces the tree to what the directory accepts
 from a publisher that is not a Verified organization (:func:`community_component`,
@@ -24,7 +25,7 @@ pre-submission checklist and that policy.
 Usage::
 
     python tools/maint_tools/build_skills_repo.py build --out ../skills --version 0.5.0
-    python tools/maint_tools/build_skills_repo.py build --out ../skills --unversioned
+    python tools/maint_tools/build_skills_repo.py build --out ../skills --dev
     python tools/maint_tools/build_skills_repo.py check --out ../skills --version 0.5.0
 
 ``build`` writes and prints what changed; ``check`` writes nothing and exits 1
@@ -34,8 +35,12 @@ source checkout is stale or the result breaks a directory check.
 Notes
 -----
 **User notes.** Run it from the checkout being published: with ``--version``
-for a release tag, ``--unversioned`` for a branch; one of the two is
-required, there is no default. Only the paths in :data:`MANAGED` are written;
+for a release tag, ``--dev`` for a branch; one of the two is required, there
+is no default. Every build sets ``version`` in Semantic Versioning, derived
+from the library's (:func:`plugin_version`): a release keeps its number
+(``0.4.0.post11`` becomes ``0.4.0+post.11``); a development build adds its
+commit (``0.5.0-0.dev.0.<UTC time>+g<hash>``), so each commit is a new
+version, which Claude Code needs to update a plugin. Only the paths in :data:`MANAGED` are written;
 the target's ``.git/`` is left alone, and :func:`validate` rejects any other
 top-level entry, so the published tree is exactly what this script builds.
 
@@ -53,10 +58,12 @@ with ``LAUNCHER_REGISTRY_REDIRECT`` (Rule 171).
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import ast
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 import textwrap
 from pathlib import Path
@@ -85,12 +92,34 @@ Thumbs.db
 desktop.ini
 __pycache__/
 """
+#: The listing icon: a file at the path the directory looks for, and no `icon`
+#: key in plugin.json (the directory reports the key as UNKNOWN_KEY_CROSS_TOOL,
+#: Claude Code does not read it). Square PNG, 512 to 2048 px, under 2 MB.
 ICON_SOURCE = "docs/source/logos/assets/scikit-plots-primary.png"
-ICON = "assets/icon.png"
+ICON = ".claude-plugin/icon.png"
+ICON_MIN_PX, ICON_MAX_PX, ICON_MAX_BYTES = 512, 2048, 2 * 1024 * 1024
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 LICENSE_SOURCE = "LICENSE.txt"
 LICENSES_SOURCE = "LICENSES"
 #: A released version: PEP 440 final releases and post releases only.
 RELEASE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.post[0-9]+)?")
+#: A library version this build understands (PEP 440, public part): release
+#: X.Y[.Z], then optionally a pre-release (aN, bN, rcN), a post release, a
+#: development release. A local part (+...) is dropped.
+PEP440 = re.compile(
+    r"(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)(?:\.(?P<patch>0|[1-9][0-9]*))?"
+    r"(?:(?P<pre>a|b|rc)(?P<pre_n>[0-9]+))?"
+    r"(?:\.post(?P<post>[0-9]+))?"
+    r"(?:\.dev(?P<dev>[0-9]+))?"
+    r"(?:\+[A-Za-z0-9.]+)?"
+)
+#: Semantic Versioning 2.0.0, the official expression (semver.org).
+SEMVER = re.compile(
+    r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
+    r"(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?"
+)
+_PRE_NAMES = {"a": "alpha", "b": "beta", "rc": "rc"}
 
 # Limits of the pre-submission checklist (see the module docstring).
 MAX_FILES = 512
@@ -100,7 +129,6 @@ README_MIN_WORDS = 40
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
 OS_JUNK = (".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX")
 WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?")
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 #: A page that loads a script from the network when opened (the directory
 #: review's runtime-fetch check); the published tree ships every script it runs.
 REMOTE_SCRIPT = re.compile(
@@ -289,6 +317,161 @@ def check_version(version: str) -> str:
     return version
 
 
+def plugin_version(
+    version: str, commit_time: int | None = None, commit: str | None = None
+) -> str:
+    """
+    Return the plugin version (Semantic Versioning) for a library version (PEP 440).
+
+    The plugin follows the library: its major, minor and patch are the
+    library's, so a skill set says which library it describes. Claude Code
+    uses the version as the cache key and updates a plugin only when it
+    changes, so a development build adds its commit and gets a new version
+    with every commit; a release is the same string on every rebuild.
+
+    Parameters
+    ----------
+    version : str
+        The library version (``scikitplot.__version__``), such as ``0.4.0``,
+        ``0.4.0.post11``, ``0.5.0rc1`` or ``0.5.dev0``.
+    commit_time : int, optional
+        For a development version: the commit's time, seconds since the epoch
+        (``git log -1 --format=%ct``).
+    commit : str, optional
+        For a development version: the commit's hash (7 or more hex digits).
+
+    Returns
+    -------
+    str
+        ``X.Y.Z`` for a release; ``X.Y.Z+post.N`` for a post release (the
+        same API: build metadata keeps the string new without ranking it as a
+        pre-release); ``X.Y.Z-alpha.N`` / ``-beta.N`` / ``-rc.N``; and for a
+        development release ``X.Y.Z-0.dev.N.YYYYMMDDHHMMSS+g<hash>`` (UTC
+        commit time: later commits sort later, all before any pre-release and
+        the release). Each keeps
+        the order PEP 440 gives the library versions.
+
+    Raises
+    ------
+    ValueError
+        For a version this mapping does not cover (a development build of a
+        pre-release or post release, or not PEP 440), or a development
+        version without its commit.
+
+    Examples
+    --------
+    >>> plugin_version("0.4.0.post11")
+    '0.4.0+post.11'
+    >>> plugin_version("0.5.dev0", 1763186040, "761a6ba0c")
+    '0.5.0-0.dev.0.20251115055400+g761a6ba'
+    """
+    match = PEP440.fullmatch(version) if isinstance(version, str) else None
+    if match is None:
+        raise ValueError(f"version {version!r} is not a PEP 440 version such as 0.5.0")
+    g = match.groupdict()
+    core = f"{int(g['major'])}.{int(g['minor'])}.{int(g['patch'] or 0)}"
+    pre = [_PRE_NAMES[g["pre"]], str(int(g["pre_n"]))] if g["pre"] else []
+    if g["dev"] is not None:
+        if g["post"] is not None or g["pre"]:
+            # PEP 440 orders 0.5.0rc1.dev2 before 0.5.0rc1; Semantic Versioning
+            # would order any extension of "rc.1" after it. Not used here
+            # (main is X.Y.devN), so refused rather than ordered wrongly.
+            raise ValueError(
+                f"version {version!r}: a development build of a pre-release or post"
+                " release has no plugin version that keeps PEP 440's order"
+            )
+        if (
+            isinstance(commit_time, bool)
+            or not isinstance(commit_time, int)
+            or commit_time < 0
+            or not isinstance(commit, str)
+            or not re.fullmatch(r"[0-9a-f]{7,40}", commit)
+        ):
+            raise ValueError(
+                f"version {version!r} is a development version: its plugin version"
+                " needs the commit's time and hash, so every commit gets a new one"
+                " (Claude Code updates a plugin only when its version changes)"
+            )
+        stamp = dt.datetime.fromtimestamp(commit_time, tz=dt.timezone.utc)
+        # The leading numeric identifier 0 ranks below every word, so a
+        # development build sorts before alpha, beta and rc, as in PEP 440
+        # (Semantic Versioning compares words alphabetically: "alpha" < "dev").
+        pre += ["0", "dev", str(int(g["dev"])), stamp.strftime("%Y%m%d%H%M%S")]
+        return f"{core}-{'.'.join(pre)}+g{commit[:7]}"
+    text = f"{core}-{'.'.join(pre)}" if pre else core
+    if g["post"] is not None:
+        text += f"+post.{int(g['post'])}"
+    return text
+
+
+_INIT_VERSION = re.compile(r"""^__version__\s*=\s*["']([^"']+)["']""", re.MULTILINE)
+
+
+def library_version(source: Path) -> str:
+    """
+    Return ``scikitplot.__version__`` as the checkout declares it.
+
+    Read from ``scikitplot/__init__.py`` as text (the source
+    ``scikitplot/_build_utils/gitversion.py`` reads too), never by importing
+    the package, so it needs no build.
+
+    Raises
+    ------
+    ValueError
+        When the file declares no ``__version__``.
+    """
+    init = source / "scikitplot" / "__init__.py"
+    match = _INIT_VERSION.search(init.read_text(encoding="utf-8"))
+    if match is None:
+        raise ValueError(f"{init}: no __version__ = '...' line")
+    return match.group(1)
+
+
+def head_commit(source: Path) -> tuple[int, str]:
+    """
+    Return the checkout's ``HEAD`` commit time (epoch seconds) and full hash.
+
+    Raises
+    ------
+    ValueError
+        When *source* is not a git checkout or git is not installed.
+    """
+    try:
+        done = subprocess.run(  # noqa: S603 - fixed argument list, no shell
+            ["git", "-C", str(source), "log", "-1", "--format=%ct %H", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"git is not available: {exc}") from exc
+    parts = done.stdout.split()
+    if done.returncode != 0 or len(parts) != 2 or not parts[0].isdigit():
+        raise ValueError(
+            f"{source}: cannot read the HEAD commit: {done.stderr.strip() or done.stdout.strip()}"
+        )
+    return int(parts[0]), parts[1]
+
+
+def dev_version(source: Path) -> str:
+    """
+    Return the plugin version of a development build of *source*.
+
+    Raises
+    ------
+    ValueError
+        When the checkout's library version is not a development version (a
+        release is built with ``--version``), or its commit cannot be read.
+    """
+    version = library_version(source)
+    if ".dev" not in version:
+        raise ValueError(
+            f"scikitplot.__version__ is {version!r}, a release: build it with"
+            f" --version {version}, not --dev"
+        )
+    return plugin_version(version, *head_commit(source))
+
+
 def _split_frontmatter(rel: str, text: str) -> tuple[list[str], str]:
     """Return the frontmatter lines and the body of a component file."""
     if not text.startswith("---\n") or "\n---\n" not in text[3:]:
@@ -362,7 +545,7 @@ def published_license(name: str) -> str:
     return name if Path(name).suffix.lower() in ALLOWED_SUFFIXES else name + ".txt"
 
 
-def render(source: Path, version: str | None) -> dict[str, bytes]:
+def render(source: Path, version: str) -> dict[str, bytes]:
     """
     Return every file of the released plugin, by path in the target.
 
@@ -371,8 +554,8 @@ def render(source: Path, version: str | None) -> dict[str, bytes]:
     source : Path
         Root of a scikit-plots checkout whose generated plugin is current.
     version : str
-        The library version of that checkout (see :func:`check_version`), or
-        ``None`` for an unversioned branch build.
+        The plugin version (Semantic Versioning, from :func:`plugin_version`
+        of the checkout's library version), set in both manifests.
 
     Returns
     -------
@@ -382,13 +565,14 @@ def render(source: Path, version: str | None) -> dict[str, bytes]:
     Raises
     ------
     ValueError
-        When the version is not a release, or the checkout's skills, agents or
-        README are stale (``check_records.py`` reports a ``skills`` problem).
+        When the version is not Semantic Versioning, or the checkout's skills,
+        agents or README are stale (``check_records.py`` reports a ``skills``
+        problem).
     FileNotFoundError
         When the checkout lacks the plugin, the icon or the licenses.
     """
-    if version is not None:
-        check_version(version)
+    if not isinstance(version, str) or not SEMVER.fullmatch(version):
+        raise ValueError(f"plugin version {version!r} is not Semantic Versioning (Rule 166)")
     records = _records()
     stale = records.check_skills(source)
     if stale:
@@ -428,14 +612,10 @@ def render(source: Path, version: str | None) -> dict[str, bytes]:
         "repository": f"https://github.com/{records.STABLE_REPO}",
         "license": manifest["license"],
         "keywords": manifest.get("keywords", []),
-        "icon": f"./{ICON}",
+        "version": version,
     }
-    if version is not None:
-        released = {**released, "version": version}
     files[".claude-plugin/plugin.json"] = _json(released)
-    metadata = {"description": manifest["description"]}
-    if version is not None:
-        metadata["version"] = version
+    metadata = {"description": manifest["description"], "version": version}
     files[".claude-plugin/marketplace.json"] = _json(
         {
             "name": records.STABLE_MARKETPLACE,
@@ -594,11 +774,30 @@ def _check_files(out: Path) -> list[str]:
     return errors
 
 
-def _check_manifest(out: Path, versioned: bool = True) -> list[str]:
-    """Return the problems of ``plugin.json``, its icon and the README.
+def _check_icon(path: Path) -> list[str]:
+    """Return the problems of the listing icon (ICON_MISSING otherwise)."""
+    if not path.is_file():
+        return [f"{ICON}: missing (the directory reports ICON_MISSING)"]
+    data = path.read_bytes()
+    if data[:8] != PNG_MAGIC or data[12:16] != b"IHDR":
+        return [f"{ICON}: not a PNG"]
+    width, height = int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    errors = []
+    if width != height:
+        errors.append(f"{ICON}: {width} x {height} px, not square")
+    if not ICON_MIN_PX <= width <= ICON_MAX_PX:
+        errors.append(f"{ICON}: {width} px, not {ICON_MIN_PX} to {ICON_MAX_PX}")
+    if len(data) >= ICON_MAX_BYTES:
+        errors.append(f"{ICON}: {len(data):,} bytes, not under {ICON_MAX_BYTES:,}")
+    return errors
 
-    A release (*versioned*) needs a released ``version``; a branch build must
-    set none, so Claude Code versions it by commit.
+
+def _check_manifest(out: Path) -> list[str]:
+    """Return the problems of ``plugin.json``, the icon file and the README.
+
+    Every build has a ``version`` in Semantic Versioning (the directory asks
+    for one; Claude Code updates a plugin only when it changes), the same in
+    ``marketplace.json``.
     """
     manifest_path = out / ".claude-plugin/plugin.json"
     if not manifest_path.is_file():
@@ -606,14 +805,23 @@ def _check_manifest(out: Path, versioned: bool = True) -> list[str]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     errors = [
         f".claude-plugin/plugin.json: {key!r} is not set"
-        for key in ("name", "description", "author", "license", "icon")
+        for key in ("name", "description", "author", "license")
         if not manifest.get(key)
     ]
-    if not versioned:
-        if "version" in manifest:
-            errors.append(".claude-plugin/plugin.json: a branch build sets no 'version'")
-    elif not manifest.get("version"):
+    version = manifest.get("version")
+    if not version:
         errors.append(".claude-plugin/plugin.json: 'version' is not set")
+    elif not SEMVER.fullmatch(str(version)):
+        errors.append(
+            f".claude-plugin/plugin.json: version {version!r} is not Semantic Versioning"
+        )
+    market_path = out / ".claude-plugin/marketplace.json"
+    if version and market_path.is_file():
+        market = json.loads(market_path.read_text(encoding="utf-8"))
+        if market.get("metadata", {}).get("version") != version:
+            errors.append(
+                ".claude-plugin/marketplace.json: metadata.version differs from plugin.json"
+            )
     if "dependencies" in manifest:
         errors.append(
             ".claude-plugin/plugin.json: sets 'dependencies'; installed from a marketplace"
@@ -622,17 +830,14 @@ def _check_manifest(out: Path, versioned: bool = True) -> list[str]:
         )
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(manifest.get("name", ""))):
         errors.append(".claude-plugin/plugin.json: 'name' is not lowercase kebab-case")
-    if versioned and manifest.get("version"):
-        try:
-            check_version(manifest.get("version"))
-        except ValueError as exc:
-            errors.append(f".claude-plugin/plugin.json: {exc}")
-    icon_path = str(manifest.get("icon", ""))
-    icon = out / (icon_path[2:] if icon_path.startswith("./") else icon_path)
-    if not icon.is_file() or icon.read_bytes()[:8] != PNG_MAGIC:
+    if "icon" in manifest:
+        # The directory reports `icon` as UNKNOWN_KEY_CROSS_TOOL (a key Claude
+        # Code does not read); it finds the file at ICON without it.
         errors.append(
-            f".claude-plugin/plugin.json: icon {manifest.get('icon')!r} is not a PNG in the plugin"
+            f".claude-plugin/plugin.json: sets 'icon', a key Claude Code does not read;"
+            f" the directory finds {ICON} without it"
         )
+    errors += _check_icon(out / ICON)
     readme = out / "README.md"
     if (
         not readme.is_file()
@@ -686,7 +891,7 @@ def _check_components(out: Path) -> list[str]:
     return errors
 
 
-def validate(out: Path, versioned: bool = True) -> list[str]:
+def validate(out: Path) -> list[str]:
     """
     Check *out* against the directory checks a static tree can answer.
 
@@ -694,8 +899,6 @@ def validate(out: Path, versioned: bool = True) -> list[str]:
     ----------
     out : Path
         Root of the released plugin (the ``scikit-plots/skills`` checkout).
-    versioned : bool, default True
-        ``True`` for a release build, ``False`` for a branch build.
 
     Returns
     -------
@@ -707,7 +910,7 @@ def validate(out: Path, versioned: bool = True) -> list[str]:
     --------
     render : What a build writes; a fresh build passes every check.
     """
-    return _check_files(out) + _check_manifest(out, versioned) + _check_components(out)
+    return _check_files(out) + _check_manifest(out) + _check_components(out)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -721,11 +924,17 @@ def main(argv: list[str] | None = None) -> int:
         help="root of the scikit-plots/skills checkout",
     )
     which = parser.add_mutually_exclusive_group(required=True)
-    which.add_argument("--version", help="a release, e.g. 0.5.0 (for a vX.Y.Z tag)")
     which.add_argument(
-        "--unversioned",
+        "--version",
+        help="a library release, e.g. 0.5.0 or 0.4.0.post11 (for a vX.Y.Z tag)",
+    )
+    which.add_argument(
+        "--dev",
         action="store_true",
-        help="a branch build (main, maintenance/X.Y.x): no 'version'",
+        help=(
+            "a development build (main, maintenance/X.Y.x): the version is the"
+            " checkout's scikitplot.__version__ and HEAD commit"
+        ),
     )
     parser.add_argument(
         "--source",
@@ -734,8 +943,13 @@ def main(argv: list[str] | None = None) -> int:
         help="scikit-plots checkout (default: this one)",
     )
     args = parser.parse_args(argv)
+    source = args.source.resolve()
     try:
-        files = render(args.source.resolve(), args.version)
+        if args.dev:
+            version = dev_version(source)
+        else:
+            version = plugin_version(check_version(args.version))
+        files = render(source, version)
     except (ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -749,16 +963,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     for line in changes:
         print(line)
-    errors = validate(out, args.version is not None) if out.is_dir() else []
+    errors = validate(out) if out.is_dir() else []
     for line in errors:
         print(f"error: {line}", file=sys.stderr)
     if errors or (args.command == "check" and changes):
         return 1
-    print(
-        f"ok   {len(files)} files, "
-        + (f"version {args.version}" if args.version else "unversioned")
-        + ("" if changes else ", unchanged")
-    )
+    print(f"ok   {len(files)} files, version {version}" + ("" if changes else ", unchanged"))
     return 0
 
 

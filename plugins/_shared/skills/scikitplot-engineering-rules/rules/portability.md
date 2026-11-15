@@ -47,11 +47,11 @@ free number (see [`../SKILL.md`](../SKILL.md)).
 - **Verified by:** the `_sphinx_feedback` suite on Python 3.9 (422 tests, incl. `test_app.py`, `test_service.py`); on the old code 22 fail at `app.py:266`.
 - **Added:** 2026-10-11. Root cause: 3.9 binds these primitives to `get_event_loop()` at construction, which raises after any `asyncio.run()`; 3.10+ binds lazily, so only the 3.9 leg failed.
 
-### Rule 77: Subprocess - on Windows a child's `env` starts from `os.environ`
-- **When:** passing `env=` to `subprocess`.
-- **Then:** `env = {**os.environ, ...}` minus named variables to withhold; never a hand-built minimal mapping. Python's `subprocess` documentation requires a valid `SystemRoot` on Windows.
+### Rule 77: Subprocess - on Windows a child's environment starts from the parent's
+- **When:** giving a child process its own environment (the `env` argument of `subprocess`).
+- **Then:** start from a copy of the parent process's whole environment and remove, by name, only the variables to withhold; never build a minimal environment by hand. Python's `subprocess` documentation requires a valid `SystemRoot` on Windows.
 - **Verified by:** `test_cloudflare_receiver.py` (Linux local; Windows leg on the next CI run).
-- **Added:** 2026-10-11. Root cause: `env={"SECRET", "PATH"}` failed only on the Windows leg.
+- **Added:** 2026-10-11. Root cause: a hand-built environment of two variables failed only on the Windows leg, which lacked `SystemRoot`.
 
 ### Rule 98: Files - a published file gets the permissions `open()` would give it
 - **When:** writing through a staging file and `os.replace` (atomic publish).

@@ -278,3 +278,85 @@ verbatim under `../_maintenance/history/` (created with the first one).
 - Every command of every skill run from outside the tree: 109 of 109 exit 0
   (71 s in total, at most 1.8 s each).
 - Generator tests 23 -> 28; 7 mutants killed. `check_records.py`: ok.
+
+## Task: CI-12 - renderer golden tests failed on main after PR 942 (2026-11-15, PR 944)
+
+### Context
+- After PRs 942 and 943 merged, `ci_claude_plugins_publish.yml` failed on
+  `main` in "Generated text is the same on Python 3.10 ... 3.15" (run
+  43680191840): 10 of 28 renderer tests raised `ModuleNotFoundError: No
+  module named 'scikitplot'`; the build and push jobs were skipped, so
+  nothing was published.
+- Root cause (PR 942, mine): the generator's renderer wrappers imported
+  `scikitplot._api_listing` from an installed package. That job installs
+  nothing by design (the golden test needs no build). 942 ran the
+  generator's tests with the checkout on `PYTHONPATH`, never with the job's
+  own command in a clean interpreter.
+- Not the cause: the PyPI release lacking `python -m scikitplot api`. The
+  build job already installs the checkout (`pip install -e
+  ".[usage-skills]"`), which is the right version for skills that describe
+  that tree; the latest release cannot describe it.
+
+### Implementation
+- `generate_usage_skills.py` loads `scikitplot/_api_listing.py` from its own
+  checkout by file path (`API_LISTING`, once, as
+  `_scikitplot_api_listing_for_skills`): standard library only, so no
+  install is needed, and the skills are always rendered by the renderer of
+  the tree they describe. A missing or broken file is `E-RECORDS`.
+- Two tests: the renderer is the checkout's file and is loaded once; a
+  missing file is reported.
+
+### Results
+- Reproduced with the job's command (`python -I -B
+  tools/maint_tools/tests/test_generate_usage_skills.py`) in a virtual
+  environment without scikit-plots: 10 errors on `main`; after the fix 30 of
+  30 pass on Python 3.10, 3.11, 3.12, 3.13, 3.14 and 3.15 (uv, nothing
+  installed). `generate_usage_skills.py check` in the full build: PASS, 22
+  files, 1,094 names (skills unchanged).
+
+### Prevention rule
+- When: a change makes a tool depend on another file or package, and a CI
+  job runs that tool.
+- Then: run that job's exact command, in a clean interpreter with only what
+  the job installs, on the job's lowest and highest Python, before pushing.
+- Verified by: the PR description quotes the command and its result.
+
+## Task: CI-13 - every published build has a version that follows the library (2026-11-15, PR 944)
+
+### Context
+- The directory warns `MANIFEST_VERSION_MISSING` on every version: the
+  listing follows `main`, and a branch build set no `version` (Rule 166,
+  so Claude Code would version it by commit). Maintainer's decision: version
+  the plugin like the library, from `scikitplot.__version__`
+  (`scikitplot/__init__.py`, as `_build_utils/gitversion.py` reads it).
+- Constraint (Claude Code's plugin cache): the version is the cache key and
+  a plugin updates only when it changes; with no version, every commit
+  updates. A fixed `0.5.dev0` would freeze development users (G8).
+
+### Implementation
+- `build_skills_repo.plugin_version` (PEP 440 -> Semantic Versioning, which
+  the directory asks for): `X.Y.Z` stays; `X.Y` -> `X.Y.0`; `aN`/`bN`/`rcN`
+  -> `-alpha.N`/`-beta.N`/`-rc.N`; `.postN` -> `+post.N` (same API; build
+  metadata keeps the string new without ranking it as a pre-release);
+  `.devN` with the commit -> `-0.dev.N.YYYYMMDDHHMMSS+g<hash>` (UTC commit
+  time; the leading numeric `0` ranks below every word, so a development
+  build sorts before alpha/beta/rc, as in PEP 440: found by the order test,
+  `dev` alone sorted after `alpha`). A development build of a pre-release or
+  post release is refused: no Semantic Versioning keeps PEP 440's order.
+- `library_version` (reads `__version__` as text, no import), `head_commit`
+  (`git log -1 --format=%ct %H`), `dev_version`; the command takes
+  `--version X` (release) or `--dev` (branch; refuses a release
+  `__version__`). `render` needs a Semantic Versioning version; `validate`
+  requires one in `plugin.json`, equal in `marketplace.json`.
+- Workflow: `--dev` for branches and previews; the build job runs the build
+  script's tests (they ran in no workflow, though Rule 166 names them) and
+  has `contents: read` (it had `write`, against its own header and Rule
+  166); a `pull_request` trigger on the plugin's paths runs the golden test
+  and a preview build before merge (942's regression reached `main` because
+  this workflow ran only after merge); publishing still needs a push or a
+  dispatch that asks.
+- `test_build_skills_repo.py`: `unittest.main()` stood in the middle of the
+  file, so run as a script (as CI now runs it) only 18 of 45 tests ran; moved
+  to the end.
+- Rule 166 amended; G8, the guide's commands, the build docstring, the
+  new-chat template and the ledger note updated.

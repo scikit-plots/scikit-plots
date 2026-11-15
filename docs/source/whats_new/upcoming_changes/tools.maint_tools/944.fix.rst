@@ -1,0 +1,5 @@
+- ``tools/maint_tools/generate_usage_skills.py`` loads its renderer
+  (``scikitplot/_api_listing.py``) from its own checkout by file path instead
+  of importing an installed scikit-plots, so its golden tests run on every
+  Python with nothing installed and skills are always rendered by the tree
+  they describe.

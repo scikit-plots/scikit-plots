@@ -82,7 +82,7 @@ titles, then open the file that holds the rules you need.
 | 74 | Async | no `asyncio` primitive is constructed outside a running loop in code that supports Python 3.9 | [portability.md](rules/portability.md) |
 | 75 | Gates | a version gate hides a test environment's limit, never a product defect | [verification.md](rules/verification.md) |
 | 76 | Diagnostics | a check that fails prints what differs, not only that it differs | [verification.md](rules/verification.md) |
-| 77 | Subprocess | on Windows a child's `env` starts from `os.environ` | [portability.md](rules/portability.md) |
+| 77 | Subprocess | on Windows a child's environment starts from the parent's | [portability.md](rules/portability.md) |
 | 78 | Native kernels | elements are compared by equality, never by their hash | [numerics.md](rules/numerics.md) |
 | 79 | Thresholds | a cutoff API is held to the uncut function at every threshold, 0 included | [testing.md](rules/testing.md) |
 | 80 | Native memory | nothing is allocated by hand before a call that can raise | [native.md](rules/native.md) |
