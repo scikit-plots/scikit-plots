@@ -559,19 +559,51 @@ def skill_name(
 
 # --------------------------------------------------------------------------- canonical text
 #
-# The rows are rendered by the package itself (``scikitplot._api_listing``),
-# the same code ``python -m scikitplot api`` runs, so a skill and the command
-# can never describe a name differently. Its texts are built from the
-# object's facts, never from a format CPython, ``typing`` or the platform
-# owns (Rule 168). Imported lazily: the package is evaluated only once the
-# environment check has passed (``E-ENV``). The wrappers keep the names the
-# generator and its tests use; only Markdown escaping is added here.
+# The rows are rendered by ``scikitplot/_api_listing.py``, the same code
+# ``python -m scikitplot api`` runs, so a skill and the command can never
+# describe a name differently. Its texts are built from the object's facts,
+# never from a format CPython, ``typing`` or the platform owns (Rule 168).
+#
+# It is loaded from this checkout by file path, not imported from an
+# installed scikit-plots: the module is standard library only, so the
+# renderer's golden tests run on every Python with nothing installed (the
+# "Generated text is the same" job of ci_claude_plugins_publish.yml), and the
+# skills are always rendered by the renderer of the tree they describe, never
+# by an older release's. The wrappers keep the names the generator and its
+# tests use; only Markdown escaping is added here.
+
+API_LISTING = REPO / "scikitplot" / "_api_listing.py"
+_API_LISTING_NAME = "_scikitplot_api_listing_for_skills"
 
 
 def _api():
-    import scikitplot._api_listing as api  # noqa: PLC0415
+    """
+    Return the renderer module of this checkout, loaded once by file path.
 
-    return api
+    Raises
+    ------
+    SkillError
+        ``E-RECORDS`` if the file is missing or fails to load (the generator
+        and the package come from different revisions).
+    """
+    loaded = sys.modules.get(_API_LISTING_NAME)
+    if loaded is not None:
+        return loaded
+    if not API_LISTING.is_file():
+        raise SkillError(f"{API_LISTING} does not exist", E_RECORDS)
+    spec = importlib.util.spec_from_file_location(_API_LISTING_NAME, API_LISTING)
+    if spec is None or spec.loader is None:
+        raise SkillError(f"cannot load {API_LISTING}", E_RECORDS)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_API_LISTING_NAME] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:  # noqa: BLE001 - reported with its cause
+        del sys.modules[_API_LISTING_NAME]
+        raise SkillError(
+            f"{API_LISTING} fails to load: {type(exc).__name__}: {exc}", E_RECORDS
+        ) from exc
+    return module
 
 
 def _plain(text: str) -> str:

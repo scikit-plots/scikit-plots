@@ -145,6 +145,27 @@ class PolicyTests(unittest.TestCase):
         self.assertIn("scikitplot.externals", policy["usage_excluded"])
 
 
+class RendererSourceTests(unittest.TestCase):
+    def test_the_renderer_is_this_checkouts_file_not_an_installed_package(self):
+        """No install needed (golden tests on every Python), and never an older release's."""
+        api = MODULE._api()
+        self.assertEqual(Path(api.__file__).resolve(), MODULE.API_LISTING.resolve())
+        self.assertEqual(api.__name__, "_scikitplot_api_listing_for_skills")
+        self.assertIs(MODULE._api(), api)  # loaded once
+
+    def test_a_missing_renderer_is_reported(self):
+        saved_path, saved_module = MODULE.API_LISTING, sys.modules.pop(MODULE._API_LISTING_NAME, None)
+        MODULE.API_LISTING = Path(__file__).with_name("no_such_renderer.py")
+        try:
+            with self.assertRaises(MODULE.SkillError) as caught:
+                MODULE._api()
+            self.assertIn("does not exist", str(caught.exception))
+        finally:
+            MODULE.API_LISTING = saved_path
+            if saved_module is not None:
+                sys.modules[MODULE._API_LISTING_NAME] = saved_module
+
+
 class RenderTests(unittest.TestCase):
     def test_a_skill_holds_its_frontmatter_api_and_example(self):
         api = {
