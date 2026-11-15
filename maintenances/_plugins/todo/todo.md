@@ -234,3 +234,47 @@ verbatim under `../_maintenance/history/` (created with the first one).
     were run against PRs 917 and 918 (`--dry-run` for the pending review);
     the GraphQL paths (adding to a pending review, the worklist query)
     cannot run in this session.
+
+## Task: CI-11 - usage skills read the API of the installed version (2026-11-15, PR 943)
+
+### Context
+- Maintainer request: the `scikitplot` plugin should be version agnostic. Each
+  usage skill shipped `references/API.md`, a list frozen at the build's
+  version (21 files, 1,331 lines); a user of another release got names their
+  install lacks, or missed new ones.
+- Decided (PR 942, maintainer's choice among three): a command, and drop
+  `API.md`. Step 2 of 3 (942 `python -m scikitplot api`; 943 this; 944 Rule
+  77 for the credential hold).
+- Maintainer's addition for 943: do not depend on the command alone; the
+  standard library (`help()`) is canonical, works on every release, is fast,
+  and gives a second, independent check and more detail.
+
+### Implementation
+- `generate_usage_skills.py`: the "Before writing code" section becomes
+  "Read the API of the installed version": five commands that run as written
+  (Rule 170): the version; `python -m scikitplot api <module>`; `__all__`;
+  `help()`; `inspect.signature`. The text says releases before the command
+  report an error (the PyPI release 0.4.0.post11 has an older, click-based
+  command line: no single message can be promised) and that `help()` and
+  `inspect.signature` are the source of truth if the two differ. The table
+  keeps 40 names; the closing line names the command instead of linking a
+  file. `references/API.md` is no longer written; `sync` removed the 21
+  files as orphans.
+- Found by running every command of every skill against a full build: 8 of
+  109 failed. The example name was the first row: a constant
+  (`BASIC_FORMAT`, `DEFAULT_COMPILER_DIRECTIVES`, ...; on `main`,
+  `help(m.BASIC_FORMAT)` documented `str`) or a compiled class without a text
+  signature (`Annoy`, `Kiss32Random`). The example is now the first name with
+  a readable call signature; without one, no `inspect.signature` line.
+- Descriptions updated: `maintenances/_plugins/README.md` (layout, skill
+  contents, progressive disclosure), `plugins/README.md`, the plugin README
+  (from `check_records.py --write-index`).
+
+### Results
+- Full editable build here (meson-python, gcc; no gfortran needed). On
+  `main`, `generate_usage_skills.py check`: PASS, 43 files, 0 outdated, so
+  this environment reproduces the committed skills; after `sync`: PASS, 22
+  files, 1,094 public names.
+- Every command of every skill run from outside the tree: 109 of 109 exit 0
+  (71 s in total, at most 1.8 s each).
+- Generator tests 23 -> 28; 7 mutants killed. `check_records.py`: ok.

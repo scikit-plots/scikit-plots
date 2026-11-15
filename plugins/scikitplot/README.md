@@ -85,8 +85,9 @@ or hand a task to its agent, such as `@scikitplot:scikitplot-api`.
 - **One skill per public module.** Each is generated from that module's own
   `__all__` and docstrings: what the module is for, how to install it, its
   public names with one-line summaries, and a first example. The full list
-  of names with signatures is in the skill's `references/API.md`, which
-  Claude opens only when it needs it.
+  of names with signatures is read from your installed version
+  (`python -m scikitplot api`, or `help()` on any release), so it matches
+  the version your project has.
 - **One agent per skill**, with the same name, that works from that skill
   first and inherits the tools Claude Code allows it.
 - **Shared skills**, such as `scholarly-inquiry-cycle`, for structured

@@ -70,7 +70,7 @@ plugins/                    everything that ships to Claude
   scikitplot/               plugin "scikitplot" (users; Markdown only, depends on nothing)
     .claude-plugin/plugin.json
     README.md               generated
-    skills/scikitplot[-<x>]/SKILL.md, references/API.md    generated
+    skills/scikitplot[-<x>]/SKILL.md                       generated
     skills/<shared>/        generated copy
     agents/scikitplot[-<x>].md                              generated
   scikitplot-mcp/           plugin "scikitplot-mcp" (users; opt-in local MCP server)
@@ -122,9 +122,11 @@ What a generated users' skill contains, all taken from the package:
   plain);
 - install commands (`pip install scikit-plots`, plus the partial
   distribution that ships the module, from `_distributions.py`);
-- "before writing code": check the version and the signature;
+- "read the API of the installed version": the version, then
+  `python -m scikitplot api <module>` and, on every release, `__all__`,
+  `help()` and `inspect.signature` (the source of truth if they differ);
 - the public API: names from `__all__` in order, kind, first docstring
-  sentence (up to 40 rows; all rows with signatures in `references/API.md`);
+  sentence (up to 40 rows; the rest from the installed version);
 - for a package with an empty `__all__`, its child packages, and whether each
   defines a Sphinx `setup(app)`;
 - the first docstring example (`Examples` section).
@@ -226,7 +228,9 @@ load them.
    marketplace entry (`check_records.EXTERNAL_DEPENDENCIES`). Agents omit `tools`, so they inherit the tools available to
    subagents, still under the user's permission mode.
 5. *Progressive disclosure.* Short descriptions always loaded; the API table
-   when a skill loads; the full API only in `references/API.md`.
+   when a skill loads; the full API from the installed version, on demand
+   (`python -m scikitplot api`, `help()`): never a frozen list that another
+   release would contradict.
 6. *Separate audiences.* Users' and developers' sets live apart, so neither
    ships to the wrong people; the MCP server is its own opt-in plugin, so the
    default plugin runs nothing.

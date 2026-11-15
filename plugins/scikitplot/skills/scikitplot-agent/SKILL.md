@@ -25,16 +25,29 @@ on PyPI](https://pypi.org/project/scikit-plots/#history) lists each release,
 and [pip's user guide](https://pip.pypa.io/en/stable/user_guide/) explains
 upgrading.
 
-## Before writing code
+## Read the API of the installed version
 
-The API below was read from one version of the package. Check the version the
-project has, and read a name's docstring and signature before calling it
-(shown for `ArtifactStore`; use the name you need):
+The table below was read from one version of scikit-plots; the project may
+have another, and the installed package decides. Check the version, then read
+what it declares (shown for `ArtifactStore`; use the name you need):
 
 ```sh
 python -c "import scikitplot; print(scikitplot.__version__)"
+python -m scikitplot api scikitplot.agent
+python -c "import scikitplot.agent as m; print(m.__all__)"
 python -c "import scikitplot.agent as m; help(m.ArtifactStore)"
+python -c "import inspect, scikitplot.agent as m; print(inspect.signature(m.ArtifactStore))"
 ```
+
+- `python -m scikitplot api` lists every public name with its kind, signature
+  and summary (`--name NAME` for one in full, `--format json` for tools).
+  Releases before it report an error instead (an unknown command, or a
+  missing dependency of an older command line): then use the next lines,
+  which work on every release.
+- `__all__` is the public list; `help()` is the full documentation of one name,
+  methods included; `inspect.signature` is its exact call signature.
+- Both read the installed objects. If they ever differ, `help()` and
+  `inspect.signature` are the source of truth.
 
 ## Public API
 
@@ -83,7 +96,8 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `Step` | class | One completed step: a decision and what came of it. |
 | `StepOutcome` | enum | What one step came to. |
 
-19 more names, and signatures: [references/API.md](references/API.md).
+19 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.agent`
+(or `print(m.__all__)` and `help()`, above).
 
 ## Example (from the docstring of `scikitplot.agent.MemoryArtifactStore`)
 

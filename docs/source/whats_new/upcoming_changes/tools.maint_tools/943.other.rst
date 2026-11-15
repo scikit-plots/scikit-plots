@@ -1,0 +1,8 @@
+- The usage skills of the ``scikitplot`` Claude plugin no longer ship a frozen
+  ``references/API.md`` per module (1,331 lines removed). Each skill tells the
+  assistant to read the API of the installed version: ``python -m scikitplot
+  api <module>`` for every name at once, and on any release ``__all__``,
+  ``help()`` and ``inspect.signature``, which are the source of truth if the
+  two differ. The example name in each skill is now the first one with a
+  call signature, so every command in every skill runs as written (before,
+  eight skills named a constant or a compiled class).
