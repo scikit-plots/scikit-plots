@@ -14,7 +14,8 @@ repository: ``main`` builds ``main``, ``maintenance/X.Y.x`` builds
 ``maintenance/X.Y.x`` and the tag ``vX.Y.Z`` builds the tag ``vX.Y.Z``
 (``.github/workflows/ci_claude_plugins_publish.yml`` pushes each). This
 script turns one checkout into that tree: it copies the generated skills,
-agents and README, adds the icon, the licenses and a one-plugin marketplace,
+agents and README, adds the icon (as a file only), the licenses and a
+one-plugin marketplace,
 sets ``version`` for a release (none for a branch, so Claude Code versions a
 branch build by its commit), reduces the tree to what the directory accepts
 from a publisher that is not a Verified organization (:func:`community_component`,
@@ -91,8 +92,13 @@ Thumbs.db
 desktop.ini
 __pycache__/
 """
+#: The listing icon: a file at the path the directory looks for, and no `icon`
+#: key in plugin.json (the directory reports the key as UNKNOWN_KEY_CROSS_TOOL,
+#: Claude Code does not read it). Square PNG, 512 to 2048 px, under 2 MB.
 ICON_SOURCE = "docs/source/logos/assets/scikit-plots-primary.png"
-ICON = "assets/icon.png"
+ICON = ".claude-plugin/icon.png"
+ICON_MIN_PX, ICON_MAX_PX, ICON_MAX_BYTES = 512, 2048, 2 * 1024 * 1024
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 LICENSE_SOURCE = "LICENSE.txt"
 LICENSES_SOURCE = "LICENSES"
 #: A released version: PEP 440 final releases and post releases only.
@@ -123,7 +129,6 @@ README_MIN_WORDS = 40
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
 OS_JUNK = (".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX")
 WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?")
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 #: A page that loads a script from the network when opened (the directory
 #: review's runtime-fetch check); the published tree ships every script it runs.
 REMOTE_SCRIPT = re.compile(
@@ -607,7 +612,6 @@ def render(source: Path, version: str) -> dict[str, bytes]:
         "repository": f"https://github.com/{records.STABLE_REPO}",
         "license": manifest["license"],
         "keywords": manifest.get("keywords", []),
-        "icon": f"./{ICON}",
         "version": version,
     }
     files[".claude-plugin/plugin.json"] = _json(released)
@@ -770,8 +774,26 @@ def _check_files(out: Path) -> list[str]:
     return errors
 
 
+def _check_icon(path: Path) -> list[str]:
+    """Return the problems of the listing icon (ICON_MISSING otherwise)."""
+    if not path.is_file():
+        return [f"{ICON}: missing (the directory reports ICON_MISSING)"]
+    data = path.read_bytes()
+    if data[:8] != PNG_MAGIC or data[12:16] != b"IHDR":
+        return [f"{ICON}: not a PNG"]
+    width, height = int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    errors = []
+    if width != height:
+        errors.append(f"{ICON}: {width} x {height} px, not square")
+    if not ICON_MIN_PX <= width <= ICON_MAX_PX:
+        errors.append(f"{ICON}: {width} px, not {ICON_MIN_PX} to {ICON_MAX_PX}")
+    if len(data) >= ICON_MAX_BYTES:
+        errors.append(f"{ICON}: {len(data):,} bytes, not under {ICON_MAX_BYTES:,}")
+    return errors
+
+
 def _check_manifest(out: Path) -> list[str]:
-    """Return the problems of ``plugin.json``, its icon and the README.
+    """Return the problems of ``plugin.json``, the icon file and the README.
 
     Every build has a ``version`` in Semantic Versioning (the directory asks
     for one; Claude Code updates a plugin only when it changes), the same in
@@ -783,7 +805,7 @@ def _check_manifest(out: Path) -> list[str]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     errors = [
         f".claude-plugin/plugin.json: {key!r} is not set"
-        for key in ("name", "description", "author", "license", "icon")
+        for key in ("name", "description", "author", "license")
         if not manifest.get(key)
     ]
     version = manifest.get("version")
@@ -808,12 +830,14 @@ def _check_manifest(out: Path) -> list[str]:
         )
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(manifest.get("name", ""))):
         errors.append(".claude-plugin/plugin.json: 'name' is not lowercase kebab-case")
-    icon_path = str(manifest.get("icon", ""))
-    icon = out / (icon_path[2:] if icon_path.startswith("./") else icon_path)
-    if not icon.is_file() or icon.read_bytes()[:8] != PNG_MAGIC:
+    if "icon" in manifest:
+        # The directory reports `icon` as UNKNOWN_KEY_CROSS_TOOL (a key Claude
+        # Code does not read); it finds the file at ICON without it.
         errors.append(
-            f".claude-plugin/plugin.json: icon {manifest.get('icon')!r} is not a PNG in the plugin"
+            f".claude-plugin/plugin.json: sets 'icon', a key Claude Code does not read;"
+            f" the directory finds {ICON} without it"
         )
+    errors += _check_icon(out / ICON)
     readme = out / "README.md"
     if (
         not readme.is_file()

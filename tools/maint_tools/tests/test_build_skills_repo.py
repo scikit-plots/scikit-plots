@@ -138,14 +138,57 @@ class BuildTests(unittest.TestCase):
         MODULE.apply(out, self.files)
         return out
 
-    def test_manifest_carries_version_icon_and_stable_repository(self):
+    def test_manifest_carries_version_and_stable_repository_and_no_icon(self):
         manifest = json.loads(self.files[".claude-plugin/plugin.json"])
         self.assertEqual(manifest["version"], "0.5.0")
-        self.assertEqual(manifest["icon"], "./assets/icon.png")
         self.assertEqual(
             manifest["repository"], "https://github.com/scikit-plots/skills"
         )
-        self.assertTrue(self.files["assets/icon.png"].startswith(MODULE.PNG_MAGIC))
+        # UNKNOWN_KEY_CROSS_TOOL: no `icon` key; ICON_MISSING: the file is
+        # where the directory looks without it.
+        self.assertNotIn("icon", manifest)
+        self.assertFalse(any(rel.startswith("assets/") for rel in self.files))
+        self.assertTrue(self.files[".claude-plugin/icon.png"].startswith(MODULE.PNG_MAGIC))
+
+    def test_an_icon_is_refused_and_an_old_one_is_removed(self):
+        out = self._built()
+        path = out / ".claude-plugin/plugin.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        path.write_text(json.dumps({**manifest, "icon": "./assets/icon.png"}), encoding="utf-8")
+        self.assertTrue(any("sets 'icon'" in e for e in MODULE.validate(out)))
+        (out / "assets").mkdir()
+        (out / "assets/icon.png").write_bytes(b"x")
+        changes = MODULE.apply(out, self.files)
+        self.assertIn("- assets/icon.png", changes)
+        self.assertFalse((out / "assets/icon.png").exists())
+        self.assertEqual(MODULE.validate(out), [])
+
+    def test_the_icon_file_must_be_a_square_png_of_the_listing_size(self):
+        import struct
+
+        def png(width, height, pad=0):
+            return MODULE.PNG_MAGIC + b"\x00\x00\x00\x0dIHDR" + struct.pack(">II", width, height) + b"\x00" * (5 + pad)
+
+        out = self._built()
+        icon = out / ".claude-plugin/icon.png"
+        cases = {
+            png(800, 800): [],
+            png(512, 512): [],
+            png(2048, 2048): [],
+            png(800, 600): ["not square"],
+            png(511, 511): ["not 512 to 2048"],
+            png(2049, 2049): ["not 512 to 2048"],
+            b"GIF89a" + b"\x00" * 30: ["not a PNG"],
+            png(800, 800, MODULE.ICON_MAX_BYTES): ["not under"],
+        }
+        for data, expected in cases.items():
+            icon.write_bytes(data)
+            errors = [e for e in MODULE.validate(out) if "icon.png" in e]
+            self.assertEqual(len(errors), len(expected), (data[:30], errors))
+            for message, error in zip(expected, errors):
+                self.assertIn(message, error)
+        icon.unlink()
+        self.assertTrue(any("ICON_MISSING" in e for e in MODULE.validate(out)))
 
     def test_marketplace_lists_the_root_plugin_only(self):
         market = json.loads(self.files[".claude-plugin/marketplace.json"])

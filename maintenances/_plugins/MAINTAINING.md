@@ -229,8 +229,10 @@ What each line proves:
 | labeler check | PR labels know every skill and agent |
 | pytest | drift test, policy completeness, generator unit tests |
 
-Warnings you will see today and may keep: no `version` (on purpose, see
-[section 9](#9-release-and-submit-to-anthropics-directory)) and no icon.
+No warning is expected: every build sets `version` (section 9), sets no
+`icon` key (the directory reports it as `UNKNOWN_KEY_CROSS_TOOL`) and ships
+the icon at `.claude-plugin/icon.png`, where the directory finds it without the
+key (no `ICON_MISSING`).
 
 ## 8. Test on claude.ai and Cowork
 
@@ -323,10 +325,12 @@ added at any ref of this repository, for Claude Code only:
    [who can submit](https://claude.com/docs/directory/publish.md)).
 2. **Repository** `scikit-plots/skills`; leave **Plugin path** empty; set
    **Branch or tag** to `stable` (or leave it empty once `stable` is the
-   default branch); **Validate**. Following `main` gives the warning
-   `MANIFEST_VERSION_MISSING`, by design: `main` is the unversioned
-   development build. The `icon` notice (`UNKNOWN_KEY_CROSS_TOOL`) needs no
-   action. A policy hold that names a file the build does not make means the
+   default branch); **Validate**. `main` is the development build, versioned
+   from the library and its commit (no `MANIFEST_VERSION_MISSING`). The
+   manifest sets no `icon` key (it gave `UNKNOWN_KEY_CROSS_TOOL`); the icon is
+   the file `.claude-plugin/icon.png` (a square PNG, 512 to 2048 px, under
+   2 MB), found by its path. It becomes the listing icon only the first time
+   the plugin is saved or submitted in the portal. A policy hold that names a file the build does not make means the
    tree was not replaced whole; rerun the publish workflow (CI-8).
    **Validate** does not run every policy check: a version it passes can still
    be refused by the scan of the published commit (G15, Rule 171).
