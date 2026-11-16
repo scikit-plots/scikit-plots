@@ -1,10 +1,6 @@
 - ``MEMORY.md`` holds curated, checked-in project facts, a map of where each
-  kind of project knowledge lives, and an anonymous real-data baseline, with
-  admission rules that keep secrets and private data out.
-- ``.claude/rules/real-life-testing.md`` makes real-file checks a standing,
-  path-scoped rule for changes under ``scikitplot/``.
-- ``plugins/_shared/skills/scikitplot-real-data-testing/SKILL.md`` ships in
-  both Claude plugins and shows users and developers how to test a submodule
-  on their own files and record a before/after baseline.
-- ``plugins/_shared/skills/scikitplot-real-data-testing/references/sources.md``
-  lists public data sources with their access, license and credential notes.
+  kind of project knowledge lives and an anonymous real-data baseline; the
+  rule ``.claude/rules/real-life-testing.md`` and the skill
+  ``scikitplot-real-data-testing``, shipped in both Claude plugins with a
+  catalog of public data sources and their terms, show users and developers
+  how to test a submodule on real files and compare before and after.
