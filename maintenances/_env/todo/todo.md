@@ -195,3 +195,41 @@ Pipfile, inline list    --> DependencySet (+ conversion notes)  |
 ### Technical debt created
 - conda/mamba argv are plan-tested only (no executable in the sandbox).
 - The Xeus add-on keeps the upstream task structure (doit generators).
+
+## Task: ENV-2, Windows ARM64 wheels fail when the runner image moves to MSVC 14.52 (2026-11-16, open, next PR)
+
+### Report
+- Run 43694545938, job 132752142400 (`Wheel-cp314-windows-11-arm-win-ARM64`,
+  commit c051ece), step "Build Wheels Packages", 2026-11-15.
+- Error, first C++ file compiled
+  (`scikitplot/cexternals/_annoy/src/annoymodule.cc`, via `clang-cl`):
+  `yvals_core.h(923): static assertion failed: error STL1000: Unexpected
+  compiler version, expected Clang 22 or newer.`
+- Same run, seven other Windows ARM64 jobs passed (cp311, cp312, cp313,
+  cp313t, cp314t, cp315).
+
+### Root cause (verified from the logs)
+- `.github/windows_arm64_steps/action.yml` pins `llvm-version: 20.1.8`.
+- Passing jobs ran on Visual Studio 2026 18.11 (MSVC STL 14.51.36231).
+  The failing job ran on 18.12 (MSVC STL 14.52.37025), whose STL refuses
+  any Clang older than 22.
+- The Python version is not the cause: the hosted image is being rolled
+  out, and cp314 drew a new runner. Every job will fail once the rollout
+  completes. The same pin is in `legacy_action.yml`.
+
+### Options for the next PR (decision needed)
+1. Raise the LLVM pin to a 22.x release whose `woa64` installer still has
+   `flang` (check before choosing), and update `llvm-sha256`, the README
+   table and `legacy_action.yml`. Recommended: it follows the toolchain
+   instead of fighting it.
+2. Pin the MSVC toolset to 14.51 through `vcvarsall -vcvars_ver=14.51`.
+   This works only while the image still ships 14.51.
+3. Define `_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH`. Not recommended:
+   it hides an unsupported combination.
+
+### Acceptance
+- All eight Windows ARM64 wheel jobs pass on an 18.12 runner.
+- The README states the pairing rule: LLVM must meet the minimum Clang
+  version that the image's MSVC STL demands.
+- A step prints `clang --version` and the MSVC toolset version before
+  building, so a future mismatch is named in the first error line.
