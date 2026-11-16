@@ -21,6 +21,20 @@ license: BSD-3-Clause
   repository, an issue or memory. Report counts only.
 - Public sources: follow `references/sources.md` and each site's terms.
 
+## No files yet? Download by hand, then upload
+
+For a newcomer, or anyone without test files ready:
+
+1. Suggest two or three small items from `references/sources.md`, each
+   with its direct page link and the file type it gives (for example one
+   plain-text book, one PDF and one CSV).
+2. Ask the user to download them in a browser and upload them to the
+   chat, or put them in one folder. The assistant does not download them:
+   some sites forbid automated access, and some need a personal account.
+3. Remind the user to check each item's license and never to share a
+   token file (such as `kaggle.json`).
+4. Copy the uploads into a new, empty folder and continue below.
+
 ## Users: check a folder
 
 Find the current API first:

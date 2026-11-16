@@ -14,4 +14,16 @@ page is not the same as a free license.
 | Google Cloud public datasets | Large tables | BigQuery or Cloud Storage | May need a Google Cloud project; queries can cost money. |
 | scikit-plots learn data index | Small curated examples | scikit-plots-learn documentation | Smallest and safest starting point. |
 
+## Starter links (open in a browser, download by hand)
+
+| Want | Page | File type |
+|---|---|---|
+| A public-domain book | https://www.gutenberg.org/ebooks/1342 | `.txt`, `.epub`, `.html` |
+| Gutenberg catalog | https://www.gutenberg.org/ebooks/offline_catalogs.html | `.csv` |
+| Gutenberg tooling | https://github.com/gutenbergtools | source code |
+| Scans and PDFs | https://archive.org/details/texts | `.pdf`, `.txt` |
+| Tables | https://www.kaggle.com/datasets | `.csv`, `.json` (sign-in needed) |
+| Health statistics | https://www.who.int/data/data-collection-tools | `.csv`, `.pdf` |
+| Large public tables | https://cloud.google.com/datasets | BigQuery, Cloud Storage |
+
 Prefer small, varied samples: a few files of each type beat one large set.
