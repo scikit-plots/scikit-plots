@@ -45,6 +45,7 @@ COPIED = (
     "maintenances",
     "plugins",
     ".claude-plugin",
+    "MEMORY.md",
 )
 
 
@@ -66,6 +67,8 @@ def template(tmp_path_factory) -> Path:
     for rel in COPIED:
         if (ROOT / rel).is_dir():
             shutil.copytree(ROOT / rel, base / rel, symlinks=True, ignore=ignore)
+        elif (ROOT / rel).is_file():
+            shutil.copy2(ROOT / rel, base / rel)
     return base
 
 
@@ -364,6 +367,57 @@ class TestBudgets:
         archived.parent.mkdir(parents=True)
         archived.write_text("- line\n" * (ACTIVE_TODO_MAX_LINES + 1), encoding="utf-8")
         assert "budgets" not in _failing(tree)
+
+
+class TestMemory:
+    """``MEMORY.md``'s admission rules are enforced, not only written down."""
+
+    def _edit(self, root: Path, old: str, new: str) -> None:
+        path = root / "MEMORY.md"
+        text = path.read_text(encoding="utf-8")
+        assert old in text
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+    def test_missing_file_fails(self, tree):
+        (tree / "MEMORY.md").unlink()
+        assert _failing(tree)["memory"][0].startswith("MEMORY.md: missing")
+
+    def test_a_fact_without_a_date_fails(self, tree):
+        self._edit(tree, "Checked 2026-11-16.", "")
+        assert "needs 'Source:'" in _failing(tree)["memory"][0]
+
+    def test_a_future_date_fails(self, tree):
+        self._edit(tree, "Checked 2026-11-16.", "Checked 2999-01-01.")
+        assert "in the future" in _failing(tree)["memory"][0]
+
+    def test_an_impossible_date_fails(self, tree):
+        self._edit(tree, "Checked 2026-11-16.", "Checked 2026-13-40.")
+        assert "invalid date" in _failing(tree)["memory"][0]
+
+    def test_a_credential_fails(self, tree):
+        _append(tree / "MEMORY.md", "token ghp_" + "a" * 36 + "\n")
+        assert "credential" in _failing(tree)["memory"][0]
+
+    def test_over_the_line_budget_fails(self, tree):
+        _append(tree / "MEMORY.md", "x\n" * 200)
+        assert "lines, budget" in _failing(tree)["memory"][0]
+
+    def test_over_the_byte_budget_fails(self, tree):
+        _append(tree / "MEMORY.md", "x" * (26 * 1024) + "\n")
+        assert "bytes, budget" in _failing(tree)["memory"][0]
+
+
+def test_shared_skill_python_examples_compile():
+    """Skill examples are copied by users as written; a syntax error ships."""
+    import re
+
+    blocks = []
+    for skill in sorted((ROOT / "plugins/_shared/skills").glob("*/**/*.md")):
+        text = skill.read_text(encoding="utf-8")
+        for index, code in enumerate(re.findall(r"```python\n(.*?)```", text, re.S)):
+            blocks.append(skill.name)
+            compile(code, f"{skill.relative_to(ROOT)}#{index}", "exec")
+    assert blocks, "no python examples found; the pattern no longer matches"
 
 
 def test_main_reports_json_and_exit_status(tree, capsys):

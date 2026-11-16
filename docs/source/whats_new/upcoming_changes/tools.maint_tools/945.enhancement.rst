@@ -1,0 +1,4 @@
+- ``maintenances/_repo/_maintenance/tools/check_records.py`` gains a
+  ``memory`` check that enforces ``MEMORY.md``'s own rules (200 lines,
+  25 KB, a source and a non-future check date on every fact, no credential
+  shapes), so the rules cannot drift into prose only.

@@ -7,6 +7,10 @@ root `MEMORY.md` on its own.
 
 ## Rules for this file
 
+Enforced by `check_records.py` (check `memory`): line and byte budgets,
+`Source:` and `Checked YYYY-MM-DD.` on every fact, no future dates, no
+credential shapes.
+
 - Keep it under 200 lines and 25 KB. Move detail into the owning record and
   leave a one-line pointer here.
 - Admit a fact only if it is durable (true for months), verified in this

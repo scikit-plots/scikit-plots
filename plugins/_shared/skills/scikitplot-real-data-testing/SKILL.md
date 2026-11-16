@@ -46,23 +46,43 @@ python -m scikitplot api scikitplot.corpus
 Then read every file in a folder and count outcomes:
 
 ```python
+import time
 from collections import Counter
 from pathlib import Path
 
 from scikitplot.corpus import DocumentReader
 
-folder = Path("my_files")  # your copy
-outcome = Counter()
-for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+FOLDER = Path("my_files")  # your copy
+SUFFIXES = {".txt", ".md", ".pdf", ".docx", ".pptx", ".zip"}  # None = every type
+MAX_FILES = 200  # stop after this many; raise for a full run
+MAX_BYTES = 50 * 1024 * 1024  # skip larger files; readers enforce their own limits
+
+outcome, by_type = Counter(), Counter()
+start = time.perf_counter()
+files = sorted(p for p in FOLDER.rglob("*") if p.is_file())
+for path in files[:MAX_FILES]:
+    kind = path.suffix.lower() or "(none)"
+    if SUFFIXES is not None and kind not in SUFFIXES:
+        outcome["skipped type"] += 1
+        continue
+    if path.stat().st_size > MAX_BYTES:
+        outcome["skipped size"] += 1
+        continue
     try:
-        docs = list(DocumentReader.create(path).get_documents())
-        outcome["ok"] += 1
-        outcome["documents"] += len(docs)
+        documents = sum(1 for _ in DocumentReader.create(path).get_documents())
     except Exception as exc:  # report the type, keep the file private
         outcome[type(exc).__name__] += 1
-print(dict(outcome))
+        by_type[(kind, type(exc).__name__)] += 1
+        continue
+    outcome["ok"] += 1
+    outcome["documents"] += documents
+    by_type[(kind, "ok")] += 1
+print(dict(outcome), f"{time.perf_counter() - start:.1f} s")
+print(sorted(by_type.items()))
 ```
 
+Results are sorted, so two runs on the same folder are comparable. The
+readers log warnings (for example, images without OCR); they are not errors.
 An error type such as `ArchiveBudgetError` means a limit refused the file
 on purpose. Anything else is worth an issue: give the error type, the file
 type and the size, not the file.
