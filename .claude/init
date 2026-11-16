@@ -5,6 +5,8 @@ Read in this order. Stop at step 3 unless the task needs more.
 ## 1. Always
 
 - `AGENTS.md` - mandatory AI disclosure and summary style.
+- `MEMORY.md` - curated project facts, memory layers and the real-data
+  baseline.
 - `.claude/new-chat-template.md` - start here: the FILL IN block (pull
   request, task, deferred notes, decisions), the standing rules, the
   records, the checks and the process for one fix.

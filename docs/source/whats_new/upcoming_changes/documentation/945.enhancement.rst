@@ -1,0 +1,6 @@
+- ``MEMORY.md`` holds curated, checked-in project facts, a map of where each
+  kind of project knowledge lives and an anonymous real-data baseline; the
+  rule ``.claude/rules/real-life-testing.md`` and the skill
+  ``scikitplot-real-data-testing``, shipped in both Claude plugins with a
+  catalog of public data sources and their terms, show users and developers
+  how to test a submodule on real files and compare before and after.

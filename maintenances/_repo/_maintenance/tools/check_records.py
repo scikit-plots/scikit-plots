@@ -55,6 +55,7 @@ repository root, so a test can run them on a copy with one file broken.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import hashlib
 import json
 import os
@@ -98,6 +99,22 @@ RETIRED = (
 ROUTER_MAX_LINES = 80
 SKILL_MAX_LINES = 150
 ACTIVE_TODO_MAX_LINES = 400
+
+#: ``MEMORY.md``: curated project facts read at the start of every session.
+#: Its own rules (lines, size, a source and a date on every fact, no
+#: secrets) are enforced here so they cannot drift into prose only.
+MEMORY = "MEMORY.md"
+MEMORY_MAX_LINES = 200
+MEMORY_MAX_BYTES = 25 * 1024
+MEMORY_FACTS = "## Durable facts"
+_MEMORY_DATE = re.compile(r"Checked (\d{4}-\d{2}-\d{2})\.")
+#: Credential shapes that must never be committed (GitHub, AWS, private keys,
+#: API keys, a Kaggle token file's key field).
+_SECRET = re.compile(
+    r"gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}|AKIA[0-9A-Z]{16}"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}"
+    r"|\"key\"\s*:\s*\"[0-9a-f]{20,}\""
+)
 
 #: Files whose relative links must resolve. Archives are left out: they are
 #: kept verbatim, links included.
@@ -1991,12 +2008,70 @@ def _check_dependencies(market: dict, listed: set[str]) -> list[str]:
     return errors
 
 
+def _memory_facts(text: str) -> list[tuple[int, str]]:
+    """Return ``(line, text)`` for each bullet under the facts heading."""
+    facts: list[tuple[int, str]] = []
+    inside = False
+    for number, line in enumerate(text.splitlines(), 1):
+        if line.startswith("## "):
+            inside = line.strip() == MEMORY_FACTS
+        elif inside and line.startswith("- "):
+            facts.append((number, line))
+        elif inside and line.startswith("  ") and facts:
+            start, body = facts[-1]
+            facts[-1] = (start, f"{body} {line.strip()}")
+    return facts
+
+
+def check_memory(root: Path) -> list[str]:
+    """Enforce ``MEMORY.md``'s own admission rules.
+
+    Notes
+    -----
+    Every fact needs ``Source:`` and ``Checked YYYY-MM-DD.`` so a reader can
+    re-verify it; a date in the future is refused. Size limits keep the file
+    a start-of-session read. Credential shapes are refused anywhere in it.
+    """
+    path = root / MEMORY
+    if not path.is_file():
+        return [f"{MEMORY}: missing; .claude/init and AGENTS.md point to it"]
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    errors = []
+    lines = len(text.splitlines())
+    if lines > MEMORY_MAX_LINES:
+        errors.append(f"{MEMORY}: {lines} lines, budget {MEMORY_MAX_LINES}")
+    if len(raw) > MEMORY_MAX_BYTES:
+        errors.append(f"{MEMORY}: {len(raw)} bytes, budget {MEMORY_MAX_BYTES}")
+    facts = _memory_facts(text)
+    if not facts:
+        errors.append(f"{MEMORY}: no facts under '{MEMORY_FACTS}'")
+    today = _dt.datetime.now(_dt.timezone.utc).date()
+    for number, fact in facts:
+        found = _MEMORY_DATE.search(fact)
+        if "Source:" not in fact or not found:
+            errors.append(f"{MEMORY}:{number}: a fact needs 'Source:' and 'Checked YYYY-MM-DD.'")
+            continue
+        try:
+            checked = _dt.date.fromisoformat(found.group(1))
+        except ValueError:
+            errors.append(f"{MEMORY}:{number}: invalid date {found.group(1)}")
+            continue
+        if checked > today:
+            errors.append(f"{MEMORY}:{number}: checked date {checked} is in the future")
+    for number, line in enumerate(text.splitlines(), 1):
+        if _SECRET.search(line):
+            errors.append(f"{MEMORY}:{number}: looks like a credential; remove it")
+    return errors
+
+
 CHECKS = {
     "router": check_router,
     "rules": check_rules,
     "archives": check_archives,
     "links": check_links,
     "budgets": check_budgets,
+    "memory": check_memory,
     "skills": check_skills,
     "plugins": check_plugins,
 }
