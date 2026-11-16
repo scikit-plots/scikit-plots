@@ -82,3 +82,4 @@ Source in `_shared/skills/`; `scikitplot` and `scikitplot-dev` each carry a byte
 |---|---|---|
 | [`scholarly-inquiry-cycle`](_shared/skills/scholarly-inquiry-cycle/SKILL.md) | Conduct rigorous, discipline-appropriate inquiry on any topic, from the humanities and sciences to engineering decisions: define the problem, examine evidence and assumptions, develop and challenge claims, synthesize findings, and name the next inquiry. | no |
 | [`scikitplot-engineering-rules`](_shared/skills/scikitplot-engineering-rules/SKILL.md) | The numbered engineering rules of scikit-plots (verification, delivery, tests, contracts, packaging, portability, native code, text). | no |
+| [`scikitplot-real-data-testing`](_shared/skills/scikitplot-real-data-testing/SKILL.md) | Test scikit-plots submodules (corpus readers first) on real files: a user's own local folder or archive, or public datasets. | no |

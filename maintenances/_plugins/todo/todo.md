@@ -360,3 +360,24 @@ verbatim under `../_maintenance/history/` (created with the first one).
   to the end.
 - Rule 166 amended; G8, the guide's commands, the build docstring, the
   new-chat template and the ledger note updated.
+
+## Task: CI-14 - project memory and real-data testing are written down once (2026-11-16, PR 945)
+
+### Context
+- Facts verified in one chat were lost to the next; real-file checks were
+  run by hand with no recorded baseline. Claude Code does not load a root
+  `MEMORY.md`, so it is linked from `.claude/init` and `AGENTS.md`.
+
+### Implementation
+- `MEMORY.md` (under 200 lines; dated, sourced facts; no secrets or names).
+- `.claude/rules/real-life-testing.md` scoped to `scikitplot/**`.
+- Shared skill `scikitplot-real-data-testing` copied to both plugins by
+  `check_records.py --write-index`; commands run as written, no downloads.
+- Baseline: 145 document files, 0 errors, 0 unstable, 52 s, 302 MiB.
+
+### Prevention rule
+- When a reader or limit changes, then snapshot `main` and the branch and
+  compare; verified by the baseline row in `MEMORY.md`.
+
+### Next
+- Benchmark recall, memory, time and reliability against similar tools.

@@ -17,7 +17,8 @@ This is a **mandatory requirement**, not optional. Include it at the end of ever
 Read `.claude/init`, then follow `.claude/new-chat-template.md`: it holds the
 standing rules and the process, and points to
 `maintenances/_repo/_maintenance/tools/orient.py`, which prints the current
-state from this checkout's records.
+state from this checkout's records. Durable project facts live in
+`MEMORY.md`; real-file testing follows `.claude/rules/real-life-testing.md`.
 
 Attribution (`model-only`, `full`, `none`) and guidance level
 (`newcomer`, `contributor`, `maintainer`) are the contributor's choice,
