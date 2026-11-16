@@ -410,13 +410,14 @@ class TestMemory:
 def test_shared_skill_python_examples_compile():
     """Skill examples are copied by users as written; a syntax error ships."""
     import re
+    import textwrap
 
     blocks = []
     for skill in sorted((ROOT / "plugins/_shared/skills").glob("*/**/*.md")):
         text = skill.read_text(encoding="utf-8")
         for index, code in enumerate(re.findall(r"```python\n(.*?)```", text, re.S)):
             blocks.append(skill.name)
-            compile(code, f"{skill.relative_to(ROOT)}#{index}", "exec")
+            compile(textwrap.dedent(code), f"{skill.relative_to(ROOT)}#{index}", "exec")
     assert blocks, "no python examples found; the pattern no longer matches"
 
 

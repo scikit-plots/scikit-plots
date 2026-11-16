@@ -21,6 +21,27 @@ license: BSD-3-Clause
   repository, an issue or memory. Report counts only.
 - Public sources: follow `references/sources.md` and each site's terms.
 
+## Offline or limited web: start with what ships
+
+Try these first, in this order; see `references/sources.md` for details.
+
+1. **No network, no files:** the built-in sample text.
+
+   ```python
+   from scikitplot.corpus import HAMLET_TEXT
+
+   print(len(HAMLET_TEXT), HAMLET_TEXT.splitlines()[0])
+   ```
+
+2. **A source checkout:** `galleries/examples/corpus/data/` holds mixed
+   real files (PDF, ZIP, MP3, images, folders) for the corpus readers.
+3. **Tables:** `scikitplot.datasets.load_dataset(name)` reads
+   `name.csv` from the scikit-plots-data repository. With `cache=True` it
+   uses the network only when the file is not already in the cache folder
+   (`scikitplot.datasets.get_data_home()`, or the `SCIKITPLOT_DATA`
+   environment variable). For an offline machine, copy the CSV into that
+   folder first.
+
 ## No files yet? Download by hand, then upload
 
 For a newcomer, or anyone without test files ready:
