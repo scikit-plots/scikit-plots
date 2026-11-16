@@ -1,5 +1,5 @@
 ---
-title: "XMLReader raises a different exception type for bad XML with and without lxml"
+title: "XMLReader's error text for bad XML differs with and without lxml (CX-23, rest)"
 status: open
 kind: "other"
 area: "scikitplot/corpus"
@@ -10,59 +10,61 @@ towncrier_type: "fix"
 towncrier_fragment: ""
 ---
 
-# XMLReader raises a different exception type for bad XML with and without lxml
+# XMLReader's error text for bad XML differs with and without lxml (CX-23, rest)
 
 ## Summary
 
-For an empty or malformed `.xml` file, `XMLReader` raises
-`lxml.etree.XMLSyntaxError` where lxml is installed and `ValueError`
-("XMLReader: could not parse XML content: ...") where it is not (finding
-CX-23).
+PR 947 made the type one: `XMLReader` and `TEIReader` raise `ValueError`
+("XMLReader: could not parse XML content: ...") for unparsable XML whichever
+parser ran, the parser's error as `__cause__`. The text after the prefix is
+still the parser's own, so the same file gives two messages on two machines.
 
 ## Why it matters
 
-Code that catches the error must catch both types, and only one of them can
-be tested on a given machine. The same file gives a different error message
-in a batch log on two machines.
+A batch log or a reader snapshot of the same folder differs between a
+machine with lxml and one without, although nothing about the files differs.
 
 ## Current evidence
 
-- `reader_snapshot.py` on the same folder, same tree: CPython 3.13 with lxml
-  `XMLSyntaxError: Document is empty, line 1, column 1`; CPython 3.12 without
-  lxml `ValueError: XMLReader: could not parse XML content: no element
-  found: line 1, column 0`. The same for a file of plain text.
-- `_parse_xml`'s docstring states that a parse error from an installed lxml
-  "is still authoritative and propagates, preserving the historical parser
-  contract": the difference is deliberate.
+`reader_snapshot.py` on the same four files, same tree (PR 947), CPython
+3.13 with lxml 6.1 against CPython 3.9 without lxml, three differences:
+
+- empty file: `Document is empty, line 1, column 1 (<string>, line 1)`
+  against `no element found: line 1, column 0`;
+- plain text: `Start tag expected, '<' not found, line 1, column 1
+  (<string>, line 1)` against `syntax error: line 1, column 0`;
+- truncated XML: `Premature end of data in tag a line 1, line 1, column 12
+  (<string>, line 1)` against `no element found: line 1, column 11`.
 
 ## Root cause / current understanding
 
-The stdlib path wraps its errors in `ValueError`; the lxml path does not.
+libxml2 and expat word and locate the same error differently (columns count
+from 1 and from 0), and `_unparsable_xml` puts the parser's text in the
+message, as the first version of this note asked ("the parser's message
+kept").
 
 ## Expected behavior
 
-One exception type for unparsable XML, whichever parser ran, with the
-parser's message kept and the original as `__cause__`.
+A decision of the maintainer (options, recommended first): (a) keep the
+parser's text in the message and accept the difference: close this note and
+change the acceptance line below to "the type is the same"; (b) a fixed
+message with no parser text (the detail only in `__cause__`), so snapshots
+agree byte for byte and the message alone no longer says what is wrong.
 
 ## Affected paths and ownership
 
-- `scikitplot/corpus/_readers/_xml.py` (`_parse_xml`)
+- `scikitplot/corpus/_readers/_xml.py` (`_unparsable_xml`)
 - Owner: `maintenances/corpus/`
 
 ## Constraints and non-goals
 
-The hardened parsers and the XML safety tests stay as they are.
+The hardened parsers and the XML safety tests stay as they are. No mapping
+of one parser's wording to the other's.
 
 ## Edge cases to cover
 
-Empty file, text that is not XML, truncated XML, an entity expansion attack
-(the safety tests catch `XMLSyntaxError` from the parser directly).
-
-## Proposed direction
-
-A decision: (a) wrap lxml's `XMLSyntaxError` in the same `ValueError`
-(`XMLSyntaxError` would remain the `__cause__`); (b) keep the historical
-contract and document both types.
+Empty file, text that is not XML, truncated XML, a mismatched tag
+(`TestUnparsableXmlRaisesOneType` in `_readers/tests/test__xml.py`).
 
 ## Verification / acceptance criteria
 
@@ -70,8 +72,8 @@ The snapshot comparison of the two interpreters shows no XML difference.
 
 ## Documentation impact
 
-`XMLReader` docstring (Raises).
+`XMLReader` docstring (Raises), if the message changes.
 
 ## Release-note promotion
 
-Required: `scikitplot.corpus`, type `fix`.
+Required only for (b): `scikitplot.corpus`, type `fix`.

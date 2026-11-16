@@ -171,3 +171,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 937: office add-ins refused, legacy names identified
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-14).
 - Next: office plan phase 4 (legacy binary backend, a decision); CX-23.
+
+### PR 947: CX-23 (a), one exception type for unparsable XML
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-16).
+- Next: CX-42 (ALTOReader and a malformed page under lxml); the error text
+  choice left in the CX-23 note; office plan phase 4 (a decision).
