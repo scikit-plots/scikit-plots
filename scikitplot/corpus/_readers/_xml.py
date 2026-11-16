@@ -160,6 +160,31 @@ def _element_raw_text_content(element: Any) -> str:
     return " ".join(parts).strip()
 
 
+def _unparsable_xml(exc: BaseException) -> ValueError:
+    """
+    Build the one error raised for XML that cannot be parsed.
+
+    Parameters
+    ----------
+    exc : BaseException
+        The error of the parser that ran.
+
+    Returns
+    -------
+    ValueError
+        ``"XMLReader: could not parse XML content: <parser message>"``. The
+        caller raises it ``from exc``.
+
+    Notes
+    -----
+    **Developer notes:** the lxml and the stdlib parse paths both build
+    their error here, so the type and the message prefix cannot drift
+    apart. The text after the prefix is the parser's own and differs
+    between parsers.
+    """
+    return ValueError(f"XMLReader: could not parse XML content: {exc}")
+
+
 def _parse_xml_lxml(content: bytes) -> Any:
     """
     Parse XML bytes using lxml.
@@ -178,8 +203,16 @@ def _parse_xml_lxml(content: bytes) -> Any:
     ------
     ImportError
         If lxml is not installed.
-    lxml.etree.XMLSyntaxError
-        If content is not valid XML.
+    ValueError
+        If content is not valid XML. The parser's
+        ``lxml.etree.XMLSyntaxError`` is the ``__cause__``.
+
+    Notes
+    -----
+    **Developer notes:** ``XMLSyntaxError`` is a ``SyntaxError``, not a
+    ``ValueError``. It is converted here, with the message
+    :func:`_parse_xml` uses for the stdlib parser, so unparsable XML raises
+    one type whichever parser ran.
     """
     try:
         from lxml import etree  # type: ignore[] # noqa: PLC0415
@@ -190,7 +223,10 @@ def _parse_xml_lxml(content: bytes) -> Any:
         ) from exc
     from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
 
-    return etree.fromstring(content, parser=hardened_lxml_parser())
+    try:
+        return etree.fromstring(content, parser=hardened_lxml_parser())
+    except etree.XMLSyntaxError as exc:
+        raise _unparsable_xml(exc) from exc
 
 
 def _parse_xml_stdlib(content: bytes) -> Any:
@@ -216,8 +252,32 @@ def _parse_xml(content: bytes) -> Any:
     """Parse XML bytes with lxml first and a secure stdlib fallback.
 
     Only *absence* of lxml triggers fallback.  A parse error from an installed
-    lxml is still authoritative and propagates, preserving the historical
-    parser contract.
+    lxml is authoritative: the stdlib parser is not tried after it.
+
+    Parameters
+    ----------
+    content : bytes
+        Raw XML bytes.
+
+    Returns
+    -------
+    xml.etree.ElementTree.Element or lxml.etree._Element
+        Document root element.
+
+    Raises
+    ------
+    ValueError
+        If the content is not valid XML, whichever parser ran. The message
+        starts with ``"XMLReader: could not parse XML content: "`` and the
+        parser's own error is the ``__cause__``.
+
+    Notes
+    -----
+    **User notes:** catch ``ValueError`` for an empty, truncated or
+    malformed file; the same code works with and without lxml.
+
+    **Developer notes:** both parse paths build the error with
+    :func:`_unparsable_xml`.
     """
 
     def _stdlib() -> Any:
@@ -226,13 +286,9 @@ def _parse_xml(content: bytes) -> Any:
         try:
             return _parse_xml_stdlib(content)
         except (ET.ParseError, UnicodeDecodeError, ValueError) as exc:
-            raise ValueError(
-                f"XMLReader: could not parse XML content: {exc}",
-            ) from exc
+            raise _unparsable_xml(exc) from exc
         except Exception as exc:  # noqa: BLE001
-            raise ValueError(
-                f"XMLReader: could not parse XML content: {exc}",
-            ) from exc
+            raise _unparsable_xml(exc) from exc
 
     outcome = run_backend_chain(
         (
@@ -525,10 +581,9 @@ class XMLReader(DocumentReader):
     Raises
     ------
     ValueError
-        If the file exceeds ``max_file_bytes`` or cannot be parsed.
-    ImportError
-        If the XML cannot be parsed and lxml is not available for
-        error-recovery parsing.
+        If the file exceeds ``max_file_bytes``, or is not valid XML (empty,
+        truncated or malformed). The type is the same with and without
+        lxml; the parser's own error is the ``__cause__``.
 
     See Also
     --------

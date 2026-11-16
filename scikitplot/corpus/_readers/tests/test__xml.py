@@ -165,6 +165,56 @@ class TestParseXmlStdlib:
                 _parse_xml(_INVALID_XML)
 
 
+_UNPARSABLE = {
+    "empty": b"",
+    "not-xml": b"plain text, no markup",
+    "truncated": b"<root><item>x</item>",
+    "mismatched-tag": b"<root><item>x</root>",
+}
+
+
+class TestUnparsableXmlRaisesOneType:
+    """Unparsable XML raises ``ValueError`` whichever parser ran."""
+
+    _PREFIX = "XMLReader: could not parse XML content: "
+
+    @pytest.mark.parametrize("content", list(_UNPARSABLE.values()), ids=list(_UNPARSABLE))
+    def test_lxml_path(self, content: bytes) -> None:
+        etree = pytest.importorskip("lxml.etree")
+        from .._xml import _parse_xml
+
+        with pytest.raises(ValueError) as info:
+            _parse_xml(content)
+        assert str(info.value).startswith(self._PREFIX)
+        assert isinstance(info.value.__cause__, etree.XMLSyntaxError)
+        assert str(info.value.__cause__) in str(info.value)
+
+    @pytest.mark.parametrize("content", list(_UNPARSABLE.values()), ids=list(_UNPARSABLE))
+    def test_stdlib_path(self, content: bytes) -> None:
+        from .._xml import _parse_xml
+
+        with patch.dict(sys.modules, {"lxml": None, "lxml.etree": None}):
+            with pytest.raises(ValueError) as info:
+                _parse_xml(content)
+        assert str(info.value).startswith(self._PREFIX)
+        assert info.value.__cause__ is not None
+
+    @pytest.mark.parametrize("reader_cls", [XMLReader, TEIReader])
+    @pytest.mark.parametrize("content", list(_UNPARSABLE.values()), ids=list(_UNPARSABLE))
+    def test_reader_with_installed_parser(
+        self, tmp_path: pathlib.Path, reader_cls: Any, content: bytes
+    ) -> None:
+        f = _write(tmp_path, "bad.xml", content)
+        with pytest.raises(ValueError, match="could not parse XML content"):
+            list(reader_cls(input_path=f).get_documents())
+
+    def test_valid_xml_still_parses_with_lxml(self) -> None:
+        pytest.importorskip("lxml.etree")
+        from .._xml import _parse_xml
+
+        assert _parse_xml(_SIMPLE_XML) is not None
+
+
 # ===========================================================================
 # XMLReader
 # ===========================================================================
