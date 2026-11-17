@@ -10,8 +10,9 @@ and flang), the Visual Studio C++ tools, and pkg-config.
 Dot-source this file, then call one function per step:
 
     . "$env:GITHUB_ACTION_PATH/windows_arm64.ps1"
-    Install-Llvm -Version 20.1.8 -Sha256 <hash>
+    Install-Llvm -Version 22.1.8 -Sha256 <hash>
     Initialize-Msvc -Mode detect
+    Assert-ClangAcceptsMsvcStl -ClangCl <llvm-bin>\clang-cl.exe
     Install-PkgConf
 
 Each function stops with a message that says what was looked for, where,
@@ -236,8 +237,9 @@ function Install-Llvm {
         from LLVM 20, which still ships the old name. Whichever exists is
         used, the old name first, so a newer LLVM needs no change here.
       * The standard library of Visual Studio refuses a clang older than it
-        supports (error STL1000). After a Visual Studio upgrade on the
-        runner image, raise Version and Sha256 together.
+        supports (error STL1000). Assert-ClangAcceptsMsvcStl checks the
+        pair before the build; when it fails, raise Version and Sha256
+        together.
 
     .LINK
     https://github.com/llvm/llvm-project/releases
@@ -611,6 +613,75 @@ function Initialize-Msvc {
     $change = Export-EnvironmentChange -Before $before -After $after
     Write-Host "Mode import: $($change.Variables.Count) variable(s) and $($change.PathEntries.Count) PATH entr$(if ($change.PathEntries.Count -eq 1) { 'y' } else { 'ies' }) passed to the following steps."
     Write-Host ("Variables     : " + ($change.Variables -join ', '))
+}
+
+function Assert-ClangAcceptsMsvcStl {
+    <#
+    .SYNOPSIS
+    Stop unless clang-cl can compile against the C++ standard library of the
+    Visual Studio on this runner.
+
+    .PARAMETER ClangCl
+    Full path of the clang-cl.exe that the build will use.
+
+    .PARAMETER WorkDirectory
+    Where the one-line test file is written; it is removed afterwards.
+
+    .NOTES
+    USER NOTES
+      On failure the message names the oldest Clang the standard library
+      accepts and what to change. The build itself would fail the same way
+      later, at its first C++ file.
+
+    DEVELOPER NOTES
+      * The MSVC standard library refuses a Clang older than the one its
+        release supports (`error STL1000: Unexpected compiler version,
+        expected Clang N or newer`, from yvals_core.h, which every standard
+        header includes). The pinned LLVM and the Visual Studio of the
+        runner image change independently, and GitHub updates the image
+        without notice, so the two are checked against each other here
+        rather than trusted to match. Visual Studio 18.12 (MSVC 14.52)
+        raised N to 22 in November 2026, while LLVM was pinned at 20.1.8.
+      * The check is the compiler's own: a file that includes <cstdint> is
+        compiled with /Zs (syntax only, nothing written). It runs after
+        Initialize-Msvc, in a step of its own, so it sees the environment
+        that `msvc-environment: import` passes on, as the build does.
+      * N is read from the compiler's message only to name it; whether the
+        step fails depends on the exit code alone.
+
+    .LINK
+    https://learn.microsoft.com/en-us/cpp/overview/compiler-versions
+    .LINK
+    https://clang.llvm.org/docs/MSVCCompatibility.html
+    #>
+    param(
+        [Parameter(Mandatory)][string]$ClangCl,
+        [string]$WorkDirectory = $(if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() })
+    )
+    if (-not (Test-Path -LiteralPath $ClangCl -PathType Leaf)) {
+        throw "clang-cl.exe was not found at '$ClangCl'; the LLVM step must run first."
+    }
+    $source = Join-Path $WorkDirectory "msvc-stl-check-$PID.cpp"
+    Set-Content -LiteralPath $source -Value '#include <cstdint>' -Encoding ascii
+    try {
+        # /TP: compile as C++. /Zs: check the syntax only, write nothing.
+        $result = Invoke-Native -FilePath $ClangCl -ArgumentList @('/nologo', '/TP', '/Zs', $source)
+    }
+    finally {
+        Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue
+    }
+    $clang = (Invoke-Native -FilePath $ClangCl -ArgumentList @('--version')).Output.Trim().Split("`n")[0].Trim()
+    if ($result.ExitCode -eq 0) {
+        Write-Host "$clang accepts the MSVC standard library on this runner."
+        return
+    }
+    if ($result.Output -match 'STL1000[^\r\n]*expected Clang (\d+) or newer') {
+        throw ("$clang is older than the MSVC standard library on this runner accepts: it needs Clang $($Matches[1]) or newer (error STL1000).`n" +
+            "Raise llvm-version and llvm-sha256 of .github/windows_arm64_steps/action.yml together, to a release of LLVM $($Matches[1]) or newer whose " +
+            "LLVM-<version>-woa64.exe has flang (README.md, 'Changing it').`n$($result.Output)")
+    }
+    throw ("$clang could not compile a file that only includes <cstdint> (exit code $($result.ExitCode)); the build would fail the same way.`n" +
+        "If a header is not found, set msvc-environment: import.`n$($result.Output)")
 }
 
 

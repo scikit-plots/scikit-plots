@@ -196,7 +196,7 @@ Pipfile, inline list    --> DependencySet (+ conversion notes)  |
 - conda/mamba argv are plan-tested only (no executable in the sandbox).
 - The Xeus add-on keeps the upstream task structure (doit generators).
 
-## Task: ENV-2, Windows ARM64 wheels fail when the runner image moves to MSVC 14.52 (2026-11-16, open, next PR)
+## Task: ENV-2, Windows ARM64 wheels fail when the runner image moves to MSVC 14.52 (2026-11-16, done in PR 948, option 1)
 
 ### Report
 - Run 43694545938, job 132752142400 (`Wheel-cp314-windows-11-arm-win-ARM64`,
@@ -228,8 +228,58 @@ Pipfile, inline list    --> DependencySet (+ conversion notes)  |
    it hides an unsupported combination.
 
 ### Acceptance
-- All eight Windows ARM64 wheel jobs pass on an 18.12 runner.
+- All seven Windows ARM64 wheel jobs pass on an 18.12 runner.
 - The README states the pairing rule: LLVM must meet the minimum Clang
   version that the image's MSVC STL demands.
 - A step prints `clang --version` and the MSVC toolset version before
   building, so a future mismatch is named in the first error line.
+
+## Results Review - ENV-2 - 2026-11-17
+
+### Implementation summary
+- Option 1. `.github/windows_arm64_steps/action.yml`: `llvm-version`
+  22.1.8 (was 20.1.8), `llvm-sha256`
+  `76f44ef1ba6eeb5a65904e9500f042f588fade49952778ce48f0374daa934396`;
+  the same pin in `legacy_action.yml`.
+- New step "Check clang-cl against the MSVC standard library" after
+  Visual Studio is located: `Assert-ClangAcceptsMsvcStl` in
+  `windows_arm64.ps1` compiles `#include <cstdint>` with `clang-cl /TP /Zs`
+  and stops on a non-zero exit code, naming the Clang version from the
+  `STL1000` line and the inputs to change.
+- README: the pairing rule, the new step, what broke in November 2026, the
+  failure table. Fragment `build-packaging/948.fix.rst`.
+
+### Verification evidence
+- CI logs, run 43954952905 (main at ac69847, 2026-11-16): all seven
+  `Wheel-cp3XY-windows-11-arm-win-ARM64` jobs (cp311, cp312, cp313, cp313t,
+  cp314, cp314t, cp315) fail with `error STL1000: Unexpected compiler
+  version, expected Clang 22 or newer` under clang 20.1.8 and MSVC
+  14.52.37025 (Visual Studio 18.12); every Linux and macOS ARM64 job of
+  the run passes. Run 43694545938 (2026-11-15): one of the seven, job
+  132752142400, the same. The rollout finished between the two runs.
+- `LLVM-22.1.8-woa64.exe`: 389,159,445 bytes, SHA-256 computed here from
+  the GitHub release download; `7z l` lists `bin/clang-cl.exe`,
+  `bin/flang.exe`, `bin/flang-new.exe`, `lib/clang/22/`. LLVM 23.1.6 has no
+  `woa64` installer (HTTP 404). Fortran is optional in `meson.build` and no
+  build file names the Flang runtime libraries (renamed `flang_rt.*` in
+  LLVM 21), so the rename does not reach the build.
+- `tests/test_windows_arm64.ps1`, PowerShell 7.7.0 on Linux: 33 passed,
+  1 failed (pre-existing, below). The five new tests fail against the
+  script of `main` (28 passed, 6 failed) and fail under two mutations of
+  the new function (deciding by the text instead of the exit code: 2
+  fail; skipping the removal of the test file: 2 fail).
+
+### Deviations from plan
+- None in scope. Not proved here: a wheel build on a real `windows-11-arm`
+  runner (needs CI); the check's `clang-cl /Zs` call is replaced in the
+  tests like every other call to a program.
+
+### Technical debt created
+- Pre-existing, not changed: the test "the output of set becomes a
+  dictionary" fails on `main` on every system; its input indents each
+  `NAME=` line by two spaces, which `cmd.exe`'s `set` never prints, and it
+  expects the names unindented.
+- `legacy_action.yml` is used by no workflow; it keeps a second copy of the
+  pin. Deleting it is a separate choice.
+- The self-test input stays off by default, so CI does not run the
+  script's tests.

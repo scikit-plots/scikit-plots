@@ -1,14 +1,14 @@
 # Windows ARM64 build dependencies
 
 A composite action for jobs on `windows-11-arm`. It installs LLVM, locates the
-Visual Studio C++ tools and installs pkg-config, so that Meson can build the
-wheels with `clang-cl` and `flang`.
+Visual Studio C++ tools, checks that the two work together, and installs
+pkg-config, so that Meson can build the wheels with `clang-cl` and `flang`.
 
 | File | Role |
 |---|---|
 | `action.yml` | inputs, outputs, one step per function |
 | `windows_arm64.ps1` | the logic, with the developer notes beside each function |
-| `tests/test_windows_arm64.ps1` | 29 tests; they run on Linux, macOS and Windows |
+| `tests/test_windows_arm64.ps1` | 34 tests; they run on Linux, macOS and Windows |
 
 ## Use
 
@@ -32,7 +32,7 @@ After the step, for the rest of the job:
 
 | Input | Default | Meaning |
 |---|---|---|
-| `llvm-version` | `20.1.8` | LLVM release to install |
+| `llvm-version` | `22.1.8` | LLVM release to install; at least the Clang the image's MSVC standard library requires |
 | `llvm-sha256` | the hash of that release | SHA-256 of `LLVM-<version>-woa64.exe`; change both together |
 | `msvc-environment` | `detect` | `detect` or `import`, see below |
 | `self-test` | `false` | `true` runs the tests on the runner first (a few seconds) |
@@ -42,7 +42,7 @@ After the step, for the rest of the job:
 `llvm-bin`, `fortran-compiler`, `vs-installation-path`, `vs-version`,
 `msvc-tools-version`, `vcvarsall`, `pkg-config`.
 
-## What the three steps do, and why
+## What the four steps do, and why
 
 ### 1. LLVM
 
@@ -88,7 +88,31 @@ differences to `GITHUB_ENV` and `GITHUB_PATH`.
 Switch to `import` if a build fails to find `windows.h`, the C runtime
 libraries, `rc.exe` or `mt.exe`.
 
-### 3. pkg-config
+### 3. clang-cl against the MSVC standard library
+
+Compiles a file that contains only `#include <cstdint>` with `clang-cl /Zs`
+(syntax only; nothing is written), in the environment the previous step
+leaves. The step passes if the compiler does.
+
+The MSVC standard library refuses a Clang older than the release it was
+written for, at the top of every standard header:
+
+```text
+yvals_core.h(923,1): error: static assertion failed: error STL1000:
+Unexpected compiler version, expected Clang 22 or newer.
+```
+
+LLVM is pinned here; Visual Studio comes with the runner image and changes
+when GitHub updates the image. The pair is therefore checked, not assumed.
+When it does not match, this step stops with the Clang version the
+standard library needs and the inputs to change, instead of the build
+stopping several minutes later at its first C++ file.
+
+**The pairing rule:** `llvm-version` must be at least the Clang version that
+the MSVC toolset of the image requires. The toolset states it in
+`include\yvals_core.h` (the `STL1000` line); this step reports it.
+
+### 4. pkg-config
 
 Installs `pkgconf:arm64-windows` with the vcpkg of the runner image, copies
 `pkgconf.exe` to `pkg-config.exe`, and sets `PKG_CONFIG` to it.
@@ -118,6 +142,22 @@ Replacing `2022` with `18` would have worked until the next image. The
 installer puts `vswhere.exe` at one fixed place for exactly this purpose,
 so the action asks it instead.
 
+## What broke in November 2026
+
+Between 15 and 16 November 2026 the `windows-11-arm` image moved from
+Visual Studio 18.11 (MSVC 14.51) to 18.12 (MSVC 14.52). The 14.52 standard
+library requires Clang 22; LLVM was pinned at 20.1.8. Every ARM64 wheel job,
+for every Python version, failed at the first C++ file
+(`scikitplot/cexternals/_annoy/src/annoymodule.cc`) with `error STL1000`.
+During the rollout only the jobs that drew an updated runner failed (one of
+the seven on 15 November, all seven on 16 November); the Linux and macOS
+ARM64 wheels were not affected.
+
+LLVM is now 22.1.8, the newest release of the major the standard library
+requires; its `LLVM-22.1.8-woa64.exe` has `clang-cl`, `flang` and
+`flang-new`. The SHA-256 was computed from the release download. The check
+of step 3 was added so that the next such change names itself.
+
 ## When a step fails
 
 | Message | Meaning | What to do |
@@ -125,20 +165,24 @@ so the action asks it instead.
 | `This action sets up Windows on ARM64; the runner is ...` | the step ran on another runner | add `if: runner.os == 'Windows' && runner.arch == 'ARM64'` |
 | `Download failed after 4 attempts` | GitHub's release download was unreachable | re-run the job |
 | `Checksum mismatch` | the file is not the release the hash belongs to | if you changed `llvm-version`, set `llvm-sha256` from the release page; otherwise re-run |
-| `Neither flang-new.exe nor flang.exe` | that LLVM release has no Fortran compiler for Windows ARM64 | use a release whose `woa64` installer has one; 20.1.8 does |
+| `Neither flang-new.exe nor flang.exe` | that LLVM release has no Fortran compiler for Windows ARM64 | use a release whose `woa64` installer has one; 20.1.8 and 22.1.8 do |
 | `vswhere.exe was not found` | no Visual Studio on the runner | the image changed; see the image's README, linked below |
 | `No Visual Studio installation has the component ...ARM64` | Visual Studio is there without the ARM64 C++ tools; the message lists what is installed | use a runner image that has them |
 | `vcvarsall.bat arm64 failed` (only with `import`) | the batch file reported an error; its output follows | read the output; `detect` skips this call |
 | `vcpkg.exe was not found` | the image no longer has vcpkg where it says | set `VCPKG_INSTALLATION_ROOT` in the job |
 | `vcpkg install pkgconf:arm64-windows failed 3 times` | vcpkg could not build or download; its output is above | usually a network error: re-run |
-| `error STL1000: Unexpected compiler version, expected Clang N or newer` (later, while compiling) | the Visual Studio on the image needs a newer clang than the LLVM installed here | raise `llvm-version` and `llvm-sha256` |
+| `... is older than the MSVC standard library on this runner accepts: it needs Clang N or newer` | the Visual Studio on the image needs a newer clang than the LLVM installed here | raise `llvm-version` and `llvm-sha256` together, to an LLVM N or newer whose `woa64` installer has `flang` |
+| `... could not compile a file that only includes <cstdint>` | `clang-cl` and the MSVC headers do not work together for another reason; the compiler's output follows | read the output; if a header is not found, set `msvc-environment: import` |
 | `fatal error: 'windows.h' file not found`, or a missing `.lib` (later) | `clang-cl` did not find the SDK or MSVC by itself | set `msvc-environment: import` |
 
 ## Changing it
 
 - **A newer LLVM.** Take the version and the SHA-256 of
   `LLVM-<version>-woa64.exe` from the release page and set both inputs. If
-  the release only has `flang.exe`, nothing else changes.
+  the release only has `flang.exe`, nothing else changes. Not every release
+  publishes a `woa64` installer (23.1.6 had none in November 2026); check
+  that the file exists and that it contains `bin/flang.exe` before
+  choosing (`7z l LLVM-<version>-woa64.exe` lists it on any system).
 - **Trying the next runner image early.** GitHub announces a label change
   some weeks ahead and offers the new image under its own label
   (`windows-11-vs2026-arm` was the one for this change). Run the wheel

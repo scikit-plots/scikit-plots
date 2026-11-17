@@ -14,8 +14,8 @@ runs:
       # with:  # Windows AMD64 Setup (MSVC Only) clang-cl emulates MSVC cl, not GCC.
       #   arch: x64
       run: | # zizmor: ignore[github-env]
-        Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
-        $expectedHash = "7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
+        Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/LLVM-22.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
+        $expectedHash = "76f44ef1ba6eeb5a65904e9500f042f588fade49952778ce48f0374daa934396"
         $fileHash = (Get-FileHash -Path "LLVM-woa64.exe" -Algorithm SHA256).Hash
         if ($fileHash -ne $expectedHash) {
             Write-Error "Checksum verification failed. The downloaded file may be corrupted or tampered with."
@@ -75,9 +75,9 @@ runs:
     #   shell: bash -el {0}
     #   run: | # zizmor: ignore[github-env] safe: adding
     #     # Download LLVM installer
-    #     curl -L -o LLVM-woa64.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe
+    #     curl -L -o LLVM-woa64.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/LLVM-22.1.8-woa64.exe
     #     # Check SHA256 checksum
-    #     expected_hash="7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
+    #     expected_hash="76f44ef1ba6eeb5a65904e9500f042f588fade49952778ce48f0374daa934396"
     #     file_hash=$(sha256sum LLVM-woa64.exe | awk '{ print $1 }')
     #     if [ "$file_hash" != "$expected_hash" ]; then
     #       echo "Checksum verification failed. The downloaded file may be corrupted or tampered with."

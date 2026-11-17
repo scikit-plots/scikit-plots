@@ -22,6 +22,12 @@
 #     2026, the directory "2022\Enterprise" became "18\Enterprise", and the
 #     hard-coded path that used to be here stopped every ARM64 wheel build.
 #     Visual Studio is now located with vswhere.
+#   * The pinned LLVM and the image's Visual Studio must match: the MSVC
+#     standard library refuses a Clang older than it supports (error
+#     STL1000). In November 2026 Visual Studio 18.12 (MSVC 14.52) required
+#     Clang 22 while LLVM 20.1.8 was pinned, and every ARM64 wheel failed at
+#     its first C++ file. A step now compiles one line against the standard
+#     library before the build, so a future mismatch stops the job there.
 #   * Inputs reach the scripts through `env`, never through `${{ }}` inside
 #     `run`, so that a value cannot become part of the script text.
 #
@@ -42,13 +48,16 @@ description: "LLVM (clang-cl, flang), Visual Studio C++ tools and pkg-config for
 
 inputs:
   llvm-version:
-    description: "LLVM release to install, for example 20.1.8"
+    description: >-
+      LLVM release to install, for example 22.1.8. It must be at least the Clang version
+      that the image's MSVC standard library requires (22 for MSVC 14.52, Visual Studio 18.12);
+      the step "Check clang-cl against the MSVC standard library" stops the job otherwise.
     required: false
-    default: "20.1.8"
+    default: "22.1.8"
   llvm-sha256:
     description: "SHA-256 of LLVM-<llvm-version>-woa64.exe; change it together with llvm-version"
     required: false
-    default: "7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
+    default: "76f44ef1ba6eeb5a65904e9500f042f588fade49952778ce48f0374daa934396"
   msvc-environment:
     description: >-
       detect: locate Visual Studio and check it, leave the environment as it is (default).
@@ -120,6 +129,14 @@ runs:
       run: |
         . (Join-Path $env:GITHUB_ACTION_PATH 'windows_arm64.ps1')
         Initialize-Msvc -Mode $env:MSVC_ENVIRONMENT
+
+    - name: Check clang-cl against the MSVC standard library  # error STL1000 here, not at the first C++ file of the build
+      shell: pwsh
+      env:
+        LLVM_BIN: ${{ steps.llvm.outputs.llvm-bin }}
+      run: |
+        . (Join-Path $env:GITHUB_ACTION_PATH 'windows_arm64.ps1')
+        Assert-ClangAcceptsMsvcStl -ClangCl (Join-Path $env:LLVM_BIN 'clang-cl.exe')
 
     - name: Install pkg-config (pkgconf from vcpkg)  # the one on PATH is Strawberry Perl's and is x64
       id: pkgconf

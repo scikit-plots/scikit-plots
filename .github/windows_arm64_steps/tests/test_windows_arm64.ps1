@@ -408,6 +408,72 @@ Test 'a mode that does not exist is refused' {
 }
 
 
+Write-Host 'clang-cl and the MSVC standard library'
+
+function Use-ClangCheck {
+    # Stand in for clang-cl: compiling the test file ends with ExitCode and Output.
+    param([string]$Folder, [int]$ExitCode = 0, [string]$Output = '')
+    $script:Check = @{ ExitCode = $ExitCode; Output = $Output; Arguments = @(); Text = ''; Calls = 0 }
+    $script:ClangCl = Join-Path $Folder 'LLVM' 'bin' 'clang-cl.exe'
+    New-File $script:ClangCl
+    function script:Invoke-Native {
+        param($FilePath, $ArgumentList)
+        $script:Check.Calls++
+        if (@($ArgumentList) -contains '--version') {
+            return [pscustomobject]@{ ExitCode = 0; Output = "clang version 20.1.8`nTarget: aarch64-pc-windows-msvc" }
+        }
+        $script:Check.Arguments = @($ArgumentList)
+        $script:Check.Text = Get-Content -LiteralPath $ArgumentList[-1] -Raw
+        return [pscustomobject]@{ ExitCode = $script:Check.ExitCode; Output = $script:Check.Output }
+    }
+}
+
+# What clang-cl 20.1.8 printed on Visual Studio 18.12 (MSVC 14.52), run 43954952905.
+$Stl1000 = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.52.37025\include\yvals_core.h(923,1): ' +
+    "error: static assertion failed: error STL1000: Unexpected compiler version, expected Clang 22 or newer.`n1 error generated."
+
+Test 'a clang-cl that the standard library accepts passes, and the test file is removed' {
+    $folder = New-Workspace
+    Use-ClangCheck -Folder $folder
+    Assert-ClangAcceptsMsvcStl -ClangCl $script:ClangCl
+    Assert-Equal @($script:Check.Arguments[0..2]) @('/nologo', '/TP', '/Zs')
+    Assert-Equal $script:Check.Text.Trim() '#include <cstdint>'
+    Assert-Equal @(Get-ChildItem -LiteralPath $folder -Filter '*.cpp').Count 0
+    Assert-Equal (Get-Lines GITHUB_ENV) @()
+}
+
+Test 'error STL1000 names the Clang version the standard library needs and what to change' {
+    $folder = New-Workspace
+    Use-ClangCheck -Folder $folder -ExitCode 1 -Output $Stl1000
+    Assert-Throws 'clang version 20\.1\.8 is older[\s\S]*needs Clang 22 or newer[\s\S]*llvm-version and llvm-sha256[\s\S]*yvals_core' {
+        Assert-ClangAcceptsMsvcStl -ClangCl $script:ClangCl
+    }
+    Assert-Equal @(Get-ChildItem -LiteralPath $folder -Filter '*.cpp').Count 0 'the test file was left behind after a failure'
+}
+
+Test 'any other compile error stops the step with the output' {
+    $folder = New-Workspace
+    Use-ClangCheck -Folder $folder -ExitCode 1 -Output "fatal error: 'cstdint' file not found"
+    Assert-Throws 'only includes <cstdint> \(exit code 1\)[\s\S]*msvc-environment: import[\s\S]*file not found' {
+        Assert-ClangAcceptsMsvcStl -ClangCl $script:ClangCl
+    }
+}
+
+Test 'the exit code decides, not the text' {
+    # Output that mentions STL1000 does not fail a compile that succeeded.
+    $folder = New-Workspace
+    Use-ClangCheck -Folder $folder -ExitCode 0 -Output $Stl1000
+    Assert-ClangAcceptsMsvcStl -ClangCl $script:ClangCl
+}
+
+Test 'a missing clang-cl stops before anything runs' {
+    $folder = New-Workspace
+    Use-ClangCheck -Folder $folder
+    Assert-Throws 'clang-cl\.exe was not found' { Assert-ClangAcceptsMsvcStl -ClangCl (Join-Path $folder 'none' 'clang-cl.exe') }
+    Assert-Equal $script:Check.Calls 0
+}
+
+
 Write-Host 'pkg-config'
 
 function Use-Vcpkg {
