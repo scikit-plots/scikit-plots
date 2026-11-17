@@ -1,0 +1,7 @@
+- ``XMLReader`` and ``TEIReader`` raise ``ValueError`` for a file that is
+  not valid XML (empty, truncated or malformed) whether lxml is installed or
+  not. Before, the same file raised ``lxml.etree.XMLSyntaxError`` (a
+  ``SyntaxError``) with lxml and ``ValueError`` without it, so code had to
+  catch both. The message starts with ``XMLReader: could not parse XML
+  content:`` and the parser's own error is kept as ``__cause__``; the text
+  after the prefix is the parser's and still differs between parsers.

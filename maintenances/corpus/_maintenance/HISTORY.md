@@ -1,5 +1,38 @@
 # Corpus maintenance history
 
+## 2026-11-16 — one exception type for unparsable XML, PR 947
+
+- **CX-23 (fixed, the maintainer's choice (a)): `XMLReader` raised a
+  different type with and without lxml.** Reproduced on `main` for an
+  empty file, plain text and truncated XML: `lxml.etree.XMLSyntaxError`
+  (a `SyntaxError`) with lxml 6.1, `ValueError` ("XMLReader: could not
+  parse XML content: ...") without it. Root cause: `_parse_xml` wrapped
+  the stdlib parser's errors and let lxml's propagate. Now
+  `_parse_xml_lxml` converts `XMLSyntaxError` to the same `ValueError`,
+  both paths building it in `_unparsable_xml`; the parser's error is the
+  `__cause__`. `TEIReader` shares the function and the fix. The
+  `XMLReader` docstring no longer lists an `ImportError` that no path
+  raises (the stdlib parser is always there).
+- **Proof.** 17 new tests in `test__xml.py` (four inputs by lxml path,
+  stdlib path and both readers): 12 fail on `main`, 17 pass here, 12 fail
+  again when the conversion is removed. XML test files: 91 passed
+  (CPython 3.13 and 3.9 with lxml), 79 passed and 12 skipped (3.9 without
+  lxml). Whole corpus suite, stand-in parent, CPython 3.13: 6,342 passed
+  and the same 23 failures as `main` (`test__web`, `test__pairwise`,
+  `test__url_and_archive_handler`; none in XML).
+- **Honest limit.** Reader snapshots of the same four files with and
+  without lxml now agree on the type and still differ in the text after
+  the prefix (libxml2 and expat word the error differently). The note
+  `xml-error-type-depends-on-lxml.md` is narrowed to that choice.
+- **Found, not changed (CX-42, ledger note):** `ALTOReader` has the same
+  split with a worse effect: its page loop catches `ValueError`, so a
+  malformed page is skipped with a warning without lxml and ends the
+  whole archive with `XMLSyntaxError` with it.
+- **Not run here:** Python 3.8. `scikitplot/corpus/_types.py` line 118
+  (`MetadataDict = dict[str, Any]`, unchanged by this PR) fails at import
+  on 3.8, so no corpus test collects there; changed files pass
+  `ast.parse(..., feature_version=(3, 8))`.
+
 ## 2026-11-14 — archive bounded in proportion to its size, PR 941
 
 - **CX-41 (fixed): an archive's text had no budget.** `ZipReader`
