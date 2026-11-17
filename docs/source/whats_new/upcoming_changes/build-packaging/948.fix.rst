@@ -1,0 +1,6 @@
+- Windows ARM64 wheels build again. The build runners moved to Visual Studio
+  18.12, whose C++ standard library (MSVC 14.52) refuses a Clang older than
+  22, and the pinned LLVM 20.1.8 stopped every Windows ARM64 wheel at its
+  first C++ file (``error STL1000``). LLVM is now 22.1.8, and the build setup
+  compiles one line against the runner's standard library before building,
+  so a future mismatch stops there with the Clang version required.
