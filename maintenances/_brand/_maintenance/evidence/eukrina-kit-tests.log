@@ -1,0 +1,16 @@
+# PR 949 - kit and Eukrina tests
+## CPython 3.13.18 matplotlib 3.11.2
+215 passed
+## whole _brand suite
+486 passed
+## CPython 3.11, matplotlib 3.6.3
+215 passed, 18 warnings
+## CPython 3.8.20, matplotlib 3.7.5 (isolated stand-in, BRD-BAN-002)
+215 passed
+## mutations (each must fail at least one test)
+no contrast fitting    -> 5 failed, 210 passed
+scripts allowed        -> 6 failed, 209 passed
+scale not quantized    -> 1 failed, 214 passed
+always rewrite         -> 2 failed, 213 passed
+no mono gap            -> 1 failed, 214 passed
+no gradient order      -> 1 failed, 214 passed

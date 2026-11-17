@@ -4,7 +4,9 @@
     "BRD-EXP-001",
     "BRD-CLI-001",
     "BRD-RUN-001",
-    "BRD-BAN-001"
+    "BRD-BAN-001",
+    "BRD-EUK-001",
+    "BRD-BAN-002"
   ],
   "read_order": [
     "maintenances/_brand/MAINTAINING.md",
@@ -20,21 +22,43 @@
       "paths": [
         "__init__.py",
         "_banner.py",
+        "_eukrina/__init__.py",
+        "_eukrina/_build.py",
+        "_eukrina/_render.py",
+        "_eukrina/_spec.py",
+        "_kit/__init__.py",
+        "_kit/_color.py",
+        "_kit/_io.py",
+        "_kit/_svg.py",
+        "_kit/_text.py",
         "_logo.py",
         "tests/__init__.py",
+        "tests/test__eukrina.py",
+        "tests/test__kit.py",
         "tests/test__logo.py"
       ],
-      "production_python_files": 3,
-      "test_python_files": 1,
+      "production_python_files": 12,
+      "test_python_files": 3,
       "test_support_python_files": 1,
-      "tracked_files": 5
+      "tracked_files": 16
     },
     "required_files": [
       "scikitplot/_brand/__init__.py",
       "scikitplot/_brand/_logo.py",
       "scikitplot/_brand/_banner.py",
       "scikitplot/_brand/tests/__init__.py",
-      "scikitplot/_brand/tests/test__logo.py"
+      "scikitplot/_brand/tests/test__logo.py",
+      "scikitplot/_brand/_kit/__init__.py",
+      "scikitplot/_brand/_kit/_color.py",
+      "scikitplot/_brand/_kit/_svg.py",
+      "scikitplot/_brand/_kit/_text.py",
+      "scikitplot/_brand/_kit/_io.py",
+      "scikitplot/_brand/_eukrina/__init__.py",
+      "scikitplot/_brand/_eukrina/_spec.py",
+      "scikitplot/_brand/_eukrina/_render.py",
+      "scikitplot/_brand/_eukrina/_build.py",
+      "scikitplot/_brand/tests/test__kit.py",
+      "scikitplot/_brand/tests/test__eukrina.py"
     ],
     "required_symbols": {
       "scikitplot/_brand/_banner.py": [

@@ -38,12 +38,24 @@
       "severity": "high",
       "status": "open",
       "summary": "Banner batch generation can skip every generation failure and return an empty mapping; main still returns success for that zero-output batch."
+    },
+    {
+      "id": "BRD-EUK-001",
+      "severity": "medium",
+      "status": "fixed",
+      "summary": "The Eukrina Mind AI brand existed only as a generated bundle of 410 recoloured PNGs: one-colour symbols merged the diagonal into the U and were misnamed (forest = taupe, navy = charcoal), the diagonal left the round icon's circle, the mark sat 7 units off centre, gradient ids collided between documents, and light-background accents and subtitles missed WCAG contrast (2.0-3.4:1). Retired by scikitplot._brand._kit and scikitplot._brand._eukrina (PR 949): the brand as data, drawn by rule to safe SVG, contrast-safe colours, a gap in one-colour marks, idempotent builds with a checksummed manifest. Honest limit: SVG only in this increment; live text depends on the viewer's fonts (outline mode does not)."
+    },
+    {
+      "id": "BRD-BAN-002",
+      "severity": "high",
+      "status": "open",
+      "summary": "scikitplot/_brand/_banner.py line 574 evaluates collections.abc.Callable[[str], str] at import time; on Python 3.8 this raises TypeError, so scikitplot._brand (logo, banner, kit and Eukrina) cannot be imported on the oldest supported Python. Found during PR 949; not changed there."
     }
   ],
   "integration_status": "UNAVAILABLE",
   "maintenance_status": "PASS",
   "release_status": "BLOCKED",
-  "reviewed_at": "2026-09-12",
+  "reviewed_at": "2026-11-17",
   "runtime_status": "FAIL",
   "schema_version": 2,
   "subsystem": "scikitplot._brand"
