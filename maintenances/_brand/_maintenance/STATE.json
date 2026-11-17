@@ -5,12 +5,14 @@
     "Repair package export/lazy-import contract",
     "Provide a real documented logo CLI path",
     "Make zero-output banner batches fail closed",
-    "Add focused _banner tests and a live figlet integration lane"
+    "Add focused _banner tests and a live figlet integration lane",
+    "Fix BRD-BAN-002 (_banner.py fails to import on Python 3.8, so scikitplot._brand does)",
+    "Eukrina patch 2: PNG, ICO and favicon export, CLI; patch 3: the scikit-plots logo on the kit"
   ],
   "release_status": "BLOCKED",
   "runtime_integrity": {
     "baseline_sha256": "691761c9d290cc20d8c1701554db00d9443e83091a1be892d18e907577ddc598",
-    "expected_tracked_files": 5,
+    "expected_tracked_files": 16,
     "runtime_modified_by_campaign": false
   },
   "runtime_status": "FAIL",
@@ -19,7 +21,8 @@
   "test_evidence": {
     "banner_external_figlet": "UNAVAILABLE (figlet not installed)",
     "logo_suite": "271 passed, 11 warnings",
-    "negative_probes": "PASS (findings reproduced)"
+    "negative_probes": "PASS (findings reproduced)",
+    "eukrina_and_kit_suite": "215 passed (CPython 3.13, Matplotlib 3.11.2; 3.11 with 3.6.3; 3.8.20 with 3.7.5 in an isolated stand-in)"
   },
-  "updated_at": "2026-09-12"
+  "updated_at": "2026-11-17"
 }

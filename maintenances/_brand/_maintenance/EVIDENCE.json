@@ -28,9 +28,15 @@
       "id": "complete_package_cli",
       "reason": "snapshot contains no scikitplot.logo module / complete installed package root",
       "status": "UNAVAILABLE"
+    },
+    {
+      "artifact": "evidence/eukrina-kit-tests.log",
+      "id": "eukrina_kit_tests",
+      "result": "215 passed",
+      "status": "PASS"
     }
   ],
   "schema_version": 2,
   "subsystem": "scikitplot._brand",
-  "updated_at": "2026-09-12"
+  "updated_at": "2026-11-17"
 }

@@ -1,0 +1,12 @@
+- ``scikitplot._brand._eukrina`` generates the Eukrina Mind AI logos from code:
+  the mark alone, the horizontal and stacked lockups, the wordmark, and app and
+  round icons, in two colour editions (Charcoal / Bronze and Deep Navy / Blue /
+  Forest Green), for light and dark backgrounds, in full colour or one colour.
+  ``render()`` returns one SVG and ``build()`` writes a whole set with CSS and
+  JSON colour tokens and a checksummed manifest, rewriting nothing when the
+  inputs are unchanged. Colours are kept where they reach WCAG contrast (3:1
+  for the mark, 4.5:1 for the small subtitle) and otherwise moved to the
+  nearest step of their own scale; text can be live or drawn as outlines from
+  a font file. The generic helpers it is built on (colour scales and contrast,
+  a safe SVG writer, font outlines, atomic writing) are in
+  ``scikitplot._brand._kit``.
