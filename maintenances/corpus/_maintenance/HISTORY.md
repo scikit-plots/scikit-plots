@@ -1,5 +1,37 @@
 # Corpus maintenance history
 
+## 2026-11-17 — ALTOReader skips a malformed page under lxml too, PR 951
+
+- **CX-42 (fixed): one malformed page ended the whole archive with lxml.**
+  Reproduced on `main` (7439eb8) with three archives: one malformed page
+  among good ones, one empty page among good ones, every page malformed.
+  With lxml 6.1 each raised `lxml.etree.XMLSyntaxError` and yielded no page;
+  without lxml the bad pages were skipped with a warning and `alpha`,
+  `gamma` were read. Root cause, as for CX-23: `_parse_xml_bytes` wrapped
+  only the stdlib parser's errors in `ValueError`, the type the page loop
+  skips. Now the lxml path converts `XMLSyntaxError` too, both paths
+  building the error in `_unparsable_page`; the parser's error is the
+  `__cause__`. Same three archives after the fix: identical pages and
+  warnings with and without lxml.
+- **Proof.** New `_readers/tests/test__alto.py`, 29 tests (four unparsable
+  inputs by parser, the archive cases, both parsers compared, an
+  entity-expansion page that is never expanded): 15 fail on `main`, 29 pass
+  here; converting nothing on the lxml path fails 15, a different message
+  on that path fails 12. XML and ALTO test files without lxml (CPython
+  3.12): 91 passed, 29 skipped (lxml-only cases). Whole corpus suite,
+  stand-in parent, CPython 3.13: 6,232 passed and the same 23 failures as
+  `main` (`test__web`, `test__pairwise`, `test__url_and_archive_handler`).
+- **Snapshot.** `.zip` files reach `ZipReader` by default, not
+  `ALTOReader`; `reader_snapshot.py` on the three archives through that
+  route: 0 differences between `main` and this tree. No real ALTO archive
+  was available; the archives are synthetic.
+- **Kept:** the `except SyntaxError` branch of `test__hostile_samples.py`.
+  The corpus's own lxml parses now all convert, but readers built on
+  third-party libraries were not checked for lxml errors of their own.
+- **Not run here:** Python 3.8 (`scikitplot/corpus/_types.py` line 118 fails
+  at import there, unchanged); changed files pass
+  `ast.parse(..., feature_version=(3, 8))`.
+
 ## 2026-11-16 — one exception type for unparsable XML, PR 947
 
 - **CX-23 (fixed, the maintainer's choice (a)): `XMLReader` raised a

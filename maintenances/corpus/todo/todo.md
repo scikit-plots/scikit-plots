@@ -176,3 +176,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-16).
 - Next: CX-42 (ALTOReader and a malformed page under lxml); the error text
   choice left in the CX-23 note; office plan phase 4 (a decision).
+
+### PR 951: CX-42, ALTOReader skips a malformed page under lxml too
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-17).
+- Next: the error text choice left in the CX-23 note; office plan phase 4
+  (a decision); PDF extraction cost per character.
