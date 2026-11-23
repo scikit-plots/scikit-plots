@@ -482,3 +482,34 @@ the command and the descendants it waited for, not a running maximum over
 earlier runs. `--timeout SECONDS` ends the whole process group (status 124,
 as `timeout(1)`). The exit status is the first failing run's. Windows
 reports no peak (`null`). Tests: `tests/test_run_measured.py`.
+
+## Sweeps of the whole package (`sweep_static.py`, `sweep_runtime.py`)
+
+A review of one submodule finds what its reviewer looks for; a sweep finds
+one class of problem in every first-party submodule at once, and repeats
+exactly. Both write a text summary and, with `--json OUT`, a sorted JSON
+file to compare two runs.
+
+```bash
+# Patterns in the source (vendored code and tests left out), no import:
+python -B tools/maint_tools/sweep_static.py                       # per category: new, acknowledged, areas
+python -B tools/maint_tools/sweep_static.py --categories          # what each category means
+python -B tools/maint_tools/sweep_static.py --list floor-isinstance-union
+python -B tools/maint_tools/sweep_static.py --floor 3.9 --fail-on floor-isinstance-union
+
+# What importing each public submodule does, each in a fresh interpreter:
+python -B tools/maint_tools/sweep_runtime.py --python VENV/bin/python --api --json /tmp/r.json
+```
+
+`sweep_static.py` counts a finding as acknowledged when its line carries
+`# noqa` with the matching ruff code, so a decision already taken is not
+reported as new; `--fail-on CATEGORY` exits 1 on an unacknowledged one.
+`sweep_runtime.py` reports import errors (a dependency a base install
+lacks), import time, warnings and log records at import, heavy libraries
+pulled in, undocumented public callables, names in `__all__` whose access
+raises something other than `AttributeError`, the `api` listing status
+(`--api`) and naming clusters: one idea spelled several ways across the
+public API (`seed` and `random_state`). It never imports the package
+itself; `--pythonpath DIR` puts a tree before the installed one. Tests:
+`tests/test_sweep_static.py`, `tests/test_sweep_runtime.py`. Keep such
+helpers here, with tests, rather than in a scratch folder (Rule 173).

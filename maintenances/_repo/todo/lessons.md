@@ -24,3 +24,13 @@
   the test now pins the exact command from the map and allows a bare name
   only as the second half of the staging pair (a mutation that prints the
   bare line fails all 9).
+
+### Rule REPO-L2: A helper that produced evidence is committed with the evidence
+- **When:** a pull request or ledger note cites numbers produced by a script
+  (a sweep, a benchmark, a timer, a sampler).
+- **Then:** the script is in the tree in the same pull request or the one
+  before it, under `tools/` with tests (engineering Rule 173).
+- **Verified by:** every command quoted in the pull request description runs
+  from a fresh clone.
+- **Added:** 2026-11-24. Root cause: PRs 955 and the sweep that followed used
+  helpers kept in a scratch folder; the maintainer asked twice to keep them.

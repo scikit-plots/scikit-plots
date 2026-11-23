@@ -178,3 +178,4 @@ titles, then open the file that holds the rules you need.
 | 170 | Skills | code in a published skill runs as written: Python in a `python` block without prompts, output as `# ` comments, and no line a shell reads as a redirect | [delivery.md](rules/delivery.md) |
 | 171 | Skills | a directory finding is reproduced and fixed against the directory's scan of a published commit, never against the portal's Validate alone | [delivery.md](rules/delivery.md) |
 | 172 | Documentation | a public name added, renamed or removed is added, renamed or removed in the API reference template in the same change | [documentation.md](rules/documentation.md) |
+| 173 | Tooling | a helper written to analyse, measure or sample the repository is kept under `tools/` with tests, not left in a scratch folder | [tooling.md](rules/tooling.md) |
