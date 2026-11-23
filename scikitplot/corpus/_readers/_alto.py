@@ -224,15 +224,74 @@ def _ns(local: str, ns_uri: str) -> str:
     return f"{{{ns_uri}}}{local}" if ns_uri else local
 
 
+def _unparsable_page(exc: BaseException) -> ValueError:
+    """
+    Build the one error raised for an ALTO page that cannot be parsed.
+
+    Parameters
+    ----------
+    exc : BaseException
+        The error of the parser that ran.
+
+    Returns
+    -------
+    ValueError
+        ``"ALTOReader: could not parse XML: <parser message>"``. The caller
+        raises it ``from exc``.
+
+    Notes
+    -----
+    **Developer notes:** the lxml and the stdlib paths both build their error
+    here, so the page loop of :meth:`ALTOReader.get_raw_chunks`, which skips
+    a page on ``ValueError``, treats a malformed page the same whichever
+    parser ran.
+    """
+    return ValueError(f"ALTOReader: could not parse XML: {exc}")
+
+
 def _parse_xml_bytes(content: bytes) -> Any:
-    """Parse ALTO XML bytes with lxml first and secure stdlib fallback."""
+    """
+    Parse ALTO XML bytes with lxml first and a secure stdlib fallback.
+
+    Only the absence of lxml triggers the fallback; a parse error from an
+    installed lxml is final.
+
+    Parameters
+    ----------
+    content : bytes
+        Raw XML of one page.
+
+    Returns
+    -------
+    xml.etree.ElementTree.Element or lxml.etree._Element
+        Root element of the page.
+
+    Raises
+    ------
+    ValueError
+        If the page is not valid XML (empty, truncated, malformed) or is
+        refused by the XML safety checks, whichever parser ran. The parser's
+        own error is the ``__cause__``.
+
+    Notes
+    -----
+    **User notes:** a malformed page is skipped with a warning and the rest
+    of the archive is read, with and without lxml.
+
+    **Developer notes:** ``lxml.etree.XMLSyntaxError`` is a ``SyntaxError``,
+    not a ``ValueError``; it is converted here with :func:`_unparsable_page`,
+    as the stdlib path's errors are (CX-42).
+    """
 
     def _lxml() -> Any:
         from lxml import etree  # type: ignore[] # noqa: PLC0415
 
         from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
 
-        return etree.fromstring(content, parser=hardened_lxml_parser())
+        try:
+            return etree.fromstring(content, parser=hardened_lxml_parser())
+        except etree.XMLSyntaxError as exc:
+            raise _unparsable_page(exc) from exc
 
     def _stdlib() -> Any:
         from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
@@ -240,7 +299,7 @@ def _parse_xml_bytes(content: bytes) -> Any:
         try:
             return parse_stdlib_secure(content)
         except Exception as exc:  # noqa: BLE001
-            raise ValueError(f"ALTOReader: could not parse XML: {exc}") from exc
+            raise _unparsable_page(exc) from exc
 
     outcome = run_backend_chain(
         (

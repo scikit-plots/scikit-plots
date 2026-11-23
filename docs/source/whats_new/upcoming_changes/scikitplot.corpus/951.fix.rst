@@ -1,0 +1,7 @@
+- ``ALTOReader`` skips a page that is not valid XML (empty, truncated or
+  malformed) with a warning and reads the rest of the archive, whether lxml is
+  installed or not. Before, with lxml one such page raised
+  ``lxml.etree.XMLSyntaxError`` and ended the whole archive, while without
+  lxml the page was skipped. The page's error is a ``ValueError`` starting
+  with ``ALTOReader: could not parse XML:``, the parser's error as
+  ``__cause__``.
