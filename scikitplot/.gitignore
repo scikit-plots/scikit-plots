@@ -1,1 +1,3 @@
 *.zip
+# Test fixtures are data, not build output (corpus ALTO archives).
+!**/tests/data/**/*.zip
