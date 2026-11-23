@@ -283,3 +283,27 @@ Pipfile, inline list    --> DependencySet (+ conversion notes)  |
   pin. Deleting it is a separate choice.
 - The self-test input stays off by default, so CI does not run the
   script's tests.
+
+## Task: ENV-3, uv lock files per Python version (2026-11-23, PR 954)
+
+### Context
+- Wanted: `uv.lock` beside the Pipenv and conda environments. `uv lock` on
+  the root `pyproject.toml` failed: it resolves every extra for every
+  supported Python (3.8+) at once, `env-xeus` needs 3.10, and it builds the
+  package (meson) to read its dynamic version.
+- A root `uv.lock` symlink (like `environment.yml`) was tested and dropped:
+  uv binds `uv.lock` to the root `pyproject.toml`, so `uv sync`,
+  `uv lock --check` and `uv sync --frozen` all fail there.
+
+### Implementation
+- `.github/scripts/uv_project_from_reqs.py`: flat requirements to a
+  non-package uv project per Python; `.github/workflows/ci_uv_artifact.yml`
+  mirrors the Pipenv workflow (matrix 3.10-3.15, PR per version, root copy
+  of 3.11, `uv lock --check` after locking).
+- `docker/env_uv/py310` ... `py315` committed (265-272 packages each).
+- `env-xeus` markers `python_version >= "3.10"`.
+
+### Seen, not changed
+- `requirements/doc.txt` asks for `sphinx[testing]`; Sphinx 9 has no such
+  extra (uv warns on every lock).
+- 3.8 and 3.9 do not resolve from `requirements/*.txt`; same as Pipenv.

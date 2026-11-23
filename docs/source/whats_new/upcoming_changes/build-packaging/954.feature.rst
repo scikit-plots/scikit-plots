@@ -1,0 +1,7 @@
+- ``docker/env_uv/`` holds a uv lock per Python version (3.10 to 3.15) next
+  to the Pipenv and conda environments, generated from ``requirements/*.txt``
+  by ``.github/scripts/uv_project_from_reqs.py`` and refreshed by the
+  ``ci_uv_artifact.yml`` workflow (one pull request per version); install
+  with ``uv sync --project docker/env_uv``. The ``env-xeus`` extra now marks
+  its JupyterLite requirements ``python_version >= "3.10"``, the only
+  Pythons they install on.

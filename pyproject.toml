@@ -600,11 +600,14 @@ cleanprompt-timeout = [
 env = [
   "pyyaml>=5.1",                            # YAML configs and environment.yml
 ]
+## jupyterlite-core 0.8 and empack 6 require Python 3.10, so the add-on is
+## only installable there; the markers say so, letting one lock file cover
+## every Python this package supports.
 env-xeus = [
   "pyyaml>=5.1",
-  "jupyterlite-core>=0.8",                  # the JupyterLite add-on base class
-  "empack>=6",                              # packs the browser environment
-  "traitlets>=5.16",                        # add-on configuration
+  'jupyterlite-core>=0.8; python_version >= "3.10"',  # the JupyterLite add-on base class
+  'empack>=6; python_version >= "3.10"',              # packs the browser environment
+  'traitlets>=5.16; python_version >= "3.10"',        # add-on configuration
 ]
 
 ## scikitplot._ipymagic (`%load_ext scikitplot`): the engine is standard
