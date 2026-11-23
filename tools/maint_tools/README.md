@@ -464,3 +464,21 @@ GH_TOKEN=... python tools/maint_tools/prune_workflow_runs.py --repo OWNER/NAME \
 Filters (all must hold): `--keep-latest N`, `--older-than-days D`,
 `--before YYYY-MM-DD`, `--workflow NAME_OR_FILE`; `--max-delete` (default 500)
 bounds one go. Running or queued runs and the current run are never deleted.
+
+## Time and peak memory of a command (`run_measured.py`)
+
+A benchmark of a submodule needs the same two numbers every time: wall time
+and peak memory. `run_measured.py` runs a command (no shell), repeats it,
+and reports both per run, in mebibytes on every POSIX system:
+
+```bash
+python -B tools/maint_tools/run_measured.py --repeat 3 --json /tmp/m.json \
+  -- python -B maintenances/corpus/_maintenance/tools/reader_snapshot.py \
+     snapshot my_files --out /tmp/s.json
+```
+
+The peak is each run's own (`os.wait4`), the largest single process among
+the command and the descendants it waited for, not a running maximum over
+earlier runs. `--timeout SECONDS` ends the whole process group (status 124,
+as `timeout(1)`). The exit status is the first failing run's. Windows
+reports no peak (`null`). Tests: `tests/test_run_measured.py`.

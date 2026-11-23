@@ -191,3 +191,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-23). Notes only, no code.
 - Next: CX-47 (PDF figure text, no decision) and CX-53 (glob filters, no
   decision); decisions in CX-46 (XML default), CX-52 (media text policy).
+
+### PR 956: real-data testing tools kept in the repository
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-24). Tools only, no runtime change.
+- Next: CX-47 (PDF figure text), then CX-53 (glob filters).

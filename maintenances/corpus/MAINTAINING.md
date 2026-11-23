@@ -54,7 +54,22 @@ reads of the same bytes gave different data: a finding in itself. Running
 the same tree under two interpreters (one with an optional library, one
 without) shows results that depend on what is installed.
 
-Tool tests: `python -B maintenances/corpus/_maintenance/tests/test_reader_snapshot.py`.
+For a media or untrusted folder add `--timeout 120` (each file in its own
+process, ended after 120 s) and `--max-per-type 20` (a fixed sample per
+file type); `compare --timing` reports time and memory; `show FILE` prints
+one file's chunks. To judge quality rather than change,
+`reader_benchmark.py` scores each file's words against a standard tool
+(recall: text lost; precision: text added or repeated):
+
+```sh
+B=maintenances/corpus/_maintenance/tools/reader_benchmark.py
+python -B $B run FOLDER --out bench.json
+python -B $B report bench.json --min-recall 0.9 --min-precision 0.9
+python -B $B compare main.json branch.json   # exit 1 if a file got worse
+```
+
+Tool tests: `python -B maintenances/corpus/_maintenance/tests/test_reader_snapshot.py`
+and `python -B maintenances/corpus/_maintenance/tests/test_reader_benchmark.py`.
 
 ## Core Corpus rule
 
