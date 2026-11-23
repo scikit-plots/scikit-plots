@@ -1,5 +1,24 @@
 # Corpus maintenance history
 
+## 2026-11-23 — Real-data findings recorded, PR 955
+
+Private mixed archive (1,186 files; documents 692, media sampled), `main`
+at 13b457d against release 0.4.0.post11, plus a word-level benchmark
+against standard per-format extractors. Documents on `main`: 0 unstable,
+122 errors, all "No DocumentReader registered"; 61 s, 483 MiB (release:
+124 errors, 1 unstable, 231 s). Counts only; no file names or text kept.
+
+- **CX-46:** `XMLReader` repeats nested text once per ancestor by default.
+- **CX-47:** the pdfminer path drops text inside form XObjects.
+- **CX-48:** the pdfminer path splits rotated text into reversed letters.
+- **CX-49:** skipped members, skipped files and mostly-image PDFs are silent.
+- **CX-50:** no reader for local HTML, saved pages, CSV, JSON, notebooks,
+  code, configuration, tar/gz.
+- **CX-51:** animated images OCR every frame (5.4x repeated words).
+- **CX-52:** image OCR on by default, PDF OCR and transcription off.
+- **CX-53:** `CorpusBuilder` glob sources mishandle hidden parents and types.
+- CX-40 note: real-data timing added (poppler 3.5 s against 27.2 s).
+
 ## 2026-11-23 — ALTO pages read by default, broken words rejoined, PR 953
 
 - **CX-43 (fixed): the default route dropped every ALTO word.**
