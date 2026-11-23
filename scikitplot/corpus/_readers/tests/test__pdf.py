@@ -50,14 +50,39 @@ class _Box:
 
 
 class _Figure:
-    """A layout element that is not text."""
+    """A figure as pdfminer's layout yields it: by default, one without text."""
+
+    def __init__(self, *children: Any) -> None:
+        self._children = children
+
+    def __iter__(self) -> Any:
+        return iter(self._children)
+
+
+class _Char:
+    """A character left loose in a figure (``LAParams.all_texts=False``).
+
+    Not a text container, as ``pdfminer.layout.LTChar`` is not one.
+    """
+
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    def get_text(self) -> str:
+        return self._text
 
 
 class _Params:
-    """Stand-in for ``pdfminer.layout.LAParams``: it knows two arguments."""
+    """Stand-in for ``pdfminer.layout.LAParams``: it knows three arguments."""
 
-    def __init__(self, boxes_flow: Any = 0.5, line_margin: float = 0.5) -> None:
-        self.given = {"boxes_flow": boxes_flow, "line_margin": line_margin}
+    def __init__(
+        self, boxes_flow: Any = 0.5, line_margin: float = 0.5, all_texts: bool = False
+    ) -> None:
+        self.given = {
+            "boxes_flow": boxes_flow,
+            "line_margin": line_margin,
+            "all_texts": all_texts,
+        }
 
 
 class _FakePdfminer:
@@ -118,6 +143,8 @@ class _FakePdfminer:
         high_level.extract_pages = self.extract_pages
         layout = types.ModuleType("pdfminer.layout")
         layout.LTTextContainer = _Box
+        layout.LTFigure = _Figure
+        layout.LTChar = _Char
         layout.LAParams = _Params
         package = types.ModuleType("pdfminer")
         monkeypatch.setitem(sys.modules, "pdfminer", package)
@@ -566,6 +593,50 @@ class TestNothingSilent:
         reader = _reader(pdf_path, monkeypatch, 3, prefer_backend="pdfminer")
         assert _texts(reader) == [(1, "b")]
         assert logged["warning"] == []
+
+    def test_text_in_figures_follows_the_page_text(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        # CX-47: a figure (form XObject) and a figure inside it are read too.
+        page = [_Box("a "), _Figure(_Box("b "), _Figure(_Box("c")))]
+        _FakePdfminer([page]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "a b c")]
+        assert logged["warning"] == []
+
+    def test_a_page_with_only_figure_text_is_not_a_scan(
+        self,
+        pdf_path: pathlib.Path,
+        monkeypatch: pytest.MonkeyPatch,
+        logged: dict[str, list[str]],
+    ) -> None:
+        _FakePdfminer([[_Figure(_Box("b"))]]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "b")]
+        assert logged["warning"] == []
+
+    def test_loose_characters_of_a_figure_end_with_a_line_break(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # all_texts=False leaves a figure's characters loose; they are joined
+        # as pdfminer's extract_text joins them, then a line break.
+        page = [_Figure(_Char("x"), _Char("y")), _Box("z"), _Figure(_Char("p"), _Box("q"))]
+        _FakePdfminer([page]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "xy\nzp\nq")]
+
+    def test_deeply_nested_figures_do_not_exhaust_the_stack(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        figure = _Figure(_Box("deep"))
+        for _ in range(5 * sys.getrecursionlimit()):
+            figure = _Figure(figure)
+        _FakePdfminer([[figure]]).install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "deep")]
 
     def test_a_file_without_pages_is_neither_an_error_nor_a_scan(
         self,
@@ -1282,7 +1353,7 @@ class TestOcrValidation:
 
 
 class TestPdfminerKwargs:
-    def test_without_kwargs_pdfminer_gets_its_defaults(
+    def test_without_kwargs_pdfminer_gets_its_defaults_and_figure_text(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         fake = _FakePdfminer([[_Box("a")]])
@@ -1290,7 +1361,12 @@ class TestPdfminerKwargs:
         reader = _reader(pdf_path, monkeypatch, 1)
         assert reader.pdfminer_kwargs is None
         assert _texts(reader) == [(0, "a")]
-        assert fake.opens[0]["laparams"] is None
+        # pdfminer's layout defaults, with text in figures laid out (CX-47).
+        assert fake.opens[0]["laparams"].given == {
+            "boxes_flow": 0.5,
+            "line_margin": 0.5,
+            "all_texts": True,
+        }
         assert fake.opens[0]["caching"] is True
 
     @pytest.mark.parametrize("backend", [None, "pdfminer"])
@@ -1312,7 +1388,7 @@ class TestPdfminerKwargs:
         assert _texts(reader) == [(0, "a")]
         (opened,) = fake.opens
         assert opened["caching"] is False
-        assert opened["laparams"] is None
+        assert opened["laparams"].given["all_texts"] is True
 
     def test_a_laparams_mapping_becomes_layout_parameters(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -1324,8 +1400,22 @@ class TestPdfminerKwargs:
         assert _texts(reader) == [(0, "a")]
         (opened,) = fake.opens
         assert isinstance(opened["laparams"], _Params)
-        assert opened["laparams"].given == {"boxes_flow": None, "line_margin": 0.5}
+        assert opened["laparams"].given == {
+            "boxes_flow": None,
+            "line_margin": 0.5,
+            "all_texts": True,
+        }
         assert given == {"laparams": {"boxes_flow": None}}
+
+    def test_a_mapping_may_turn_figure_layout_off(
+        self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakePdfminer([[_Box("a")]])
+        fake.install(monkeypatch)
+        given = {"laparams": {"all_texts": False}}
+        reader = _reader(pdf_path, monkeypatch, 1, pdfminer_kwargs=given)
+        assert _texts(reader) == [(0, "a")]
+        assert fake.opens[0]["laparams"].given["all_texts"] is False
 
     def test_a_laparams_object_is_passed_as_it_is(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -1397,14 +1487,19 @@ class TestPdfminerKwargs:
             PDFReader(input_path=pdf_path, pdfminer_kwargs={name: 1, "caching": 1})
         assert f"['{name}']" in str(info.value)
 
-    def test_an_empty_mapping_changes_nothing(
+    def test_an_empty_mapping_is_the_defaults(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         fake = _FakePdfminer([[_Box("a")]])
         fake.install(monkeypatch)
         reader = _reader(pdf_path, monkeypatch, 1, pdfminer_kwargs={})
         assert _texts(reader) == [(0, "a")]
-        assert fake.opens[0]["laparams"] is None
+        assert fake.opens[0]["laparams"].given["all_texts"] is True
+        explicit = _FakePdfminer([[_Box("a")]])
+        explicit.install(monkeypatch)
+        reader = _reader(pdf_path, monkeypatch, 1, pdfminer_kwargs={"laparams": None})
+        assert _texts(reader) == [(0, "a")]
+        assert explicit.opens[0]["laparams"].given["all_texts"] is True
 
     def test_pypdf_ignores_pdfminer_kwargs(
         self, pdf_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
@@ -1680,6 +1775,112 @@ def _write_pdf(path: pathlib.Path, texts: Sequence[str]) -> pathlib.Path:
     ).encode("ascii")
     path.write_bytes(bytes(out))
     return path
+
+
+def _write_form_pdf(path: pathlib.Path, top: str, forms: Sequence[str]) -> pathlib.Path:
+    """
+    Write a one-page PDF whose text *forms* is drawn inside form XObjects.
+
+    The page draws *top* ("" for none) and the first form; each form draws
+    its text and the next form, so ``forms[i]`` is nested ``i`` deep.
+    """
+    n_forms = len(forms)
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    xobjects = "/XObject << /Fm0 6 0 R >>" if n_forms else ""
+    objects.append(
+        (
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R"
+            f" /Resources << /Font << /F1 3 0 R >> {xobjects} >> >>"
+        ).encode("ascii")
+    )
+    page = f"BT /F1 12 Tf 72 720 Td ({top}) Tj ET" if top else ""
+    page += " /Fm0 Do" if n_forms else ""
+    objects.append(f"<< /Length {len(page)} >>\nstream\n{page}\nendstream".encode("ascii"))
+    for i, text in enumerate(forms):
+        inner = f"/XObject << /Fm{i + 1} {7 + i} 0 R >>" if i + 1 < n_forms else ""
+        stream = f"BT /F1 12 Tf 72 {600 - 40 * i} Td ({text}) Tj ET"
+        stream += f" /Fm{i + 1} Do" if i + 1 < n_forms else ""
+        objects.append(
+            (
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 612 792]"
+                f" /Resources << /Font << /F1 3 0 R >> {inner} >>"
+                f" /Length {len(stream)} >>\nstream\n{stream}\nendstream"
+            ).encode("ascii")
+        )
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, 1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n".encode("ascii") + body + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii")
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode("ascii")
+    out += (
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+        f"startxref\n{xref}\n%%EOF\n"
+    ).encode("ascii")
+    path.write_bytes(bytes(out))
+    return path
+
+
+class TestTextInsideFigures:
+    """CX-47: text drawn inside form XObjects, read with the real libraries."""
+
+    @pytest.mark.parametrize("backend", [None, "pdfminer"])
+    def test_form_text_follows_the_page_text(
+        self, tmp_path: pathlib.Path, backend: str | None
+    ) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        path = _write_form_pdf(tmp_path / "f.pdf", "page words", ["figure words"])
+        reader = PDFReader(input_path=path, prefer_backend=backend)
+        assert _texts(reader) == [(0, "page words\nfigure words")]
+
+    def test_nested_forms_are_read_in_order(self, tmp_path: pathlib.Path) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        path = _write_form_pdf(
+            tmp_path / "n.pdf", "page words", ["outer words", "middle words", "inner words"]
+        )
+        reader = PDFReader(input_path=path, prefer_backend="pdfminer")
+        assert _texts(reader) == [
+            (0, "page words\nouter words\nmiddle words\ninner words")
+        ]
+
+    def test_without_figure_layout_the_characters_are_still_read(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        path = _write_form_pdf(tmp_path / "f.pdf", "page words", ["figure words"])
+        reader = PDFReader(
+            input_path=path,
+            prefer_backend="pdfminer",
+            pdfminer_kwargs={"laparams": {"all_texts": False}},
+        )
+        assert _texts(reader) == [(0, "page words\nfigure words")]
+
+    def test_a_page_with_only_form_text_is_read_and_not_a_scan(
+        self, tmp_path: pathlib.Path, logged: dict[str, list[str]]
+    ) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        path = _write_form_pdf(tmp_path / "f.pdf", "", ["only figure words"])
+        reader = PDFReader(input_path=path, prefer_backend="pdfminer")
+        assert _texts(reader) == [(0, "only figure words")]
+        assert logged["warning"] == []
+
+    def test_pdfminer_and_pypdf_agree(self, tmp_path: pathlib.Path) -> None:
+        pytest.importorskip("pdfminer.high_level")
+        pytest.importorskip("pypdf")
+        path = _write_form_pdf(tmp_path / "f.pdf", "page words", ["outer words", "inner words"])
+
+        def words(backend: str) -> list[str]:
+            reader = PDFReader(input_path=path, prefer_backend=backend)
+            return sorted(" ".join(text for _, text in _texts(reader)).split())
+
+        assert words("pdfminer") == words("pypdf")
 
 
 class TestRealLibraries:

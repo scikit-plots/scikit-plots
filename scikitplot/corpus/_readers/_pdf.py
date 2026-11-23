@@ -159,7 +159,9 @@ def _stable_extract_pages(
     caching : bool, optional
         Whether pdfminer caches resources. Default: ``True``.
     laparams : pdfminer.layout.LAParams or None, optional
-        Layout parameters; ``None`` is pdfminer's defaults. Default: ``None``.
+        Layout parameters; ``None`` is pdfminer's defaults with
+        ``all_texts=True``, so text drawn inside figures (form XObjects) is
+        laid out as well (finding CX-47). Default: ``None``.
 
     Yields
     ------
@@ -194,7 +196,7 @@ def _stable_extract_pages(
     with open(pdf_file, "rb") as fp:  # noqa: PTH123
         manager = PDFResourceManager(caching=caching)
         device = device_class(
-            manager, laparams=LAParams() if laparams is None else laparams
+            manager, laparams=LAParams(all_texts=True) if laparams is None else laparams
         )
         interpreter = PDFPageInterpreter(manager, device)
         for page in PDFPage.get_pages(
@@ -214,7 +216,8 @@ def _stable_layout_classes() -> tuple[type, type]:
     tuple of (type, type)
         ``(page_class, device_class)``: a ``pdfminer.layout.LTPage`` and a
         ``pdfminer.converter.PDFPageAggregator`` that lays its pages out
-        with it.
+        with it, and its figures with ``device_class.figure_class`` (a
+        ``pdfminer.layout.LTFigure`` grouping the same way).
 
     Raises
     ------
@@ -232,7 +235,10 @@ def _stable_layout_classes() -> tuple[type, type]:
     algorithm with each box and group numbered in the order it is created
     in place of ``id()``. Pairs that do not tie are merged exactly as
     pdfminer merges them, so a page without ties gives pdfminer's own text,
-    columns included. Built once, on first use, so that importing this
+    columns included. Figures are laid out by the same rule: with
+    ``all_texts=True`` (the reader's default) pdfminer groups the text
+    inside a figure as it groups a page, ties included (finding CX-47).
+    Built once, on first use, so that importing this
     module does not import pdfminer; every pdfminer module the layout uses
     is imported here, so a damaged installation is found before a page is
     read.
@@ -242,6 +248,7 @@ def _stable_layout_classes() -> tuple[type, type]:
 
     from pdfminer.converter import PDFPageAggregator  # type: ignore[] # noqa: PLC0415
     from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
+        LTFigure,
         LTPage,
         LTTextBoxVertical,
         LTTextGroupLRTB,
@@ -257,51 +264,59 @@ def _stable_layout_classes() -> tuple[type, type]:
         x1, y1 = max(a.x1, b.x1), max(a.y1, b.y1)
         return (x1 - x0) * (y1 - y0) - a.width * a.height - b.width * b.height
 
+    def stable_group_textboxes(self: Any, laparams: Any, boxes: Any) -> list:
+        """Group *boxes* as pdfminer does, ties ordered by creation."""
+        plane = Plane(self.bbox)
+        numbers = count()
+        number = {id(box): next(numbers) for box in boxes}
+
+        def between(a: Any, b: Any) -> set:
+            x0, y0 = min(a.x0, b.x0), min(a.y0, b.y0)
+            x1, y1 = max(a.x1, b.x1), max(a.y1, b.y1)
+            return set(plane.find((x0, y0, x1, y1))).difference((a, b))
+
+        pairs = [
+            (False, gap(a, b), number[id(a)], number[id(b)], a, b)
+            for i, a in enumerate(boxes)
+            for b in boxes[i + 1 :]
+        ]
+        heapq.heapify(pairs)
+        plane.extend(boxes)
+        done: set = set()
+        while pairs:
+            skip, distance, na, nb, a, b = heapq.heappop(pairs)
+            if na in done or nb in done:
+                continue
+            if not skip and between(a, b):
+                heapq.heappush(pairs, (True, distance, na, nb, a, b))
+                continue
+            vertical = (LTTextBoxVertical, LTTextGroupTBRL)
+            if isinstance(a, vertical) or isinstance(b, vertical):
+                group: Any = LTTextGroupTBRL([a, b])
+            else:
+                group = LTTextGroupLRTB([a, b])
+            plane.remove(a)
+            plane.remove(b)
+            done.update((na, nb))
+            ng = next(numbers)
+            for other in plane:
+                heapq.heappush(
+                    pairs,
+                    (False, gap(group, other), ng, number[id(other)], group, other),
+                )
+            number[id(group)] = ng
+            plane.add(group)
+        return list(plane)
+
     class _StablePage(LTPage):
-        def group_textboxes(self, laparams: Any, boxes: Any) -> list:
-            plane = Plane(self.bbox)
-            numbers = count()
-            number = {id(box): next(numbers) for box in boxes}
+        group_textboxes = stable_group_textboxes
 
-            def between(a: Any, b: Any) -> set:
-                x0, y0 = min(a.x0, b.x0), min(a.y0, b.y0)
-                x1, y1 = max(a.x1, b.x1), max(a.y1, b.y1)
-                return set(plane.find((x0, y0, x1, y1))).difference((a, b))
-
-            pairs = [
-                (False, gap(a, b), number[id(a)], number[id(b)], a, b)
-                for i, a in enumerate(boxes)
-                for b in boxes[i + 1 :]
-            ]
-            heapq.heapify(pairs)
-            plane.extend(boxes)
-            done: set = set()
-            while pairs:
-                skip, distance, na, nb, a, b = heapq.heappop(pairs)
-                if na in done or nb in done:
-                    continue
-                if not skip and between(a, b):
-                    heapq.heappush(pairs, (True, distance, na, nb, a, b))
-                    continue
-                vertical = (LTTextBoxVertical, LTTextGroupTBRL)
-                if isinstance(a, vertical) or isinstance(b, vertical):
-                    group: Any = LTTextGroupTBRL([a, b])
-                else:
-                    group = LTTextGroupLRTB([a, b])
-                plane.remove(a)
-                plane.remove(b)
-                done.update((na, nb))
-                ng = next(numbers)
-                for other in plane:
-                    heapq.heappush(
-                        pairs,
-                        (False, gap(group, other), ng, number[id(other)], group, other),
-                    )
-                number[id(group)] = ng
-                plane.add(group)
-            return list(plane)
+    class _StableFigure(LTFigure):
+        group_textboxes = stable_group_textboxes
 
     class _StableAggregator(PDFPageAggregator):
+        figure_class = _StableFigure
+
         def begin_page(self, page: Any, ctm: Any) -> None:
             super().begin_page(page, ctm)
             # Re-class pdfminer's own page rather than build one: every
@@ -310,6 +325,13 @@ def _stable_layout_classes() -> tuple[type, type]:
             if type(self.cur_item) is LTPage:
                 self.cur_item.__class__ = _StablePage
 
+        def begin_figure(self, name: Any, bbox: Any, matrix: Any) -> None:
+            super().begin_figure(name, bbox, matrix)
+            # The same for a figure (a form XObject): its text is laid out
+            # like a page's when LAParams.all_texts is set.
+            if type(self.cur_item) is LTFigure:
+                self.cur_item.__class__ = _StableFigure
+
     return _StablePage, _StableAggregator
 
 
@@ -317,6 +339,69 @@ def _reason(exc: BaseException) -> str:
     """Return an exception as ``Type: message``, or ``Type`` without one."""
     message = str(exc).strip()
     return f"{type(exc).__name__}: {message}" if message else type(exc).__name__
+
+
+def _layout_text(layout: Any) -> str:
+    """
+    Return the text of a pdfminer page, text inside figures included.
+
+    Parameters
+    ----------
+    layout : pdfminer.layout.LTPage or LTFigure
+        A laid-out page (or figure).
+
+    Returns
+    -------
+    str
+        The text of each text box in the order of the page's objects, then
+        of each figure where pdfminer placed it (after the page's own text
+        boxes), nested figures included.
+
+    Raises
+    ------
+    ImportError
+        If ``pdfminer`` is not installed.
+
+    Notes
+    -----
+    **User note:** Text a PDF draws inside a form XObject (common in files
+    made by design and presentation tools) is a figure in pdfminer's
+    layout. It is read like the rest of the page (finding CX-47).
+
+    **Developer note:** With ``LAParams.all_texts`` (the reader's default)
+    the text inside a figure is grouped into text boxes like a page's. When
+    a caller turns it off, a figure holds loose characters; they are joined
+    as ``pdfminer.high_level.extract_text`` joins them, with a line break
+    after the figure. The walk uses an explicit stack, so a file with deeply
+    nested figures cannot exhaust Python's recursion limit.
+    """
+    from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
+        LTChar,
+        LTFigure,
+        LTTextContainer,
+    )
+
+    parts: list[str] = []
+    stack = [iter(layout)]
+    loose = False
+    while stack:
+        element = next(stack[-1], None)
+        if element is None:
+            stack.pop()
+            if loose:
+                parts.append("\n")
+                loose = False
+        elif isinstance(element, LTTextContainer):
+            if loose:
+                parts.append("\n")
+                loose = False
+            parts.append(element.get_text())
+        elif isinstance(element, LTFigure):
+            stack.append(iter(element))
+        elif isinstance(element, LTChar):
+            parts.append(element.get_text())
+            loose = True
+    return "".join(parts)
 
 
 class _PdfminerPages:
@@ -389,10 +474,7 @@ class _PdfminerPages:
             If pdfminer does not accept the keyword arguments.
         """
         try:
-            from pdfminer.layout import (  # type: ignore[] # noqa: PLC0415
-                LAParams,
-                LTTextContainer,
-            )
+            from pdfminer.layout import LAParams  # type: ignore[] # noqa: PLC0415
 
             if self._ties == "stable":
                 _stable_layout_classes()
@@ -407,9 +489,15 @@ class _PdfminerPages:
         if self._pages is None or page_number != self._at:
             self.close()
             options = dict(self._kwargs or {})
-            if isinstance(options.get("laparams"), Mapping):
+            if options.get("laparams") is None:
+                options["laparams"] = {}
+            if isinstance(options["laparams"], Mapping):
+                # The reader's layout default: text in figures laid out too
+                # (CX-47); a mapping that sets all_texts keeps its value.
                 try:
-                    options["laparams"] = LAParams(**options["laparams"])
+                    options["laparams"] = LAParams(
+                        **{"all_texts": True, **options["laparams"]}
+                    )
                 except (TypeError, ValueError) as exc:
                     raise ValueError(
                         "PDFReader: pdfminer_kwargs['laparams'] is not accepted"
@@ -454,11 +542,7 @@ class _PdfminerPages:
         self._at = page_number + 1
         if page is None:
             return None
-        return "".join(
-            element.get_text()
-            for element in page
-            if isinstance(element, LTTextContainer)
-        )
+        return _layout_text(page)
 
     def close(self) -> None:
         """Close the open iterator, and with it the file."""
@@ -1050,9 +1134,11 @@ class PDFReader(DocumentReader):
         Keyword arguments for ``pdfminer.high_level.extract_pages``, used
         when pdfminer.six reads a page; pypdf ignores them. A mapping under
         ``"laparams"`` is turned into a ``pdfminer.layout.LAParams``, so
-        the layout analysis can be set without importing pdfminer.
+        the layout analysis can be set without importing pdfminer; its
+        defaults are pdfminer's except ``all_texts=True`` (text inside
+        figures is laid out too), which the mapping may override.
         ``password``, ``page_numbers`` and ``maxpages`` are set by the
-        reader and are not accepted. ``None`` uses pdfminer's defaults.
+        reader and are not accepted. ``None`` uses those defaults.
         Default: ``None``.
     pdfminer_ties : {"stable", "pdfminer"}, optional
         How pdfminer.six's layout groups text boxes that are equally far
@@ -1160,6 +1246,14 @@ class PDFReader(DocumentReader):
     ``pdfminer_ties="pdfminer"`` reads in pdfminer.six's own order instead.
     ``pdfminer_kwargs={"laparams": {"boxes_flow": None}}`` orders the boxes
     by position without grouping them into columns: reproducible either way.
+
+    **Text inside figures:** Design and presentation tools often draw text
+    inside form XObjects, which pdfminer.six lays out as figures. The reader
+    reads that text with pdfminer.six too (finding CX-47): after the page's
+    own text, each figure where it is drawn, nested figures included, with
+    the same reproducible grouping. ``pdfminer_kwargs={"laparams":
+    {"all_texts": False}}`` skips the layout analysis inside figures; their
+    characters are then joined as ``pdfminer.high_level.extract_text`` does.
 
     **Encrypted PDFs:** Supply ``password`` when constructing the reader.
     If the password is wrong, affected pages are skipped with a warning.

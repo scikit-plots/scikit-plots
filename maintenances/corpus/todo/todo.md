@@ -195,3 +195,7 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 956: real-data testing tools kept in the repository
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-24). Tools only, no runtime change.
 - Next: CX-47 (PDF figure text), then CX-53 (glob filters).
+
+### PR 957: CX-47, PDFReader reads text inside figures
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-24).
+- Next: CX-53 (glob filters); CX-48 (rotated text) with the same tools.

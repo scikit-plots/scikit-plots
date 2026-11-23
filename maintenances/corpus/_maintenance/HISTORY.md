@@ -1,5 +1,25 @@
 # Corpus maintenance history
 
+## 2026-11-24 — PDF text inside figures, PR 957
+
+- **CX-47 (fixed): the pdfminer path dropped text inside form XObjects.**
+  The page loop kept top-level text boxes only; a figure (`LTFigure`) was
+  skipped, so a PDF from a design tool read as almost empty (one archive
+  file: word recall 0.28 against poppler). `_layout_text` now walks into
+  figures with an explicit stack (no recursion limit), after the page's own
+  boxes, nested figures included; loose characters (`all_texts=False`) are
+  joined as `extract_text` joins them. The reader's `LAParams` default adds
+  `all_texts=True` (a caller mapping may set it); figures are re-classed to
+  `_StableFigure`, which groups ties by creation as `_StablePage` does
+  (CX-16 holds inside figures).
+- Evidence: 19 tests fail on the old code; 6 planted mutations each fail at
+  least one. Corpus suite: same 22 environment failures as `main`, 15 more
+  passed. Archive PDFs: recall of the affected file 0.28 -> 1.0 (precision
+  0.924 -> 0.898: 79 of the 114 words beyond poppler are also pypdf's;
+  against pypdf recall 0.983, precision 0.966), two other PDFs gained a
+  little text, no errors or unstable files, time unchanged, peak memory
+  +6 %.
+
 ## 2026-11-24 — Real-data testing tools in the repository, PR 956
 
 The helpers used for PR 955's measurements became tested tools:

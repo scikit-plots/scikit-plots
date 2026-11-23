@@ -1,0 +1,8 @@
+- ``PDFReader`` reads text drawn inside figures (form XObjects) with
+  pdfminer.six, its default backend. Files from design and presentation
+  tools often draw all their text that way and used to come out almost
+  empty, without a warning; that text now follows the page's own text,
+  nested figures included, and is grouped the same way on every read.
+  pdfminer's layout defaults now include ``all_texts=True``;
+  ``pdfminer_kwargs={"laparams": {"all_texts": False}}`` skips the layout
+  analysis inside figures but still reads their characters.
