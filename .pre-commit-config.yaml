@@ -6,6 +6,11 @@
 # https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
 # https://github.com/asottile/pyupgrade/pull/365
 ---
+# Test data is kept byte for byte (third-party fixtures are hashed by their
+# tests): no hook may rewrite it, codespell's "fixes" to historical spelling
+# included.
+exclude: '(^|/)tests/data/'
+
 ci:
   # Only tells pre-commit.ci to skip that hook; it does not disable it locally.
   # Your local hook will still run on commit if you’ve installed the Git hook with: `pre-commit install`

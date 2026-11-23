@@ -181,3 +181,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-17).
 - Next: the error text choice left in the CX-23 note; office plan phase 4
   (a decision); PDF extraction cost per character.
+
+### PR 953: CX-43, CX-44, CX-45, ALTO by default, broken words, member order
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-23).
+- Next: TEI routed to `TEIReader` by default (a decision); ALTO reading
+  order by block position and section tags; CX-23 error text choice.

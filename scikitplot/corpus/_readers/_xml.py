@@ -653,11 +653,23 @@ class XMLReader(DocumentReader):
     encoding: str | None = field(default=None)
     """Explicit encoding override. ``None`` uses the XML declaration. Default: ``None``."""
 
+    alto: str = field(default="auto")
+    """How to read an ALTO OCR page (root ``<alto>``). ``"auto"`` (default):
+    read its words with ALTO's layout (one chunk per text block, words
+    broken across lines rejoined) when ``block_xpath``, ``text_xpath`` and
+    ``namespaces`` are left at their defaults; ``"off"``: always the generic
+    XPath extraction, which for ALTO returns only the page metadata, since
+    ALTO keeps its words in ``CONTENT`` attributes."""
+
     def __post_init__(self) -> None:  # noqa: D105
         super().__post_init__()
         if self.max_file_bytes <= 0:
             raise ValueError(
                 f"XMLReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."
+            )
+        if self.alto not in ("auto", "off"):
+            raise ValueError(
+                f"XMLReader: alto must be 'auto' or 'off'; got {self.alto!r}."
             )
 
     # ------------------------------------------------------------------
@@ -696,6 +708,17 @@ class XMLReader(DocumentReader):
             content = content.decode(self.encoding).encode("utf-8")
 
         root = _parse_xml(content)
+        if self._reads_as_alto(root):
+            from ._alto import alto_page_chunks  # noqa: PLC0415
+
+            chunks = alto_page_chunks(root)
+            logger.info(
+                "XMLReader: %s is an ALTO page; %d text block(s) read.",
+                self.file_name,
+                len(chunks),
+            )
+            yield from chunks
+            return
         ns = self.namespaces or {}
 
         elements = _xpath_elements(root, self.block_xpath, ns)
@@ -717,6 +740,25 @@ class XMLReader(DocumentReader):
                 "raw_text": self._element_raw_text(element, ns),
                 "section_type": SectionType.TEXT.value,
             }
+
+    def _reads_as_alto(self, root: Any) -> bool:
+        """
+        Return whether this file is read as an ALTO page.
+
+        Notes
+        -----
+        **Developer notes:** ALTO keeps each word in a ``CONTENT`` attribute,
+        so the generic ``itertext()`` extraction returns only the page's
+        metadata (image file names) and drops every word without a warning
+        (CX-43). Any XPath option the caller set wins over detection.
+        """
+        if self.alto != "auto" or self.text_xpath is not None or self.namespaces:
+            return False
+        if self.block_xpath != ".//*":
+            return False
+        from ._alto import is_alto_root  # noqa: PLC0415
+
+        return is_alto_root(root)
 
     # ------------------------------------------------------------------
     # Protected helpers (overridden by TEIReader)

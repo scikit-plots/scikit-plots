@@ -1,0 +1,7 @@
+- ALTO OCR pages are read by default. ``DocumentReader.create`` on an ALTO
+  ``.xml`` page, or on a ``.zip`` of pages, used to return only the page's
+  image file names and silently drop every word; ``XMLReader`` now reads an
+  ALTO page with ALTO's layout (option ``alto``, default ``"auto"``), words
+  broken across lines are rejoined (``Geschichts-`` + ``auffassung``;
+  option ``dehyphenate`` on ``ALTOReader``), and ``ZipReader`` reads members
+  in natural order of their paths (``page_2`` before ``page_10``).

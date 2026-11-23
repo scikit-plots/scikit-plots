@@ -7,6 +7,7 @@
 | `scikitplot.corpus.HAMLET_TEXT` | none | A short plain-text sample in the installed package | Smallest smoke test for text pipelines. |
 | `galleries/examples/<submodule>/data/` in a source checkout | none | Real mixed files per submodule; today `galleries/examples/corpus/data/` (PDF, ZIP, MP3, images, folders) | Not in the installed wheel; use a clone or download the folder from GitHub. |
 | `scikitplot.datasets.load_dataset(name, cache=True, data_home=None, **kws)` | first call only | Example CSV tables as a `pandas.DataFrame`; names from `get_dataset_names()` (needs network) | Cached in `get_data_home()` (`SCIKITPLOT_DATA` overrides). Offline: copy `name.csv` there and it is read without network. |
+| `scikitplot/corpus/_readers/tests/data/alto_tei/` in a source checkout | none | ALTO v4 pages and archives (eScriptorium exports, hyphenation, out-of-order pages) and TEI documents | Third-party, Apache-2.0 (`LICENSE` and `README.md` in the folder name the source and hashes). Copied from https://github.com/Princeton-CDH/remarx/tree/main/tests/test_sentence/test_corpus/fixtures |
 | https://github.com/scikit-plots/scikit-plots-data | web or `git clone` | The CSV files behind `load_dataset` | Clone once on a connected machine, carry the files to an offline one. |
 
 ## External sources
