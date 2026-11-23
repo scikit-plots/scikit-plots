@@ -89,6 +89,52 @@ class TestStableGrouping:
         assert issubclass(device_class, converter.PDFPageAggregator)
 
 
+def _figure_order(figure_class: type, coords: list, reverse_allocation: bool) -> list:
+    boxes = _boxes(coords, reverse_allocation)
+    figure = figure_class("Fm0", (0, 0, 200, 200), (1, 0, 0, 1, 0, 0))
+    assigner = layout.IndexAssigner()
+    for group in figure.group_textboxes(layout.LAParams(), boxes):
+        assigner.run(group)
+    return [box.tag for box in sorted(boxes, key=lambda box: box.index)]
+
+
+class TestStableFigures:
+    """CX-47: text inside figures is grouped as reproducibly as a page's."""
+
+    def test_ties_in_a_figure_give_one_order_whatever_the_addresses(self):
+        _, device_class = _stable_layout_classes()
+        figure_class = device_class.figure_class
+        assert issubclass(figure_class, layout.LTFigure)
+        assert _figure_order(figure_class, GRID, False) == _figure_order(
+            figure_class, GRID, True
+        )
+
+    @pytest.mark.parametrize("reverse_allocation", [False, True])
+    def test_without_ties_a_figure_is_grouped_as_pdfminer_groups_it(
+        self, reverse_allocation
+    ):
+        _, device_class = _stable_layout_classes()
+        assert _figure_order(device_class.figure_class, NO_TIES, reverse_allocation) == (
+            _figure_order(layout.LTFigure, NO_TIES, reverse_allocation)
+        )
+
+    def test_the_device_lays_figures_out_with_the_stable_figure(self):
+        converter = pytest.importorskip("pdfminer.converter")
+        _, device_class = _stable_layout_classes()
+
+        def begin(cls: type) -> object:
+            device = cls(pdfinterp.PDFResourceManager(), laparams=layout.LAParams())
+            device.begin_page(_Page(), (1, 0, 0, 1, 0, 0))
+            device.set_ctm((1, 0, 0, 1, 0, 0))  # as the interpreter does
+            device.begin_figure("Fm0", (0, 0, 50, 50), (1, 0, 0, 1, 10, 10))
+            return device.cur_item
+
+        ours, theirs = begin(device_class), begin(converter.PDFPageAggregator)
+        assert type(ours) is device_class.figure_class
+        assert vars(ours).keys() == vars(theirs).keys()
+        assert (ours.name, ours.bbox, ours.matrix) == (theirs.name, theirs.bbox, theirs.matrix)
+
+
 class _Page:
     """The one attribute ``begin_page`` reads from a ``PDFPage``."""
 
