@@ -1,5 +1,24 @@
 # Corpus maintenance history
 
+## 2026-11-24 — Real-data testing tools in the repository, PR 956
+
+The helpers used for PR 955's measurements became tested tools:
+
+- `reader_snapshot.py`: `--timeout` (each read in a child process, the
+  child's process group ended after the limit; the record equals an
+  in-process read, the error keeps the reader's exception name),
+  `--max-per-type` (fixed sample per file type), `--reader FILE.py:FUNCTION`
+  (any reading function, so other submodules can be snapshotted), `show`,
+  per-file `seconds`, a `run` block (seconds, peak memory) and
+  `compare --timing` (information, never a difference).
+- `reader_benchmark.py` (new): word recall and precision of the readers
+  against standard tools, per file and per type; `compare` exits 1 only
+  when a file got worse. Same numbers as PR 955's benchmark.
+- `tools/maint_tools/run_measured.py` (new): wall time and each run's own
+  peak memory of any command (`os.wait4`), repeated, JSON.
+- Tests: 42 (snapshot), 17 (benchmark), 9 (measured run); every planted
+  mutation of the new code fails at least one.
+
 ## 2026-11-23 — Real-data findings recorded, PR 955
 
 Private mixed archive (1,186 files; documents 692, media sampled), `main`

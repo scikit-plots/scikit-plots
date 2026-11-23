@@ -121,6 +121,31 @@ python -B maintenances/corpus/_maintenance/tools/reader_snapshot.py compare /tmp
 Use `--include '*.pdf'` to narrow, `--exclude '*.jpg'` to skip media.
 Keep the JSON outside the repository; it holds file names.
 
+Large, media or untrusted folders: `--timeout 120` reads each file in its
+own process and ends it (with any OCR engine it started) after 120 s, so
+one file cannot stall the run; `--max-per-type 20` reads a fixed sample of
+each file type. Each isolated read pays about 2 to 3 s of start-up, so skip
+`--timeout` for folders of small text files. `compare --timing` adds total
+time, peak memory and the files at least twice slower; these lines never
+change the exit status. `show FILE` prints one file's chunks (`--json` for
+every key).
+
+Snapshots show what changed; the benchmark shows how good it is. It scores
+each file's words against a standard tool (poppler or pypdfium2 for PDF,
+python-pptx, python-docx, openpyxl, the standard library for text, HTML,
+XML, OpenDocument and ZIP members): recall below 1 means the reader lost
+text, precision below 1 that it added or repeated text.
+
+```bash
+B=maintenances/corpus/_maintenance/tools/reader_benchmark.py
+python -B $B run my_files --out /tmp/bench.json
+python -B $B report /tmp/bench.json --min-recall 0.9 --min-precision 0.9
+python -B $B compare /tmp/main-bench.json /tmp/branch-bench.json  # exit 1 if a file got worse
+```
+
+Time and peak memory of any command, repeated:
+`python -B tools/maint_tools/run_measured.py --repeat 3 --json /tmp/m.json -- COMMAND ...`.
+
 Record in `MEMORY.md` only: date, file count, ok, errors, unstable,
 chunks, seconds, peak memory. New errors or unstable files block the
 merge until explained.
@@ -129,3 +154,6 @@ merge until explained.
 
 Same shape: list the API with `python -m scikitplot api scikitplot.<module>`,
 run it over a copy of real input, count outcomes, compare against `main`.
+`reader_snapshot.py snapshot FOLDER --reader my_loader.py:load` snapshots
+any function that turns a file into a list of dicts (with a `text` key), so
+another submodule's loader gets the same before/after comparison.
