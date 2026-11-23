@@ -186,3 +186,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-23).
 - Next: TEI routed to `TEIReader` by default (a decision); ALTO reading
   order by block position and section tags; CX-23 error text choice.
+
+### PR 955: real-data findings CX-46 to CX-53 recorded as ledger notes
+- [x] Done (`../_maintenance/HISTORY.md`, 2026-11-23). Notes only, no code.
+- Next: CX-47 (PDF figure text, no decision) and CX-53 (glob filters, no
+  decision); decisions in CX-46 (XML default), CX-52 (media text policy).
