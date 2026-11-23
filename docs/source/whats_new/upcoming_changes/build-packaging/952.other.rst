@@ -1,0 +1,4 @@
+- ``.pre-commit-config.yaml`` runs ``action-validator`` on every GitHub
+  Actions workflow, so an unknown key, a bad ``needs`` reference or a glob
+  that matches nothing fails at commit time instead of when the workflow
+  runs; ``zizmor`` keeps covering security.

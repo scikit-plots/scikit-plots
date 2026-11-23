@@ -180,6 +180,12 @@ repos:
     hooks:
       # pre-commit run zizmor --all-files --verbose
       - id: zizmor
+  # Workflow schema check (keys, needs, globs); zizmor covers security, not schema.
+  # Built from Rust source on first install (cargo is fetched if missing).
+  - repo: https://github.com/mpalmer/action-validator
+    rev: v0.9.0
+    hooks:
+      - id: action-validator
 
   # Critical Checks: Sensitive data, large files, and merge conflicts
   - repo: https://github.com/pre-commit/pre-commit-hooks
