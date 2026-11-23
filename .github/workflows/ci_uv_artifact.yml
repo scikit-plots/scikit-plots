@@ -1,0 +1,239 @@
+# .github/workflows/ci_uv_artifact.yml
+# ──────────────────────────────────────────────────────────────────────────────
+# PURPOSE
+# -------
+# Regenerate docker/env_uv/<pyXYZ>/{pyproject.toml,uv.lock} from the
+# project's requirements/*.txt sources — for ONE Python version, or for every
+# SUPPORTED version IN PARALLEL — then open (or update) a Pull Request per
+# version. The uv counterpart of ci_pipenv_artifact.yml; same inputs, same
+# matrix, same branch-per-version PRs.
+#
+# DESIGN
+# ------
+# 1. `setup` expands `py_version` into a JSON matrix. SUPPORTED there is the
+#    only list of Python versions (3.8 and 3.9 do not resolve: several
+#    requirements need Python 3.10).
+# 2. Each matrix job flattens the requirements for its Python
+#    (.github/scripts/flatten_reqs.py, shared with the Pipenv workflow),
+#    writes a standalone, non-package uv project
+#    (.github/scripts/uv_project_from_reqs.py) and runs `uv lock` there.
+#    Nothing is built: the repository's own pyproject.toml is not locked,
+#    because uv would resolve every extra for every supported Python at once
+#    and build scikit-plots (meson) only to read its version.
+# 3. ROOT_PY_VERSION is also copied to docker/env_uv/{pyproject.toml,uv.lock}
+#    for tools that want one location. It is NOT linked to the repository
+#    root: a root uv.lock belongs to the root pyproject.toml (scikit-plots),
+#    and every uv command there fails against a lock of another project.
+#    Use: uv sync --project docker/env_uv
+#
+# PERMISSIONS: contents: write (push the branch), pull-requests: write.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: CI 📦 uv Lock Artifacts Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      py_version:
+        description: "Python version to lock, or 'all' for every supported version in parallel"
+        required: false
+        default: "all"
+        type: choice
+        options: ["all", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+      update_root:
+        description: "Copy the root version's files to docker/env_uv/"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      root_py_version:
+        description: "Python version copied to docker/env_uv/"
+        required: false
+        default: "3.11"
+        type: choice
+        options: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+  schedule:
+    - cron: '23 11 1 * *'  # At 11:23 UTC on day 1 of the month (after the Pipenv run)
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: 🧮 Resolve Python version matrix
+    runs-on: ubuntu-latest
+    if: github.repository == 'scikit-plots/scikit-plots'
+    permissions:
+      contents: read
+    outputs:
+      matrix:          ${{ steps.resolve.outputs.matrix }}
+      update_root:     ${{ steps.resolve.outputs.update_root }}
+      root_py_version: ${{ steps.resolve.outputs.root_py_version }}
+    steps:
+      - name: "🧮 Expand input into a JSON Python-version matrix"
+        id: resolve
+        shell: bash
+        env:
+          PY_VERSION_INPUT:  ${{ inputs.py_version }}
+          UPDATE_ROOT_INPUT: ${{ inputs.update_root }}
+          ROOT_PY_VERSION:   ${{ inputs.root_py_version }}
+        run: |
+          set -Eeuo pipefail
+          # Single source of truth for the supported Python versions.
+          SUPPORTED=(3.10 3.11 3.12 3.13 3.14 3.15)
+          ROOT_PY_VERSION="${ROOT_PY_VERSION:-3.11}"
+          REQUESTED="${PY_VERSION_INPUT}"
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || -z "${REQUESTED}" || "${REQUESTED}" == "all" ]]; then
+            VERSIONS=("${SUPPORTED[@]}")
+          else
+            # The REST API does not enforce `type: choice`; check here.
+            [[ " ${SUPPORTED[*]} " == *" ${REQUESTED} "* ]] || {
+              echo "::error::Unsupported py_version '${REQUESTED}'. Supported: ${SUPPORTED[*]} or 'all'."
+              exit 1
+            }
+            VERSIONS=("${REQUESTED}")
+          fi
+          JSON=$(printf '"%s",' "${VERSIONS[@]}")
+          UPDATE_ROOT="${UPDATE_ROOT_INPUT:-true}"
+          {
+            echo "matrix={\"py_version\":[${JSON%,}]}"
+            echo "update_root=${UPDATE_ROOT}"
+            echo "root_py_version=${ROOT_PY_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Matrix: ${VERSIONS[*]}  root: ${ROOT_PY_VERSION} (update_root=${UPDATE_ROOT})"
+          if [[ "${UPDATE_ROOT}" == "true" && " ${VERSIONS[*]} " != *" ${ROOT_PY_VERSION} "* ]]; then
+            echo "::warning::ROOT_PY_VERSION=${ROOT_PY_VERSION} is not in this run; docker/env_uv/ root files are not touched."
+          fi
+
+  update-uv:
+    needs: setup
+    name: >-
+      Update uv Lock Artifacts (py${{ matrix.py_version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots' &&
+      needs.setup.result == 'success'
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    concurrency:
+      group: uv-lock-update-${{ github.ref_name }}-py${{ matrix.py_version }}
+      cancel-in-progress: false
+    env:
+      PY_VERSION:       ${{ matrix.py_version }}
+      UPDATE_ROOT:      ${{ needs.setup.outputs.update_root }}
+      ROOT_PY_VERSION:  ${{ needs.setup.outputs.root_py_version }}
+      UV_STORE_DIR:     docker/env_uv
+      REQUIREMENTS_DIR: requirements
+    steps:
+      - name: "⬇️ Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python (runs the helper scripts)"
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: "⚡ Install uv"
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false   # a lock job; nothing to reuse between runs
+
+      - name: "🧭 Derive versioned paths"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PY_DIR="py$(echo "${PY_VERSION}" | tr -d '.')"
+          {
+            echo "PY_DIR=${PY_DIR}"
+            echo "VERSIONED_DIR=${UV_STORE_DIR}/${PY_DIR}"
+            echo "FLAT_DIR=${RUNNER_TEMP}/uv_flat_${PY_DIR}"
+          } >> "$GITHUB_ENV"
+
+      - name: "🧬 Flatten requirements and write the uv project"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "${FLAT_DIR}"
+          python .github/scripts/flatten_reqs.py \
+            "${REQUIREMENTS_DIR}/default.txt" "${REQUIREMENTS_DIR}/all.txt" \
+            "${FLAT_DIR}/runtime.txt" "${FLAT_DIR}/dev.txt" "${PY_VERSION}"
+          rm -f "${VERSIONED_DIR}/pyproject.toml" "${VERSIONED_DIR}/uv.lock"
+          python .github/scripts/uv_project_from_reqs.py \
+            "${FLAT_DIR}/runtime.txt" "${FLAT_DIR}/dev.txt" "${VERSIONED_DIR}" "${PY_VERSION}"
+
+      - name: "🔒 uv lock"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          uv --version
+          uv lock --directory "${VERSIONED_DIR}" --python "${PY_VERSION}"
+          # The lock must reproduce: a second resolution changes nothing.
+          uv lock --check --directory "${VERSIONED_DIR}" --python "${PY_VERSION}"
+          test -s "${VERSIONED_DIR}/uv.lock"
+          echo "packages: $(grep -c '^\[\[package\]\]' "${VERSIONED_DIR}/uv.lock")"
+          rm -rf "${FLAT_DIR}" "${VERSIONED_DIR}/.venv"
+
+      - name: "📌 Copy the root version to docker/env_uv/"
+        if: env.UPDATE_ROOT == 'true' && env.PY_VERSION == env.ROOT_PY_VERSION
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cp "${VERSIONED_DIR}/pyproject.toml" "${UV_STORE_DIR}/pyproject.toml"
+          cp "${VERSIONED_DIR}/uv.lock"        "${UV_STORE_DIR}/uv.lock"
+
+      - name: "🔀 Open or update Pull Request"
+        id: cpr
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore(uv): regenerate lock for Python ${{ matrix.py_version }}
+
+            Triggered by : ${{ github.event_name }}
+            Workflow run : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Directory    : ${{ env.VERSIONED_DIR }}
+          branch: bot/uv-lock-py${{ matrix.py_version }}
+          delete-branch: true
+          title: "[MAINT] chore(uv): regenerate lock for Python ${{ matrix.py_version }}"
+          body: |
+            ## Automated uv lock update
+
+            | Field | Value |
+            |---|---|
+            | Python version | `${{ matrix.py_version }}` |
+            | Directory | `${{ env.VERSIONED_DIR }}` |
+            | Root copy (`${{ env.UV_STORE_DIR }}/`) | `${{ env.UPDATE_ROOT == 'true' && env.PY_VERSION == env.ROOT_PY_VERSION }}` |
+            | Sources | `${{ env.REQUIREMENTS_DIR }}/default.txt`, `${{ env.REQUIREMENTS_DIR }}/all.txt` |
+            | Workflow run | [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
+
+            *Opened by ci_uv_artifact.yml. Review the lock diff before merging.*
+          labels: |
+            dependencies
+            automated
+          base: ${{ github.ref_name }}
+
+      - name: "📝 Job summary"
+        if: always()
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+          PR_URL:    ${{ steps.cpr.outputs.pull-request-url }}
+          PR_OP:     ${{ steps.cpr.outputs.pull-request-operation }}
+        run: |
+          {
+            echo "### ⚡ py${PY_VERSION} — uv lock"
+            echo "| Directory | \`${VERSIONED_DIR}\` |"
+            echo "|---|---|"
+            if [[ -n "${PR_NUMBER:-}" ]]; then
+              echo "| Pull request | [#${PR_NUMBER}](${PR_URL}) (${PR_OP}) |"
+            else
+              echo "| Pull request | _none: already up to date_ |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
