@@ -1,5 +1,44 @@
 # Corpus maintenance history
 
+## 2026-11-23 — ALTO pages read by default, broken words rejoined, PR 953
+
+- **CX-43 (fixed): the default route dropped every ALTO word.**
+  `DocumentReader.create` sends `.xml` to `XMLReader` and `.zip` to
+  `ZipReader`, whose `.xml` members go to `XMLReader` too. Its generic
+  `itertext()` extraction cannot see ALTO's words, which live in `CONTENT`
+  attributes: on `main` a 4.8 KB-of-text ALTO page gave 136 characters of
+  image file names and an archive of five pages 665, with no warning.
+  `_zip.py` held ALTO namespace markers and probe sizes for this case that
+  nothing used (removed). Now `XMLReader` (option `alto="auto"`, default)
+  reads an ALTO root with ALTO's layout unless the caller set an XPath
+  option; `alto="off"` keeps the old extraction. Same fixtures: 4,661 and
+  17,083 characters; the archive's text equals `ALTOReader`'s.
+- **CX-44 (fixed): a word broken across lines kept a hyphen and a space**
+  (`Geschichts- auffassung`). Block and page text now rejoin it: ALTO's
+  `SUBS_CONTENT` when present, otherwise `-`, `⸗` or `¬` after a letter and
+  before a lower-case letter is removed, before anything else kept as `-`;
+  a soft hyphen is removed. `raw_text` stays the verbatim join. Option
+  `dehyphenate` (default `True`) on `ALTOReader`. Known limit: a suspended
+  compound broken right after its hyphen (`Haupt-` + `und`) is joined.
+- **CX-45 (fixed): archive members were read in stored order** (the
+  fixture stores pages 3, 4, 1, 5, 2). `ZipReader` now reads members in
+  natural order of their paths, digits as numbers, the path as tie-break.
+- **Refactor:** the three copies of the ALTO line join became one
+  (`_line_text`, `_join_lines`, `_chunk`); `alto_page_chunks` and
+  `is_alto_root` serve both readers.
+- **Fixtures:** seven ALTO and TEI files, third-party, Apache-2.0, copied
+  unchanged into `_readers/tests/data/alto_tei/` with the license and a
+  README naming the source commit and each SHA-256; a test checks them.
+  Rule 3 of `.claude/rules/real-life-testing.md` now says how public
+  fixtures are added.
+- **Proof.** `test__alto_routing.py`, 31 tests. Mutations each fail tests:
+  detection off, line-end rejoin off, member order unsorted. Whole corpus
+  suite, CPython 3.14: 6,418 passed, the same 14 failures as `main`
+  (6,387 passed there).
+- **Seen, not changed:** a TEI file reaches `XMLReader` by default, not
+  `TEIReader` (registered as `:tei`); reading order inside an ALTO page
+  follows document order, not block positions; ALTO section tags
+  (`TAGREFS`, for example footnotes) are not used.
 ## 2026-11-17 — ALTOReader skips a malformed page under lxml too, PR 951
 
 - **CX-42 (fixed): one malformed page ended the whole archive with lxml.**

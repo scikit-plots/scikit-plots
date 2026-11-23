@@ -385,12 +385,177 @@ def _read_ocr_engine(root: Any, ns_uri: str) -> str | None:
     return None
 
 
-def _extract_block_chunks(  # noqa: PLR0912
+#: Characters that end a line in a word broken across lines: hyphen-minus,
+#: the double oblique hyphen of Fraktur printing, and the not sign some OCR
+#: engines emit for it.
+_LINE_END_HYPHENS: frozenset[str] = frozenset({"-", "⸗", "¬"})
+#: Soft hyphen: invisible unless the word breaks there; always removed.
+_SOFT_HYPHEN = "­"
+
+
+def _join_lines(lines: list[str], dehyphenate: bool) -> str:
+    """
+    Join the text of consecutive lines of one block.
+
+    Parameters
+    ----------
+    lines : list of str
+        Text of each line, in reading order.
+    dehyphenate : bool
+        Rejoin a word broken across two lines.
+
+    Returns
+    -------
+    str
+        The lines joined with single spaces, or, with ``dehyphenate``, a
+        line that ends in a hyphen joined to the next without a space:
+
+        - a soft hyphen (U+00AD) is removed;
+        - ``-``, ``⸗`` or ``¬`` after a letter, followed by a lower-case
+          letter, is removed (``Geschichts-`` + ``auffassung`` →
+          ``Geschichtsauffassung``);
+        - followed by anything else, it is kept as ``-`` (``Marx-`` +
+          ``Engels`` → ``Marx-Engels``).
+
+    Notes
+    -----
+    **User notes:** a suspended compound broken right after its hyphen
+    (``Haupt-`` + ``und Nebensatz``) is joined as ``Hauptund``; text alone
+    cannot tell it from a broken word. Pass ``dehyphenate=False`` to keep
+    every line break as a space.
+
+    **Developer notes:** ALTO's own hyphenation markup (``SUBS_CONTENT``)
+    is applied before this, in :func:`_line_text`; this rule covers files
+    that carry the hyphen as plain text, as line-level OCR exports do.
+    """
+    text = ""
+    for line in lines:
+        if not line:
+            continue
+        if not text:
+            text = line
+            continue
+        last, first = text[-1], line[0]
+        if dehyphenate and last == _SOFT_HYPHEN:
+            text = text[:-1] + line
+        elif (
+            dehyphenate
+            and last in _LINE_END_HYPHENS
+            and len(text) > 1
+            and text[-2].isalpha()
+            and first.isalpha()
+        ):
+            text = text[:-1] + (line if first.islower() else "-" + line)
+        else:
+            text = f"{text} {line}"
+    return text
+
+
+def _line_text(
+    line: Any, ns_uri: str, dehyphenate: bool, state: dict[str, bool]
+) -> tuple[str, str, list[float]]:
+    """
+    Return the text, the verbatim text and the word confidences of one line.
+
+    Parameters
+    ----------
+    line : Element
+        ``<TextLine>`` element.
+    ns_uri : str
+        ALTO namespace.
+    dehyphenate : bool
+        Apply ALTO hyphenation markup: the first part of a broken word
+        (``SUBS_TYPE="HypPart1"``) is replaced by the whole word
+        (``SUBS_CONTENT``), and the second part is left out. A ``<HYP>``
+        without ``SUBS_CONTENT`` adds its hyphen to the line's end, for
+        :func:`_join_lines`.
+    state : dict
+        Carries ``"pending"`` (a whole word was written for a first part)
+        from one line to the next within a block.
+
+    Returns
+    -------
+    text, raw : str
+        The line's words; ``raw`` is the verbatim ``CONTENT`` join.
+    confidences : list of float
+        ``WC`` of each word.
+    """
+    words: list[str] = []
+    raw: list[str] = []
+    confs: list[float] = []
+    string_tag, hyp_tag = _ns("String", ns_uri), _ns("HYP", ns_uri)
+    for child in line:
+        if child.tag == hyp_tag:
+            if dehyphenate and words and not state.get("subs"):
+                words[-1] += child.get("CONTENT") or "-"
+            continue
+        if child.tag != string_tag:
+            continue
+        content = child.get("CONTENT", "")
+        if content:
+            raw.append(content)
+        wc = _attr_float(child, "WC")
+        if wc is not None:
+            confs.append(wc)
+        kind, whole = child.get("SUBS_TYPE"), child.get("SUBS_CONTENT")
+        state["subs"] = False
+        if dehyphenate and whole and kind == "HypPart1":
+            words.append(whole)
+            state["pending"] = state["subs"] = True
+        elif dehyphenate and whole and kind == "HypPart2" and state.get("pending"):
+            state["pending"] = False
+        elif content:
+            words.append(content)
+    return " ".join(words).strip(), " ".join(raw).strip(), confs
+
+
+def _mean_confidence(confs: list[float]) -> float | None:
+    """Mean ``WC`` in [0, 1]; values on a 0-100 scale are divided by 100."""
+    if not confs:
+        return None
+    mean = sum(confs) / len(confs)
+    return mean / 100.0 if mean > 1.0 else mean
+
+
+def _bbox(element: Any, fallback: tuple[float, ...]) -> tuple[float, ...]:
+    return tuple(
+        _attr_float(element, key) or default
+        for key, default in zip(("HPOS", "VPOS", "WIDTH", "HEIGHT"), fallback)
+    )
+
+
+def _chunk(
+    text: str,
+    raw: str,
+    *,
+    page_number: int | None,
+    bbox: tuple[float, ...] | None,
+    confs: list[float],
+    ocr_engine: str | None,
+) -> dict[str, Any]:
+    chunk: dict[str, Any] = {
+        "text": text,
+        # raw_text: the verbatim ALTO CONTENT tokens joined with spaces,
+        # before any dehyphenation.
+        "raw_text": raw,
+        "section_type": SectionType.TEXT.value,
+        "bbox": bbox,
+        "confidence": _mean_confidence(confs),
+        "ocr_engine": ocr_engine,
+    }
+    if page_number is not None:
+        chunk["page_number"] = page_number
+    return chunk
+
+
+def _extract_block_chunks(
     block: Any,
     ns_uri: str,
-    page_number: int,
+    page_number: int | None,
     ocr_engine: str | None,
     granularity: str,
+    *,
+    dehyphenate: bool = True,
 ) -> list[dict[str, Any]]:
     """
     Extract raw chunk dicts from a single ALTO ``<TextBlock>`` element.
@@ -401,123 +566,82 @@ def _extract_block_chunks(  # noqa: PLR0912
         ``<TextBlock>`` element.
     ns_uri : str
         Detected ALTO namespace.
-    page_number : int
-        Zero-based page index within the archive.
+    page_number : int or None
+        Zero-based page index; ``None`` leaves ``page_number`` out.
     ocr_engine : str or None
         OCR engine string from the ALTO header (may be ``None``).
     granularity : str
-        One of ``"block"``, ``"line"``, ``"page"`` — controls how text
-        is aggregated. ``"block"`` yields one chunk per TextBlock;
-        ``"line"`` yields one chunk per TextLine.
+        ``"block"`` yields one chunk per TextBlock; ``"line"`` one chunk
+        per TextLine (no joining across lines).
+    dehyphenate : bool, default True
+        Rejoin words broken across lines (block granularity only); see
+        :func:`_join_lines` and :func:`_line_text`.
 
     Returns
     -------
     list of dict
-        Raw chunk dicts with keys ``"text"``, ``"section_type"``,
-        ``"page_number"``, ``"bbox"``, ``"confidence"``, ``"ocr_engine"``.
+        Raw chunk dicts with keys ``"text"``, ``"raw_text"``,
+        ``"section_type"``, ``"page_number"`` (when known), ``"bbox"``,
+        ``"confidence"``, ``"ocr_engine"``.
     """
-    # Block-level bounding box
-    hpos = _attr_float(block, "HPOS") or 0.0
-    vpos = _attr_float(block, "VPOS") or 0.0
-    width = _attr_float(block, "WIDTH") or 0.0
-    height = _attr_float(block, "HEIGHT") or 0.0
-    block_bbox: tuple[float, ...] = (hpos, vpos, width, height)
-
-    line_tag = _ns("TextLine", ns_uri)
-    string_tag = _ns("String", ns_uri)
-
+    block_bbox = _bbox(block, (0.0, 0.0, 0.0, 0.0))
+    lines = block.findall(_ns("TextLine", ns_uri))
     if granularity == _GRAN_LINE:
         chunks: list[dict[str, Any]] = []
-        for line in block.findall(line_tag):
-            line_hpos = _attr_float(line, "HPOS") or hpos
-            line_vpos = _attr_float(line, "VPOS") or vpos
-            line_width = _attr_float(line, "WIDTH") or width
-            line_height = _attr_float(line, "HEIGHT") or height
-            line_bbox: tuple[float, ...] = (
-                line_hpos,
-                line_vpos,
-                line_width,
-                line_height,
-            )
-
-            words: list[str] = []
-            confs: list[float] = []
-            for string_el in line.findall(string_tag):
-                content = string_el.get("CONTENT", "")
-                if content:
-                    words.append(content)
-                wc = _attr_float(string_el, "WC")
-                if wc is not None:
-                    confs.append(wc)
-
-            text = " ".join(words).strip()
-            if not text:
-                continue
-
-            mean_conf: float | None = sum(confs) / len(confs) if confs else None
-            # Clamp to [0,1] — some ALTO files use 0-100 scale for WC
-            if mean_conf is not None and mean_conf > 1.0:
-                mean_conf = mean_conf / 100.0
-
-            chunks.append(
-                {
-                    "text": text,
-                    # raw_text: same word-join as text; ALTO CONTENT attributes
-                    # are already the OCR engine's verbatim token output.
-                    # No HTML stripping or whitespace collapsing applied here.
-                    "raw_text": text,
-                    "section_type": SectionType.TEXT.value,
-                    "page_number": page_number,
-                    "bbox": line_bbox,
-                    "confidence": mean_conf,
-                    "ocr_engine": ocr_engine,
-                }
-            )
+        for line in lines:
+            text, raw, confs = _line_text(line, ns_uri, False, {})
+            if text:
+                chunks.append(
+                    _chunk(
+                        text,
+                        raw,
+                        page_number=page_number,
+                        bbox=_bbox(line, block_bbox),
+                        confs=confs,
+                        ocr_engine=ocr_engine,
+                    )
+                )
         return chunks
-
-    # Block granularity (default): one chunk per TextBlock
-    words_block: list[str] = []
-    confs_block: list[float] = []
-    for line in block.findall(line_tag):
-        for string_el in line.findall(string_tag):
-            content = string_el.get("CONTENT", "")
-            if content:
-                words_block.append(content)
-            wc = _attr_float(string_el, "WC")
-            if wc is not None:
-                confs_block.append(wc)
-
-    text_block = " ".join(words_block).strip()
-    if not text_block:
+    texts, raws, confs_block = _block_lines(lines, ns_uri, dehyphenate)
+    text = _join_lines(texts, dehyphenate)
+    if not text:
         return []
-
-    mean_conf_block: float | None = (
-        sum(confs_block) / len(confs_block) if confs_block else None
-    )
-    if mean_conf_block is not None and mean_conf_block > 1.0:
-        mean_conf_block = mean_conf_block / 100.0
-
     return [
-        {
-            "text": text_block,
-            # raw_text: block-level word join — verbatim ALTO CONTENT tokens,
-            # no additional normalisation applied.
-            "raw_text": text_block,
-            "section_type": SectionType.TEXT.value,
-            "page_number": page_number,
-            "bbox": block_bbox,
-            "confidence": mean_conf_block,
-            "ocr_engine": ocr_engine,
-        }
+        _chunk(
+            text,
+            " ".join(r for r in raws if r),
+            page_number=page_number,
+            bbox=block_bbox,
+            confs=confs_block,
+            ocr_engine=ocr_engine,
+        )
     ]
+
+
+def _block_lines(
+    lines: list[Any], ns_uri: str, dehyphenate: bool
+) -> tuple[list[str], list[str], list[float]]:
+    """Text, verbatim text and confidences of each line of one block."""
+    state: dict[str, bool] = {}
+    texts: list[str] = []
+    raws: list[str] = []
+    confs: list[float] = []
+    for line in lines:
+        text, raw, line_confs = _line_text(line, ns_uri, dehyphenate, state)
+        texts.append(text)
+        raws.append(raw)
+        confs.extend(line_confs)
+    return texts, raws, confs
 
 
 def _extract_page_chunks(
     root: Any,
     ns_uri: str,
-    page_number: int,
+    page_number: int | None,
     granularity: str,
     ocr_engine: str | None,
+    *,
+    dehyphenate: bool = True,
 ) -> list[dict[str, Any]]:
     """
     Extract all raw chunks from one ALTO XML page document.
@@ -528,69 +652,138 @@ def _extract_page_chunks(
         Root ``<alto>`` element.
     ns_uri : str
         Detected ALTO namespace URI.
-    page_number : int
-        Zero-based page index within the ZIP archive.
+    page_number : int or None
+        Zero-based page index; ``None`` leaves ``page_number`` out.
     granularity : str
         Chunking granularity: ``"block"``, ``"line"``, or ``"page"``.
     ocr_engine : str or None
         OCR engine name from the ALTO header.
+    dehyphenate : bool, default True
+        Rejoin words broken across lines within a block.
 
     Returns
     -------
     list of dict
         Raw chunk dicts for this page.
     """
-    block_tag = _ns("TextBlock", ns_uri)
-
-    all_blocks = root.findall(f".//{block_tag}")
+    all_blocks = root.findall(f".//{_ns('TextBlock', ns_uri)}")
     if not all_blocks:
         logger.debug(
-            "ALTOReader: page %d — no <TextBlock> elements found (ns=%r).",
+            "ALTOReader: page %s — no <TextBlock> elements found (ns=%r).",
             page_number,
             ns_uri,
         )
         return []
-
     if granularity == _GRAN_PAGE:
-        # Collect all words from all blocks/lines into one mega-chunk
-        string_tag = _ns("String", ns_uri)
-        words: list[str] = []
+        texts: list[str] = []
+        raws: list[str] = []
         confs: list[float] = []
+        line_tag = _ns("TextLine", ns_uri)
         for block in all_blocks:
-            for string_el in block.findall(f".//{string_tag}"):
-                content = string_el.get("CONTENT", "")
-                if content:
-                    words.append(content)
-                wc = _attr_float(string_el, "WC")
-                if wc is not None:
-                    confs.append(wc)
-        text = " ".join(words).strip()
+            lines, block_raws, block_confs = _block_lines(
+                block.findall(line_tag), ns_uri, dehyphenate
+            )
+            texts.append(_join_lines(lines, dehyphenate))
+            raws.extend(r for r in block_raws if r)
+            confs.extend(block_confs)
+        text = " ".join(t for t in texts if t)
         if not text:
             return []
-        mean_conf: float | None = sum(confs) / len(confs) if confs else None
-        if mean_conf is not None and mean_conf > 1.0:
-            mean_conf = mean_conf / 100.0
+        # A page-level chunk has no single bbox.
         return [
-            {
-                "text": text,
-                # raw_text: page-level word join — verbatim ALTO CONTENT tokens
-                # aggregated across all blocks and lines on the page.
-                "raw_text": text,
-                "section_type": SectionType.TEXT.value,
-                "page_number": page_number,
-                "bbox": None,  # page-level chunk has no single bbox
-                "confidence": mean_conf,
-                "ocr_engine": ocr_engine,
-            }
+            _chunk(
+                text,
+                " ".join(raws),
+                page_number=page_number,
+                bbox=None,
+                confs=confs,
+                ocr_engine=ocr_engine,
+            )
         ]
-
-    # block or line granularity
     chunks: list[dict[str, Any]] = []
     for block in all_blocks:
         chunks.extend(
-            _extract_block_chunks(block, ns_uri, page_number, ocr_engine, granularity)
+            _extract_block_chunks(
+                block,
+                ns_uri,
+                page_number,
+                ocr_engine,
+                granularity,
+                dehyphenate=dehyphenate,
+            )
         )
     return chunks
+
+
+def is_alto_root(root: Any) -> bool:
+    """
+    Return whether a parsed XML root element is an ALTO document.
+
+    Parameters
+    ----------
+    root : Element
+        Root element (lxml or stdlib).
+
+    Returns
+    -------
+    bool
+        True when the local name is ``alto`` (any case) and the namespace is
+        an ALTO namespace of the Library of Congress, or absent (legacy
+        exports).
+    """
+    tag = getattr(root, "tag", "")
+    if not isinstance(tag, str):
+        return False
+    ns_uri = _detect_alto_namespace(root)
+    local = tag.rsplit("}", 1)[-1]
+    return local.lower() == "alto" and (
+        not ns_uri or ns_uri.startswith("http://www.loc.gov/standards/alto/")
+    )
+
+
+def alto_page_chunks(
+    root: Any, *, granularity: str = _GRAN_BLOCK, dehyphenate: bool = True
+) -> list[dict[str, Any]]:
+    """
+    Return the raw chunks of one parsed ALTO page.
+
+    Parameters
+    ----------
+    root : Element
+        Root ``<alto>`` element (see :func:`is_alto_root`).
+    granularity : {"block", "line", "page"}, default "block"
+        Chunking level.
+    dehyphenate : bool, default True
+        Rejoin words broken across lines.
+
+    Returns
+    -------
+    list of dict
+        As :meth:`ALTOReader.get_raw_chunks`. ``page_number`` is the page's
+        ``PHYSICAL_IMG_NR`` minus one when that is a positive integer, and
+        left out otherwise: a single page file has no archive position.
+
+    Raises
+    ------
+    ValueError
+        For an unknown granularity.
+    """
+    if granularity not in _VALID_GRANULARITIES:
+        raise ValueError(
+            f"granularity must be one of {_VALID_GRANULARITIES}; got {granularity!r}."
+        )
+    ns_uri = _detect_alto_namespace(root)
+    page = root.find(f".//{_ns('Page', ns_uri)}")
+    number = (page.get("PHYSICAL_IMG_NR") or "") if page is not None else ""
+    page_number = int(number) - 1 if number.isdigit() and int(number) > 0 else None
+    return _extract_page_chunks(
+        root,
+        ns_uri,
+        page_number,
+        granularity,
+        _read_ocr_engine(root, ns_uri),
+        dehyphenate=dehyphenate,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -739,6 +932,10 @@ class ALTOReader(DocumentReader):
     """Maximum ZIP file size in bytes. Default: 5 GB."""
 
     xml_encoding: str | None = field(default=None)
+    dehyphenate: bool = field(default=True)
+    """Rejoin words broken across lines (ALTO ``SUBS_CONTENT`` or a line-end
+    hyphen before a lower-case letter); ``False`` keeps every line break as a
+    space. Default: ``True``."""
     """
     Force a specific encoding for XML member decoding. ``None`` uses the
     XML declaration or UTF-8. Default: ``None``.
@@ -866,7 +1063,12 @@ class ALTOReader(DocumentReader):
                 ocr_engine = _read_ocr_engine(root, ns_uri)
 
                 chunks = _extract_page_chunks(
-                    root, ns_uri, page_idx, self.granularity, ocr_engine
+                    root,
+                    ns_uri,
+                    page_idx,
+                    self.granularity,
+                    ocr_engine,
+                    dehyphenate=self.dehyphenate,
                 )
 
                 if not chunks:

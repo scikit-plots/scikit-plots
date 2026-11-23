@@ -30,8 +30,11 @@ The previous state of the codebase had a gap:
 
 :class:`ZipReader` closes that gap.  When ``DocumentReader.create("corpus.zip")``
 is called, the registry now returns :class:`ZipReader` (it overrides
-:class:`ALTOReader` for ``".zip"``).  :class:`ALTOReader` remains available
-by instantiating it directly when you know the archive contains ALTO XML.
+:class:`ALTOReader` for ``".zip"``).  An ALTO page among the members is read
+with ALTO's layout by :class:`XMLReader` (CX-43), and members are read in
+natural order of their paths (CX-45), so an archive of ALTO pages gives its
+text in page order. :class:`ALTOReader` remains available for its extra
+options (``granularity``; a page number from the archive position).
 
 Design invariants:
 
@@ -61,6 +64,7 @@ from __future__ import annotations
 import contextvars
 import logging
 import math
+import re
 import tempfile
 import zipfile
 from dataclasses import dataclass, field
@@ -137,22 +141,38 @@ _DEFAULT_MAX_TOTAL_BYTES: int = 2 * 1024 * 1024 * 1024
 #: Path components that trigger member exclusion.
 _SKIP_PARTS: frozenset[str] = frozenset({"__pycache__", "__MACOSX"})
 
-# CRITICAL-05: ALTO XML namespace URI byte-strings detected inside ZIP members.
-# Peaking at the first 2 KB of an XML member is sufficient — the root element
-# and its namespace declarations always appear within the first few hundred bytes.
-_ALTO_NAMESPACE_MARKERS: tuple[bytes, ...] = (
-    b"http://www.loc.gov/standards/alto/ns-v2#",
-    b"http://www.loc.gov/standards/alto/ns-v3#",
-    b"http://www.loc.gov/standards/alto/ns-v4#",
-    b"<alto ",  # ALTO root without namespace (legacy files)
-    b"<Alto ",  # alternate capitalisation seen in some OCR outputs
-)
 
-#: Number of XML members sampled when probing for ALTO content.
-_ALTO_PROBE_MEMBERS: int = 3
+_DIGITS = re.compile(r"(\d+)")
 
-#: Bytes read from the start of each XML member during ALTO probe.
-_ALTO_PROBE_BYTES: int = 2048
+
+def _natural_key(name: str) -> tuple[tuple[tuple[int, int, str], ...], str]:
+    """
+    Sort key that orders member paths as a person reads them.
+
+    Parameters
+    ----------
+    name : str
+        Member path inside the archive.
+
+    Returns
+    -------
+    tuple
+        Per path component, digit runs compared as numbers and other text
+        case-insensitively; the path itself last, so the order is total and
+        the same on every system.
+
+    Examples
+    --------
+    >>> sorted(["p10.xml", "p2.xml", "P1.xml", "2.xml"], key=_natural_key)
+    ['2.xml', 'P1.xml', 'p2.xml', 'p10.xml']
+    """
+    parts = tuple(
+        (0, int(piece), "") if piece.isdigit() else (1, 0, piece.casefold())
+        for component in name.split("/")
+        for piece in _DIGITS.split(component)
+        if piece
+    )
+    return parts, name
 
 
 def _should_skip(member_path: str) -> bool:
@@ -318,8 +338,9 @@ class ZipReader(DocumentReader):
     and is used when ``ZipReader`` is not imported.  Importing
     ``scikitplot.corpus._readers`` triggers both imports; :class:`ZipReader`
     is imported *after* :class:`ALTOReader`, so its ``".zip"`` registration
-    wins.  To use :class:`ALTOReader` on a known ALTO archive, instantiate
-    it directly::
+    wins. ALTO pages inside the archive are still read as ALTO (by
+    :class:`XMLReader`, see its ``alto`` option). For ALTOReader's own
+    options, instantiate it directly::
 
         reader = ALTOReader(input_path=Path("alto_corpus.zip"))
 
@@ -634,7 +655,13 @@ class ZipReader(DocumentReader):
         members_count: int = 0
         try:
             with zipfile.ZipFile(archive_path, "r") as zf:
-                members = [m for m in zf.infolist() if not m.is_dir()]
+                # Natural order of the member paths (page_2 before page_10),
+                # not the order the archiving tool happened to store them in:
+                # reading order and outputs are then the same for any copy.
+                members = sorted(
+                    (m for m in zf.infolist() if not m.is_dir()),
+                    key=lambda m: _natural_key(m.filename),
+                )
                 members_count = len(members)
 
                 # ── File count guard ──────────────────────────────────
