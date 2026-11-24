@@ -4,4 +4,7 @@
   Shift-JIS, GB18030, EUC-KR, Big5 and KOI8-R files no longer come out as
   mojibake. Ties go to cp1252, a weak guess (a short file) logs a warning
   naming the file, and the default policy is unchanged; its warning now
-  names the file and points to ``encoding="detect"``.
+  names the file and points to ``encoding="detect"``. To use it in a whole
+  corpus, ``BuilderConfig(reader_kwargs={".txt": {"encoding": "detect"}})``
+  passes reader options per file extension to every reader
+  ``CorpusBuilder`` makes, archive members included.

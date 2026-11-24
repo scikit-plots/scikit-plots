@@ -227,6 +227,15 @@ class BuilderConfig:
     probe_url_timeout : int
         HTTP timeout in seconds for :func:`~scikitplot.corpus._url_handler.probe_url_kind`
         calls.  Default: 15.
+    reader_kwargs : dict[str, dict[str, Any]]
+        Reader options per file extension, applied wherever the builder
+        makes a reader (local files, downloads, archive members, and the
+        members a ``ZipReader`` reads itself), for example
+        ``{".txt": {"encoding": "detect"}, ".md": {"encoding": "detect"}}``.
+        Keys are normalised as in ``ZipReader.reader_kwargs`` (lower case,
+        leading dot). An option the reader does not take fails that file
+        (recorded in the result's errors). Provenance options the builder
+        sets itself take precedence.
     downloader_kwargs : dict[str, Any]
         Advanced keyword overrides forwarded to :class:`AnyDownloader` (and to
         ``downloader_factory``). Use this for explicit transport policy such as
@@ -335,6 +344,7 @@ class BuilderConfig:
 
     # Advanced downloader overrides. Appended deliberately so existing
     # positional BuilderConfig construction keeps its historical field order.
+    reader_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
     downloader_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Immutable transport/resource preset. Appended to preserve the historical
@@ -360,7 +370,7 @@ class BuilderConfig:
         super().__setattr__(name, value)
 
     def __post_init__(self) -> None:
-        """Reject ambiguous legacy/new download policy configuration.
+        """Validate ``reader_kwargs``; reject ambiguous download policy.
 
         ``download_policy`` is the canonical transport/resource policy.  The
         legacy scalar fields remain supported when no policy is supplied, but
@@ -368,6 +378,26 @@ class BuilderConfig:
         makes user intent impossible to determine.  Deliberate per-build
         overrides belong in ``downloader_kwargs``.
         """
+        # Same key rule as ZipReader.reader_kwargs: lower case, leading dot.
+        normalised: dict[str, dict[str, Any]] = {}
+        for ext, options in self.reader_kwargs.items():
+            if not isinstance(ext, str) or not ext.strip("."):
+                raise ValueError(
+                    "BuilderConfig.reader_kwargs keys must be file extensions"
+                    f" ('.txt' or 'txt'); got {ext!r}."
+                )
+            if not isinstance(options, Mapping):
+                raise TypeError(
+                    f"BuilderConfig.reader_kwargs[{ext!r}] must be a mapping of"
+                    f" reader options; got {type(options).__name__}."
+                )
+            key = ext.lower() if ext.startswith(".") else f".{ext.lower()}"
+            if key in normalised:
+                raise ValueError(
+                    f"BuilderConfig.reader_kwargs names {key!r} twice ({ext!r})."
+                )
+            normalised[key] = dict(options)
+        self.reader_kwargs = normalised
         if self.download_policy is None:
             return
 
@@ -554,6 +584,20 @@ def _skip_reason(path: Path, base: PurePath, supported: set[str]) -> str | None:
         logger.debug("Skipping unsupported extension: %s", path)
         return "unsupported"
     return None
+
+
+def _reader_takes(ext: str, name: str) -> bool:
+    """Return whether the reader registered for *ext* has a field *name*."""
+    import dataclasses  # noqa: PLC0415
+
+    from ._base import DocumentReader  # noqa: PLC0415
+
+    cls = DocumentReader._registry.get(ext)
+    return bool(
+        cls is not None
+        and dataclasses.is_dataclass(cls)
+        and any(f.name == name for f in dataclasses.fields(cls))
+    )
 
 
 class CorpusBuilder:
@@ -1906,6 +1950,16 @@ class CorpusBuilder:
         injected consistently for local, downloaded and archive-member files.
         """
         kwargs.setdefault("filter_", self._get_filter())
+        # Per-extension options from the config; the builder's own keyword
+        # arguments (provenance, filter) win on a clash.
+        per_ext = self.config.reader_kwargs
+        ext = Path(str(source)).suffix.lower()
+        for key, value in per_ext.get(ext, {}).items():
+            kwargs.setdefault(key, value)
+        # An archive reader that reads its members itself (ZipReader) takes
+        # the same per-extension mapping, so members get the same options.
+        if per_ext and _reader_takes(ext, "reader_kwargs"):
+            kwargs.setdefault("reader_kwargs", {k: dict(v) for k, v in per_ext.items()})
         factory = self._factory("reader_factory")
         if factory is not None:
             return factory(source, chunker=chunker, **kwargs)
