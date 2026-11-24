@@ -1,0 +1,10 @@
+- :mod:`scikitplot.datasets` downloads within limits. Loading from a URL and
+  fetching the example datasets had no timeout, no size limit and left the
+  first response open: a stalled server blocked the caller forever and a
+  large response was read whole. Downloads now wait at most 30 s for the
+  connection and each read, refuse a response over 512 MiB (declared or
+  sent), close it on every path, accept only http and https (redirects
+  included) and name the URL in errors; ``load_data`` and the other loaders
+  take ``timeout=`` and ``max_bytes=``. The dataset cache is written
+  atomically, so an interrupted download no longer leaves a partial file to
+  be read as the dataset next time.

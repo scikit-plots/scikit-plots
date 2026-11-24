@@ -105,17 +105,12 @@ class TestGetDatasetNames(unittest.TestCase):
     """get_dataset_names must parse URL content into a list of clean names."""
 
     def _mock_urlopen(self, names: list[str]):
-        """Return a context manager mock for urlopen yielding name bytes."""
-        content = "\n".join(names + [""]).encode("utf-8")
-        cm = mock.MagicMock()
-        cm.__enter__ = mock.Mock(return_value=cm)
-        cm.__exit__ = mock.Mock(return_value=False)
-        cm.read = mock.Mock(return_value=content)
-        return cm
+        """Return the bytes fetch_bytes gives for the dataset-name list."""
+        return "\n".join(names + [""]).encode("utf-8")
 
     def test_returns_list(self):
         with mock.patch(
-            "scikitplot.datasets._load_dataset.urlopen",
+            "scikitplot.datasets._load_dataset.fetch_bytes",
             return_value=self._mock_urlopen(["tips", "flights", "penguins"]),
         ):
             result = get_dataset_names()
@@ -123,7 +118,7 @@ class TestGetDatasetNames(unittest.TestCase):
 
     def test_strips_empty_lines(self):
         with mock.patch(
-            "scikitplot.datasets._load_dataset.urlopen",
+            "scikitplot.datasets._load_dataset.fetch_bytes",
             return_value=self._mock_urlopen(["tips", "", "flights"]),
         ):
             result = get_dataset_names()
@@ -131,7 +126,7 @@ class TestGetDatasetNames(unittest.TestCase):
 
     def test_strips_whitespace_from_names(self):
         with mock.patch(
-            "scikitplot.datasets._load_dataset.urlopen",
+            "scikitplot.datasets._load_dataset.fetch_bytes",
             return_value=self._mock_urlopen(["  tips  ", "flights "]),
         ):
             result = get_dataset_names()
@@ -142,7 +137,7 @@ class TestGetDatasetNames(unittest.TestCase):
         known = ["tips", "flights", "exercise", "titanic", "penguins",
                  "diamonds", "taxis", "seaice", "dowjones"]
         with mock.patch(
-            "scikitplot.datasets._load_dataset.urlopen",
+            "scikitplot.datasets._load_dataset.fetch_bytes",
             return_value=self._mock_urlopen(known),
         ):
             result = get_dataset_names()
@@ -153,7 +148,7 @@ class TestGetDatasetNames(unittest.TestCase):
     def test_uses_correct_url(self):
         cm = self._mock_urlopen(["tips"])
         with mock.patch(
-            "scikitplot.datasets._load_dataset.urlopen",
+            "scikitplot.datasets._load_dataset.fetch_bytes",
             return_value=cm,
         ) as m:
             get_dataset_names()
@@ -186,13 +181,10 @@ class TestLoadDataset(unittest.TestCase):
     def test_unknown_name_raises_value_error(self):
         """An unknown dataset name (with caching) must raise ValueError."""
         fake_names = "tips\nflights\n"
-        cm = mock.MagicMock()
-        cm.__enter__ = mock.Mock(return_value=cm)
-        cm.__exit__ = mock.Mock(return_value=False)
-        cm.read = mock.Mock(return_value=fake_names.encode())
+        cm = fake_names.encode()
 
         with tempfile.TemporaryDirectory() as td:
-            with mock.patch("scikitplot.datasets._load_dataset.urlopen", return_value=cm):
+            with mock.patch("scikitplot.datasets._load_dataset.fetch_bytes", return_value=cm):
                 with self.assertRaises(ValueError):
                     load_dataset("completely_unknown_dataset_xyz", data_home=td)
 
@@ -372,29 +364,26 @@ class TestLoadDataset(unittest.TestCase):
             url = f"{DATASET_SOURCE}/mycache_test.csv"
             cache_file = Path(td) / "mycache_test.csv"
 
-            names_cm = mock.MagicMock()
-            names_cm.__enter__ = mock.Mock(return_value=names_cm)
-            names_cm.__exit__ = mock.Mock(return_value=False)
-            names_cm.read = mock.Mock(return_value=b"mycache_test\n")
+            names_cm = b"mycache_test\n"
 
             def fake_urlretrieve(url_, dest):
                 Path(dest).write_text(csv_content, encoding="utf-8")
 
-            with mock.patch("scikitplot.datasets._load_dataset.urlopen", return_value=names_cm), \
-                 mock.patch("scikitplot.datasets._load_dataset.urlretrieve", side_effect=fake_urlretrieve):
+            with mock.patch("scikitplot.datasets._load_dataset.fetch_bytes", return_value=names_cm), \
+                 mock.patch("scikitplot.datasets._load_dataset.fetch_to_file", side_effect=fake_urlretrieve):
                 df = load_dataset("mycache_test", cache=True, data_home=td)
 
             self.assertIsInstance(df, pd.DataFrame)
             self.assertTrue(cache_file.exists())
 
     def test_cache_true_second_call_does_not_re_download(self):
-        """Second call with cache=True must not call urlretrieve again."""
+        """Second call with cache=True must not call fetch_to_file again."""
         csv_content = "x,y\n1,2\n"
         with tempfile.TemporaryDirectory() as td:
             cache_file = Path(td) / "myname.csv"
             cache_file.write_text(csv_content, encoding="utf-8")
 
-            with mock.patch("scikitplot.datasets._load_dataset.urlretrieve") as mock_dl:
+            with mock.patch("scikitplot.datasets._load_dataset.fetch_to_file") as mock_dl:
                 df = load_dataset("myname", cache=True, data_home=td)
 
             mock_dl.assert_not_called()

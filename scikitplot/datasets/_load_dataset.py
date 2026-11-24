@@ -20,13 +20,12 @@ import os
 
 # import warnings
 # from contextlib import contextmanager
-from urllib.request import urlopen, urlretrieve
-
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
 
 from ..externals._appdirs import user_cache_dir
+from ._fetch import fetch_bytes, fetch_to_file
 
 # https://raw.githubusercontent.com/scikit-plots/scikit-plots-data/main/autoscout24.csv
 # https://github.com/scikit-plots/scikit-plots-data/raw/main/autoscout24.csv
@@ -47,8 +46,7 @@ def get_dataset_names():
     Requires an internet connection.
 
     """
-    with urlopen(DATASET_NAMES_URL) as resp:  # noqa: S310
-        txt = resp.read()
+    txt = fetch_bytes(DATASET_NAMES_URL)
 
     dataset_names = [name.strip() for name in txt.decode().split("\n")]
     return list(filter(None, dataset_names))
@@ -124,7 +122,9 @@ def load_dataset(name, cache=True, data_home=None, **kws):  # noqa: PLR0912
         if not os.path.exists(cache_path):
             if name not in get_dataset_names():
                 raise ValueError(f"'{name}' is not one of the example datasets.")
-            urlretrieve(url, cache_path)  # noqa: S310
+            # Atomic: an interrupted download leaves no partial file in the
+            # cache to be read as the dataset next time.
+            fetch_to_file(url, cache_path)
         full_path = cache_path
     else:
         full_path = url
