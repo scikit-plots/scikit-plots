@@ -153,6 +153,38 @@ class SweepTests(unittest.TestCase):
         self.assertEqual([f["code"] for f in found["stdlib-xml-parse"]], ["ET.fromstring(s)"])
         self.assertEqual([f["code"] for f in found["open-without-encoding"]], ['open("f")'])
 
+    def test_encoding_from_a_splat_position_or_path_mode(self) -> None:
+        self.repo.close()
+        self.repo = _Repo(
+            {
+                "scikitplot/__init__.py": "",
+                "scikitplot/gamma/mod.py": textwrap.dedent(
+                    """
+                    from pathlib import Path
+                    UTF8 = dict(encoding="utf-8")
+                    def f(path, data, kw):
+                        path.open("rb")
+                        Path(path).open("rb")
+                        path.open(mode="wb")
+                        path.open("r", -1, "utf-8")
+                        open("f", "r", -1, "utf-8")
+                        open("f", **UTF8)
+                        path.read_text(**UTF8)
+                        path.read_text("utf-8")
+                        path.write_text(data, **kw)
+                        path.write_text(data, "utf-8")
+                        path.open()
+                        Path(path).open("w")
+                        path.read_text()
+                        path.write_text(data)
+                    """
+                ),
+            }
+        )
+        found = self.categories()
+        self.assertEqual([f["line"] for f in found["open-without-encoding"]], [15, 16])
+        self.assertEqual([f["line"] for f in found["path-text-without-encoding"]], [17, 18])
+
     def test_tests_conftest_and_vendored_code_are_left_out(self) -> None:
         files = {f["file"] for f in MODULE.sweep(self.repo.root)}
         self.assertFalse(any("tests/" in f or "conftest" in f or "externals/vendored" in f for f in files))

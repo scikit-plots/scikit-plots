@@ -23,7 +23,9 @@ Usage
     python -B tools/maint_tools/ledger_notes.py render CATALOG --snapshot /tmp/snap --apply  # write
 
 ``check`` runs every probe and exits 1 when one no longer holds (a gap was
-closed, code moved): those notes need updating or closing. ``render`` refuses
+closed, code moved): those notes need updating or closing. It also exits 1
+for a catalog note that is not on disk: a note closed by deleting its file
+must leave the catalog too, or the next ``render --apply`` writes it again. ``render`` refuses
 to write while any probe fails; it creates missing notes, leaves identical
 ones alone and reports differing ones, which it overwrites only with
 ``--force``. ``snapshot`` records, from an interpreter that has the package
@@ -573,8 +575,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     Returns
     -------
     int
-        0 on success; 1 when a probe fails or a note differs without
-        ``--force``; 2 on an unusable catalog, snapshot or argument.
+        0 on success; 1 when a probe fails, a note differs without
+        ``--force``, or (``check``) a catalog note is not on disk; 2 on an
+        unusable catalog, snapshot or argument.
     """
     args = _parser().parse_args(argv)
     if args.command == "example":
@@ -593,9 +596,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.command == "check":
             for path, kind, text in failed:
                 print(f"STALE {path} [{kind}]: {text}")
-            print(f"{len(notes)} notes, {sum(map(len, results.values()))} probes, {len(failed)} no longer hold")
-            _dump(args.json, dict(notes=len(notes), stale=[dict(path=p, kind=k, evidence=t) for p, k, t in failed]))
-            return 1 if failed else 0
+            gone = sorted(n["path"] for n in notes if not (args.root / "upcoming_changes" / n["path"]).is_file())
+            for path in gone:
+                print(f"NO NOTE {path}: render it, or drop the entry if the note was closed")
+            print(
+                f"{len(notes)} notes, {sum(map(len, results.values()))} probes, {len(failed)} no longer hold, "
+                f"{len(gone)} not on disk"
+            )
+            _dump(
+                args.json,
+                dict(notes=len(notes), stale=[dict(path=p, kind=k, evidence=t) for p, k, t in failed], missing=gone),
+            )
+            return 1 if failed or gone else 0
         if failed:
             for path, kind, text in failed:
                 print(f"PROBE FAILED {path} [{kind}]: {text}")

@@ -501,6 +501,12 @@ python -B tools/maint_tools/sweep_static.py --floor 3.9 --fail-on floor-isinstan
 python -B tools/maint_tools/sweep_runtime.py --python VENV/bin/python --api --json /tmp/r.json
 ```
 
+The encoding checks report a call only when its encoding is provably
+missing: `encoding=` or the encoding's position fills it, and a `**mapping`
+splat (`**UTF8`) may, so neither is reported; binary modes are never
+reported, whether the mode is the built-in `open`'s second argument or
+`Path.open`'s first (corrected in PR 973, which removed 36 false findings of 46).
+
 `sweep_static.py` counts a finding as acknowledged when its line carries
 `# noqa` with the matching ruff code, so a decision already taken is not
 reported as new; `--fail-on CATEGORY` exits 1 on an unacknowledged one.
@@ -527,8 +533,12 @@ python -B tools/maint_tools/ledger_notes.py example > tools/maint_tools/catalogs
 python -B tools/maint_tools/ledger_notes.py snapshot CATALOG --python VENV/bin/python --out /tmp/snap
 python -B tools/maint_tools/ledger_notes.py render CATALOG --snapshot /tmp/snap            # plan
 python -B tools/maint_tools/ledger_notes.py render CATALOG --snapshot /tmp/snap --apply    # write
-python -B tools/maint_tools/ledger_notes.py check CATALOG --snapshot /tmp/snap             # later: stale notes
+python -B tools/maint_tools/ledger_notes.py check CATALOG --snapshot /tmp/snap             # later: stale or closed notes
 ```
+
+`check` also fails for a catalog note that is no longer on disk: a pull
+request that closes a note by deleting its file removes the catalog entry
+too, or the next `render --apply` writes the closed note again.
 
 `render` writes nothing while a probe fails, creates missing notes, leaves
 identical ones alone and reports hand-edited ones (`--force` overwrites), so

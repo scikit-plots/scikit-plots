@@ -8,73 +8,21 @@
  },
  "notes": [
   {
-   "path": "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/text-files-without-explicit-encoding.md",
-   "title": "_sphinx_ext/_sphinx_ai_assistant: text files read or written without an explicit encoding (21 places)",
-   "kind": "compatibility",
-   "area": "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant",
-   "summary": "In the AI assistant's documentation proxy, 21 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
-   "why": "The same file reads differently on two machines: non-ASCII text (names, accents, symbols) becomes mojibake or raises `UnicodeDecodeError` on Windows, and a file written there cannot be read back on Linux. Python 3.15 makes UTF-8 mode the default, which changes these calls' behaviour once more.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/ci/redis_chaos_attestation.py:125`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/archive_native_status_evidence.py:108`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/audit_archive_retention.py:113`: `with path.open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/continue_archive_merkle_authority.py:122`: `with path.open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/continue_recovered_trust.py:97`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/finalize_publication.py:56`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/govern_archive_merkle_log_authority.py:86`: `with path.open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/govern_release_history.py:78`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/preserve_archive_merkle_rebridge.py:118`: `with Path(path).open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/preserve_release_history.py:55`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/promote_release.py:61`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/promote_release.py:382`: `with path.open(\"rb\") as src, zf.open(info, \"w\", force_zip64=False) as dst:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/publish_release.py:51`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/rebridge_archive_merkle_authority.py:106`: `with Path(path).open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/seal_release_governance.py:80`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_archive_merkle_transparency.py:110`: `with path.open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_attestation_lifecycle.py:97`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_native_status_provenance.py:86`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_release_evidence.py:123`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/witness_archive_health.py:114`: `with path.open(\"rb\") as f:`",
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/witness_publication.py:53`: `with path.open(\"rb\") as handle:`"
-   ],
-   "cause": "Each call relies on `locale.getpreferredencoding()`; nothing states which encoding the file is in.",
-   "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
-   "affected": [
-    "`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant` (files above)",
-    "`tools/maint_tools/sweep_static.py` (the check)"
-   ],
-   "constraints": "Files the package writes are UTF-8 from now on; files a user hands in keep their own encoding rules (readers that detect encodings are not changed here).",
-   "edges": [
-    "A path or content with non-ASCII characters on Windows (cp1252) and on a C/POSIX locale",
-    "A file with a UTF-8 byte-order mark",
-    "A file written by an older release in the locale encoding"
-   ],
-   "direction": "Add `encoding=\"utf-8\"` to each call; enable ruff's `PLW1514` (unspecified-encoding) for the area so new calls are caught; then `sweep_static.py --fail-on open-without-encoding` stays at zero for it.",
-   "accept": [
-    "`sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` print nothing for the area",
-    "The area's tests pass under `PYTHONUTF8=0 LC_ALL=C` and on Windows CI"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
    "path": "scikitplot/_build_utils/text-files-without-explicit-encoding.md",
-   "title": "_build_utils: text files read or written without an explicit encoding (7 places)",
+   "title": "_build_utils: text files read or written without an explicit encoding (6 places)",
    "kind": "compatibility",
    "area": "scikitplot/_build_utils",
-   "summary": "In build helpers, 7 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
+   "summary": "In build helpers, 6 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
    "why": "The same file reads differently on two machines: non-ASCII text (names, accents, symbols) becomes mojibake or raises `UnicodeDecodeError` on Windows, and a file written there cannot be read back on Linux. Python 3.15 makes UTF-8 mode the default, which changes these calls' behaviour once more.",
    "evidence": [
     "`python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):",
     "`scikitplot/_build_utils/conv_template.py:281`: `with open(source) as fid:`",
     "`scikitplot/_build_utils/conv_template.py:331`: `fid = open(file, 'r')`",
     "`scikitplot/_build_utils/conv_template.py:334`: `outfile = open(newname, 'w')`",
-    "`scikitplot/_build_utils/generate_apis_reference/__init__.py:733`: `with path.open(\"rb\") as handle:`",
     "`scikitplot/_build_utils/gitversion.py:179`: `with open(os.devnull, \"w\") as devnull:`",
     "`scikitplot/_build_utils/gitversion.py:193`: `with open(os.devnull, \"w\") as devnull:`",
-    "`scikitplot/_build_utils/process_src_template.py:43`: `with open(outfile, 'w') as f:`"
+    "`scikitplot/_build_utils/process_src_template.py:43`: `with open(outfile, 'w') as f:`",
+    "Corrected in PR 973: `sweep_static.py` counted binary opens (`Path.open(\"rb\")`) as text mode; 1 such entry removed."
    ],
    "cause": "Each call relies on `locale.getpreferredencoding()`; nothing states which encoding the file is in.",
    "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
@@ -99,16 +47,15 @@
   },
   {
    "path": "scikitplot/config/text-files-without-explicit-encoding.md",
-   "title": "config: text files read or written without an explicit encoding (3 places)",
+   "title": "config: text files read or written without an explicit encoding (1 place)",
    "kind": "compatibility",
    "area": "scikitplot/config",
-   "summary": "In configuration loading, 3 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
+   "summary": "In configuration loading, 1 call opens, reads or writes a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
    "why": "The same file reads differently on two machines: non-ASCII text (names, accents, symbols) becomes mojibake or raises `UnicodeDecodeError` on Windows, and a file written there cannot be read back on Linux. Python 3.15 makes UTF-8 mode the default, which changes these calls' behaviour once more.",
    "evidence": [
     "`python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):",
-    "`scikitplot/config/_cbook.py:576`: `return path.open(\"rb\")`",
     "`scikitplot/config/_cbook.py:578`: `return path.open(\"r\")`",
-    "`scikitplot/config/_cbook.py:579`: `return path.open(\"rb\")`"
+    "Corrected in PR 973: `sweep_static.py` counted binary opens (`Path.open(\"rb\")`) as text mode; 2 such entries removed."
    ],
    "cause": "Each call relies on `locale.getpreferredencoding()`; nothing states which encoding the file is in.",
    "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
@@ -147,78 +94,6 @@
    "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
    "affected": [
     "`scikitplot/_lib` (files above)",
-    "`tools/maint_tools/sweep_static.py` (the check)"
-   ],
-   "constraints": "Files the package writes are UTF-8 from now on; files a user hands in keep their own encoding rules (readers that detect encodings are not changed here).",
-   "edges": [
-    "A path or content with non-ASCII characters on Windows (cp1252) and on a C/POSIX locale",
-    "A file with a UTF-8 byte-order mark",
-    "A file written by an older release in the locale encoding"
-   ],
-   "direction": "Add `encoding=\"utf-8\"` to each call; enable ruff's `PLW1514` (unspecified-encoding) for the area so new calls are caught; then `sweep_static.py --fail-on open-without-encoding` stays at zero for it.",
-   "accept": [
-    "`sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` print nothing for the area",
-    "The area's tests pass under `PYTHONUTF8=0 LC_ALL=C` and on Windows CI"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
-   "path": "scikitplot/corpus/text-files-without-explicit-encoding.md",
-   "title": "corpus: text files read or written without an explicit encoding (2 places)",
-   "kind": "compatibility",
-   "area": "scikitplot/corpus",
-   "summary": "In the corpus readers and exports, 2 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
-   "why": "The same file reads differently on two machines: non-ASCII text (names, accents, symbols) becomes mojibake or raises `UnicodeDecodeError` on Windows, and a file written there cannot be read back on Linux. Python 3.15 makes UTF-8 mode the default, which changes these calls' behaviour once more.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):",
-    "`scikitplot/corpus/_export/_export.py:1110`: `with path.open(\"rb\") as fh:`",
-    "`scikitplot/corpus/_export/_export.py:1385`: `with path.open(\"rb\") as fh:`"
-   ],
-   "cause": "Each call relies on `locale.getpreferredencoding()`; nothing states which encoding the file is in.",
-   "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
-   "affected": [
-    "`scikitplot/corpus` (files above)",
-    "`tools/maint_tools/sweep_static.py` (the check)"
-   ],
-   "constraints": "Files the package writes are UTF-8 from now on; files a user hands in keep their own encoding rules (readers that detect encodings are not changed here).",
-   "edges": [
-    "A path or content with non-ASCII characters on Windows (cp1252) and on a C/POSIX locale",
-    "A file with a UTF-8 byte-order mark",
-    "A file written by an older release in the locale encoding"
-   ],
-   "direction": "Add `encoding=\"utf-8\"` to each call; enable ruff's `PLW1514` (unspecified-encoding) for the area so new calls are caught; then `sweep_static.py --fail-on open-without-encoding` stays at zero for it.",
-   "accept": [
-    "`sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` print nothing for the area",
-    "The area's tests pass under `PYTHONUTF8=0 LC_ALL=C` and on Windows CI"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
-   "path": "scikitplot/_env/text-files-without-explicit-encoding.md",
-   "title": "_env: text files read or written without an explicit encoding (8 places)",
-   "kind": "compatibility",
-   "area": "scikitplot/_env",
-   "summary": "In environment discovery, 8 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.",
-   "why": "The same file reads differently on two machines: non-ASCII text (names, accents, symbols) becomes mojibake or raises `UnicodeDecodeError` on Windows, and a file written there cannot be read back on Linux. Python 3.15 makes UTF-8 mode the default, which changes these calls' behaviour once more.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):",
-    "`scikitplot/_env/_bootstrap/__init__.py:156`: `with path.open(\"rb\") as handle:`",
-    "`scikitplot/_env/_xeus/_addon.py:164`: `kernel_spec = json.loads(json_file.read_text(**UTF8))`",
-    "`scikitplot/_env/_xeus/_addon.py:310`: `kernel_file.write_text(json.dumps(all_kernels), **UTF8)`",
-    "`scikitplot/_env/_xeus/_addon.py:470`: `kernel_spec = json.loads((kernel_dir / \"kernel.json\").read_text(**UTF8))`",
-    "`scikitplot/_env/_xeus/_addon.py:525`: `kernel_json.write_text(json.dumps(kernel_spec), **UTF8)`",
-    "`scikitplot/_env/_xeus/_addon.py:779`: `current_json = json.loads(all_federated_json.read_text())`",
-    "`scikitplot/_env/_xeus/_addon.py:781`: `all_federated_json.write_text(json.dumps(current_json), **UTF8)`",
-    "`scikitplot/_env/_xeus/_addon.py:798`: `stem = json.loads(pkg_json.read_text(**UTF8))[\"name\"]`"
-   ],
-   "cause": "Each call relies on `locale.getpreferredencoding()`; nothing states which encoding the file is in.",
-   "expected": "Every text-mode open, `read_text` and `write_text` names its encoding (`utf-8`, or `utf-8-sig` when a byte-order mark may be present), and a decode error says which file and encoding failed.",
-   "affected": [
-    "`scikitplot/_env` (files above)",
     "`tools/maint_tools/sweep_static.py` (the check)"
    ],
    "constraints": "Files the package writes are UTF-8 from now on; files a user hands in keep their own encoding rules (readers that detect encodings are not changed here).",
@@ -730,71 +605,6 @@
    "accept": [
     "`sweep_static.py --list mutable-default` prints nothing for the area",
     "A test calls the function twice and checks the second call is unaffected"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
-   "path": "scikitplot/utils/tar-extraction-fallback-without-filter.md",
-   "title": "utils: tar extraction falls back to an unfiltered extractall",
-   "kind": "security",
-   "area": "scikitplot/utils",
-   "summary": "`scikitplot/utils/_fixes.py::tarfile_extractall` calls `extractall(path, filter=\"data\")` and, when that raises `TypeError` (a Python without extraction filters), calls `extractall(path)` with no filter at all.",
-   "why": "Unfiltered extraction follows absolute paths, `..` and links outside the target (the class of CVE-2007-4559). The fallback is reached exactly on the older Pythons that also lack every other mitigation.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list extractall-without-filter` lists `scikitplot/utils/_fixes.py:368: tarfile.extractall(path)`.",
-    "The comment above it says the filter prevents 'the most dangerous security issues'; the `except TypeError` branch drops it."
-   ],
-   "cause": "A compatibility shim kept the old call as a fallback instead of validating members itself.",
-   "expected": "On every supported Python, extraction refuses members outside the target, absolute paths, device files and links that escape, and raises a clear error naming the member.",
-   "affected": [
-    "`scikitplot/utils/_fixes.py`",
-    "callers of `tarfile_extractall`"
-   ],
-   "constraints": "Use the same rules as `corpus._archive_handler` (which already validates members); no new dependency.",
-   "edges": [
-    "Member `../../etc/passwd`",
-    "Absolute member path",
-    "Symlink to `/`",
-    "Hard link to a file outside",
-    "A Python patch release that has `filter=` (3.8.17+, 3.9.17+, 3.10.12+, 3.11.4+)"
-   ],
-   "direction": "When `filter=` is unavailable, iterate members, resolve each target and refuse anything outside, links included; or raise and require a Python with filters.",
-   "accept": [
-    "A test with a hostile tar passes on the floor Python and on the newest",
-    "No `extractall` without `filter=` remains (`sweep_static.py --fail-on extractall-without-filter`)"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
-   "path": "scikitplot/_decorates/singleton-load-unpickles-without-trust-guard.md",
-   "title": "_decorates: singleton load unpickles a file with no trust guard",
-   "kind": "security",
-   "area": "scikitplot/_decorates",
-   "summary": "`_decorates/_decorate.py` loads a singleton instance with `joblib.load(filename, ...)`, which unpickles the file: loading runs any code the file contains. Nothing asks whether the file is trusted.",
-   "why": "`scikitplot.corpus.load_documents` refuses pickle and joblib files unless `trusted=True` and checks an optional SHA-256 first (CORPUS-SEC-001); the same risk elsewhere in the package has no such guard, so the protection depends on which submodule a user calls.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list joblib-load` lists `scikitplot/_decorates/_decorate.py:1233: cls._instance[cls] = joblib.load(filename, *args, **kwargs)`.",
-    "`scikitplot/corpus/_export/_export.py` calls `_pickle_safety_guard(format.value, trusted)` and `_verify_artifact_integrity(path, expected_sha256)` before `pickle.load`."
-   ],
-   "cause": "Two submodules implemented deserialisation independently; the guard was never shared.",
-   "expected": "One shared guard: pickle-based loading requires an explicit `trusted=True` (or a matching SHA-256), and the error message says why.",
-   "affected": [
-    "`scikitplot/_decorates/_decorate.py`",
-    "`scikitplot/corpus/_export/_export.py` (the guard to share)"
-   ],
-   "constraints": "No change for callers that load their own trusted files once they pass `trusted=True`.",
-   "edges": [
-    "A file that is not a pickle",
-    "A tampered file with the right extension",
-    "A path given as `str` and as `Path`"
-   ],
-   "direction": "Move the corpus guard to a shared private helper and call it from every pickle/joblib load in first-party code.",
-   "accept": [
-    "Loading without `trusted=True` raises before any byte is unpickled (test with a file whose unpickling would write a marker)"
    ],
    "discovered": "@sweep-static",
    "probes": [],
@@ -1602,42 +1412,6 @@
    "ttype": "api"
   },
   {
-   "path": "scikitplot/_compat/base-install-cannot-import-the-plotting-api.md",
-   "title": "A base install cannot import the plotting API: the vendored seaborn copy imports seaborn",
-   "kind": "packaging",
-   "area": "scikitplot/_compat",
-   "summary": "On `pip install scikit-plots` (no extras), the README quick start `sp.metrics.plot_precision_recall(...)` fails with `AttributeError: Module 'scikitplot' has no attribute 'metrics'. No module named 'seaborn'`. `scikitplot.api`, `decile`, `seaborn` and `visualkeras` all fail to import.",
-   "why": "The package's main feature does not work after the install the README tells users to run; the error does not say which extra to install.",
-   "evidence": [
-    "Clean virtual environment, `pip install` of main (13b457d, CPython 3.13), no extras: the quick start raises the error above.",
-    "Traceback: `scikitplot/_compat/__init__.py` line 18 imports `scikitplot/externals/_seaborn`, whose `utils.py` line 17 runs `from seaborn._core.typing import deprecated` (the real seaborn).",
-    "`pyproject.toml` lists `seaborn` only in the `core` and `usage-skills` extras."
-   ],
-   "cause": "The vendored `_seaborn` package is not self-contained: it imports seaborn itself, and `_compat` imports it eagerly.",
-   "expected": "A base install imports `scikitplot.api` and runs the README quick start; or the README installs the extra and the error names it (`pip install \"scikit-plots[core]\"`).",
-   "affected": [
-    "`scikitplot/_compat/__init__.py`",
-    "`scikitplot/externals/_seaborn/`",
-    "`README.md`",
-    "`pyproject.toml` (dependencies, extras)"
-   ],
-   "constraints": "Choose one: make the vendored copy self-contained, declare seaborn as a base dependency, or require the extra explicitly; the README must match.",
-   "edges": [
-    "Base install on 3.10 and 3.15",
-    "Partial distributions under `libs/`",
-    "Pyodide (no seaborn wheel)"
-   ],
-   "direction": "Recommended: remove the real-seaborn imports from the vendored copy (or import it lazily where only seaborn functions need it); add a CI job that runs the README quick start on a base install.",
-   "accept": [
-    "A base install runs the README quick start",
-    "`sweep_runtime.py` reports no import error for `api`, `decile`, `seaborn`, `visualkeras` on a base install"
-   ],
-   "discovered": "@probe",
-   "probes": [],
-   "docs": "README install section.",
-   "ttype": "fix"
-  },
-  {
    "path": "scikitplot/mcp/lazy-names-fail-without-install-hint.md",
    "title": "mcp: names in `__all__` raise a bare ModuleNotFoundError without the extra",
    "kind": "other",
@@ -1662,39 +1436,6 @@
    ],
    "discovered": "@sweep-runtime",
    "probes": []
-  },
-  {
-   "path": "scikitplot/corpus/text-reader-mojibake-on-legacy-encodings.md",
-   "title": "corpus: TextReader silently decodes legacy encodings as Latin-1 (CX-54)",
-   "kind": "bug",
-   "area": "scikitplot/corpus",
-   "summary": "`TextReader` reads files in cp1254 (Turkish), Shift-JIS and GB18030 as mojibake without a warning; only UTF-8 and BOM-marked UTF-16 come out right.",
-   "why": "Legacy encodings are common in government, academic and East Asian archives; mojibake is indexed and embedded as if it were text, and searches never match.",
-   "evidence": [
-    "Probe (main cba9383): Turkish cp1254 `Iğdır'da şöyle bir çay içtik` reads as `Iðdýr'da þöyle bir çay içtik`.",
-    "Shift-JIS `日本語のテキスト...` reads as `\\x93ú\\x96{\\x8cê...`; GB18030 `这是一个中文...` reads as `ÕâÊÇÒ»¸ö...`.",
-    "UTF-16 with BOM reads correctly."
-   ],
-   "cause": "When strict UTF-8 fails, the reader falls back to a single-byte decoding instead of detecting the encoding or reporting the failure.",
-   "expected": "Encoding chosen by: an explicit `encoding=` argument, a BOM, strict UTF-8, then a detector (optional `charset-normalizer`) with a confidence threshold; below it, a warning naming the file and the chosen encoding.",
-   "affected": [
-    "`scikitplot/corpus/_readers/_text.py`"
-   ],
-   "constraints": "Same text for every UTF-8 file; detection deterministic.",
-   "edges": [
-    "Short files (detection unreliable)",
-    "Mixed encodings in one file",
-    "cp1252 vs Latin-1 vs cp1254 (Turkish letters)",
-    "EUC-KR, Big5, KOI8-R"
-   ],
-   "direction": "Add a detection step and an `encoding` parameter; record the encoding in chunk metadata (already present as `encoding`).",
-   "accept": [
-    "The four probe files read correctly with the detector installed; without it a warning names the fallback",
-    "Reader snapshot: no change for UTF-8 files"
-   ],
-   "discovered": "@probe",
-   "probes": [],
-   "ttype": "fix"
   },
   {
    "path": "scikitplot/rank_bm25/case-folding-and-turkish-dotted-i.md",
@@ -1759,37 +1500,6 @@
    ],
    "discovered": "@probe",
    "probes": []
-  },
-  {
-   "path": "scikitplot/corpus/tests-depend-on-live-dns.md",
-   "title": "corpus: 22 downloader and web-reader tests need live DNS",
-   "kind": "reliability",
-   "area": "scikitplot/corpus",
-   "summary": "With name resolution unavailable (an offline CI runner, a sandbox, some proxies), 22 tests fail: 11 in `test__web.py`, 8 in `_downloader/tests/test__downloader.py`, 3 in `test__url_and_archive_handler.py`. They mock HTTP but not DNS, and the SSRF check resolves the host first.",
-   "why": "Unit tests should not depend on the network; these fail with an error that looks like a product bug (`'example.com' does not appear to be an IPv4 or IPv6 address` in the context).",
-   "evidence": [
-    "Corpus suite on main and on #957's branch (same environment, DNS unavailable): the same 22 failures.",
-    "`_url_handler._resolve_and_validate` raises `ValueError: cannot resolve host ... (SSRF fail-closed)` as designed; the tests never stub `socket.getaddrinfo`."
-   ],
-   "cause": "The fail-closed resolution (CORPUS-NET-002) was added after the tests, which still assume resolution succeeds.",
-   "expected": "Tests stub the resolver (a fixture returning a public address) and one test checks the fail-closed path explicitly.",
-   "affected": [
-    "`scikitplot/corpus/_readers/tests/test__web.py`",
-    "`scikitplot/corpus/_downloader/tests/test__downloader.py`",
-    "`scikitplot/corpus/tests/test__url_and_archive_handler.py`"
-   ],
-   "constraints": "Production code unchanged; the fail-closed behaviour stays.",
-   "edges": [
-    "IPv6-only resolution",
-    "A host resolving to a private address (must still be refused)"
-   ],
-   "direction": "Add a shared `fake_dns` fixture in the corpus `conftest.py`.",
-   "accept": [
-    "The suite passes with networking disabled (`unshare -n` or a blocking socket fixture)"
-   ],
-   "discovered": "@probe",
-   "probes": [],
-   "release": "not-required"
   },
   {
    "path": "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests-need-a-source-checkout.md",

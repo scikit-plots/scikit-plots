@@ -307,3 +307,55 @@ Pipfile, inline list    --> DependencySet (+ conversion notes)  |
 - `requirements/doc.txt` asks for `sphinx[testing]`; Sphinx 9 has no such
   extra (uv warns on every lock).
 - 3.8 and 3.9 do not resolve from `requirements/*.txt`; same as Pipenv.
+
+## Task: text files without an explicit encoding (ledger note, 2026-11-24, done in PR 973)
+
+### Context
+- The note listed 8 calls in `_env` from `tools/maint_tools/sweep_static.py`
+  (main cba9383). Checked on main 7eeebcc: 7 were false findings of the
+  sweep. Six pass `**UTF8` (jupyterlite_core's `UTF8 = dict(encoding="utf-8")`,
+  read from jupyterlite-core 0.8.7) and one, `_bootstrap/__init__.py:156`,
+  opens in binary mode (`path.open("rb")`), which the sweep read as text mode
+  because it took the mode from `Path.open`'s second argument.
+- One real defect: `_xeus/_addon.py` `patch_federated_settings` read
+  JupyterLite's aggregated settings file with `read_text()`.
+
+### Implementation
+- `_addon.py`: `read_text(**UTF8)`, as every other read and write of the
+  add-on. The add-on writes the file with `json.dumps` (ASCII), so no file
+  of an older release is in another encoding; the file has no byte-order
+  mark (jupyterlite writes it), so `utf-8`, not `utf-8-sig`.
+- `sweep_static.py`: built-in `open` versus `Path.open` decided by the call's
+  shape (`Path(p).open` has the dotted name `open`); the mode read from the
+  right argument; `encoding` by keyword, by position or from a `**mapping`
+  counts as given. Repository-wide: 46 encoding findings, 36 of them false;
+  10 remain, all text-mode opens without an encoding.
+- Not enabled: ruff `PLW1514`. It is a preview rule, so with
+  `explicit-preview-rules = true` it needs its exact code; it catches only
+  calls on values typed as paths (it misses this one, whose parameter is
+  annotated in the docstring only), and enabling it repository-wide flags
+  two calls in `_externals/_sphinx_ext/_sphinx_llm`, code derived from
+  upstream. The sweep is the gate.
+
+### Verification evidence
+- New test `test_federated_settings_read_as_utf8_whatever_the_locale`
+  (`tests/test_env_xeus.py`): a settings file with a non-ASCII name,
+  `patch_federated_settings` run in a subprocess with `LC_ALL=C
+  PYTHONUTF8=0 PYTHONCOERCECLOCALE=0` (locale encoding ANSI_X3.4-1968):
+  fails on main with `UnicodeDecodeError: 'ascii' codec`, passes here.
+- `_env` tests, CPython 3.12 with jupyterlite-core 0.8.7 and empack 6.0.1:
+  167 passed, 7 skipped here (166 passed, 7 skipped on main; the skips need
+  network or tools not installed); the same counts under the ASCII locale.
+- `sweep_static.py --list open-without-encoding` and
+  `--list path-text-without-encoding`: nothing for `scikitplot/_env`.
+
+### Seen and handled with it
+- The sweeps catalog (`tools/maint_tools/catalogs/2026-11-sweeps-and-capability-review.json`)
+  is the source of these notes. Its `corpus` and `_sphinx_ai_assistant`
+  encoding notes listed only binary opens (deleted with their entries); the
+  `config` and `_build_utils` notes are re-rendered from the corrected
+  entries (3 to 1, 7 to 6 places). Five entries whose notes earlier pull
+  requests had closed (PRs 962, 963, 961, 966, 970) were still in the
+  catalog, and the next `render --apply` would have written them again;
+  removed, and `ledger_notes.py check` now fails on such an entry.
+- Windows CI was not run here.

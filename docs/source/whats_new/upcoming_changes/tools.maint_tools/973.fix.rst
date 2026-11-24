@@ -1,0 +1,8 @@
+- ``sweep_static.py`` reports a text file opened without an encoding only when
+  the encoding is provably missing. It counted ``**mapping`` arguments that
+  supply ``encoding=`` (``**UTF8``) and binary opens of the form
+  ``Path(p).open("rb")`` as findings: 36 of its 46 encoding findings were
+  false. ``ledger_notes.py check`` now also fails for a catalog note that is no
+  longer on disk, so a note closed by deleting its file cannot be written
+  again by the next ``render --apply``; five such entries are removed from the
+  sweeps catalog.

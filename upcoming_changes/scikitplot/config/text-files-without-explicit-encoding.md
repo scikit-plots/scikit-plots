@@ -1,5 +1,5 @@
 ---
-title: "config: text files read or written without an explicit encoding (3 places)"
+title: "config: text files read or written without an explicit encoding (1 place)"
 status: open
 kind: "compatibility"
 area: "scikitplot/config"
@@ -10,11 +10,11 @@ towncrier_type: "fix"
 towncrier_fragment: ""
 ---
 
-# config: text files read or written without an explicit encoding (3 places)
+# config: text files read or written without an explicit encoding (1 place)
 
 ## Summary
 
-In configuration loading, 3 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.
+In configuration loading, 1 call opens, reads or writes a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.
 
 ## Why it matters
 
@@ -23,9 +23,8 @@ The same file reads differently on two machines: non-ASCII text (names, accents,
 ## Current evidence
 
 - `python -B tools/maint_tools/sweep_static.py --list open-without-encoding` and `--list path-text-without-encoding` (main cba9383):
-- `scikitplot/config/_cbook.py:576`: `return path.open("rb")`
 - `scikitplot/config/_cbook.py:578`: `return path.open("r")`
-- `scikitplot/config/_cbook.py:579`: `return path.open("rb")`
+- Corrected in PR 973: `sweep_static.py` counted binary opens (`Path.open("rb")`) as text mode; 2 such entries removed.
 
 ## Root cause / current understanding
 

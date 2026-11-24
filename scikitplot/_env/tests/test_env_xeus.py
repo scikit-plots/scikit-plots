@@ -8,7 +8,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from unittest import mock
 
@@ -149,6 +151,28 @@ class TestAddon:
         assert addon.get_environment_channels(prefix) == ["https://ch/one",
                                                           "https://ch/two"]
         assert addon.get_environment_specs(str(prefix)) == ["python", "xeus-python"]
+
+    def test_federated_settings_read_as_utf8_whatever_the_locale(self, addon_module, tmp_path):
+        # The aggregated settings file is UTF-8 (jupyterlite writes it so). Read
+        # under an ASCII locale, as a Windows code page would mismatch it, the
+        # read must still name UTF-8 (text files without encoding, _env note).
+        settings = tmp_path / "federated.json"
+        settings.write_text(json.dumps([{"name": "caf\u00e9-ext"}], ensure_ascii=False), encoding="utf-8")
+        script = (
+            "import json, pathlib, sys\n"
+            "from scikitplot._env._xeus import _addon\n"
+            "addon = _addon.XeusAddon.__new__(_addon.XeusAddon)\n"
+            "addon.get_federated_settings = lambda path: [{'name': 'new'}]\n"
+            "path = pathlib.Path(sys.argv[1])\n"
+            "addon.patch_federated_settings(None, [path], path)\n"
+        )
+        root = Path(addon_module.__file__).resolve().parents[3]
+        env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(root),
+               "LC_ALL": "C", "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0"}
+        done = subprocess.run([sys.executable, "-c", script, str(settings)], env=env,
+                              capture_output=True, text=True, encoding="utf-8", check=False)
+        assert done.returncode == 0, done.stderr
+        assert json.loads(settings.read_text(encoding="utf-8")) == [{"name": "caf\u00e9-ext"}, {"name": "new"}]
 
     def test_malformed_history_raises(self, addon_module, tmp_path):
         prefix = tmp_path / "p"
