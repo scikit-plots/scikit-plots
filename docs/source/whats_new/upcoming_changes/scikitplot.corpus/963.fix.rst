@@ -1,0 +1,4 @@
+- :func:`~scikitplot.corpus.load_documents` opts in to pickle and joblib
+  files only for ``trusted=True`` itself (a truthy string such as
+  ``"false"`` no longer counts) and rejects an ``expected_sha256`` that is
+  not 64 hexadecimal digits before reading the file.
