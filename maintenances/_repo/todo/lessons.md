@@ -83,3 +83,15 @@
 - **Added:** 2026-11-24. Root cause: PR 972 exported `ReadCoverage`; the
   API reference hook caught it locally, but the corpus usage skill was only
   checked in CI's full test shard, which failed.
+
+### Rule REPO-L7: Run tests with unclosed-resource warnings as errors
+- **When:** a change opens files, sockets or responses, or changes who closes
+  them.
+- **Then:** run the affected tests with `python -X dev -W error::ResourceWarning
+  -m pytest -W error::pytest.PytestUnraisableExceptionWarning`, as CI turns an
+  unclosed file into a failure when the garbage collector happens to run.
+- **Verified by:** that command passes for the changed submodule.
+- **Added:** 2026-11-24. Root cause: PR 974 moved the datasets loaders'
+  file opening into helpers; three files opened by `get_file_data` were never
+  closed (a refused pickle, a `.npy` read), which passed locally and failed in
+  CI's test shard.

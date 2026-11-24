@@ -20,6 +20,7 @@ _dataset_loader.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import contextlib
 import io
 import logging
 import mimetypes
@@ -181,7 +182,12 @@ def load_stream_or_path(source, extension: str, **kwargs):
             else source
         )
     )
-    return load_file_by_extension(file_obj, extension, **kwargs)
+    try:
+        return load_file_by_extension(file_obj, extension, **kwargs)
+    finally:
+        # Close what this function opened, also when the loader refuses.
+        if file_obj is not source and hasattr(file_obj, "close"):
+            file_obj.close()
 
 
 def load_uploaded_file(uploaded_file, **kwargs):
@@ -255,6 +261,20 @@ def default_loader(file_like, extension, **kwargs):
 
 
 # Simplified using safe_import and get_file_data
+@contextlib.contextmanager
+def _opened(path, fetch_options: dict):
+    """Open *path* with :func:`get_file_data`; close what was opened here.
+
+    A stream the caller passed in stays open: it is the caller's.
+    """
+    fh = get_file_data(path, **fetch_options)
+    try:
+        yield fh
+    finally:
+        if fh is not path:
+            fh.close()
+
+
 def _fetch_options(kwargs: dict) -> dict:
     """Take the download limits (``timeout``, ``max_bytes``) out of a loader's kwargs."""
     return {key: kwargs.pop(key) for key in ("timeout", "max_bytes") if key in kwargs}
@@ -264,9 +284,10 @@ def make_loader(module, attr):
     """make_loader."""
 
     def loader(path, **kwargs):
-        data = get_file_data(path, **_fetch_options(kwargs))
-        # pylint: disable=unnecessary-dunder-call
-        return safe_import(module).__getattribute__(attr)(data, **kwargs)
+        # The file is closed after reading, whatever the reader does with it.
+        with _opened(path, _fetch_options(kwargs)) as data:
+            # pylint: disable=unnecessary-dunder-call
+            return safe_import(module).__getattribute__(attr)(data, **kwargs)
 
     return loader
 
@@ -277,8 +298,8 @@ load_csv = make_loader("pandas", "read_csv")
 
 def load_txt(path, **kwargs):
     """Load a tab-separated text file with pandas."""
-    data = get_file_data(path, **_fetch_options(kwargs))
-    return safe_import("pandas").read_csv(data, sep="\t", **kwargs)
+    with _opened(path, _fetch_options(kwargs)) as data:
+        return safe_import("pandas").read_csv(data, sep="\t", **kwargs)
 
 
 load_parquet = make_loader("pandas", "read_parquet")
@@ -339,8 +360,8 @@ def load_numpy(path, **kwargs):
         return safe_import("numpy").load(io.BytesIO(data), **kwargs)
     for key in ("allow_pickle", "trusted", "expected_sha256"):
         kwargs.pop(key, None)
-    data = get_file_data(path, **_fetch_options(kwargs))
-    return safe_import("numpy").load(data, allow_pickle=False, **kwargs)
+    with _opened(path, _fetch_options(kwargs)) as data:
+        return safe_import("numpy").load(data, allow_pickle=False, **kwargs)
 
 
 # ---------------------- Database Loaders ----------------------
