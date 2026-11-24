@@ -48,6 +48,7 @@ in ``scikitplot.corpus._base``.
 
 from __future__ import annotations
 
+import codecs
 import logging
 import re
 from dataclasses import dataclass, field
@@ -55,10 +56,12 @@ from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
+from ._text import TextReader, _bom_encoding, _decodes
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "HTMLReader",
     "WebReader",
     "YouTubeReader",
     # "validate_url_safety",
@@ -157,6 +160,170 @@ def _section_type_for_tag(tag_name: str) -> str:
     if tag_name in _HEADING_TAGS:
         return SectionType.HEADER.value
     return SectionType.TEXT.value
+
+
+def _load_beautifulsoup(reader: str) -> Any:
+    """
+    Return ``bs4.BeautifulSoup``, or raise an ``ImportError`` naming *reader*.
+
+    Parameters
+    ----------
+    reader : str
+        Class name used in the error message.
+
+    Returns
+    -------
+    type
+        The ``BeautifulSoup`` class.
+
+    Raises
+    ------
+    ImportError
+        If ``beautifulsoup4`` is not installed.
+    """
+    try:
+        from bs4 import BeautifulSoup  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            f"beautifulsoup4 is required for {reader}. Install it with:\n"
+            "  pip install beautifulsoup4"
+        ) from exc
+    return BeautifulSoup
+
+
+def _html_chunks(
+    html: str,
+    extract_tags: list[str] | None,
+    soup_factory: Any,
+) -> Generator[dict[str, Any], None, None]:
+    """
+    Yield one raw chunk per HTML text element, scripts and styles dropped.
+
+    The one HTML parsing path shared by :class:`WebReader` (fetched pages)
+    and :class:`HTMLReader` (local files).
+
+    Parameters
+    ----------
+    html : str
+        Decoded HTML source.
+    extract_tags : list of str or None
+        Tags to extract; ``None`` uses the title, heading and body tags.
+    soup_factory : callable
+        ``bs4.BeautifulSoup``, passed in so each caller owns its import error.
+
+    Yields
+    ------
+    dict
+        ``text``, ``raw_text``, ``section_type``, ``source_type``
+        (:attr:`SourceType.WEB`), ``html_tag`` and ``element_index``.
+
+    Notes
+    -----
+    Parsing uses the standard library ``"html.parser"`` backend, so the
+    result does not depend on which optional parser is installed.
+
+    Only the outermost extracted element of a nest is yielded, and it holds
+    the nested text once. Yielding every nested element repeated the text
+    of each level: unclosed ``<li>`` tags nest, so 72 kB of ``<li>xy``
+    took minutes and quadratic memory. Each character is now read once.
+    """
+    tags = extract_tags or list(_TITLE_TAGS + _HEADING_TAGS + _BODY_TAGS)
+    soup = soup_factory(html, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    element_index = 0
+    for element in _outermost(soup, frozenset(tags)):
+        text = element.get_text(separator=" ", strip=True)
+        if not text:
+            continue
+        yield {
+            "text": text,
+            # raw_text: the element's markup before tags are stripped and
+            # whitespace collapsed, for before/after comparison.
+            "raw_text": str(element),
+            "section_type": _section_type_for_tag(element.name),
+            "source_type": SourceType.WEB.value,
+            "html_tag": element.name,
+            "element_index": element_index,
+        }
+        element_index += 1
+
+
+def _outermost(root: Any, tags: frozenset[str]) -> Generator[Any, None, None]:
+    """
+    Yield, in document order, the elements named in *tags* with no such ancestor.
+
+    An iterative walk that does not descend into a yielded element, so the
+    whole tree is visited once and deep nesting cannot exhaust the stack.
+
+    Parameters
+    ----------
+    root : bs4.Tag
+        Parsed document.
+    tags : frozenset of str
+        Tag names to yield.
+
+    Yields
+    ------
+    bs4.Tag
+        Each outermost matching element.
+    """
+    stack = [iter(root.children)]
+    while stack:
+        node = next(stack[-1], None)
+        if node is None:
+            stack.pop()
+            continue
+        name = getattr(node, "name", None)
+        if name is None:
+            continue
+        if name in tags:
+            yield node
+        else:
+            stack.append(iter(node.children))
+
+
+_META_CHARSET_RE = re.compile(
+    rb"""<meta[^>]+charset\s*=\s*["']?\s*([A-Za-z0-9_.:-]+)""",
+    re.IGNORECASE,
+)
+
+
+def _declared_charset(raw: bytes) -> str | None:
+    """
+    Return the charset an HTML ``<meta>`` tag declares, or ``None``.
+
+    Only the first 4096 bytes are searched, as browsers do (the HTML
+    standard's prescan window is 1024 bytes; a larger window tolerates long
+    ``<head>`` preambles). Covers both ``<meta charset="x">`` and
+    ``<meta http-equiv="Content-Type" content="text/html; charset=x">``.
+
+    Parameters
+    ----------
+    raw : bytes
+        File bytes.
+
+    Returns
+    -------
+    str or None
+        The declared codec name, if Python knows it.
+
+    Examples
+    --------
+    >>> _declared_charset(b'<meta charset="windows-1251">')
+    'windows-1251'
+    >>> _declared_charset(b"<p>none</p>") is None
+    True
+    """
+    match = _META_CHARSET_RE.search(raw[:4096])
+    if match is None:
+        return None
+    name = match.group(1).decode("ascii")
+    try:
+        codecs.lookup(name)
+    except LookupError:
+        return None
+    return name
 
 
 # SSRF Protection may _ssrf_guard.py
@@ -486,14 +653,7 @@ class WebReader(DocumentReader):
                 "  pip install requests"
             ) from exc
 
-        try:
-            from bs4 import BeautifulSoup  # noqa: PLC0415
-        except ImportError as exc:
-            raise ImportError(
-                "beautifulsoup4 is required for WebReader."
-                " Install it with:\n"
-                "  pip install beautifulsoup4"
-            ) from exc
+        BeautifulSoup = _load_beautifulsoup("WebReader")  # noqa: N806
 
         logger.info("WebReader: fetching %s.", url)
         validate_url_safety(
@@ -549,41 +709,150 @@ class WebReader(DocumentReader):
 
         logger.info("WebReader: fetched %s (%d bytes).", url, total_bytes)
 
-        tags = self.extract_tags or list(_TITLE_TAGS + _HEADING_TAGS + _BODY_TAGS)
-        soup = BeautifulSoup(html, "html.parser")
-
-        # Remove script/style elements before extraction
-        for tag in soup(["script", "style", "noscript"]):
-            tag.decompose()
-
         element_index = 0
-        for element in soup.find_all(tags):
-            text = element.get_text(separator=" ", strip=True)
-            if not text.strip():
-                continue
-
-            sec_type = _section_type_for_tag(element.name)
-
-            yield {
-                "text": text,
-                # raw_text: inner HTML of the element before BeautifulSoup
-                # strips tags and collapses whitespace — preserves original
-                # markup for before/after comparison.
-                "raw_text": str(element),
-                "section_type": sec_type,
-                # promoted → CorpusDocument.source_type
-                "source_type": SourceType.WEB.value,
-                "html_tag": element.name,
-                "url": url,
-                "element_index": element_index,
-            }
+        for chunk in _html_chunks(html, self.extract_tags, BeautifulSoup):
+            chunk["url"] = url
             element_index += 1
+            yield chunk
 
         logger.info(
             "WebReader: extracted %d elements from %s.",
             element_index,
             url,
         )
+
+
+# ===========================================================================
+# HTMLReader
+# ===========================================================================
+
+#: Default size limit for a local HTML file: parsing builds a tree several
+#: times the file size, so the bound is lower than for plain text.
+_HTML_DEFAULT_MAX_FILE_BYTES: int = 50 * 1024 * 1024  # 50 MB
+
+
+@dataclass
+class HTMLReader(TextReader):
+    """
+    Read a local HTML file into one chunk per text element, offline.
+
+    The page is parsed exactly as :class:`WebReader` parses a fetched one
+    (title, headings, paragraphs, list items, table cells, quotes and code;
+    scripts and styles dropped), so a saved page and its live URL give the
+    same chunks. Nothing is fetched: links, images and frames are not
+    followed.
+
+    Parameters
+    ----------
+    input_path : pathlib.Path
+        Path to the ``.html``, ``.htm`` or ``.xhtml`` file.
+    encoding : str, sequence of str, callable or None, optional
+        As for :class:`~scikitplot.corpus._readers.TextReader`. With
+        ``None`` (default) the order is: byte-order mark, strict UTF-8, the
+        charset a ``<meta>`` tag declares (when it decodes the bytes), then
+        ``cp1252`` and ``latin-1``.
+    max_file_bytes : int, optional
+        Files larger than this raise ``ValueError``. Default: 50 MB.
+    extract_tags : list of str or None, optional
+        HTML tags to extract text from; ``None`` (default) uses the
+        :class:`WebReader` set.
+
+    Attributes
+    ----------
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".html", ".htm", ".xhtml"]``.
+
+    Raises
+    ------
+    ImportError
+        If ``beautifulsoup4`` is not installed.
+    ValueError
+        If the file exceeds ``max_file_bytes`` or is binary.
+
+    See Also
+    --------
+    WebReader : The same parsing for ``http(s)://`` URLs.
+    scikitplot.corpus._readers.TextReader : Encoding policy and limits.
+
+    Notes
+    -----
+    **Why the declared charset comes after UTF-8:** valid UTF-8 is
+    almost never an accident, while a ``<meta>`` tag is often stale (a page
+    re-saved as UTF-8 keeps ``charset=iso-8859-1``). A declaration is used
+    only when the bytes are not UTF-8 and it decodes them; a wrong one
+    falls through to ``cp1252``. The codec used is recorded in each
+    chunk's ``encoding`` metadata.
+
+    Each chunk's ``source_type`` is :attr:`SourceType.WEB` and it has no
+    ``url``; the file path is in ``source_file`` as for every reader.
+
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> from scikitplot.corpus._base import DocumentReader
+    >>> import scikitplot.corpus._readers
+    >>> reader = DocumentReader.create(Path("saved_page.html"))
+    >>> docs = list(reader.get_documents())
+    """
+
+    file_type: ClassVar[str] = ".html"
+    file_types: ClassVar[list[str] | None] = [".html", ".htm", ".xhtml"]
+
+    max_file_bytes: int = field(default=_HTML_DEFAULT_MAX_FILE_BYTES)
+    """Maximum file size in bytes before rejecting. Default: 50 MB."""
+
+    extract_tags: list[str] | None = field(default=None)
+    """HTML tags to extract. ``None`` uses the :class:`WebReader` set."""
+
+    def _choose_encoding(self, raw: bytes) -> str:
+        """
+        Return the codec for *raw*, honouring a ``<meta>`` charset.
+
+        Parameters
+        ----------
+        raw : bytes
+            File bytes.
+
+        Returns
+        -------
+        str
+            Codec name.
+        """
+        if self.encoding is None and b"\x00" not in raw:
+            bom = _bom_encoding(raw)
+            if bom is None and not _decodes(raw, "utf-8"):
+                declared = _declared_charset(raw)
+                if declared is not None and _decodes(raw, declared):
+                    return declared
+        return super()._choose_encoding(raw)
+
+    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+        """
+        Decode the file and yield one chunk per HTML text element.
+
+        Yields
+        ------
+        dict
+            As :class:`WebReader` yields, without ``url`` and with
+            ``encoding`` (the codec used).
+
+        Raises
+        ------
+        ImportError
+            If ``beautifulsoup4`` is not installed.
+        ValueError
+            If the file exceeds ``max_file_bytes`` or is binary.
+        """
+        BeautifulSoup = _load_beautifulsoup("HTMLReader")  # noqa: N806
+        count = 0
+        for whole in super().get_raw_chunks():
+            for chunk in _html_chunks(whole["text"], self.extract_tags, BeautifulSoup):
+                chunk["encoding"] = whole["encoding"]
+                count += 1
+                yield chunk
+        if count == 0:
+            logger.warning("HTMLReader: %s has no extractable text.", self.file_name)
 
 
 # ===========================================================================

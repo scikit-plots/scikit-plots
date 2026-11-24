@@ -1,0 +1,8 @@
+- Local HTML files (``.html``, ``.htm``, ``.xhtml``) are read by the new
+  ``HTMLReader``, offline, through the same parsing ``WebReader`` uses, so
+  a saved page gives the chunks of its live URL. A ``<meta>`` charset is
+  used when the bytes are not UTF-8 and it decodes them; the codec used is
+  in each chunk's ``encoding``. Nested extracted elements are now read
+  once, by the outermost one: unclosed ``<li>`` tags nest, and a 72 kB page
+  of them took minutes and quadratic memory in ``WebReader`` as well.
+  ``beautifulsoup4`` joins the ``corpus`` extra.

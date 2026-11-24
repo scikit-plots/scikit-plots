@@ -622,6 +622,7 @@ ipymagic = [
 ## corpus submodule dep
 ## sudo apt-get install tesseract-ocr
 corpus = [
+  "beautifulsoup4>=4.9",                    # HTMLReader / WebReader parsing
   "lxml",
   "pypdf",
   ## CAUTION: require "pdfminer.six" only. Never add "pdfminer" (the import

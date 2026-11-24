@@ -174,7 +174,7 @@ def _make_bs4_mock(extracted_texts: list[tuple[str, str]]) -> MagicMock:
     Parameters
     ----------
     extracted_texts : list of (tag_name, text)
-        Elements that soup.find_all() should return, in order.
+        Top-level elements of the parsed page, in order (``soup.children``).
     """
     bs4_m = MagicMock()
     elements = []
@@ -184,11 +184,8 @@ def _make_bs4_mock(extracted_texts: list[tuple[str, str]]) -> MagicMock:
         el.get_text.return_value = text
         elements.append(el)
 
-    def _find_all(tags, **kw):
-        return [e for e in elements if e.name in tags]
-
     soup = MagicMock()
-    soup.find_all.side_effect = _find_all
+    soup.children = elements
     soup.__call__ = lambda self, tags: []   # soup(["script", "style", "noscript"])
     soup.return_value = []
     bs4_m.BeautifulSoup.return_value = soup

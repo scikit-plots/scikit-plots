@@ -151,6 +151,12 @@ def _xml_nested_entities(path: Path) -> Path:
     return path
 
 
+def _html_unclosed_nesting(path: Path) -> Path:
+    """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
+    path.write_bytes(b"<li>xy" * 10_000)
+    return path
+
+
 #: Open findings: the sample exceeds a ceiling on the current code. The
 #: mark is strict, so the fix of a finding must remove its entry.
 _OPEN = {
@@ -168,6 +174,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("zip-compressed-member", "a.zip", _zip_compressed_member),
     ("zip-member-at-the-text-floor", "b.zip", _zip_member_at_the_text_floor),
     ("xml-nested-entities", "a.xml", _xml_nested_entities),
+    ("html-unclosed-nesting", "a.html", _html_unclosed_nesting),
 ]
 
 
@@ -193,7 +200,7 @@ def _params() -> list:
 _MUST_READ = {"docx-part-at-the-ratio-limit", "zip-member-at-the-text-floor"}
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html"}
 
 
 _CHILD = """

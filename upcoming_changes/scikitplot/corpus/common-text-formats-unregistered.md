@@ -38,6 +38,12 @@ hooks 28, git internals 22, `.yml`/`.yaml` 8, no extension (`LICENSE`,
 Probe: `DocumentReader.create("page.html")` and
 `DocumentReader.create("file:///.../page.html")` both raise the error above.
 
+## Progress
+
+- HTML (`.html`, `.htm`, `.xhtml`): `HTMLReader`, PR 975. The shared
+  parse path also reads nested elements once (a quadratic read that
+  affected `WebReader` too).
+
 ## Root cause / current understanding
 
 Verified: no reader registers these extensions; `TextReader` registers
