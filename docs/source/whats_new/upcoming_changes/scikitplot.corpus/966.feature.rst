@@ -1,0 +1,7 @@
+- ``TextReader(encoding="detect")`` reads legacy encodings: after the
+  byte-order mark and UTF-8, charset-normalizer (``pip install
+  charset-normalizer``, else chardet) picks the codec, so Turkish cp1254,
+  Shift-JIS, GB18030, EUC-KR, Big5 and KOI8-R files no longer come out as
+  mojibake. Ties go to cp1252, a weak guess (a short file) logs a warning
+  naming the file, and the default policy is unchanged; its warning now
+  names the file and points to ``encoding="detect"``.
