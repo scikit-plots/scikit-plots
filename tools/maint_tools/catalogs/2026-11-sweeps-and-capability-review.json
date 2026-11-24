@@ -611,39 +611,6 @@
    "ttype": "fix"
   },
   {
-   "path": "scikitplot/datasets/url-loader-without-timeout-size-limit-or-close.md",
-   "title": "datasets: URL loading has no timeout, no size limit, and never closes the response",
-   "kind": "reliability",
-   "area": "scikitplot/datasets",
-   "summary": "`datasets/_data_loader.py` calls `urlopen(url=str(path))` and returns `io.BytesIO(response.read())`; `_load_dataset.py` calls `urlopen(DATASET_NAMES_URL)` the same way. There is no timeout, no limit on the bytes read, no integrity check, and the first response is never closed.",
-   "why": "A stalled server blocks the caller forever; a large or hostile response is read whole into memory; an unclosed response leaks a socket per call. The corpus downloaders already have `timeout` and `max_bytes` for the same job.",
-   "evidence": [
-    "`python -B tools/maint_tools/sweep_static.py --list urlopen-without-timeout` lists `scikitplot/datasets/_data_loader.py:137` and `scikitplot/datasets/_load_dataset.py:50`.",
-    "`scikitplot/datasets/_data_loader.py` lines 134-137: `response = urlopen(url=str(path))` then `return io.BytesIO(response.read())`, no `with` block."
-   ],
-   "cause": "Written before the corpus network policy existed; not migrated.",
-   "expected": "A timeout, a byte limit, an optional expected SHA-256, a context manager, and errors that name the URL; the cache (`get_data_home`) is used before the network.",
-   "affected": [
-    "`scikitplot/datasets/_data_loader.py`",
-    "`scikitplot/datasets/_load_dataset.py`"
-   ],
-   "constraints": "Reuse the corpus download helpers rather than a second implementation.",
-   "edges": [
-    "Server that accepts and never answers",
-    "Response larger than the limit",
-    "Offline machine with a cached file",
-    "Redirect to another host"
-   ],
-   "direction": "Route both calls through the corpus downloader (timeout, max_bytes, retry) or a small shared helper.",
-   "accept": [
-    "A test with a local server that never answers returns within the timeout",
-    "A response over the limit raises before reading it all"
-   ],
-   "discovered": "@sweep-static",
-   "probes": [],
-   "ttype": "fix"
-  },
-  {
    "path": "scikitplot/_package/bare-except-clauses.md",
    "title": "Bare `except:` clauses in first-party code",
    "kind": "reliability",

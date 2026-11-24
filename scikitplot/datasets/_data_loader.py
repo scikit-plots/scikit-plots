@@ -20,6 +20,7 @@ _dataset_loader.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import contextlib
 import io
 import logging
 import mimetypes
@@ -30,11 +31,11 @@ import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
-from urllib.request import urlopen
 
 import pandas as pd
 
 from .._compat.optional_deps import safe_import
+from ._fetch import fetch_bytes
 from ._trust import require_trusted, verify_sha256
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,9 @@ def get_file_from_zip(path):
 def get_file_data(
     path: str | Path | io.BytesIO,
     compression: str | None = None,
+    *,
+    timeout: float | None = None,
+    max_bytes: int | None = None,
 ):
     """
     Retrieve a file-like object based on file path, URL, or stream.
@@ -126,6 +130,12 @@ def get_file_data(
         File path, URL, or byte stream.
     compression : Optional[str]
         Compression type.
+    timeout : float or None, default None
+        For a URL: seconds for the connection and for each read (``None``:
+        :data:`~._fetch.DEFAULT_TIMEOUT`).
+    max_bytes : int or None, default None
+        For a URL: largest response read (``None``:
+        :data:`~._fetch.DEFAULT_MAX_BYTES`).
 
     Returns
     -------
@@ -133,10 +143,8 @@ def get_file_data(
     """
     # Retrieve file-like object based on file type or URL
     if is_url(path):
-        # Load from URL
-        # with urllib.request.urlopen(url=str(path)) as response:
-        response = urlopen(url=str(path))  # noqa: S310
-        return io.BytesIO(response.read())
+        # Bounded: a time limit, a byte limit, the response closed.
+        return io.BytesIO(fetch_bytes(str(path), timeout=timeout, max_bytes=max_bytes))
     elif isinstance(path, io.BytesIO):  # noqa: RET505
         # Already a byte stream
         return path
@@ -174,7 +182,12 @@ def load_stream_or_path(source, extension: str, **kwargs):
             else source
         )
     )
-    return load_file_by_extension(file_obj, extension, **kwargs)
+    try:
+        return load_file_by_extension(file_obj, extension, **kwargs)
+    finally:
+        # Close what this function opened, also when the loader refuses.
+        if file_obj is not source and hasattr(file_obj, "close"):
+            file_obj.close()
 
 
 def load_uploaded_file(uploaded_file, **kwargs):
@@ -248,21 +261,47 @@ def default_loader(file_like, extension, **kwargs):
 
 
 # Simplified using safe_import and get_file_data
+@contextlib.contextmanager
+def _opened(path, fetch_options: dict):
+    """Open *path* with :func:`get_file_data`; close what was opened here.
+
+    A stream the caller passed in stays open: it is the caller's.
+    """
+    fh = get_file_data(path, **fetch_options)
+    try:
+        yield fh
+    finally:
+        if fh is not path:
+            fh.close()
+
+
+def _fetch_options(kwargs: dict) -> dict:
+    """Take the download limits (``timeout``, ``max_bytes``) out of a loader's kwargs."""
+    return {key: kwargs.pop(key) for key in ("timeout", "max_bytes") if key in kwargs}
+
+
 def make_loader(module, attr):
     """make_loader."""
 
     def loader(path, **kwargs):
-        # pylint: disable=unnecessary-dunder-call
-        return safe_import(module).__getattribute__(attr)(get_file_data(path), **kwargs)
+        # The file is closed after reading, whatever the reader does with it.
+        with _opened(path, _fetch_options(kwargs)) as data:
+            # pylint: disable=unnecessary-dunder-call
+            return safe_import(module).__getattribute__(attr)(data, **kwargs)
 
     return loader
 
 
 # pandas
 load_csv = make_loader("pandas", "read_csv")
-load_txt = lambda path, **kwargs: safe_import("pandas").read_csv(  # noqa: E731
-    get_file_data(path), sep="\t", **kwargs
-)
+
+
+def load_txt(path, **kwargs):
+    """Load a tab-separated text file with pandas."""
+    with _opened(path, _fetch_options(kwargs)) as data:
+        return safe_import("pandas").read_csv(data, sep="\t", **kwargs)
+
+
 load_parquet = make_loader("pandas", "read_parquet")
 load_excel = make_loader("pandas", "read_excel")
 load_json = make_loader("pandas", "read_json")
@@ -279,7 +318,7 @@ def _read_trusted(fmt: str, path, kwargs: dict) -> bytes:
     trusted = kwargs.pop("trusted", False)
     expected_sha256 = kwargs.pop("expected_sha256", None)
     require_trusted(fmt, trusted, caller="load_data")
-    fh = get_file_data(path)
+    fh = get_file_data(path, **_fetch_options(kwargs))
     try:
         data = fh.read()
     finally:
@@ -321,7 +360,8 @@ def load_numpy(path, **kwargs):
         return safe_import("numpy").load(io.BytesIO(data), **kwargs)
     for key in ("allow_pickle", "trusted", "expected_sha256"):
         kwargs.pop(key, None)
-    return safe_import("numpy").load(get_file_data(path), allow_pickle=False, **kwargs)
+    with _opened(path, _fetch_options(kwargs)) as data:
+        return safe_import("numpy").load(data, allow_pickle=False, **kwargs)
 
 
 # ---------------------- Database Loaders ----------------------

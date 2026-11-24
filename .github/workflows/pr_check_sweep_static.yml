@@ -14,6 +14,8 @@
 #   pickle-load                        pickle.load outside a trust gate
 #   joblib-load                PR 964  joblib.load outside a trust gate
 #   stdlib-xml-parse                   xml.etree parsing of untrusted input
+#   urlopen-without-timeout    PR 974  a download that can wait forever
+#   requests-without-timeout   PR 974  the same through requests
 ---
 name: "PRs 🧹 Static sweep (fixed risk patterns)"
 
@@ -55,6 +57,8 @@ jobs:
           --fail-on pickle-load
           --fail-on joblib-load
           --fail-on stdlib-xml-parse
+          --fail-on urlopen-without-timeout
+          --fail-on requests-without-timeout
 
       - name: "🧪 Tool tests"
         run: python -m unittest tools/maint_tools/tests/test_sweep_static.py -v
