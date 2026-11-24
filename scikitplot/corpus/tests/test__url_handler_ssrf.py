@@ -21,21 +21,19 @@ Run with::
 
 from __future__ import annotations
 
-import socket
 
 import pytest
 
-from scikitplot.corpus import _url_handler as U
+from .. import _url_handler as U
+from ..conftest import FakeDNS
 
 
 def _resolver(monkeypatch, mapping):
-    """mapping: host -> list[ip], or 'FAIL' to raise gaierror."""
-    def fake(host, *a, **k):
-        val = mapping.get(host)
-        if val == "FAIL" or val is None:
-            raise socket.gaierror(-2, "Name or service not known")
-        return [(2, 1, 6, "", (ip, 0)) for ip in val]
-    monkeypatch.setattr(U.socket, "getaddrinfo", fake)
+    """mapping: host -> list[ip], or 'FAIL' to raise gaierror; others fail."""
+    dns = FakeDNS()
+    dns.default = None  # every host the test does not list fails
+    dns.hosts = {h: (None if v == "FAIL" else v) for h, v in mapping.items()}
+    monkeypatch.setattr(U.socket, "getaddrinfo", dns)
 
 
 class TestFailClosed:

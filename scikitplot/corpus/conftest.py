@@ -195,12 +195,14 @@ class FakeDNS:
 
     Attributes
     ----------
-    hosts : dict of str to list of str
+    hosts : dict of str to (list of str or None)
         Host name to the addresses it resolves to. A name not listed
         resolves to :attr:`default`; an IP literal resolves to itself.
-        Set an entry to ``[]`` to make a name fail to resolve.
-    default : list of str
-        Addresses for unlisted names: one public IPv4 address.
+        ``None`` makes the lookup fail (``socket.gaierror``); ``[]``
+        makes it succeed with no address.
+    default : list of str or None
+        Addresses for unlisted names: one public IPv4 address. ``None``
+        makes every unlisted name fail, for tests that list every host.
     calls : list of str
         Every host name looked up, in order.
 
@@ -213,8 +215,8 @@ class FakeDNS:
     """
 
     def __init__(self) -> None:
-        self.hosts: dict[str, list[str]] = {}
-        self.default: list[str] = ["93.184.216.34"]
+        self.hosts: dict[str, list[str] | None] = {}
+        self.default: list[str] | None = ["93.184.216.34"]
         self.calls: list[str] = []
 
     def __call__(self, host: str, *args: object, **kwargs: object) -> list:
@@ -226,7 +228,7 @@ class FakeDNS:
             addresses = [str(ipaddress.ip_address(host))]
         except ValueError:
             addresses = self.hosts.get(host, self.default)
-        if not addresses:
+        if addresses is None:
             raise socket.gaierror(socket.EAI_NONAME, f"fake DNS: {host!r} not found")
         out = []
         for address in addresses:
@@ -235,6 +237,29 @@ class FakeDNS:
             sockaddr = (address, 0, 0, 0) if ip.version == 6 else (address, 0)
             out.append((family, socket.SOCK_STREAM, 6, "", sockaddr))
         return out
+
+
+@pytest.fixture(autouse=True)
+def _no_real_dns(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Make every corpus test independent of the machine's resolver.
+
+    A lookup through the URL handler fails as an unreachable resolver does
+    (``socket.gaierror``), so a test gets the same result online and
+    offline, and the handler still fails closed. A test that needs names
+    to resolve asks for :func:`fake_dns`, which replaces this.
+    """
+    import socket  # noqa: PLC0415
+
+    from . import _url_handler  # noqa: PLC0415
+
+    def refuse(host: str, *args: object, **kwargs: object) -> list:
+        raise socket.gaierror(
+            socket.EAI_NONAME,
+            f"real DNS lookup of {host!r} in a test; use the fake_dns fixture",
+        )
+
+    monkeypatch.setattr(_url_handler.socket, "getaddrinfo", refuse)
 
 
 @pytest.fixture

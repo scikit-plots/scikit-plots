@@ -30,6 +30,12 @@ def test_a_name_resolving_to_a_private_address_is_still_refused(fake_dns, addres
 
 
 def test_resolution_failure_fails_closed(fake_dns):
-    fake_dns.hosts["missing.example"] = []
+    fake_dns.hosts["missing.example"] = None
     with pytest.raises(ValueError, match="resolve"):
         _validate_url_security("https://missing.example/")
+
+
+def test_a_test_without_fake_dns_never_reaches_the_real_resolver():
+    # The autouse guard answers like an unreachable resolver: fail closed.
+    with pytest.raises(ValueError, match="resolve"):
+        _validate_url_security("https://example.org/")
