@@ -781,6 +781,7 @@ class _PageTexts:
         prefer_backend: str | None,
         pdfminer_kwargs: Mapping[str, Any] | None = None,
         pdfminer_ties: str = "stable",
+        *,
         pdfminer_rotated: str = "words",
     ) -> None:
         self._prefer_backend = prefer_backend
@@ -1730,7 +1731,7 @@ class PDFReader(DocumentReader):
             self.prefer_backend,
             self.pdfminer_kwargs,
             self.pdfminer_ties,
-            self.pdfminer_rotated,
+            pdfminer_rotated=self.pdfminer_rotated,
         )
         ocr = self._page_ocr()
         try:
