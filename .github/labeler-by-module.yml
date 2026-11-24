@@ -135,6 +135,7 @@
     - "maintenances/_build_utils/**/*"
     - "plugins/scikitplot-dev/skills/scikitplot-build-utils-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-build-utils-dev.md"
+    - "upcoming_changes/scikitplot/_build_utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._build_utils/**/*"
 
 "scikitplot/_cli":
@@ -150,6 +151,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_compat/**/*"
+    - "upcoming_changes/scikitplot/_compat/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._compat/**/*"
 
 "scikitplot/_core":
@@ -162,6 +164,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_decorates/**/*"
+    - "upcoming_changes/scikitplot/_decorates/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._decorates/**/*"
 
 "scikitplot/_docstrings":
@@ -178,6 +181,7 @@
     - "plugins/scikitplot-dev/skills/scikitplot-env-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-env-dev.md"
     - "docs/source/user_guide/_env/**/*"
+    - "upcoming_changes/scikitplot/_env/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._env/**/*"
     - "galleries/examples/env/**/*"
 
@@ -199,6 +203,7 @@
     - "plugins/scikitplot/skills/scikitplot-sphinx-ext/**/*"
     - "plugins/scikitplot/agents/scikitplot-sphinx-ext.md"
     - "docs/source/user_guide/_externals/**/*"
+    - "upcoming_changes/scikitplot/_externals/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals/**/*"
 
 "scikitplot/_sphinx_ext/_pydata_component_list":
@@ -216,6 +221,7 @@
     - "plugins/scikitplot-dev/skills/scikitplot-sphinx-ai-assistant-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-sphinx-ai-assistant-dev.md"
     - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_ai_assistant/**/*"
 
 "scikitplot/_sphinx_ext/_sphinx_ai_learn":
@@ -299,6 +305,7 @@
   - any-glob-to-any-file:
     - "scikitplot/_lib/**/*"
     - "docs/source/user_guide/_lib/**/*"
+    - "upcoming_changes/scikitplot/_lib/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._lib/**/*"
 
 "scikitplot/_testing":
@@ -317,6 +324,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
+    - "upcoming_changes/scikitplot/_utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._utils/**/*"
 
 "scikitplot/agent":
@@ -329,6 +337,7 @@
     - "plugins/scikitplot/skills/scikitplot-agent/**/*"
     - "plugins/scikitplot/agents/scikitplot-agent.md"
     - "docs/source/user_guide/agent/**/*"
+    - "upcoming_changes/scikitplot/agent/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.agent/**/*"
 
 "scikitplot/annoy":
@@ -342,6 +351,7 @@
     - "plugins/scikitplot/agents/scikitplot-annoy.md"
     - "docs/source/user_guide/annoy/**/*"
     - "galleries/examples/annoy/**/*"
+    - "upcoming_changes/scikitplot/annoy/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.annoy/**/*"
 
 "scikitplot/api":
@@ -351,6 +361,7 @@
     - "plugins/scikitplot/skills/scikitplot-api/**/*"
     - "plugins/scikitplot/agents/scikitplot-api.md"
     - "docs/source/user_guide/api/**/*"
+    - "upcoming_changes/scikitplot/api/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.api/**/*"
 
 "scikitplot/cexperimental":
@@ -425,6 +436,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/config/**/*"
+    - "upcoming_changes/scikitplot/config/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.config/**/*"
 
 "scikitplot/corpus":
@@ -452,6 +464,7 @@
     - "plugins/scikitplot/agents/scikitplot-cython.md"
     - "docs/source/user_guide/cython/**/*"
     - "galleries/examples/cython/**/*"
+    - "upcoming_changes/scikitplot/cython/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.cython/**/*"
 
 "scikitplot/datasets":
@@ -461,6 +474,7 @@
     - "maintenances/datasets/**/*"
     - "plugins/scikitplot-dev/skills/scikitplot-datasets-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-datasets-dev.md"
+    - "upcoming_changes/scikitplot/datasets/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.datasets/**/*"
 
 "scikitplot/decile":
@@ -474,6 +488,7 @@
     - "plugins/scikitplot/agents/scikitplot-decile.md"
     - "docs/source/user_guide/decile/**/*"
     - "galleries/examples/decile/**/*"
+    - "upcoming_changes/scikitplot/decile/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.decile/**/*"
 
 "scikitplot/experimental":
@@ -562,6 +577,7 @@
     - "plugins/scikitplot/agents/scikitplot-feature-selection.md"
     - "docs/source/user_guide/feature_selection/**/*"
     - "galleries/examples/feature_selection/**/*"
+    - "upcoming_changes/scikitplot/feature_selection/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.feature_selection/**/*"
 
 "scikitplot/impute":
@@ -588,6 +604,7 @@
     - "plugins/scikitplot/agents/scikitplot-levenshtein.md"
     - "docs/source/user_guide/levenshtein/**/*"
     - "galleries/examples/levenshtein/**/*"
+    - "upcoming_changes/scikitplot/levenshtein/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.levenshtein/**/*"
 
 "scikitplot/logging":
@@ -600,6 +617,7 @@
     - "plugins/scikitplot/skills/scikitplot-logging/**/*"
     - "plugins/scikitplot/agents/scikitplot-logging.md"
     - "docs/source/user_guide/logging/**/*"
+    - "upcoming_changes/scikitplot/logging/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.logging/**/*"
 
 "scikitplot/mcp":
@@ -613,6 +631,7 @@
     - "plugins/scikitplot/agents/scikitplot-mcp.md"
     - "docs/source/user_guide/mcp/**/*"
     - "galleries/examples/mcp/**/*"
+    - "upcoming_changes/scikitplot/mcp/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.mcp/**/*"
 
 "scikitplot/memmap":
@@ -698,6 +717,7 @@
     - "plugins/scikitplot/agents/scikitplot-rank-bm25.md"
     - "docs/source/user_guide/rank_bm25/**/*"
     - "galleries/examples/rank_bm25/**/*"
+    - "upcoming_changes/scikitplot/rank_bm25/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/**/*"
 
 "scikitplot/seaborn":
@@ -719,12 +739,14 @@
     - "scikitplot/stats/**/*"
     - "docs/source/user_guide/stats/**/*"
     - "galleries/examples/stats/**/*"
+    - "upcoming_changes/scikitplot/stats/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.stats/**/*"
 
 "scikitplot/utils":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/utils/**/*"
+    - "upcoming_changes/scikitplot/utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.utils/**/*"
 
 "scikitplot/visualkeras":
