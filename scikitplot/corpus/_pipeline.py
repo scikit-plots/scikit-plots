@@ -194,6 +194,12 @@ class PipelineResult:
 # ---------------------------------------------------------------------------
 
 
+#: Reader arguments the pipeline sets itself on every reader it creates.
+_PIPELINE_READER_ARGS = frozenset(
+    {"chunker", "filter_", "default_language", "filename_override"}
+)
+
+
 class CorpusPipeline:
     """
     Orchestrates the full corpus ingestion pipeline.
@@ -420,6 +426,17 @@ class CorpusPipeline:
         self.reader_kwargs: dict[str, Any] = (
             reader_kwargs if reader_kwargs is not None else {}
         )
+        # The pipeline passes these to every reader itself; a second copy in
+        # reader_kwargs used to fail late, inside run(), with "got multiple
+        # values for keyword argument".
+        clash = sorted(_PIPELINE_READER_ARGS & set(self.reader_kwargs))
+        if clash:
+            raise ValueError(
+                f"CorpusPipeline: reader_kwargs sets {clash}, which the pipeline"
+                " passes to every reader itself. Use the pipeline's own"
+                " arguments (filter_=, chunker=, default_language=), or"
+                " FluentCorpus.filter() / .chunker() in a plan."
+            )
 
     # ------------------------------------------------------------------
     # MEDIUM-04: public properties for the filter attribute.

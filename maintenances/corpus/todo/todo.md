@@ -216,3 +216,9 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - Known limit: single-byte Western text is ambiguous to the detector (French
   cp1252 ranks as cp1257); documented, with the exact list policy.
 - Next: CX-48 (rotated text).
+
+### PR 968: `FluentCorpus.filter()`, a plan carries its document filter
+- [x] Done: `filter` is a config and ingest domain; `materialize()` passes
+  it to `CorpusPipeline`; reader_kwargs that clash with pipeline arguments
+  are refused at construction. Existing plan fingerprints unchanged.
+- Next: CX-48 (rotated text).

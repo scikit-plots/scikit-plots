@@ -86,6 +86,7 @@ CONFIG_DOMAINS = (
     "identity",
     "normalizer",
     "chunker",
+    "filter",
     "enricher",
     "embedder",
     "storage",
@@ -104,6 +105,8 @@ INGEST_DOMAINS = (
     "identity",
     "normalizer",
     "chunker",
+    # Which documents enter the corpus decides what gets built.
+    "filter",
     "enricher",
     "embedder",
     "storage",
