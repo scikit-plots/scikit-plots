@@ -35,6 +35,7 @@ from urllib.request import urlopen
 import pandas as pd
 
 from .._compat.optional_deps import safe_import
+from ._trust import require_trusted, verify_sha256
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ def load_stream_or_path(source, extension: str, **kwargs):
     return load_file_by_extension(file_obj, extension, **kwargs)
 
 
-def load_uploaded_file(uploaded_file):
+def load_uploaded_file(uploaded_file, **kwargs):
     """
     Load supported file types from Streamlit uploaded file.
 
@@ -184,16 +185,19 @@ def load_uploaded_file(uploaded_file):
     ----------
     uploaded_file : UploadedFile
         File uploaded via Streamlit.
+    **kwargs
+        Passed to the loader; ``trusted=True`` (and optionally
+        ``expected_sha256=``) is required for pickle-family files.
 
     Returns
     -------
     pd.DataFrame or object: Loaded content.
     """
     ext = get_extension(uploaded_file.name)
-    return load_stream_or_path(uploaded_file, ext)
+    return load_stream_or_path(uploaded_file, ext, **kwargs)
 
 
-def load_file_from_path(file_path):
+def load_file_from_path(file_path, **kwargs):
     """
     Load supported file types from a local file path.
 
@@ -201,16 +205,19 @@ def load_file_from_path(file_path):
     ----------
     file_path : str
         Path to the file.
+    **kwargs
+        Passed to the loader; ``trusted=True`` (and optionally
+        ``expected_sha256=``) is required for pickle-family files.
 
     Returns
     -------
     pd.DataFrame or object: Loaded content.
     """
     ext = get_extension(file_path)
-    return load_stream_or_path(file_path, ext)
+    return load_stream_or_path(file_path, ext, **kwargs)
 
 
-def load_file_from_url(url):
+def load_file_from_url(url, **kwargs):
     """
     Load a file from a URL. Supports CSV, Parquet, Pickle, Excel.
 
@@ -218,13 +225,16 @@ def load_file_from_url(url):
     ----------
     url : str
         URL to the file.
+    **kwargs
+        Passed to the loader; ``trusted=True`` (and optionally
+        ``expected_sha256=``) is required for pickle-family files.
 
     Returns
     -------
     pd.DataFrame or object: Loaded content.
     """
     ext = "." + url.lower().split("?")[0].split(".")[-1]
-    return load_stream_or_path(url, ext)
+    return load_stream_or_path(url, ext, **kwargs)
 
 
 # ---------------------- File Loaders ----------------------
@@ -248,10 +258,6 @@ def make_loader(module, attr):
     return loader
 
 
-# pylint: disable=unnecessary-lambda-assignment
-load_numpy = lambda path, **kwargs: safe_import("numpy").load(  # noqa: E731
-    get_file_data(path), **kwargs
-)
 # pandas
 load_csv = make_loader("pandas", "read_csv")
 load_txt = lambda path, **kwargs: safe_import("pandas").read_csv(  # noqa: E731
@@ -261,23 +267,62 @@ load_parquet = make_loader("pandas", "read_parquet")
 load_excel = make_loader("pandas", "read_excel")
 load_json = make_loader("pandas", "read_json")
 load_feather = make_loader("pandas", "read_feather")
-load_pandas_pickle = make_loader("pandas", "read_pickle")
-# pyarrow
-# import pyarrow.parquet as pq
-# Convert to pandas DataFrame if needed
-# load_pyarrow_parquet = make_loader("pyarrow.parquet", "read_table").to_pandas()
-# pickle
-load_pickle = lambda path, **kwargs: safe_import("pickle").load(  # noqa: E731
-    get_file_data(path)
-)  # noqa: ARG005
-load_joblib = lambda path, **kwargs: safe_import("joblib").load(  # noqa: E731
-    get_file_data(path)
-)  # noqa: ARG005
-load_cloudpickle = lambda path, **kwargs: safe_import(  # noqa: E731
-    "cloudpickle"
-).load(  # noqa: ARG005
-    get_file_data(path)
-)
+# pickle and every format built on it: loading runs code from the file
+# (see ``_trust.py``). Each loader takes ``trusted`` (must be True) and an
+# optional ``expected_sha256`` from its keyword arguments, refuses before a
+# byte is read when not trusted, and checks the digest of the bytes it
+# read (a local file, a stream or a download alike) before deserialising.
+
+
+def _read_trusted(fmt: str, path, kwargs: dict) -> bytes:
+    """Gate a pickle-family load, then return the verified bytes."""
+    trusted = kwargs.pop("trusted", False)
+    expected_sha256 = kwargs.pop("expected_sha256", None)
+    require_trusted(fmt, trusted, caller="load_data")
+    fh = get_file_data(path)
+    try:
+        data = fh.read()
+    finally:
+        if fh is not path:
+            fh.close()
+    verify_sha256(data, expected_sha256, caller="load_data")
+    return data
+
+
+def load_pickle(path, **kwargs):
+    """Load a pickle file; needs ``trusted=True``."""
+    data = _read_trusted("pickle", path, kwargs)
+    return safe_import("pickle").loads(data)  # noqa: S301 - trust-gated
+
+
+def load_joblib(path, **kwargs):
+    """Load a joblib file; needs ``trusted=True``."""
+    data = _read_trusted("joblib", path, kwargs)
+    joblib = safe_import("joblib")
+    return joblib.load(io.BytesIO(data), **kwargs)  # noqa: S301 - trust-gated
+
+
+def load_cloudpickle(path, **kwargs):
+    """Load a cloudpickle file; needs ``trusted=True``."""
+    data = _read_trusted("cloudpickle", path, kwargs)
+    return safe_import("cloudpickle").loads(data)  # noqa: S301 - trust-gated
+
+
+def load_pandas_pickle(path, **kwargs):
+    """Load a pandas pickle (``read_pickle``); needs ``trusted=True``."""
+    data = _read_trusted("pandas-pickle", path, kwargs)
+    return safe_import("pandas").read_pickle(io.BytesIO(data), **kwargs)
+
+
+def load_numpy(path, **kwargs):
+    """Load ``.npy``; ``allow_pickle=True`` loads objects and needs ``trusted=True``."""
+    if kwargs.get("allow_pickle"):
+        data = _read_trusted("pickle", path, kwargs)
+        return safe_import("numpy").load(io.BytesIO(data), **kwargs)
+    for key in ("allow_pickle", "trusted", "expected_sha256"):
+        kwargs.pop(key, None)
+    return safe_import("numpy").load(get_file_data(path), allow_pickle=False, **kwargs)
+
 
 # ---------------------- Database Loaders ----------------------
 

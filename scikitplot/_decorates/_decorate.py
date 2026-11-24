@@ -1251,7 +1251,9 @@ class BaseDecorator(metaclass=DecorateMeta):
         with cls._lock:
             try:
                 # Deserialize the instance
-                cls._instance[cls] = joblib.load(filename, *args, **kwargs)
+                # Trust-gated above (require_trusted, verify_sha256).
+                loaded = joblib.load(filename, *args, **kwargs)  # noqa: S301
+                cls._instance[cls] = loaded
                 # Log success
                 logger.info(f"Deserialized {cls.__name__} instance from '{filename}'")
                 return cls._instance[cls]

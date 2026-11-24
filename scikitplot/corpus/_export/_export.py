@@ -1331,4 +1331,5 @@ def load_documents(
             " Install it with:\n"
             "  pip install joblib"
         ) from exc
-    return _validate_loaded_documents(_unwrap_binary(joblib.load(path), path), path)
+    obj = joblib.load(path)  # noqa: S301 - trust-gated above
+    return _validate_loaded_documents(_unwrap_binary(obj, path), path)

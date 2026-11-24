@@ -12,6 +12,7 @@
 #
 #   extractall-without-filter  PR 962  tar extraction without filter=
 #   pickle-load                        pickle.load outside a trust gate
+#   joblib-load                PR 964  joblib.load outside a trust gate
 #   stdlib-xml-parse                   xml.etree parsing of untrusted input
 ---
 name: "PRs 🧹 Static sweep (fixed risk patterns)"
@@ -52,6 +53,7 @@ jobs:
           python -B tools/maint_tools/sweep_static.py
           --fail-on extractall-without-filter
           --fail-on pickle-load
+          --fail-on joblib-load
           --fail-on stdlib-xml-parse
 
       - name: "🧪 Tool tests"

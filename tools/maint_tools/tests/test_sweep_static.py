@@ -126,6 +126,28 @@ class SweepTests(unittest.TestCase):
             by_category.setdefault(f["category"], []).append(f)
         self.assertTrue(all(len(v) == 1 for v in by_category.values()), by_category)
 
+    def test_a_module_returned_by_an_import_call_is_resolved(self) -> None:
+        self.repo.close()
+        self.repo = _Repo(
+            {
+                "scikitplot/__init__.py": "",
+                "scikitplot/beta/mod.py": textwrap.dedent(
+                    """
+                    import importlib
+                    def f(p, name):
+                        safe_import("pickle").load(p)
+                        importlib.import_module("joblib").load(p)
+                        __import__("cloudpickle").loads(p)
+                        safe_import(name).load(p)  # not a constant: unknown module
+                        safe_import("json").load(p)
+                    """
+                ),
+            }
+        )
+        found = self.categories()
+        self.assertEqual([f["line"] for f in found["pickle-load"]], [4, 6])
+        self.assertEqual([f["line"] for f in found["joblib-load"]], [5])
+
     def test_lxml_and_binary_or_encoded_opens_are_not_findings(self) -> None:
         found = self.categories()
         self.assertEqual([f["code"] for f in found["stdlib-xml-parse"]], ["ET.fromstring(s)"])

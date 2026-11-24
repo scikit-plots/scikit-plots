@@ -1,0 +1,8 @@
+- :mod:`scikitplot.datasets` no longer unpickles a file it was not told to
+  trust. Pickle, joblib, cloudpickle and pandas-pickle files (``.pkl``,
+  ``.pickle``, ``.joblib``, ``.cloudpkl``, ``.pd.pkl``), and ``.npy`` files
+  read with ``allow_pickle=True``, need ``trusted=True``, and with
+  ``expected_sha256=`` the bytes are checked before loading. This includes
+  files fetched from a URL, which used to be unpickled as soon as they were
+  downloaded. ``load_file_from_path``, ``load_file_from_url`` and
+  ``load_uploaded_file`` now pass keyword arguments to the loader.
