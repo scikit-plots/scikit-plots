@@ -240,3 +240,10 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
   precision 0.16 and 0.24 -> 1.0, recall 1.0; ALTO and flat XML unchanged.
 - Decision taken (was open): the default output changes; explicit XPaths keep
   theirs. Next: CX-49 (silent partial reads).
+
+### PR 972: CX-49, readers say what they covered
+- [x] Done: `ReadCoverage` (read, empty, skipped by reason) on ZipReader and
+  PDFReader as `reader.coverage`; one warning per archive tree, per PDF,
+  per folder. Real PDFs (16): the 2 page-number-only scans now warn, the
+  others do not. Follow-up: record coverage in `reader_snapshot.py` and sum
+  it in `BuildResult`.

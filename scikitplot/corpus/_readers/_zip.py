@@ -71,7 +71,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Generator, Optional  # noqa: F401
 
-from .._base import _TEXT_RATIO_FLOOR, DocumentReader
+from .._base import (
+    _TEXT_RATIO_FLOOR,
+    COVERAGE_WARN_SHARE,
+    DocumentReader,
+    ReadCoverage,
+    _valid_warn_share,
+)
 from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
@@ -433,6 +439,11 @@ class ZipReader(DocumentReader):
     skip_unsupported: bool = field(default=True)
     """Skip members with unregistered extensions instead of raising."""
 
+    coverage_warn_share: float = field(default=COVERAGE_WARN_SHARE)
+    """Share of members skipped or empty above which one read logs a
+    coverage warning (``1``: only when no member gave text). After a read,
+    ``reader.coverage`` holds the counts (:class:`ReadCoverage`)."""
+
     infer_source_type: bool = field(default=True)
     """Auto-infer ``source_type`` for each member via
     :meth:`SourceType.infer` when the caller did not supply
@@ -477,6 +488,9 @@ class ZipReader(DocumentReader):
         leading dot (e.g. ``"MP3"`` → ``".mp3"``) for consistent lookup.
         """
         super().__post_init__()
+        self.coverage_warn_share = _valid_warn_share(
+            self.coverage_warn_share, "ZipReader"
+        )
         if self.max_files <= 0:
             raise ValueError(
                 f"ZipReader: max_files must be > 0; got {self.max_files!r}."
@@ -653,6 +667,9 @@ class ZipReader(DocumentReader):
         # Track member count for the final log line regardless of
         # whether the ZipFile block completes normally or raises early.
         members_count: int = 0
+        # What this read covered (CX-49); a new read starts a new record.
+        coverage = ReadCoverage(unit="member")
+        self.coverage = coverage
         try:
             with zipfile.ZipFile(archive_path, "r") as zf:
                 # Natural order of the member paths (page_2 before page_10),
@@ -687,6 +704,7 @@ class ZipReader(DocumentReader):
                             "ZipReader: skipping hidden/system member %s",
                             member_path,
                         )
+                        coverage.skip("hidden")
                         continue
 
                     # ── ZipSlip guard ─────────────────────────────────
@@ -698,6 +716,7 @@ class ZipReader(DocumentReader):
                             member_path,
                             archive_name,
                         )
+                        coverage.skip("unsafe-path")
                         continue
 
                     # ── Extension filter ──────────────────────────────
@@ -710,6 +729,7 @@ class ZipReader(DocumentReader):
                                 ext,
                                 member_path,
                             )
+                            coverage.skip("unsupported")
                             continue
                         raise ValueError(
                             f"ZipReader: member {member_path!r} has "
@@ -800,9 +820,15 @@ class ZipReader(DocumentReader):
                         # The member's own text limit (an OfficeReader or
                         # PDFReader default, or reader_kwargs): a refused
                         # member is logged and skipped like any member error.
+                        if isinstance(sub_reader, ZipReader):
+                            # A nested archive's counts roll up into this
+                            # one's: one warning for the whole tree.
+                            sub_reader._warn_coverage = False
+                        n_member_chunks = 0
                         for raw_chunk in sub_reader._within_text_limit(
                             sub_reader.get_raw_chunks()
                         ):
+                            n_member_chunks += 1
                             bridged = dict(raw_chunk)
                             bridged.setdefault("input_path", member_label)
                             for key, value in sub_reader.source_provenance.items():
@@ -815,10 +841,19 @@ class ZipReader(DocumentReader):
                             archive_name,
                             member_st,
                         )
+                        nested = getattr(sub_reader, "coverage", None)
+                        if isinstance(nested, ReadCoverage):
+                            # A nested archive: its members count, not itself.
+                            coverage.merge(nested)
+                        elif n_member_chunks:
+                            coverage.read += 1
+                        else:
+                            coverage.empty += 1
                     except (ArchiveNestingError, ArchiveBudgetError):
                         # Security limits: abort the whole tree, never swallow.
                         raise
                     except Exception as exc:  # noqa: BLE001
+                        coverage.skip("error")
                         logger.warning(
                             "ZipReader: failed to read member %s from %s: %s",
                             member_path,
@@ -832,8 +867,18 @@ class ZipReader(DocumentReader):
 
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+        if getattr(self, "_warn_coverage", True) and coverage.is_poor(
+            self.coverage_warn_share
+        ):
+            logger.warning(
+                "ZipReader: %s gave little text: %s. Skipped members are not in"
+                " the corpus; register a reader for their type or extract them.",
+                archive_name,
+                coverage.summary(),
+            )
         logger.info(
-            "ZipReader: finished %s — processed %d members",
+            "ZipReader: finished %s (%d member(s)): %s",
             archive_name,
             members_count,
+            coverage.summary(),
         )

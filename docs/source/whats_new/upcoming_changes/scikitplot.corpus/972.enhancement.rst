@@ -1,0 +1,11 @@
+- Readers say what they covered (:class:`~scikitplot.corpus.ReadCoverage`:
+  parts read, empty, and skipped by reason). ``ZipReader`` warns once per
+  archive, nested archives included, when no member gave text or more
+  than ``coverage_warn_share`` (default 0.5) were skipped or empty: an
+  archive of only unsupported members used to report "processed 3
+  members". ``PDFReader`` warns when most pages (``coverage_warn_share``,
+  default 0.8) have fewer than ``coverage_min_chars`` (default 10)
+  characters, such as scanned pages that carry only a page number, and
+  suggests ``ocr="auto"``. ``CorpusBuilder`` logs one line per folder with
+  the files it skipped, a warning when it kept none. After a read,
+  ``reader.coverage`` holds the counts.

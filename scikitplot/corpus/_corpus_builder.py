@@ -1455,11 +1455,26 @@ class CorpusBuilder:
             if p.is_file():
                 expanded.append(p)
             elif p.is_dir():
-                expanded.extend(
-                    fp
-                    for fp in sorted(p.rglob("*"))
-                    if fp.is_file() and not _skip_reason(fp, p, supported)
-                )
+                kept, skipped = 0, {}
+                for fp in sorted(p.rglob("*")):
+                    if not fp.is_file():
+                        continue
+                    reason = _skip_reason(fp, p, supported)
+                    if reason:
+                        skipped[reason] = skipped.get(reason, 0) + 1
+                        continue
+                    expanded.append(fp)
+                    kept += 1
+                if skipped:
+                    # One line per folder, never per file (CX-49): skipped
+                    # files are not in the corpus.
+                    log = logger.warning if not kept else logger.info
+                    log(
+                        "Folder %s: %d file(s) kept, %s skipped.",
+                        src_str,
+                        kept,
+                        ", ".join(f"{n} {r}" for r, n in sorted(skipped.items())),
+                    )
             else:
                 logger.warning("Source not found: %s", src)
 

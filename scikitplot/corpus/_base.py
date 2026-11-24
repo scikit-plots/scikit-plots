@@ -125,6 +125,8 @@ __all__ = [
     "FilterBase",
     # Pipeline resilience
     "PipelineGuard",
+    # What a read covered
+    "ReadCoverage",
     # Note: _MultiSourceReader and _is_url are intentionally NOT exported.
     # They are internal implementation details importable as
     # scikitplot.corpus._base._MultiSourceReader and _is_url for internal use only.
@@ -133,6 +135,95 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Module-level constants
 # ---------------------------------------------------------------------------
+
+#: Default share of a source's parts (members, pages, files) that may be
+#: skipped or empty before a read logs one coverage warning (CX-49).
+COVERAGE_WARN_SHARE: float = 0.5
+
+
+@dataclass
+class ReadCoverage:
+    """
+    What one read of a source covered: parts read, empty and skipped.
+
+    Parameters
+    ----------
+    unit : str
+        What a part is (``"member"``, ``"page"``, ``"file"``), for messages.
+    read : int
+        Parts that gave text.
+    empty : int
+        Parts that were read and gave no text.
+    skipped : dict of str to int
+        Parts not read, by reason (``"unsupported"``, ``"hidden"``,
+        ``"unsafe-path"``, ``"error"``, ``"symlink"``).
+
+    Notes
+    -----
+    **User note:** A reader that fills one exposes it as ``reader.coverage``
+    after iteration; a new read starts a new record, so reading twice gives
+    the same counts. Messages hold counts and reasons only, never text.
+    """
+
+    unit: str = "part"
+    read: int = 0
+    empty: int = 0
+    skipped: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def total(self) -> int:
+        """Return every part seen: read, empty and skipped."""
+        return self.read + self.empty + sum(self.skipped.values())
+
+    def skip(self, reason: str, count: int = 1) -> None:
+        """Count *count* parts skipped for *reason*."""
+        self.skipped[reason] = self.skipped.get(reason, 0) + count
+
+    def merge(self, other: ReadCoverage) -> None:
+        """Add another record's counts (a nested archive's) to this one."""
+        self.read += other.read
+        self.empty += other.empty
+        for reason, count in other.skipped.items():
+            self.skip(reason, count)
+
+    def summary(self) -> str:
+        """Return ``"2 read, 1 empty, 3 skipped (2 unsupported, 1 hidden)"``."""
+        parts = [f"{self.read} read", f"{self.empty} empty"]
+        n_skipped = sum(self.skipped.values())
+        if n_skipped:
+            reasons = ", ".join(
+                f"{count} {reason}" for reason, count in sorted(self.skipped.items())
+            )
+            parts.append(f"{n_skipped} skipped ({reasons})")
+        return f"{', '.join(parts)} of {self.total} {self.unit}(s)"
+
+    def is_poor(self, warn_share: float = COVERAGE_WARN_SHARE) -> bool:
+        """
+        Return whether the read deserves a warning.
+
+        True when parts were seen but none gave text, or when the share of
+        parts skipped or empty is above *warn_share* (``0`` < share <= ``1``;
+        ``1`` warns only when nothing was read).
+        """
+        if self.total == 0:
+            return False
+        if self.read == 0:
+            return True
+        return (self.total - self.read) / self.total > warn_share
+
+
+def _valid_warn_share(value: Any, owner: str) -> float:
+    """Return *value* as a share in (0, 1], or raise ``ValueError``."""
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not 0 < value <= 1
+    ):
+        raise ValueError(
+            f"{owner}: coverage_warn_share must be in (0, 1]; got {value!r}."
+        )
+    return float(value)
+
 
 # Matches strings that have no Unicode letter — used by DefaultFilter
 _NO_LETTER_RE: re.Pattern[str] = re.compile(r"^[^\w]*$", re.UNICODE)
