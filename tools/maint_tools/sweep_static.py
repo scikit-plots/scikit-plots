@@ -159,6 +159,20 @@ def _keyword(node: ast.Call, name: str) -> ast.AST | None:
     return None
 
 
+def _encoding_given(node: ast.Call, position: int) -> bool:
+    """
+    Return whether a call names its encoding or may receive it.
+
+    ``encoding=`` given, the encoding passed by position (``position`` is its
+    index), or a ``**mapping`` that can supply it: a splat such as
+    ``**UTF8`` (``{"encoding": "utf-8"}``) cannot be decided statically, so
+    the check reports only calls whose encoding is provably missing.
+    """
+    if _keyword(node, "encoding") is not None or len(node.args) > position:
+        return True
+    return any(item.arg is None for item in node.keywords)
+
+
 def _is_false(node: ast.AST | None) -> bool:
     return isinstance(node, ast.Constant) and node.value is False
 
@@ -186,15 +200,29 @@ class _Checker(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:  # noqa: C901, PLR0912
         name = _dotted(node.func)
         last = name.rsplit(".", 1)[-1]
-        if name in ("open", "io.open", "codecs.open") or (
-            last == "open" and isinstance(node.func, ast.Attribute) and name.split(".")[0] in ("Path", "path", "pathlib")
-        ):
-            mode = node.args[1] if len(node.args) > 1 else _keyword(node, "mode")
+        # Decided by the call's shape, not its dotted name: ``Path(p).open``
+        # has the dotted name ``open``, like the builtin.
+        builtin = (isinstance(node.func, ast.Name) and node.func.id == "open") or name in ("io.open", "codecs.open")
+        method = (
+            not builtin
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "open"
+            and (
+                name.split(".")[0] in ("Path", "path", "pathlib")
+                or (isinstance(node.func.value, ast.Call) and _dotted(node.func.value.func) in ("Path", "pathlib.Path"))
+            )
+        )
+        if builtin or method:
+            # open(file, mode, buffering, encoding) and io/codecs.open take the
+            # file first; Path.open(mode, buffering, encoding) does not.
+            first = 1 if builtin else 0
+            mode = node.args[first] if len(node.args) > first else _keyword(node, "mode")
             text = mode.value if isinstance(mode, ast.Constant) else ("r" if mode is None else None)
-            if isinstance(text, str) and "b" not in text and _keyword(node, "encoding") is None:
+            if isinstance(text, str) and "b" not in text and not _encoding_given(node, first + 2):
                 self.emit("open-without-encoding", node)
-        if last in ("read_text", "write_text") and isinstance(node.func, ast.Attribute) and _keyword(node, "encoding") is None:
-            if not (last == "read_text" and node.args) and not (last == "write_text" and len(node.args) > 1):
+        if last in ("read_text", "write_text") and isinstance(node.func, ast.Attribute):
+            # read_text(encoding, errors); write_text(data, encoding, errors)
+            if not _encoding_given(node, 0 if last == "read_text" else 1):
                 self.emit("path-text-without-encoding", node)
         if name in ("pickle.load", "pickle.loads", "cloudpickle.load", "cloudpickle.loads", "dill.load", "dill.loads"):
             self.emit("pickle-load", node)

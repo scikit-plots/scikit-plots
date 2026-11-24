@@ -1,0 +1,6 @@
+- The xeus add-on of ``scikitplot._env`` reads JupyterLite's aggregated
+  federated-extension settings file as UTF-8. It was read with the locale's
+  encoding, so a build on a machine whose locale is not UTF-8 (a Windows code
+  page, an ASCII container locale) failed with ``UnicodeDecodeError`` when an
+  extension's settings held a non-ASCII character. Every other file the add-on
+  reads or writes already named UTF-8.

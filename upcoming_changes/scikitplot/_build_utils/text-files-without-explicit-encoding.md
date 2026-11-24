@@ -1,5 +1,5 @@
 ---
-title: "_build_utils: text files read or written without an explicit encoding (7 places)"
+title: "_build_utils: text files read or written without an explicit encoding (6 places)"
 status: open
 kind: "compatibility"
 area: "scikitplot/_build_utils"
@@ -10,11 +10,11 @@ towncrier_type: "fix"
 towncrier_fragment: ""
 ---
 
-# _build_utils: text files read or written without an explicit encoding (7 places)
+# _build_utils: text files read or written without an explicit encoding (6 places)
 
 ## Summary
 
-In build helpers, 7 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.
+In build helpers, 6 calls open, read or write a text file without `encoding=`. Python then uses the locale's encoding: UTF-8 on most Linux and macOS systems, cp1252 or another code page on Windows and in some containers.
 
 ## Why it matters
 
@@ -26,10 +26,10 @@ The same file reads differently on two machines: non-ASCII text (names, accents,
 - `scikitplot/_build_utils/conv_template.py:281`: `with open(source) as fid:`
 - `scikitplot/_build_utils/conv_template.py:331`: `fid = open(file, 'r')`
 - `scikitplot/_build_utils/conv_template.py:334`: `outfile = open(newname, 'w')`
-- `scikitplot/_build_utils/generate_apis_reference/__init__.py:733`: `with path.open("rb") as handle:`
 - `scikitplot/_build_utils/gitversion.py:179`: `with open(os.devnull, "w") as devnull:`
 - `scikitplot/_build_utils/gitversion.py:193`: `with open(os.devnull, "w") as devnull:`
 - `scikitplot/_build_utils/process_src_template.py:43`: `with open(outfile, 'w') as f:`
+- Corrected in PR 973: `sweep_static.py` counted binary opens (`Path.open("rb")`) as text mode; 1 such entry removed.
 
 ## Root cause / current understanding
 

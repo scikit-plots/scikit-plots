@@ -201,6 +201,18 @@ class CommandTests(_Repo):
         self.assertIn("STALE scikitplot/corpus/example-reader-gap.md [absent]", out)
         self.assertEqual(json.loads(report.read_text(encoding="utf-8"))["stale"][0]["kind"], "absent")
 
+    def test_check_reports_a_catalog_note_closed_on_disk(self):
+        cat = str(self.catalog([_note(discovered="@r")]))
+        self.assertEqual(self.run_main("render", cat, "--snapshot", str(self.snap), "--apply")[0], 0)
+        rc, out, _ = self.run_main("check", cat, "--snapshot", str(self.snap))
+        self.assertEqual(rc, 0, out)
+        (self.root / "upcoming_changes" / "scikitplot/corpus/example-reader-gap.md").unlink()
+        report = self.root / "r.json"
+        rc, out, _ = self.run_main("check", cat, "--snapshot", str(self.snap), "--json", str(report))
+        self.assertEqual(rc, 1)
+        self.assertIn("NO NOTE scikitplot/corpus/example-reader-gap.md", out)
+        self.assertEqual(json.loads(report.read_text(encoding="utf-8"))["missing"], ["scikitplot/corpus/example-reader-gap.md"])
+
     def test_missing_snapshot_is_a_usage_error(self):
         rc, _, err = self.run_main("check", str(self.catalog([_note()])))
         self.assertEqual(rc, 2)

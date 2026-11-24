@@ -179,7 +179,6 @@
     - "plugins/scikitplot-dev/skills/scikitplot-env-dev/**/*"
     - "plugins/scikitplot-dev/agents/scikitplot-env-dev.md"
     - "docs/source/user_guide/_env/**/*"
-    - "upcoming_changes/scikitplot/_env/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._env/**/*"
     - "galleries/examples/env/**/*"
 

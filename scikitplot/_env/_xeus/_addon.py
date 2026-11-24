@@ -776,7 +776,7 @@ class XeusAddon(FederatedExtensionAddon):
             for p in lab_extensions
             for setting in self.get_federated_settings(p.parent)
         ]
-        current_json = json.loads(all_federated_json.read_text())
+        current_json = json.loads(all_federated_json.read_text(**UTF8))
         current_json = current_json + federated_settings
         all_federated_json.write_text(json.dumps(current_json), **UTF8)
 
