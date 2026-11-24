@@ -1530,6 +1530,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "FilterBase",
                     # Pipeline resilience
                     "PipelineGuard",
+                    # What a read covered
+                    "ReadCoverage",
                 ],
                 # for inheritance-diagram
                 "classes": [

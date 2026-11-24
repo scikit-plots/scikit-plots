@@ -69,7 +69,11 @@ from typing import (  # noqa: F401
     Sequence,
 )
 
-from .._base import DocumentReader
+from .._base import (
+    DocumentReader,
+    ReadCoverage,
+    _valid_warn_share,
+)
 from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
@@ -1475,6 +1479,19 @@ class PDFReader(DocumentReader):
     ``policy(page_number, text) -> bool``. Default: ``"off"``.
     """
 
+    coverage_min_chars: int = field(default=10)
+    """A page whose text has fewer non-space characters than this counts as
+    *empty* in ``reader.coverage`` (it is still yielded): a scanned page
+    that carries only a printed page number. Default: ``10``."""
+
+    coverage_warn_share: float = field(default=0.8)
+    """Share of pages without text (or unreadable) above which a read logs
+    one coverage warning, such as for a PDF of scanned pages that still
+    carry printed page numbers. Higher than the archive default (0.5): a
+    short document with a cover and a blank page is common. After a read,
+    ``reader.coverage`` holds the counts (:class:`ReadCoverage`).
+    Default: ``0.8``."""
+
     ocr_min_chars: int = field(default=1)
     """Under ``ocr="auto"``, the text layer length below which OCR runs. Default: 1."""
 
@@ -1586,6 +1603,14 @@ class PDFReader(DocumentReader):
             raise ValueError(
                 f"PDFReader: pdfminer_ties must be one of"
                 f" {list(self._VALID_PDFMINER_TIES)}; got {self.pdfminer_ties!r}."
+            )
+        self.coverage_warn_share = _valid_warn_share(
+            self.coverage_warn_share, "PDFReader"
+        )
+        if not _is_positive_int(self.coverage_min_chars):
+            raise ValueError(
+                "PDFReader: coverage_min_chars must be a positive int;"
+                f" got {self.coverage_min_chars!r}."
             )
         if self.pdfminer_rotated not in self._VALID_PDFMINER_ROTATED:
             raise ValueError(
@@ -1725,6 +1750,8 @@ class PDFReader(DocumentReader):
 
         pages_yielded = 0
         unreadable: list[int] = []
+        coverage = ReadCoverage(unit="page")
+        self.coverage = coverage
         pages = _PageTexts(
             self.input_path,
             self.password,
@@ -1742,9 +1769,11 @@ class PDFReader(DocumentReader):
                         # Without a count, the first such page is the end.
                         break
                     unreadable.append(page_idx)
+                    coverage.skip("unreadable")
                     continue
                 chunk = self._page_chunk(page_idx, text, ocr)
                 if chunk is None:
+                    coverage.empty += 1
                     logger.debug(
                         "PDFReader: page %d of %s has no extractable text; skipping.",
                         page_idx,
@@ -1753,6 +1782,11 @@ class PDFReader(DocumentReader):
                     continue
                 yield chunk
                 pages_yielded += 1
+                n_chars = sum(not ch.isspace() for ch in str(chunk.get("text", "")))
+                if n_chars < self.coverage_min_chars:
+                    coverage.empty += 1
+                else:
+                    coverage.read += 1
         finally:
             # Also reached when the consumer stops early.
             pages.close()
@@ -1808,6 +1842,27 @@ class PDFReader(DocumentReader):
             )
         if ocr is not None:
             self._warn_ocr(ocr)
+        coverage = getattr(self, "coverage", None)
+        if (
+            pages_yielded
+            and isinstance(coverage, ReadCoverage)
+            and coverage.is_poor(self.coverage_warn_share)
+        ):
+            # Some pages have text and most do not: scanned pages that still
+            # carry a printed page number (CX-49). No page at all is the
+            # warning below.
+            hint = (
+                " They are probably scanned images; pass ocr='auto' to read"
+                " them with OCR."
+                if ocr is None
+                else ""
+            )
+            logger.warning(
+                "PDFReader: most pages of %s have no extractable text: %s.%s",
+                self.file_name,
+                coverage.summary(),
+                hint,
+            )
         if pages.n_read and pages_yielded == 0:
             logger.warning(
                 "PDFReader: none of the %d page(s) read from %s has extractable text%s",

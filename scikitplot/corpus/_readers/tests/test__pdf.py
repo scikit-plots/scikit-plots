@@ -276,6 +276,9 @@ def _reader(
 ) -> PDFReader:
     """A reader whose page count is ``n_pages`` without opening the file."""
     monkeypatch.setattr(PDFReader, "_count_pages", lambda self: n_pages)
+    # The fakes' pages hold short placeholders ("page 3"), which the coverage
+    # check (CX-49) would count as empty pages; its own tests set it.
+    kwargs.setdefault("coverage_min_chars", 1)
     return PDFReader(input_path=path, **kwargs)
 
 
