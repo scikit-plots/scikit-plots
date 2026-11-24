@@ -45,6 +45,7 @@ Probe: `DocumentReader.create("page.html")` and
   affected `WebReader` too).
 - Compiled HTML Help (`.chm`), added on request: `CHMReader`, PR 976,
   pure-Python container and LZX decoder.
+- Saved pages (`.mhtml`, `.mht`): `MHTMLReader`, PR 977.
 
 ## Root cause / current understanding
 

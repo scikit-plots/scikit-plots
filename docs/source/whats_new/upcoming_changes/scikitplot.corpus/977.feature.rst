@@ -1,0 +1,8 @@
+- Saved web pages in MHTML (``.mhtml``, ``.mht``), what a browser writes
+  for "save page as single file", are read by the new ``MHTMLReader``
+  with the standard library ``email`` package: every HTML part, the page
+  first and then its frames, parsed as ``HTMLReader`` parses a file.
+  Quoted-printable and base64 parts are decoded; a part's declared
+  charset is used when it decodes the bytes. Each chunk names its part,
+  and ``url`` is the page's original address. Limits on file size, part
+  count, part size and multipart nesting bound a hostile file.

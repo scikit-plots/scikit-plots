@@ -176,6 +176,19 @@ def _chm_repetitive_page(path: Path) -> Path:
     return path
 
 
+def _mhtml_many_parts(path: Path) -> Path:
+    """About 2000 tiny HTML parts in one saved page: per-part cost dominates."""
+    boundary = "b"
+    head = (
+        "MIME-Version: 1.0\r\n"
+        f'Content-Type: multipart/related; boundary="{boundary}"\r\n\r\n'
+    )
+    part = f"--{boundary}\r\nContent-Type: text/html\r\n\r\n<p>x</p>\r\n"
+    body = head + part * ((60_000 - len(head)) // len(part)) + f"--{boundary}--\r\n"
+    path.write_text(body, encoding="ascii", newline="")
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -201,6 +214,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("xml-nested-entities", "a.xml", _xml_nested_entities),
     ("html-unclosed-nesting", "a.html", _html_unclosed_nesting),
     ("chm-repetitive-page", "a.chm", _chm_repetitive_page),
+    ("mhtml-many-parts", "a.mhtml", _mhtml_many_parts),
 ]
 
 
@@ -230,7 +244,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml"}
 
 
 _CHILD = """
