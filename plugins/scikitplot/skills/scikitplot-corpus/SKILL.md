@@ -75,6 +75,7 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `DummyReader` | class | A no-op reader that validates source existence and accessibility. |
 | `FilterBase` | class | Abstract base class for corpus document filters. |
 | `PipelineGuard` | class | Wrap any document stream with resilience, deduplication, and checkpointing. |
+| `ReadCoverage` | class | What one read of a source covered: parts read, empty and skipped. |
 | `BackendCandidate` | class | One lazy backend attempt. |
 | `BackendOutcome` | class | Structured, serialisable outcome from `run_backend_chain`. |
 | `BackendPlan` | class | Side-effect-free preflight of candidate ordering and policy eligibility. |
@@ -94,9 +95,8 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `WordChunkerBridge` | class | Bridge for ``WordChunker`` → ``ChunkerBase`` contract. |
 | `bridge_chunker` | function | Wrap *chunker* in a bridge if it is a new-style chunker. |
 | `register_bridge` | function | Register a custom bridge for a user-defined chunker class. |
-| `unregister_bridge` | function | Remove a previously registered bridge for *chunker_class*. |
 
-418 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
+419 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
 (or `print(m.__all__)` and `help()`, above).
 
 ## Example (from the docstring of `scikitplot.corpus`)

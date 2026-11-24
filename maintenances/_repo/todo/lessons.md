@@ -70,3 +70,16 @@
   (PR 969); the labeler check failed twice in CI (PRs 959, 961); and a PDF
   fix passed every synthetic test but spaced every letter of a real file
   whose font size lived in the text matrix (PR 969).
+
+### Rule REPO-L6: A new public name regenerates the usage skills
+- **When:** a change adds, removes or renames a name in a submodule's
+  `__all__`, or edits its first docstring line.
+- **Then:** install the `usage-skills` extra and run
+  `python tools/maint_tools/generate_usage_skills.py sync`, then `check`, and
+  commit `plugins/` with the source change; also rebuild the API reference
+  (pre-commit hook `apis-reference-coverage`).
+- **Verified by:** `generate_usage_skills.py check` exits 0 and
+  `scikitplot/tests/test_usage_skills.py` passes.
+- **Added:** 2026-11-24. Root cause: PR 972 exported `ReadCoverage`; the
+  API reference hook caught it locally, but the corpus usage skill was only
+  checked in CI's full test shard, which failed.
