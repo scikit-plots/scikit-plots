@@ -368,6 +368,12 @@ def _layout_text(layout: Any) -> str:
     made by design and presentation tools) is a figure in pdfminer's
     layout. It is read like the rest of the page (finding CX-47).
 
+    **Rotated text** (finding CX-48): pdfminer lays out a rotated glyph as
+    its own text line, so a vertical chart label came out as one character
+    per line, reversed at 90 degrees. Consecutive text boxes whose every
+    character is rotated are regrouped by :func:`_rotated_text` into lines
+    in writing order; upright text and its order are untouched.
+
     **Developer note:** With ``LAParams.all_texts`` (the reader's default)
     the text inside a figure is grouped into text boxes like a page's. When
     a caller turns it off, a figure holds loose characters; they are joined
@@ -382,10 +388,19 @@ def _layout_text(layout: Any) -> str:
     )
 
     parts: list[str] = []
+    rotated: list[Any] = []  # chars of consecutive all-rotated text boxes
     stack = [iter(layout)]
     loose = False
     while stack:
         element = next(stack[-1], None)
+        if isinstance(element, LTTextContainer):
+            chars = _chars(element, LTChar)
+            if chars and not any(c.upright for c in chars):
+                rotated.extend(chars)
+                continue
+        if rotated:
+            parts.append(_rotated_text(rotated))
+            rotated = []
         if element is None:
             stack.pop()
             if loose:
@@ -402,6 +417,88 @@ def _layout_text(layout: Any) -> str:
             parts.append(element.get_text())
             loose = True
     return "".join(parts)
+
+
+def _chars(container: Any, char_type: type) -> list[Any]:
+    """Return the ``LTChar`` objects inside a text container, in order."""
+    out: list[Any] = []
+    try:
+        stack = [iter(container)]
+    except TypeError:  # a container that exposes only get_text()
+        return out
+    while stack:
+        item = next(stack[-1], None)
+        if item is None:
+            stack.pop()
+        elif isinstance(item, char_type):
+            out.append(item)
+        elif hasattr(item, "__iter__"):
+            stack.append(iter(item))
+    return out
+
+
+def _rotated_text(chars: list[Any]) -> str:
+    """
+    Join rotated characters into lines in writing order.
+
+    Parameters
+    ----------
+    chars : list of pdfminer.layout.LTChar
+        Characters that are not upright, from one or more text boxes.
+
+    Returns
+    -------
+    str
+        One line per run, each ending in a newline. A run is the
+        characters that share a writing direction (to the nearest degree)
+        and a baseline (to the nearest font size, perpendicular to that
+        direction); runs keep the order of their first character.
+
+    Notes
+    -----
+    **Developer note:** A character's text matrix ``(a, b, c, d, e, f)``
+    gives its writing direction ``(a, b)``, its origin ``(e, f)`` and, as
+    its scale, the unit of ``LTChar.adv``; the font size in page units is
+    the character box's extent across the direction. Both are measured,
+    not assumed, because producers split the size between the font size
+    and the text matrix differently (12 and 1, or 1 and 7).
+    Characters of a run are ordered by their origin's position along the
+    direction. A space is inserted where the gap after a character exceeds
+    a quarter of its font size: rotated text is drawn glyph by glyph, so
+    pdfminer's word spacing (``LTAnno``) is lost.
+    """
+    import math  # noqa: PLC0415
+
+    runs: dict[tuple[int, int], list[tuple[float, float, float, Any]]] = {}
+    for ch in chars:
+        a, b, _, _, e, f = ch.matrix
+        norm = math.hypot(a, b) or 1.0
+        ux, uy = a / norm, b / norm
+        # Font size in page units: the character box's extent across the
+        # writing direction (pdfminer sizes it from the font's ascent and
+        # descent, the same for every glyph of a font).
+        x0, y0, x1, y1 = ch.bbox
+        size = max(abs((x1 - x0) * uy) + abs((y1 - y0) * ux), 1e-6)
+        # Advance in page units: LTChar.adv is in the units of the text
+        # matrix, whose scale is ``norm``.
+        advance = float(getattr(ch, "adv", 0.0)) * norm
+        angle = round(math.degrees(math.atan2(uy, ux))) % 360
+        baseline = round((e * -uy + f * ux) / size)
+        runs.setdefault((angle, baseline), []).append(
+            (e * ux + f * uy, size, advance, ch)
+        )
+    lines: list[str] = []
+    for run in runs.values():
+        run.sort(key=lambda item: item[0])
+        text: list[str] = []
+        previous_end = None
+        for position, size, advance, ch in run:
+            if previous_end is not None and position - previous_end > 0.25 * size:
+                text.append(" ")
+            text.append(ch.get_text())
+            previous_end = position + advance
+        lines.append("".join(text) + "\n")
+    return "".join(lines)
 
 
 class _PdfminerPages:

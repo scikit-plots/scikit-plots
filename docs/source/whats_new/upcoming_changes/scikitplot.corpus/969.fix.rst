@@ -1,0 +1,6 @@
+- ``PDFReader`` reads rotated text as words with its default pdfminer
+  backend. A vertical chart label used to come out one character per line,
+  reversed at 90 degrees, so years and units were unsearchable ("2015" as
+  ``5 1 0 2``). Text boxes whose every character is rotated are now
+  regrouped into lines in writing order, at any angle; upright text and
+  its order are unchanged.

@@ -222,3 +222,9 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
   it to `CorpusPipeline`; reader_kwargs that clash with pipeline arguments
   are refused at construction. Existing plan fingerprints unchanged.
 - Next: CX-48 (rotated text).
+
+### PR 969: CX-48, rotated PDF text read as words
+- [x] Done: all-rotated text boxes regrouped by direction and baseline, in
+  writing order; sizes measured from the box and the text matrix. Real
+  PDFs (16): the report with charts went to recall and precision 1.0
+  against pdftotext (from 0.95 and 0.81); no other file changed.
