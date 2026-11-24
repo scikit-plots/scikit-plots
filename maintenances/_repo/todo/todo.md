@@ -391,7 +391,7 @@ the record planes themselves. Completed tasks are archived verbatim under
   Its open items moved to CI-6 in
   [`maintenances/_plugins/todo/todo.md`](../../_plugins/todo/todo.md).
 
-## Task: package sweeps kept as tools, Rule 173 (2026-11-24, PR 958)
+## Task: package sweeps and probed ledger notes kept as tools, Rule 173 (2026-11-24, PRs 958, 960)
 
-- Done: `tools/maint_tools/sweep_static.py`, `sweep_runtime.py` (README
-  section, tests on 3.8/3.9/3.13); Rule 173, `.claude/rules/keep-helper-scripts.md`.
+- Done: `tools/maint_tools/sweep_static.py`, `sweep_runtime.py`, `ledger_notes.py` and
+  `catalogs/` (README sections, tests on 3.8/3.9/3.13); Rule 173, `.claude/rules/keep-helper-scripts.md`.
