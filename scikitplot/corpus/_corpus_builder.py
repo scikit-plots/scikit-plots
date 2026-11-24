@@ -97,7 +97,7 @@ import sys
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePath
 
 # Only imports when type checking
 from typing import TYPE_CHECKING
@@ -499,6 +499,61 @@ class BuildResult:
 # =====================================================================
 # CorpusBuilder
 # =====================================================================
+
+
+_GLOB_CHARS = ("*", "?", "[")
+
+
+def _glob_base(pattern: str, path_cls: type[PurePath] = Path) -> PurePath:
+    """
+    Return the wildcard-free prefix of a glob pattern: the directory it names.
+
+    Parameters
+    ----------
+    pattern : str
+        Glob pattern, absolute or relative (``"docs/**/*.md"``).
+    path_cls : type of pathlib.PurePath, default pathlib.Path
+        Path flavour, so Windows patterns can be tested on any system.
+
+    Returns
+    -------
+    pathlib.PurePath
+        Leading parts with no ``*``, ``?`` or ``[`` (``docs``); ``.`` when
+        the first part already has one. Matches of the pattern start with
+        this prefix as written, so ``match.relative_to(base)`` holds.
+    """
+    parts = []
+    for part in path_cls(pattern).parts:
+        if any(c in part for c in _GLOB_CHARS):
+            break
+        parts.append(part)
+    return path_cls(*parts) if parts else path_cls(".")
+
+
+def _skip_reason(path: Path, base: PurePath, supported: set[str]) -> str | None:
+    """
+    Return why a file found under *base* is left out of a corpus, or ``None``.
+
+    One rule for directory and glob sources. Reasons: ``"symlink"``;
+    ``"hidden"`` when a part *below* ``base`` starts with ``.`` or is
+    ``__pycache__`` (parts of ``base`` itself are the caller's choice);
+    ``"unsupported"`` when no reader is registered for the extension (an
+    empty *supported* set means no reader list is known: nothing is
+    refused for that reason).
+    """
+    if path.is_symlink():
+        logger.debug("Skipping symlink: %s", path)
+        return "symlink"
+    try:
+        below = path.relative_to(base).parts if str(base) != "." else path.parts
+    except ValueError:  # not written below base (should not happen for a match)
+        below = path.parts
+    if any(part.startswith(".") or part == "__pycache__" for part in below):
+        return "hidden"
+    if supported and path.suffix.lower() not in supported:
+        logger.debug("Skipping unsupported extension: %s", path)
+        return "unsupported"
+    return None
 
 
 class CorpusBuilder:
@@ -1285,8 +1340,11 @@ class CorpusBuilder:
 
         1. **URLs** — passed through unchanged (``http://`` or ``https://``).
         2. **Glob patterns** — expanded via ``glob.glob`` with recursive
-           support (``**`` is honoured). A string is treated as a glob if
-           it contains ``*``, ``?``, or ``[`` and is *not* a URL.
+           support (``**`` is honoured), then filtered exactly like the
+           directory before the first wildcard (``_glob_base``). A string
+           is treated as a glob if it contains ``*``, ``?``, or ``[`` and
+           is *not* a URL. When every match is filtered out, one warning
+           gives the counts by reason.
         3. **Directories** — recursively expanded. Only files with
            extensions registered in the ``DocumentReader`` registry are
            included.
@@ -1294,8 +1352,10 @@ class CorpusBuilder:
            registered — the reader will fail later with a clear error).
 
         Hidden files/directories (starting with ``"."``) and
-        ``__pycache__`` are always excluded from directory and glob
-        expansion. Symlinks are skipped to prevent traversal loops.
+        ``__pycache__`` *below* the directory or the glob's fixed prefix
+        are excluded, so ``~/.cache/docs`` and ``~/.cache/docs/*`` give the
+        same files and ``docs/.notes/*.md`` reads the folder it names.
+        Symlinks are skipped to prevent traversal loops (``_skip_reason``).
         """
         from ._base import DocumentReader  # noqa: PLC0415
 
@@ -1310,25 +1370,31 @@ class CorpusBuilder:
                 expanded.append(src_str)
                 continue
 
-            # 2. Glob pattern — expand and filter
-            if any(c in src_str for c in ("*", "?", "[")):
+            # 2. Glob pattern — expand and filter like the directory it names
+            if any(c in src_str for c in _GLOB_CHARS):
                 matches = sorted(_glob.glob(src_str, recursive=True))
                 if not matches:
                     logger.warning("Glob pattern matched no files: %s", src_str)
                     continue
+                base = _glob_base(src_str)
+                skipped: dict[str, int] = {}
+                kept = 0
                 for m in matches:
                     mp = Path(m)
                     if not mp.is_file():
                         continue
-                    if mp.is_symlink():
-                        logger.debug("Skipping symlink: %s", mp)
-                        continue
-                    if any(
-                        part.startswith(".") or part == "__pycache__"
-                        for part in mp.parts
-                    ):
+                    reason = _skip_reason(mp, base, supported)
+                    if reason:
+                        skipped[reason] = skipped.get(reason, 0) + 1
                         continue
                     expanded.append(mp)
+                    kept += 1
+                if not kept and skipped:
+                    logger.warning(
+                        "Glob pattern %s matched only skipped files (%s).",
+                        src_str,
+                        ", ".join(f"{n} {r}" for r, n in sorted(skipped.items())),
+                    )
                 continue
 
             # 3 / 4. Path (file or directory)
@@ -1345,21 +1411,11 @@ class CorpusBuilder:
             if p.is_file():
                 expanded.append(p)
             elif p.is_dir():
-                for fp in sorted(p.rglob("*")):
-                    if not fp.is_file():
-                        continue
-                    if fp.is_symlink():
-                        logger.debug("Skipping symlink: %s", fp)
-                        continue
-                    if any(
-                        part.startswith(".") or part == "__pycache__"
-                        for part in fp.relative_to(p).parts
-                    ):
-                        continue
-                    if supported and fp.suffix.lower() not in supported:
-                        logger.debug("Skipping unsupported extension: %s", fp)
-                        continue
-                    expanded.append(fp)
+                expanded.extend(
+                    fp
+                    for fp in sorted(p.rglob("*"))
+                    if fp.is_file() and not _skip_reason(fp, p, supported)
+                )
             else:
                 logger.warning("Source not found: %s", src)
 

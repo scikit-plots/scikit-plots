@@ -204,3 +204,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done. 117 notes under `upcoming_changes/` (31 for corpus; CX-54:
   legacy encodings read as mojibake). Every claim probed on main cba9383.
 - Next: CX-53 (glob filters), then CX-54 and the corpus notes by priority.
+
+### PR 965: CX-53, a glob and its directory give the same sources
+- [x] Done: one `_skip_reason` rule for both; hidden parts judged below the
+  glob's fixed prefix (`_glob_base`); one warning when all matches skip.
+- Next: CX-54 (legacy encodings), then CX-48 (rotated text).
