@@ -76,7 +76,7 @@ def test_seaborn_parts_name_the_missing_dependency():
     assert "has no attribute 'seaborn'" in r.stdout
     # The extra is named when the installed metadata lists it (not in an
     # in-place build without metadata).
-    from scikitplot._distributions import dependency_hint
+    from .._distributions import dependency_hint
 
     hint = dependency_hint("seaborn")
     if hint is not None:

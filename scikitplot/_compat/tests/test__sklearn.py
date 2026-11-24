@@ -210,7 +210,7 @@ if __name__ == "__main__":
 def test_version_predates_follows_pep_440():
     from types import SimpleNamespace
 
-    from scikitplot._compat._sklearn import _version_predates
+    from .._sklearn import _version_predates
 
     for installed, bound, expected in [
         ("1.5.2", "1.6.0", True),
