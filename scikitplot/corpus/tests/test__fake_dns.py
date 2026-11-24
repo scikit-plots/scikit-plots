@@ -1,4 +1,4 @@
-"""The ``fake_dns`` fixture answers like a resolver, and the URL check still fails closed."""
+"""Corpus tests are hermetic: fake_dns answers like a resolver, real lookups and NLTK downloads are refused."""
 
 from __future__ import annotations
 
@@ -39,3 +39,9 @@ def test_a_test_without_fake_dns_never_reaches_the_real_resolver():
     # The autouse guard answers like an unreachable resolver: fail closed.
     with pytest.raises(ValueError, match="resolve"):
         _validate_url_security("https://example.org/")
+
+
+def test_nltk_downloads_are_refused_in_corpus_tests():
+    nltk = pytest.importorskip("nltk")
+    with pytest.raises(RuntimeError, match="download NLTK data 'stopwords'"):
+        nltk.download("stopwords")
