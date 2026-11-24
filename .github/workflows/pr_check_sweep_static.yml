@@ -1,0 +1,58 @@
+# Risk patterns that are fixed stay fixed.
+#
+# tools/maint_tools/sweep_static.py walks first-party code (vendored copies
+# and tests left out) and lists risk patterns by category. A category that
+# has been brought to zero new findings is listed below with --fail-on, so a
+# later change cannot bring it back. A finding someone has decided about is
+# acknowledged on its line with the matching ruff code (`# noqa: S202`) and
+# does not fail the check.
+#
+# One flag per fixed category, not one test per rule: the package's tests
+# check behaviour; this checks source patterns once, with nothing installed.
+#
+#   extractall-without-filter  PR 962  tar extraction without filter=
+#   pickle-load                        pickle.load outside a trust gate
+#   stdlib-xml-parse                   xml.etree parsing of untrusted input
+---
+name: "PRs 🧹 Static sweep (fixed risk patterns)"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sweep-static:
+    name: "Fixed risk patterns stay fixed"
+    runs-on: ubuntu-latest
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: "🧹 No new finding in a fixed category"
+        run: >-
+          python -B tools/maint_tools/sweep_static.py
+          --fail-on extractall-without-filter
+          --fail-on pickle-load
+          --fail-on stdlib-xml-parse
+
+      - name: "🧪 Tool tests"
+        run: python -m unittest tools/maint_tools/tests/test_sweep_static.py -v
