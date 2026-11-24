@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from unittest.mock import patch
+
 import pytest
 
+from .. import _corpus_builder as _builder_module
 from .._corpus_builder import CorpusBuilder, _glob_base, _skip_reason
 
 expand = CorpusBuilder._expand_sources
@@ -48,17 +50,25 @@ def test_relative_patterns(tree, monkeypatch):
     assert sorted(Path(p).as_posix() for p in expand(["**/*.txt"])) == ["sub/b.txt"]
 
 
-def test_one_warning_when_every_match_is_skipped(tree, caplog):
-    with caplog.at_level(logging.WARNING):
-        assert expand([f"{tree}/*.unknownext"]) == []
-    messages = [r.getMessage() for r in caplog.records if "skipped" in r.getMessage()]
-    assert len(messages) == 1 and "1 unsupported" in messages[0]
+# The module logger is patched, not captured: in a partial distribution the
+# package logger does not propagate to the root logger caplog listens on.
+def _warnings(call):
+    with patch.object(_builder_module.logger, "warning") as warning:
+        result = call()
+    return result, [c.args[0] % c.args[1:] for c in warning.call_args_list]
 
 
-def test_no_match_keeps_its_own_warning(tree, caplog):
-    with caplog.at_level(logging.WARNING):
-        assert expand([f"{tree}/*.none"]) == []
-    assert any("matched no files" in r.getMessage() for r in caplog.records)
+def test_one_warning_when_every_match_is_skipped(tree):
+    result, messages = _warnings(lambda: expand([f"{tree}/*.unknownext"]))
+    assert result == []
+    skipped = [m for m in messages if "skipped" in m]
+    assert len(skipped) == 1 and "1 unsupported" in skipped[0]
+
+
+def test_no_match_keeps_its_own_warning(tree):
+    result, messages = _warnings(lambda: expand([f"{tree}/*.none"]))
+    assert result == []
+    assert any("matched no files" in m for m in messages)
 
 
 @pytest.mark.skipif(not hasattr(os, "symlink"), reason="no symlinks")
