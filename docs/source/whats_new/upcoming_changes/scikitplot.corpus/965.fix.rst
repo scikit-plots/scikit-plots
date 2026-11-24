@@ -1,0 +1,8 @@
+- ``CorpusBuilder`` reads the same files from a glob pattern as from the
+  directory it names. A pattern under a hidden folder (``~/.cache/docs/*``,
+  a project's ``.venv`` or ``.data``) used to match nothing without a
+  warning, and a pattern kept files no reader supports, which then failed
+  one by one. Hidden parts are now judged below the pattern's fixed prefix
+  (so ``docs/.notes/*.md`` reads the folder it names), unsupported types
+  are skipped for both, and a pattern whose matches are all skipped logs
+  one warning with the counts by reason.
