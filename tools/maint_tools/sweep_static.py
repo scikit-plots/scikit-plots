@@ -126,6 +126,11 @@ def area_of(rel: str) -> str:
     return "(package)" if parts[1].endswith(".py") else parts[1]
 
 
+#: Calls that return a module named by their first argument: their result
+#: stands for that module, so ``safe_import("pickle").load`` is ``pickle.load``.
+_MODULE_RETURNING = frozenset({"safe_import", "import_module", "importlib.import_module", "__import__"})
+
+
 def _dotted(node: ast.AST) -> str:
     """Return ``a.b.c`` for a call's function expression, ``""`` otherwise."""
     names = []
@@ -134,6 +139,15 @@ def _dotted(node: ast.AST) -> str:
         node = node.value
     if isinstance(node, ast.Name):
         names.append(node.id)
+        return ".".join(reversed(names))
+    if (
+        isinstance(node, ast.Call)
+        and _dotted(node.func) in _MODULE_RETURNING
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and isinstance(node.args[0].value, str)
+    ):
+        names.append(node.args[0].value)
         return ".".join(reversed(names))
     return ".".join(reversed(names)) if names else ""
 

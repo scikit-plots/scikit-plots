@@ -429,7 +429,8 @@ def create_memmap_backed_data(data, mmap_mode="r", return_folder=False):
     atexit.register(functools.partial(_delete_folder, temp_folder, warn=True))
     filename = op.join(temp_folder, "data.pkl")
     joblib.dump(data, filename)
-    memmap_backed_data = joblib.load(filename, mmap_mode=mmap_mode)
+    # The file was written just above by this function.
+    memmap_backed_data = joblib.load(filename, mmap_mode=mmap_mode)  # noqa: S301
     result = (
         memmap_backed_data if not return_folder else (memmap_backed_data, temp_folder)
     )

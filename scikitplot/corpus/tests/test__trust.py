@@ -39,6 +39,14 @@ def test_matching_digest_passes_in_any_case(tmp_path, as_str):
     verify_sha256(target, None, caller="f")
 
 
+@pytest.mark.parametrize("wrap", [bytes, bytearray, memoryview])
+def test_bytes_are_hashed_directly(wrap):
+    digest = hashlib.sha256(b"payload").hexdigest()
+    verify_sha256(wrap(b"payload"), digest, caller="f")
+    with pytest.raises(ValueError, match="7 bytes SHA-256"):
+        verify_sha256(wrap(b"payload"), "0" * 64, caller="f")
+
+
 def test_mismatch_and_malformed_digests_raise(tmp_path):
     p = tmp_path / "a.bin"
     p.write_bytes(b"payload")

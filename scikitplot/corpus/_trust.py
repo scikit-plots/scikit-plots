@@ -12,8 +12,9 @@ Pass it only for files you made or whose source you trust; pass
 ``expected_sha256`` as well to refuse a file that changed since.
 
 **Developer notes.** This module is a duplicated contract: a byte-identical
-copy lives in ``scikitplot/corpus`` and ``scikitplot/_decorates``, because no
-submodule imports another at module level (see
+copy lives in ``scikitplot/corpus``, ``scikitplot/_decorates`` and
+``scikitplot/datasets``, because no submodule imports another at module
+level (see
 ``scikitplot/tests/test_submodule_independence.py``, which compares the
 copies by digest). Change every copy at once. Standard library only.
 """
@@ -65,15 +66,17 @@ def require_trusted(fmt: str, trusted: bool, *, caller: str) -> None:
 
 
 def verify_sha256(
-    path: str | Path, expected_sha256: str | None, *, caller: str
+    source: str | Path | bytes, expected_sha256: str | None, *, caller: str
 ) -> None:
     """
-    Check a file's SHA-256 before anything deserialises it.
+    Check the SHA-256 of a file, or of bytes already read, before deserialising.
 
     Parameters
     ----------
-    path : str or pathlib.Path
-        File to hash, read in 1 MiB blocks (constant memory).
+    source : str, pathlib.Path or bytes
+        File to hash, read in 1 MiB blocks (constant memory), or the bytes
+        themselves (``bytes``, ``bytearray``, ``memoryview``), for content
+        that arrived as a stream or a download.
     expected_sha256 : str or None
         Expected hex digest, case and surrounding whitespace ignored.
         ``None`` skips the check.
@@ -83,8 +86,7 @@ def verify_sha256(
     Raises
     ------
     ValueError
-        If *expected_sha256* is not 64 hex digits, or the file's digest
-        differs.
+        If *expected_sha256* is not 64 hex digits, or the digest differs.
     """
     if expected_sha256 is None:
         return
@@ -94,13 +96,18 @@ def verify_sha256(
             f"{caller}: expected_sha256 must be 64 hexadecimal digits, "
             f"got {expected_sha256!r}."
         )
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as fh:
-        for block in iter(lambda: fh.read(_CHUNK), b""):
-            digest.update(block)
-    actual = digest.hexdigest()
+    if isinstance(source, (bytes, bytearray, memoryview)):
+        actual = hashlib.sha256(source).hexdigest()
+        label = f"{len(source)} bytes"
+    else:
+        digest = hashlib.sha256()
+        with Path(source).open("rb") as fh:
+            for block in iter(lambda: fh.read(_CHUNK), b""):
+                digest.update(block)
+        actual = digest.hexdigest()
+        label = repr(str(source))
     if actual != expected:
         raise ValueError(
-            f"{caller}: {str(path)!r} SHA-256 {actual} does not match the "
+            f"{caller}: {label} SHA-256 {actual} does not match the "
             f"expected {expected}. Refusing to load a tampered or wrong file."
         )
