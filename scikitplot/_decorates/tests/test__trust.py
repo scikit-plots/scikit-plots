@@ -17,6 +17,12 @@ def test_code_executing_formats_need_true(fmt, trusted):
         require_trusted(fmt, trusted, caller="f")
 
 
+def test_pickle_family_and_any_case_are_gated():
+    for fmt in ("cloudpickle", "dill", "pandas-pickle", "Pickle", "JOBLIB"):
+        with pytest.raises(ValueError, match="disabled by default"):
+            require_trusted(fmt, False, caller="f")
+
+
 def test_true_opts_in_and_other_formats_pass():
     for fmt in CODE_EXECUTING_FORMATS:
         require_trusted(fmt, True, caller="f")

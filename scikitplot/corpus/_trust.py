@@ -24,8 +24,12 @@ import hashlib
 import re
 from pathlib import Path
 
-#: Formats whose loading executes code from the file.
-CODE_EXECUTING_FORMATS = frozenset({"pickle", "joblib"})
+#: Formats whose loading executes code from the file: pickle and every
+#: format built on it (joblib, cloudpickle, dill, pandas ``read_pickle``).
+#: Names are compared case-insensitively.
+CODE_EXECUTING_FORMATS = frozenset(
+    {"pickle", "joblib", "cloudpickle", "dill", "pandas-pickle"}
+)
 
 _CHUNK = 1024 * 1024  # 1 MiB
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -51,7 +55,7 @@ def require_trusted(fmt: str, trusted: bool, *, caller: str) -> None:
         If *fmt* is in :data:`CODE_EXECUTING_FORMATS` and *trusted* is not
         ``True``.
     """
-    if fmt in CODE_EXECUTING_FORMATS and trusted is not True:
+    if str(fmt).lower() in CODE_EXECUTING_FORMATS and trusted is not True:
         raise ValueError(
             f"{caller}: loading {fmt} files is disabled by default: a {fmt} "
             "file can run arbitrary Python code when it is loaded. Pass "
