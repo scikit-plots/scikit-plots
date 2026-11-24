@@ -96,3 +96,47 @@ def test_reader_gives_rotated_labels_as_words(chart_pdf):
     # Upright text keeps its place: first and last, as before.
     assert lines[0] == "Horizontal label text on the page"
     assert lines[-1] == "Footer line after the chart"
+
+
+def _read(path, **kwargs):
+    from .._pdf import PDFReader
+
+    return "\n".join(c["text"] for c in PDFReader(input_path=path, **kwargs).get_raw_chunks())
+
+
+def test_pdfminer_mode_keeps_pdfminers_lines(chart_pdf):
+    lines = _read(chart_pdf, pdfminer_rotated="pdfminer").splitlines()
+    assert "Year 2015" not in lines and "5" in lines  # one character per line
+
+
+def test_an_unknown_mode_is_refused(chart_pdf):
+    from .._pdf import PDFReader
+
+    with pytest.raises(ValueError, match="pdfminer_rotated"):
+        PDFReader(input_path=chart_pdf, pdfminer_rotated="upright")
+
+
+@pytest.fixture
+def figure_pdf(tmp_path):
+    """A rotated label drawn inside a form XObject (a figure)."""
+    from reportlab.pdfgen import canvas
+
+    path = tmp_path / "figure.pdf"
+    c = canvas.Canvas(str(path))
+    c.beginForm("chart")
+    c.saveState()
+    c.translate(100, 300)
+    c.rotate(90)
+    c.drawString(0, 0, "Year 2015")
+    c.restoreState()
+    c.endForm()
+    c.drawString(72, 720, "Page title")
+    c.doForm("chart")
+    c.save()
+    return path
+
+
+@pytest.mark.parametrize("all_texts", [True, False])
+def test_rotated_text_inside_a_figure(figure_pdf, all_texts):
+    text = _read(figure_pdf, pdfminer_kwargs={"laparams": {"all_texts": all_texts}})
+    assert "Year 2015" in text.splitlines()

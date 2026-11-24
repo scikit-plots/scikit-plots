@@ -3,4 +3,5 @@
   reversed at 90 degrees, so years and units were unsearchable ("2015" as
   ``5 1 0 2``). Text boxes whose every character is rotated are now
   regrouped into lines in writing order, at any angle; upright text and
-  its order are unchanged.
+  its order are unchanged. ``PDFReader(pdfminer_rotated="pdfminer")``
+  keeps pdfminer.six's own lines, for comparing with it.

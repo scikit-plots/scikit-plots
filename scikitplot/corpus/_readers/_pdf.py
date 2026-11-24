@@ -341,7 +341,7 @@ def _reason(exc: BaseException) -> str:
     return f"{type(exc).__name__}: {message}" if message else type(exc).__name__
 
 
-def _layout_text(layout: Any) -> str:
+def _layout_text(layout: Any, rotated_mode: str = "words") -> str:
     """
     Return the text of a pdfminer page, text inside figures included.
 
@@ -349,6 +349,9 @@ def _layout_text(layout: Any) -> str:
     ----------
     layout : pdfminer.layout.LTPage or LTFigure
         A laid-out page (or figure).
+    rotated_mode : {"words", "pdfminer"}, optional
+        ``"words"`` regroups rotated text in writing order (see the Notes);
+        ``"pdfminer"`` keeps pdfminer's lines. Default: ``"words"``.
 
     Returns
     -------
@@ -372,7 +375,9 @@ def _layout_text(layout: Any) -> str:
     its own text line, so a vertical chart label came out as one character
     per line, reversed at 90 degrees. Consecutive text boxes whose every
     character is rotated are regrouped by :func:`_rotated_text` into lines
-    in writing order; upright text and its order are untouched.
+    in writing order; upright text and its order are untouched. Loose
+    characters of a figure (``all_texts`` off) are joined in drawing order,
+    which is already writing order.
 
     **Developer note:** With ``LAParams.all_texts`` (the reader's default)
     the text inside a figure is grouped into text boxes like a page's. When
@@ -393,11 +398,12 @@ def _layout_text(layout: Any) -> str:
     loose = False
     while stack:
         element = next(stack[-1], None)
-        if isinstance(element, LTTextContainer):
+        if rotated_mode == "words" and isinstance(element, LTTextContainer):
             chars = _chars(element, LTChar)
-            if chars and not any(c.upright for c in chars):
+            if chars and not any(getattr(c, "upright", True) for c in chars):
                 rotated.extend(chars)
                 continue
+
         if rotated:
             parts.append(_rotated_text(rotated))
             rotated = []
@@ -520,6 +526,9 @@ class _PdfminerPages:
         ``"stable"`` in the order they were found (the same text on every
         read), ``"pdfminer"`` as pdfminer.six orders them, by memory
         address. Default: ``"stable"``.
+    rotated : {"words", "pdfminer"}, optional
+        Rotated text regrouped in writing order, or pdfminer's own lines
+        (see :func:`_layout_text`). Default: ``"words"``.
 
     Notes
     -----
@@ -537,11 +546,13 @@ class _PdfminerPages:
         password: str = "",
         kwargs: Mapping[str, Any] | None = None,
         ties: str = "stable",
+        rotated: str = "words",
     ) -> None:
         self._path = pdf_path
         self._password = password
         self._kwargs = kwargs
         self._ties = ties
+        self._rotated = rotated
         self._pages: Any = None
         #: Why the first page that failed could not be read, if any did.
         self.error: str | None = None
@@ -639,7 +650,7 @@ class _PdfminerPages:
         self._at = page_number + 1
         if page is None:
             return None
-        return _layout_text(page)
+        return _layout_text(page, self._rotated)
 
     def close(self) -> None:
         """Close the open iterator, and with it the file."""
@@ -759,6 +770,8 @@ class _PageTexts:
         Keyword arguments for ``pdfminer.high_level.extract_pages``.
     pdfminer_ties : {"stable", "pdfminer"}, optional
         See :class:`_PdfminerPages`. Default: ``"stable"``.
+    pdfminer_rotated : {"words", "pdfminer"}, optional
+        See :class:`_PdfminerPages`. Default: ``"words"``.
     """
 
     def __init__(
@@ -768,10 +781,11 @@ class _PageTexts:
         prefer_backend: str | None,
         pdfminer_kwargs: Mapping[str, Any] | None = None,
         pdfminer_ties: str = "stable",
+        pdfminer_rotated: str = "words",
     ) -> None:
         self._prefer_backend = prefer_backend
         self._pdfminer = _PdfminerPages(
-            pdf_path, password, pdfminer_kwargs, pdfminer_ties
+            pdf_path, password, pdfminer_kwargs, pdfminer_ties, pdfminer_rotated
         )
         self._warned = False
         #: Number of pages a backend returned text (possibly empty) for.
@@ -1244,6 +1258,11 @@ class PDFReader(DocumentReader):
         own order, by memory address, which can change from one read to the
         next; for comparing with pdfminer.six itself. Pages without such
         ties are the same either way. See the Notes. Default: ``"stable"``.
+    pdfminer_rotated : {"words", "pdfminer"}, optional
+        How text drawn at an angle (a chart's vertical axis label) is read.
+        ``"words"``: regrouped into lines in writing order. ``"pdfminer"``:
+        pdfminer.six's own lines, one rotated character per line, for
+        comparing with pdfminer.six itself. Default: ``"words"``.
     ocr : {"off", "auto", "always"} or callable, optional
         Which pages are rendered and read with OCR. ``"off"`` reads the text
         layer only. ``"auto"`` reads a page with OCR when its text layer has
@@ -1393,6 +1412,7 @@ class PDFReader(DocumentReader):
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
 
     _VALID_PDFMINER_TIES: ClassVar[tuple[str, ...]] = ("stable", "pdfminer")
+    _VALID_PDFMINER_ROTATED: ClassVar[tuple[str, ...]] = ("words", "pdfminer")
 
     # extract_pages arguments the reader passes itself. maxpages is among
     # them because the reader reads every page and may open the file again.
@@ -1437,6 +1457,11 @@ class PDFReader(DocumentReader):
     """
 
     pdfminer_ties: str = field(default="stable")
+    pdfminer_rotated: str = field(default="words")
+    """
+    ``"words"`` (rotated text regrouped in writing order) or ``"pdfminer"``
+    (pdfminer.six's own lines). Default: ``"words"``.
+    """
     """
     ``"stable"`` (same text on every read) or ``"pdfminer"`` (pdfminer.six's
     own order of equally distant text boxes). Default: ``"stable"``.
@@ -1503,7 +1528,8 @@ class PDFReader(DocumentReader):
         ValueError
             If ``pdfminer_kwargs`` holds an argument the reader sets itself.
         ValueError
-            If ``pdfminer_ties`` is not ``"stable"`` or ``"pdfminer"``.
+            If ``pdfminer_ties`` is not ``"stable"`` or ``"pdfminer"``, or
+            ``pdfminer_rotated`` is not ``"words"`` or ``"pdfminer"``.
         """
         super().__post_init__()
         if (
@@ -1559,6 +1585,11 @@ class PDFReader(DocumentReader):
             raise ValueError(
                 f"PDFReader: pdfminer_ties must be one of"
                 f" {list(self._VALID_PDFMINER_TIES)}; got {self.pdfminer_ties!r}."
+            )
+        if self.pdfminer_rotated not in self._VALID_PDFMINER_ROTATED:
+            raise ValueError(
+                f"PDFReader: pdfminer_rotated must be one of"
+                f" {list(self._VALID_PDFMINER_ROTATED)}; got {self.pdfminer_rotated!r}."
             )
 
         self._validate_ocr()
@@ -1699,6 +1730,7 @@ class PDFReader(DocumentReader):
             self.prefer_backend,
             self.pdfminer_kwargs,
             self.pdfminer_ties,
+            self.pdfminer_rotated,
         )
         ocr = self._page_ocr()
         try:
