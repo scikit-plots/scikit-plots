@@ -800,3 +800,57 @@ class TestModuleContract:
         # ``installed`` defers the import so that loading the map has no side
         # effects; the module-level namespace therefore holds no ``metadata``.
         assert "metadata" not in vars(dists)
+
+
+class TestExtraProviding:
+    """A missing third-party package is named with the extra that installs it."""
+
+    REQUIRES = [
+        "numpy>=1.20",
+        'seaborn>=0.11; extra == "core"',
+        'pillow>=6.2.0; extra == "core"',
+        'seaborn>=0.11.0; extra == "usage-skills"',
+        "Sphinx>=5; extra == 'usage-skills'",
+        "PyYAML>=6.0; extra == \"usage-skills\"",
+        'scikit-plots[core]; extra == "cpu"',
+        'mcp>=1.0; python_version >= "3.10" and extra == "mcp"',
+        'Odd_Name.pkg>=1; extra == "odd"',
+        'shared>=1; extra == "all"',
+        'a1; extra == "all"',
+        'a2; extra == "all"',
+        'shared>=1; extra == "zz-small"',
+    ]
+
+    @pytest.fixture(autouse=True)
+    def _requires(self, monkeypatch):
+        def requires(name):
+            if name != dists.FULL:
+                raise metadata.PackageNotFoundError(name)
+            return list(self.REQUIRES)
+
+        monkeypatch.setattr(metadata, "requires", requires)
+
+    def test_smallest_extra_wins(self):
+        # core has 2 requirements, usage-skills 3.
+        assert dists.extra_providing("seaborn") == "core"
+
+    def test_size_beats_name_order(self):
+        assert dists.extra_providing("shared") == "zz-small"
+
+    def test_marker_after_other_conditions_and_quotes(self):
+        assert dists.extra_providing("mcp") == "mcp"
+        assert dists.extra_providing("sphinx") == "usage-skills"  # case-insensitive
+
+    def test_name_is_canonicalized(self):
+        assert dists.extra_providing("odd-name-pkg") == "odd"
+
+    def test_base_and_unknown_names_give_no_hint(self):
+        assert dists.extra_providing("numpy") is None  # base dependency, no extra
+        assert dists.extra_providing("PIL") is None  # import name differs: no guess
+        assert dists.dependency_hint("not-a-package") is None
+
+    def test_missing_distribution_gives_no_hint(self):
+        assert dists.extra_providing("seaborn", dist="absent-dist") is None
+
+    def test_hint_is_a_quoted_extra_install(self):
+        assert dists.dependency_hint("seaborn") == 'pip install "scikit-plots[core]"'

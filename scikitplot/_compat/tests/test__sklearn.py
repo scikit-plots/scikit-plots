@@ -205,3 +205,18 @@ class TestLearningCurveParams(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+def test_version_predates_follows_pep_440():
+    from types import SimpleNamespace
+
+    from scikitplot._compat._sklearn import _version_predates
+
+    for installed, bound, expected in [
+        ("1.5.2", "1.6.0", True),
+        ("1.6.dev0", "1.6.0", True),  # a pre-release is older than the release
+        ("1.6.0rc1", "1.6.0", True),
+        ("1.6.0", "1.6.0", False),
+        ("1.10.0", "1.6.0", False),  # numeric, not string, comparison
+    ]:
+        assert _version_predates(SimpleNamespace(__version__=installed), bound) is expected

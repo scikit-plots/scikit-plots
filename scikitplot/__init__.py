@@ -349,6 +349,13 @@ def __dir__() -> list[str]:
 ## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
 ## Avoid loading unnecessary submodules, reducing initial import overhead.
 ## Provide clear error handling and suggestions for unresolved attributes.
+def _dependency_hint(name: str) -> str | None:
+    """Return the install command for a missing optional dependency, or None."""
+    from ._distributions import dependency_hint  # noqa: PLC0415
+
+    return dependency_hint(name)
+
+
 def __getattr__(  # ruff: ignore[too-many-branches, too-many-return-statements]
     name: str,
     package: str | None = None,
@@ -476,6 +483,21 @@ def __getattr__(  # ruff: ignore[too-many-branches, too-many-return-statements]
             suggestion_msg += (
                 f"{e.name!r} is not installed. "
                 f"Install it with: {install_hint(e.name)}\n\n"
+            )
+        # A third-party package that one of the parts imports is absent: name
+        # the optional-dependency group that installs it (read from the
+        # installed metadata), so "No module named 'seaborn'" says what to run.
+        # A package no extra installs falls through to the installation
+        # report below.
+        elif (
+            isinstance(e, ModuleNotFoundError)
+            and e.name
+            and e.name.split(".")[0] != package
+            and (_hint := _dependency_hint(e.name.split(".")[0]))
+        ):
+            suggestion_msg += (
+                f"{e.name.split('.')[0]!r} is an optional dependency. "
+                f"Install it with: {_hint}\n\n"
             )
         # A part that is present and still fails to import usually fails for
         # a reason outside it: versions that do not work together. The
