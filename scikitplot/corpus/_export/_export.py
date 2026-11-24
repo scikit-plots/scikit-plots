@@ -106,7 +106,6 @@ and ``numpy`` are hard requirements. All other backends are optional.
 from __future__ import annotations
 
 import csv
-import hashlib
 import io
 import logging
 import pathlib
@@ -125,6 +124,7 @@ from .._schema import (
     ExportFormat,
     IncompatibleSchemaError,
 )
+from .._trust import require_trusted, verify_sha256
 from ._records import (
     EMBEDDING_DTYPE_KEY,
     EMBEDDING_DTYPES,  # noqa: F401 - re-exported for callers of this module
@@ -1056,69 +1056,6 @@ def _export_mlflow(  # noqa: D417
 # ---------------------------------------------------------------------------
 
 
-def _pickle_safety_guard(format_value, trusted):
-    """Insert this check before pickle.load() and joblib.load() calls.
-
-    Parameters
-    ----------
-    format_value : str
-        The format value string (e.g., "pickle", "joblib").
-    trusted : bool
-        Whether the user has explicitly opted in to unsafe loading.
-
-    Raises
-    ------
-    ValueError
-        If trusted is False and format is pickle or joblib.
-    """
-    if format_value in ("pickle", "joblib") and not trusted:
-        raise ValueError(
-            f"Loading {format_value} files is disabled by default due to "
-            f"arbitrary code execution risk. A malicious {format_value} file "
-            f"can execute arbitrary Python code on your system.\n"
-            f"Pass trusted=True to load_documents() ONLY if you trust "
-            f"the source of this file.\n"
-            f"Safer alternatives: use Parquet or JSON format."
-        )
-
-
-_INTEGRITY_CHUNK = 1024 * 1024  # 1 MiB
-
-
-def _verify_artifact_integrity(path, expected_sha256):
-    """Verify a file's SHA-256 BEFORE deserialization (CORPUS-SEC-001).
-
-    When ``expected_sha256`` is provided, the artifact bytes are hashed and
-    compared *before* any ``pickle.load`` runs, so a tampered or wrong artifact
-    is rejected before it can execute code.
-
-    Parameters
-    ----------
-    path : pathlib.Path
-        Artifact to verify.
-    expected_sha256 : str or None
-        Expected lowercase hex SHA-256. ``None`` skips the check.
-
-    Raises
-    ------
-    ValueError
-        If the actual digest does not match ``expected_sha256``.
-    """
-    if expected_sha256 is None:
-        return
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for block in iter(lambda: fh.read(_INTEGRITY_CHUNK), b""):
-            digest.update(block)
-    actual = digest.hexdigest()
-    if actual != expected_sha256.strip().lower():
-        raise ValueError(
-            f"load_documents: {str(path)!r} SHA-256 {actual} does not match "
-            f"the expected {expected_sha256!r}. Refusing to load a tampered or "
-            f"wrong artifact."
-        )
-
-
 #: Marks a pickle/joblib export, so its generation can be read before use.
 _BINARY_FORMAT = "scikitplot.corpus.documents"
 
@@ -1373,10 +1310,10 @@ def load_documents(
             f"load_documents: {format.value!r} exports cannot be loaded back as documents "
             "(they do not keep every field); export as json, jsonl, yaml or toml to load them."
         )
-    _pickle_safety_guard(format.value, trusted)
+    require_trusted(format.value, trusted, caller="load_documents")
     # Integrity gate runs BEFORE parsing or deserialization: a tampered/wrong
     # artifact is rejected before pickle can execute code (CORPUS-SEC-001).
-    _verify_artifact_integrity(path, expected_sha256)
+    verify_sha256(path, expected_sha256, caller="load_documents")
 
     if format in TEXT_FORMATS:
         return _load_text(path, format)

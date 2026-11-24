@@ -26,13 +26,13 @@ import pickle
 
 import pytest
 
-from scikitplot.corpus._export._export import (
+from ..._trust import verify_sha256
+from .._export import (
     _binary_payload,
     _validate_loaded_documents,
-    _verify_artifact_integrity,
     load_documents,
 )
-from scikitplot.corpus._schema import (
+from ..._schema import (
     CorpusDocument,
     IncompatibleSchemaError,
     SourceType,
@@ -118,7 +118,7 @@ class TestIntegrity:
     def test_none_skips(self, tmp_path):
         p = tmp_path / "good.pkl"
         _dump(_docs(1), p)
-        assert _verify_artifact_integrity(p, None) is None
+        assert verify_sha256(p, None, caller="load_documents") is None
 
 
 class TestGeneration:

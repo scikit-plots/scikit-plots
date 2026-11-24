@@ -55,6 +55,7 @@ from typing import TYPE_CHECKING
 import joblib
 
 from ..utils._inspect import _resolve_args_and_kwargs
+from ._trust import require_trusted, verify_sha256
 
 logger = logging.getLogger(__name__)
 
@@ -1206,6 +1207,8 @@ class BaseDecorator(metaclass=DecorateMeta):
         cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
         filename: str,
         *args: tuple[any, ...],
+        trusted: bool = False,
+        expected_sha256: str | None = None,
         **kwargs: dict[str, any],
     ) -> type[BaseDecorator] | None:
         """
@@ -1213,18 +1216,36 @@ class BaseDecorator(metaclass=DecorateMeta):
 
         Parameters
         ----------
-        filename : str
+        filename : str or pathlib.Path
             The filename to load the serialized object from.
         *args : any
             Additional arguments to pass to `joblib.load`.
+        trusted : bool, default False
+            Must be ``True``: loading a joblib file runs code from the file,
+            so it is refused unless the caller trusts its source.
+        expected_sha256 : str or None, default None
+            When given, the file's SHA-256 must match before it is loaded.
         **kwargs : any
             Additional keyword arguments to pass to `joblib.load`.
 
         Returns
         -------
         Optional[BaseDecorator]
-            The deserialized singleton instance, or None if an error occurred.
+            The deserialized singleton instance, or None if the file is
+            missing or cannot be deserialized.
+
+        Raises
+        ------
+        ValueError
+            If *trusted* is not ``True``, or the file's digest differs from
+            *expected_sha256*. Raised before any byte is unpickled, never
+            logged and swallowed.
         """
+        require_trusted("joblib", trusted, caller=f"{cls.__name__}.deserialize")
+        if Path(filename).is_file():
+            verify_sha256(
+                filename, expected_sha256, caller=f"{cls.__name__}.deserialize"
+            )
         # Class.method() or obj.method()
         # Load the singleton instance from a file
         with cls._lock:

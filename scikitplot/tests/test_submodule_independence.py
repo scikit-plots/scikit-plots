@@ -49,6 +49,8 @@ DUPLICATED_CONTRACTS = {
     "_validation.py": ("corpus", "rank_bm25", "mcp"),
     # R2-1: one rank-fusion rule for every hybrid retriever.
     "_fusion.py": ("corpus", "mcp"),
+    # Loading a code-executing format (pickle, joblib) needs trusted=True.
+    "_trust.py": ("_decorates", "corpus"),
 }
 
 #: Module-level dependencies that are part of a submodule's definition rather

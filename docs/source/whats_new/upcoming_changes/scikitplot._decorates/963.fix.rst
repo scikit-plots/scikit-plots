@@ -1,0 +1,4 @@
+- ``BaseDecorator.deserialize`` no longer unpickles a file it was not told
+  to trust: it raises ``ValueError`` unless ``trusted=True`` is passed, and
+  with ``expected_sha256=`` it refuses a file whose digest differs, both
+  before any byte is loaded. Loading a joblib file runs code from the file.
