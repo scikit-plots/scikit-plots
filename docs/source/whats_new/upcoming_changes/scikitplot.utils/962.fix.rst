@@ -1,0 +1,4 @@
+- Removed the private ``scikitplot.utils._fixes.tarfile_extractall``. On a
+  Python without tar extraction filters it fell back to extracting with no
+  filter, which follows absolute paths, ``..`` and links out of the target
+  directory; nothing in the package called it.
