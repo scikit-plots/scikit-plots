@@ -228,3 +228,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
   writing order; sizes measured from the box and the text matrix. Real
   PDFs (16): the report with charts went to recall and precision 1.0
   against pdftotext (from 0.95 and 0.81); no other file changed.
+
+### PR 970: corpus tests pass without DNS
+- [x] Done: shared `fake_dns` fixture (`conftest.FakeDNS`) used by the 22
+  HTTP-mocked tests; private addresses and resolution failures are still
+  refused (tested). 8 downloader tests now skip without `requests`.

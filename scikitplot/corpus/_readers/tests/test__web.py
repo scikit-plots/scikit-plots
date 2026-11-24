@@ -76,6 +76,10 @@ from scikitplot.corpus._schema import (        # noqa: E402
 from scikitplot.corpus._readers import _web
 import scikitplot.corpus._readers._web as _web_mod  # noqa: E402
 
+# The URL handler resolves every host first (SSRF fail-closed, CORPUS-NET-002);
+# answer DNS here so these HTTP-mocked tests do not need the network.
+pytestmark = pytest.mark.usefixtures("fake_dns")
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -615,17 +619,13 @@ class TestWebReaderSsrfConsolidation:
 
     @staticmethod
     def _set_dns(monkeypatch, mapping):
-        import socket
+        from ... import _url_handler as U
+        from ...conftest import FakeDNS
 
-        from scikitplot.corpus import _url_handler as U
-
-        def fake(host, *a, **k):
-            val = mapping.get(host)
-            if val in (None, "FAIL"):
-                raise socket.gaierror(-2, "unresolved")
-            return [(2, 1, 6, "", (ip, 0)) for ip in val]
-
-        monkeypatch.setattr(U.socket, "getaddrinfo", fake)
+        dns = FakeDNS()
+        dns.default = None  # every host the test does not list fails
+        dns.hosts = {h: (None if v == "FAIL" else v) for h, v in mapping.items()}
+        monkeypatch.setattr(U.socket, "getaddrinfo", dns)
 
     def test_dns_error_now_denies(self, monkeypatch) -> None:
         # The old duplicate skipped the check on gaierror (fail-open).

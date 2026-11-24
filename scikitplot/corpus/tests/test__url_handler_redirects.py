@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import pytest
 
-from scikitplot.corpus import _url_handler as U
+from .. import _url_handler as U
+from ..conftest import FakeDNS
 
 _BLOCKED_HOSTS = {"metadata", "internal"}
 
@@ -36,13 +37,9 @@ def _fake_dns(monkeypatch):
     # Real _validate_url_security now resolves via getaddrinfo; map test hosts
     # deterministically. Blocked hostnames stand in for internal targets; IP
     # literals (127.0.0.1, ::1, ...) are classified without DNS.
-    import socket
-
-    def fake(host, *a, **k):
-        ip = "10.0.0.1" if host in _BLOCKED_HOSTS else "93.184.216.34"
-        return [(2, 1, 6, "", (ip, 0))]
-
-    monkeypatch.setattr(U.socket, "getaddrinfo", fake)
+    dns = FakeDNS()
+    dns.hosts = {host: ["10.0.0.1"] for host in _BLOCKED_HOSTS}
+    monkeypatch.setattr(U.socket, "getaddrinfo", dns)
 
 
 class _Resp:

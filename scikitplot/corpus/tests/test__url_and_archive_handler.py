@@ -51,6 +51,10 @@ from .._archive_handler import (
 from ..import _readers  # noqa: F401 — registers readers
 from .._readers._zip import ZipReader
 
+# The URL handler resolves every host first (SSRF fail-closed, CORPUS-NET-002);
+# answer DNS here so these HTTP-mocked tests do not need the network.
+pytestmark = pytest.mark.usefixtures("fake_dns")
+
 
 class TestClassifyURL:
     """Tests for classify_url."""

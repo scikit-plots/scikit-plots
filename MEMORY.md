@@ -55,6 +55,14 @@ is never copied into this repository.
 - Generators and CI checks must not import the installed package; load
   helpers by file path. Source: lesson CI-12 in
   `maintenances/_plugins/todo/todo.md`. Checked 2026-11-16.
+- `scikitplot.corpus` tests are hermetic: an autouse fixture refuses real
+  DNS lookups (tests ask for `fake_dns`), another refuses `nltk.download`.
+  The suite passes with no resolver and no NLTK data. Source:
+  `scikitplot/corpus/conftest.py`, PR 970. Checked 2026-11-24.
+- In a partial distribution the package logger does not propagate to the
+  root logger, so `caplog` misses records; use `captured_logger`. Source:
+  lesson REPO-L4 in `maintenances/_repo/todo/lessons.md`. Checked
+  2026-11-24.
 - Plugin versions follow the library version (`0.4.0.post11` becomes
   `0.4.0+post.11`; dev builds add a commit stamp). Source:
   `build_skills_repo.py`, PR 944. Checked 2026-11-16.

@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from types import SimpleNamespace
+
 import pytest
 
 from .._word import (
@@ -199,31 +201,37 @@ class TestLoadStopwords:
         assert isinstance(sw, frozenset)
         assert "the" in sw or "a" in sw
 
-    def test_nltk_list_language_union(self) -> None:
+    # The NLTK tests use a fake stopwords corpus: the real one is a download
+    # (corpora/stopwords) that a test must not depend on, and CI runners
+    # cannot reach the NLTK data host.
+    @staticmethod
+    def _fake_nltk_stopwords(monkeypatch, words):
+        corpus = pytest.importorskip("nltk.corpus")
+        fake = SimpleNamespace(words=lambda lang: list(words[lang]))
+        monkeypatch.setattr(corpus, "stopwords", fake)
+        return fake
+
+    def test_nltk_list_language_union(self, monkeypatch) -> None:
         """NLTK source with list language must union stopwords."""
-        try:
-            sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"], allow_download=True)
-            sw_single = _load_stopwords(StopwordSource.NLTK, "english", allow_download=True)
-            # Deduped union of same language must equal single
-            assert len(sw_multi) == len(sw_single)
-        except ImportError:
-            pytest.skip("NLTK not installed")
+        self._fake_nltk_stopwords(
+            monkeypatch, {"english": ["the", "a"], "german": ["der", "the"]}
+        )
+        sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"])
+        sw_single = _load_stopwords(StopwordSource.NLTK, "english")
+        assert sw_multi == sw_single == frozenset({"the", "a"})
+        both = _load_stopwords(StopwordSource.NLTK, ["english", "german"])
+        assert both == frozenset({"the", "a", "der"})
 
-    def test_nltk_unknown_language_uses_builtin_fallback(self) -> None:
+    def test_nltk_unknown_language_uses_builtin_fallback(self, monkeypatch) -> None:
         """NLTK source with unsupported language falls through to BUILTIN."""
-        try:
-            sw = _load_stopwords(StopwordSource.NLTK, "klingon", allow_download=True)
-            assert isinstance(sw, frozenset)
-        except ImportError:
-            pytest.skip("NLTK not installed")
+        self._fake_nltk_stopwords(monkeypatch, {})
+        sw = _load_stopwords(StopwordSource.NLTK, "klingon")
+        assert isinstance(sw, frozenset)
 
-    def test_nltk_none_language_defaults_to_english(self) -> None:
-        try:
-            sw = _load_stopwords(StopwordSource.NLTK, None, allow_download=True)
-            assert isinstance(sw, frozenset)
-            assert len(sw) > 0
-        except ImportError:
-            pytest.skip("NLTK not installed")
+    def test_nltk_none_language_defaults_to_english(self, monkeypatch) -> None:
+        self._fake_nltk_stopwords(monkeypatch, {"english": ["the", "a"]})
+        sw = _load_stopwords(StopwordSource.NLTK, None)
+        assert sw == frozenset({"the", "a"})
 
     def test_spacy_source_requires_spacy(self) -> None:
         """SPACY source raises ImportError when spacy not installed."""

@@ -187,3 +187,111 @@ def _sqlite_connections_are_closed(monkeypatch: pytest.MonkeyPatch):
             f"{len(leaked)} SQLite connection(s) left open; opened at: {leaked}",
             pytrace=False,
         )
+
+
+class FakeDNS:
+    """
+    A deterministic stand-in for ``socket.getaddrinfo`` in corpus tests.
+
+    Attributes
+    ----------
+    hosts : dict of str to (list of str or None)
+        Host name to the addresses it resolves to. A name not listed
+        resolves to :attr:`default`; an IP literal resolves to itself.
+        ``None`` makes the lookup fail (``socket.gaierror``); ``[]``
+        makes it succeed with no address.
+    default : list of str or None
+        Addresses for unlisted names: one public IPv4 address. ``None``
+        makes every unlisted name fail, for tests that list every host.
+    calls : list of str
+        Every host name looked up, in order.
+
+    Notes
+    -----
+    Developer note: the URL handler resolves every host before it connects
+    and refuses private addresses, failing closed when resolution fails
+    (CORPUS-NET-002). Tests that mock HTTP must therefore also answer DNS,
+    or they depend on the machine's resolver and fail offline.
+    """
+
+    def __init__(self) -> None:
+        self.hosts: dict[str, list[str] | None] = {}
+        self.default: list[str] | None = ["93.184.216.34"]
+        self.calls: list[str] = []
+
+    def __call__(self, host: str, *args: object, **kwargs: object) -> list:
+        import ipaddress  # noqa: PLC0415
+        import socket  # noqa: PLC0415
+
+        self.calls.append(host)
+        try:
+            addresses = [str(ipaddress.ip_address(host))]
+        except ValueError:
+            addresses = self.hosts.get(host, self.default)
+        if addresses is None:
+            raise socket.gaierror(socket.EAI_NONAME, f"fake DNS: {host!r} not found")
+        out = []
+        for address in addresses:
+            ip = ipaddress.ip_address(address)
+            family = socket.AF_INET6 if ip.version == 6 else socket.AF_INET
+            sockaddr = (address, 0, 0, 0) if ip.version == 6 else (address, 0)
+            out.append((family, socket.SOCK_STREAM, 6, "", sockaddr))
+        return out
+
+
+@pytest.fixture(autouse=True)
+def _no_real_dns(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Make every corpus test independent of the machine's resolver.
+
+    A lookup through the URL handler fails as an unreachable resolver does
+    (``socket.gaierror``), so a test gets the same result online and
+    offline, and the handler still fails closed. A test that needs names
+    to resolve asks for :func:`fake_dns`, which replaces this.
+    """
+    import socket  # noqa: PLC0415
+
+    from . import _url_handler  # noqa: PLC0415
+
+    def refuse(host: str, *args: object, **kwargs: object) -> list:
+        raise socket.gaierror(
+            socket.EAI_NONAME,
+            f"real DNS lookup of {host!r} in a test; use the fake_dns fixture",
+        )
+
+    monkeypatch.setattr(_url_handler.socket, "getaddrinfo", refuse)
+
+
+@pytest.fixture
+def fake_dns(monkeypatch: pytest.MonkeyPatch) -> FakeDNS:
+    """Answer DNS for the URL handler without the network (see :class:`FakeDNS`)."""
+    from . import _url_handler  # noqa: PLC0415
+
+    resolver = FakeDNS()
+    monkeypatch.setattr(_url_handler.socket, "getaddrinfo", resolver)
+    return resolver
+
+
+@pytest.fixture(autouse=True)
+def _no_nltk_download(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Fail a corpus test that tries to download NLTK data.
+
+    NLTK data (stopwords, punkt, wordnet) comes from a separate host that CI
+    runners and sandboxes cannot reach, so a test that downloads passes on a
+    laptop and fails there. A test uses a fake corpus or skips when the data
+    is absent; one that fakes ``nltk`` itself in ``sys.modules`` is unaffected.
+    """
+    import importlib.util  # noqa: PLC0415
+
+    if importlib.util.find_spec("nltk") is None:
+        return
+    import nltk  # noqa: PLC0415
+
+    def refuse(info_or_id: object = None, *args: object, **kwargs: object) -> bool:
+        raise RuntimeError(
+            f"a test tried to download NLTK data {info_or_id!r}; use a fake"
+            " corpus, or skip when the data is not installed"
+        )
+
+    monkeypatch.setattr(nltk, "download", refuse)
