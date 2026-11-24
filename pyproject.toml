@@ -553,7 +553,7 @@ usage-skills = [
   "sphinx-design",
   "PyYAML>=6.0",
   "pydantic>=2.0",                          # scikitplot.mcp models
-  "seaborn>=0.11.0",                        # scikitplot.api, decile, seaborn, visualkeras
+  "seaborn>=0.11.0",                        # scikitplot.decile, scikitplot.seaborn
   "mcp>=1.0",                               # scikitplot.mcp
 ]
 

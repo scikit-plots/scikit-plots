@@ -642,6 +642,79 @@ def install_hint(module: str) -> str:
     return pip_install([provider_of(module) or FULL])
 
 
+def extra_providing(requirement_name: str, dist: str = FULL) -> str | None:
+    """
+    Return the smallest optional-dependency group of *dist* that installs a package.
+
+    Parameters
+    ----------
+    requirement_name : str
+        Name of the missing third-party package (``ModuleNotFoundError.name``
+        top-level part, e.g. ``"seaborn"``); compared after
+        :func:`canonicalize_name`.
+    dist : str, default :data:`FULL`
+        Installed distribution whose metadata is read.
+
+    Returns
+    -------
+    str or None
+        The extra (``"core"``) whose ``Requires-Dist`` names the package; with
+        several, the one with fewest requirements, then the first by name.
+        ``None`` when *dist* is not installed or no extra names it, so a
+        caller never guesses (an import name that differs from its
+        distribution name, ``PIL`` for ``pillow``, gets no hint).
+
+    Notes
+    -----
+    **Developer notes.** Read from the installed metadata, not a table in
+    the code, so a change to ``pyproject.toml`` needs no second edit.
+
+    Examples
+    --------
+    >>> extra_providing("seaborn")  # doctest: +SKIP
+    'core'
+    """
+    from importlib import metadata  # noqa: PLC0415
+
+    try:
+        lines = metadata.requires(dist) or []
+    except metadata.PackageNotFoundError:
+        return None
+    sizes: dict[str, int] = {}
+    providers: set[str] = set()
+    wanted = canonicalize_name(requirement_name)
+    for line in lines:
+        m = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9._-]*)[^;]*;(.*)$", line)
+        extra = m and re.search(r"""extra\s*==\s*['"]([^'"]+)['"]""", m.group(2))
+        if not extra:
+            continue
+        sizes[extra.group(1)] = sizes.get(extra.group(1), 0) + 1
+        if canonicalize_name(m.group(1)) == wanted:
+            providers.add(extra.group(1))
+    if not providers:
+        return None
+    return min(providers, key=lambda e: (sizes[e], e))
+
+
+def dependency_hint(requirement_name: str) -> str | None:
+    """
+    Return the install command for a missing third-party package, or ``None``.
+
+    Parameters
+    ----------
+    requirement_name : str
+        Top-level name of the missing package.
+
+    Returns
+    -------
+    str or None
+        ``pip install "scikit-plots[<extra>]"`` for :func:`extra_providing`,
+        else ``None``.
+    """
+    extra = extra_providing(requirement_name)
+    return None if extra is None else pip_install([FULL], extras={FULL: (extra,)})
+
+
 def _installed_version(name: str) -> str | None:
     """Return the installed version of a distribution, or ``None`` if it is absent."""
     from importlib import metadata  # noqa: PLC0415

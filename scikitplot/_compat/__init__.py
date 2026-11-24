@@ -15,7 +15,6 @@ import contextlib as _contextlib
 import logging
 
 from ..exceptions import ScikitplotException as _ScikitplotException
-from ..externals._seaborn._compat import *  # noqa: F403
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,6 @@
+- ``pip install scikit-plots`` without extras imports :mod:`scikitplot.api`
+  and runs the README quick start again: ``scikitplot._compat`` no longer
+  imports the vendored seaborn copy, which needs the real seaborn. A part
+  that does need an optional dependency (:mod:`scikitplot.seaborn`,
+  :mod:`scikitplot.decile`) now names the extra that installs it, for
+  example ``pip install "scikit-plots[core]"``.
