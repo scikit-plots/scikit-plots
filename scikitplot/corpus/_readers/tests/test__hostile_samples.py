@@ -185,7 +185,7 @@ def _mhtml_many_parts(path: Path) -> Path:
     )
     part = f"--{boundary}\r\nContent-Type: text/html\r\n\r\n<p>x</p>\r\n"
     body = head + part * ((60_000 - len(head)) // len(part)) + f"--{boundary}--\r\n"
-    path.write_text(body, encoding="ascii", newline="")
+    path.write_bytes(body.encode("ascii"))  # write_text(newline=) is 3.10+
     return path
 
 
