@@ -270,3 +270,28 @@ def fake_dns(monkeypatch: pytest.MonkeyPatch) -> FakeDNS:
     resolver = FakeDNS()
     monkeypatch.setattr(_url_handler.socket, "getaddrinfo", resolver)
     return resolver
+
+
+@pytest.fixture(autouse=True)
+def _no_nltk_download(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Fail a corpus test that tries to download NLTK data.
+
+    NLTK data (stopwords, punkt, wordnet) comes from a separate host that CI
+    runners and sandboxes cannot reach, so a test that downloads passes on a
+    laptop and fails there. A test uses a fake corpus or skips when the data
+    is absent; one that fakes ``nltk`` itself in ``sys.modules`` is unaffected.
+    """
+    import importlib.util  # noqa: PLC0415
+
+    if importlib.util.find_spec("nltk") is None:
+        return
+    import nltk  # noqa: PLC0415
+
+    def refuse(info_or_id: object = None, *args: object, **kwargs: object) -> bool:
+        raise RuntimeError(
+            f"a test tried to download NLTK data {info_or_id!r}; use a fake"
+            " corpus, or skip when the data is not installed"
+        )
+
+    monkeypatch.setattr(nltk, "download", refuse)

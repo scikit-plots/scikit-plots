@@ -34,3 +34,39 @@
   from a fresh clone.
 - **Added:** 2026-11-24. Root cause: PRs 955 and the sweep that followed used
   helpers kept in a scratch folder; the maintainer asked twice to keep them.
+
+### Rule REPO-L3: Tests never reach the network, the resolver or a data host
+- **When:** a test mocks HTTP, resolves a host, or loads NLTK, spaCy or model
+  data.
+- **Then:** answer DNS with the corpus `fake_dns` fixture, use a fake corpus
+  or `pytest.skip` when data is absent, and never pass `allow_download=True`
+  outside a test that fakes `nltk`. In `scikitplot.corpus` autouse guards
+  refuse real DNS and `nltk.download`, so a violation fails everywhere.
+- **Verified by:** the corpus suite passes in a sandbox without a resolver
+  (`socket.getaddrinfo` raises), with `nltk` installed and no data.
+- **Added:** 2026-11-24. Root cause: 22 tests mocked HTTP but not DNS and
+  failed on every offline machine (PR 970); then two stopword tests passed
+  `allow_download=True` and failed in CI, which cannot reach the NLTK host.
+
+### Rule REPO-L4: Log assertions use the package's own capture, not caplog
+- **When:** a test asserts that a submodule logged something.
+- **Then:** use the `captured_logger` fixture or patch the module's `logger`,
+  and run the test once with propagation off
+  (`logging.getLogger("scikitplot").propagate = False`).
+- **Verified by:** the partial-distribution job (`scikit-plots-<part>`)
+  passes, not only the full-package job.
+- **Added:** 2026-11-24. Root cause: two CX-53 tests (PR 965) used `caplog`;
+  in the corpus partial distribution the package logger does not propagate
+  to the root logger, so they passed locally and failed in that job.
+
+### Rule REPO-L5: Checks gate the commit; real data gates the merge
+- **When:** committing, and before asking for a merge of a reader change.
+- **Then:** commit only after `pre-commit` exits 0 (no `;` between them),
+  run `generate_pr_labeler.py check` when a folder under `upcoming_changes/`
+  appears or empties, and benchmark readers on real files, not only on
+  generated ones.
+- **Verified by:** the pull request quotes each check's result.
+- **Added:** 2026-11-24. Root cause: a commit landed while ruff failed
+  (PR 969); the labeler check failed twice in CI (PRs 959, 961); and a PDF
+  fix passed every synthetic test but spaced every letter of a real file
+  whose font size lived in the text matrix (PR 969).
