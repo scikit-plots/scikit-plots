@@ -233,3 +233,10 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done: shared `fake_dns` fixture (`conftest.FakeDNS`) used by the 22
   HTTP-mocked tests; private addresses and resolution failures are still
   refused (tested). 8 downloader tests now skip without `requests`.
+
+### PR 971: CX-46, XMLReader reads each text node once
+- [x] Done: default `block_xpath=None` reads text blocks (structure only, no
+  element names); empty elements separate words. Real TEI (2 files): word
+  precision 0.16 and 0.24 -> 1.0, recall 1.0; ALTO and flat XML unchanged.
+- Decision taken (was open): the default output changes; explicit XPaths keep
+  theirs. Next: CX-49 (silent partial reads).

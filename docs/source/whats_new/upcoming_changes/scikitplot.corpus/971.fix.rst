@@ -1,0 +1,9 @@
+- ``XMLReader`` reads each text node once by default. Its old default,
+  ``block_xpath=".//*"``, took the text of every element including its
+  descendants, so a TEI, JATS or DocBook file came out several times over
+  (a TEI file's title four times). The new default, ``block_xpath=None``,
+  reads the document's text blocks: the outermost elements that hold text
+  themselves, in document order, with inline markup kept inside its word
+  (``Elementar<hi>form</hi>``) and empty elements such as ``<lb/>`` read
+  as word breaks. An explicit ``block_xpath``, ``".//*"`` included, keeps
+  its meaning.
