@@ -151,6 +151,31 @@ def _xml_nested_entities(path: Path) -> Path:
     return path
 
 
+def _chm_repetitive_page(path: Path) -> Path:
+    """
+    The most text a small CHM may yield: one page of 2.5 MiB of LZX matches.
+
+    Incompressible stored padding brings the file to about 60 kB, so the
+    page is within both limits (decoding 4 x max(50 x size, 1 Mi) bytes,
+    text 50 characters a byte) and must be read.
+    """
+    from scikitplot.corpus._readers.tests._chm_build import build_chm
+
+    page = b"<p>" + b"x" * (5 << 19) + b"</p>"
+    files = {"/a.htm": page}
+    size = len(build_chm(files, reset_frames=128, frames_per_block=128))
+    pad = b"".join(hashlib.sha256(i.to_bytes(4, "big")).digest() for i in range(2048))
+    path.write_bytes(
+        build_chm(
+            files,
+            stored={"/pad.bin": pad[: 60_000 - size]},
+            reset_frames=128,
+            frames_per_block=128,
+        )
+    )
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -175,6 +200,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("zip-member-at-the-text-floor", "b.zip", _zip_member_at_the_text_floor),
     ("xml-nested-entities", "a.xml", _xml_nested_entities),
     ("html-unclosed-nesting", "a.html", _html_unclosed_nesting),
+    ("chm-repetitive-page", "a.chm", _chm_repetitive_page),
 ]
 
 
@@ -197,10 +223,14 @@ def _params() -> list:
 
 #: Samples within every limit: the gate measures the cost a limit accepts,
 #: so they must be read, not refused.
-_MUST_READ = {"docx-part-at-the-ratio-limit", "zip-member-at-the-text-floor"}
+_MUST_READ = {
+    "docx-part-at-the-ratio-limit",
+    "zip-member-at-the-text-floor",
+    "chm-repetitive-page",
+}
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm"}
 
 
 _CHILD = """

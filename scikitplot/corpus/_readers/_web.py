@@ -326,6 +326,32 @@ def _declared_charset(raw: bytes) -> str | None:
     return name
 
 
+def _declared_html_codec(raw: bytes) -> str | None:
+    """
+    Return the ``<meta>`` charset of a non-UTF-8 page when it decodes it.
+
+    ``None`` when the bytes have a byte-order mark or are valid UTF-8 (the
+    caller's own order handles those), or when no usable declaration
+    exists.
+
+    Parameters
+    ----------
+    raw : bytes
+        Page bytes.
+
+    Returns
+    -------
+    str or None
+        The declared codec.
+    """
+    if _bom_encoding(raw) is not None or _decodes(raw, "utf-8"):
+        return None
+    declared = _declared_charset(raw)
+    if declared is not None and _decodes(raw, declared):
+        return declared
+    return None
+
+
 # SSRF Protection may _ssrf_guard.py
 def validate_url_safety(
     url: str,
@@ -820,11 +846,9 @@ class HTMLReader(TextReader):
             Codec name.
         """
         if self.encoding is None and b"\x00" not in raw:
-            bom = _bom_encoding(raw)
-            if bom is None and not _decodes(raw, "utf-8"):
-                declared = _declared_charset(raw)
-                if declared is not None and _decodes(raw, declared):
-                    return declared
+            declared = _declared_html_codec(raw)
+            if declared is not None:
+                return declared
         return super()._choose_encoding(raw)
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:

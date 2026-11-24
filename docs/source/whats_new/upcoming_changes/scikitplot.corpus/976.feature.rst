@@ -1,0 +1,10 @@
+- Compiled HTML Help files (``.chm``), the offline help and e-book format
+  of Windows applications, are read by the new ``CHMReader``. Pages are
+  decompressed by a pure-Python LZX decoder (standard library only, any
+  platform) and parsed as ``HTMLReader`` parses a file, in
+  table-of-contents order, each chunk naming its page, reading position
+  and contents title. A page's codec is found from its byte-order mark,
+  UTF-8, its ``<meta>`` charset, then the archive locale's Windows code
+  page. A page is decoded from the reset point before it, never the whole
+  stream; limits on file size, pages, page size and decoded bytes (with
+  the same size-ratio rule as ``ZipReader``) bound a hostile file.

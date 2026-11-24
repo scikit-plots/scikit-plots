@@ -67,6 +67,11 @@ Available readers:
     Optional Whisper ASR and audio classification (animal sounds,
     instruments, environmental sounds).
 
+:class:`CHMReader`
+    Compiled HTML Help (``.chm``): offline help files and e-books. Pages
+    are decompressed in pure Python and parsed as :class:`HTMLReader`
+    parses a file, in table-of-contents order.
+
 :class:`HTMLReader`
     Local HTML files (``.html``, ``.htm``, ``.xhtml``). Parsed offline
     exactly as :class:`WebReader` parses a fetched page; a ``<meta>``
@@ -145,6 +150,7 @@ from .._base import DummyReader  # noqa: F401 — registers :dummy
 from . import (
     _alto,
     _audio,
+    _chm,
     _custom,
     _image,
     _office,
@@ -158,6 +164,7 @@ from . import (
 )
 from ._alto import *  # noqa: F403
 from ._audio import *  # noqa: F403
+from ._chm import *  # noqa: F403
 from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
 from ._office import *  # noqa: F403
@@ -172,6 +179,7 @@ from ._zip import *  # noqa: F403  # must come after ALTOReader
 __all__ = ["DummyReader"]
 __all__ += _alto.__all__
 __all__ += _audio.__all__
+__all__ += _chm.__all__
 __all__ += _custom.__all__
 __all__ += _image.__all__
 __all__ += _office.__all__
