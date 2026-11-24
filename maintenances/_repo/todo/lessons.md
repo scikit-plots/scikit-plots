@@ -108,3 +108,17 @@
   `corpus` extra by hand; `libs/corpus/README_CORPUS.md` went stale on
   `main`, and the next pull request (976) failed "Generated packaging files
   are up to date".
+
+### Rule REPO-L9: A syntax check does not prove an API exists on the floor
+- **When:** new code, test helpers included, calls the standard library.
+- **Then:** besides `ast.parse(..., feature_version=(3, 8))`, check each
+  call's keyword arguments against the documentation's "Changed in version"
+  notes; the partial distributions' CI runs the tests on Python 3.9.
+  Known traps: `Path.write_text(newline=)` (3.10), `zip(strict=)` (3.10)
+  and `str.removeprefix` (3.9).
+  Static checkers such as `vermin` miss keyword arguments.
+- **Verified by:** the "Verify · py3.9" job of
+  `ci_libs_partial_distributions.yml` passes.
+- **Added:** 2026-11-25. Root cause: PR 977's hostile sample wrote with
+  `Path.write_text(..., newline="")`; the syntax check passed and the
+  py3.9 job failed with `TypeError`.

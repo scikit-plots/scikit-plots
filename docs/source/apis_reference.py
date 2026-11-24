@@ -2115,6 +2115,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "normalize_extractor_output",
                     # image
                     "ImageReader",
+                    # mhtml
+                    "MHTMLReader",
                     # office
                     "OfficeReader",
                     # pdf
