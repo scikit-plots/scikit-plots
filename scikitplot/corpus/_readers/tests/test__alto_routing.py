@@ -131,8 +131,15 @@ class TestDefaultRoute:
     def test_legacy_alto_without_namespace(self):
         assert is_alto_root(_parse_xml(b"<alto><Layout/></alto>"))
 
-    def test_tei_is_unchanged(self):
-        assert sum(len(t) for t in _texts(DATA / "sample_tei.xml")) > PAGE_TEXT_FLOOR
+    def test_tei_is_read_as_generic_xml_each_word_once(self):
+        # Not routed as ALTO; read whole, and since CX-46 each text node once.
+        import re
+        from collections import Counter
+
+        root = _parse_xml((DATA / "sample_tei.xml").read_bytes())
+        expected = Counter(re.findall(r"\w+", " ".join(root.itertext())))
+        got = Counter(re.findall(r"\w+", " ".join(_texts(DATA / "sample_tei.xml"))))
+        assert sum(expected.values()) > 0 and got == expected
 
 
 # ---------------------------------------------------------------------------

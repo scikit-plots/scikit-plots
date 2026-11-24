@@ -160,6 +160,106 @@ def _element_raw_text_content(element: Any) -> str:
     return " ".join(parts).strip()
 
 
+def _is_element(node: Any) -> bool:
+    """Return whether *node* is an element (not a comment or a processing instruction)."""
+    # lxml gives comments and processing instructions a callable ``tag``;
+    # the stdlib parser drops them unless asked.
+    return isinstance(getattr(node, "tag", None), str)
+
+
+def _has_direct_text(element: Any) -> bool:
+    """Return whether *element* holds text itself: its text or a child's tail."""
+    if element.text and element.text.strip():
+        return True
+    return any(child.tail and child.tail.strip() for child in element)
+
+
+def _block_text(element: Any) -> str:
+    """
+    Return the text of *element* and its descendants, exactly as written.
+
+    Text nodes are concatenated without separators, so inline markup inside a
+    word (``Elementar<hi>form</hi>``) keeps the word whole. An empty element
+    (``<lb/>``, ``<pb/>``: a break or milestone) becomes a space, so
+    ``und<lb/>einfach`` stays two words. Comments and processing
+    instructions contribute nothing (their tails do). The walk is
+    iterative, so deep nesting cannot exhaust the recursion limit, and linear
+    in the size of the subtree.
+    """
+    parts: list[str] = [element.text or ""]
+    stack = [iter(list(element))]
+    while stack:
+        item = next(stack[-1], None)
+        if item is None:
+            stack.pop()
+        elif isinstance(item, _Tail):
+            parts.append(item.text)
+        elif _is_element(item):
+            if len(item) == 0 and not (item.text or "").strip():
+                # An empty element (a line or page break, a milestone) marks
+                # a boundary and holds no text: it separates the words
+                # around it.
+                parts.append(" ")
+                parts.append(item.tail or "")
+                continue
+            parts.append(item.text or "")
+            # The child's subtree, then its tail.
+            stack.append(iter([*list(item), _Tail(item.tail)]))
+        else:  # a comment or processing instruction: only its tail is text
+            parts.append(item.tail or "")
+    return "".join(parts)
+
+
+class _Tail:
+    """A child's tail text, queued after the child's own subtree."""
+
+    __slots__ = ("text",)
+
+    def __init__(self, text: str | None) -> None:
+        self.text = text or ""
+
+
+def _text_blocks(root: Any) -> list[Any]:
+    """
+    Return the elements that hold text, outermost first, in document order.
+
+    Parameters
+    ----------
+    root : Element
+        Parsed document root (lxml or stdlib).
+
+    Returns
+    -------
+    list of Element
+        Each element that holds text itself (its ``text`` or a child's
+        ``tail``) and has no such ancestor. Its descendants (inline markup,
+        notes) belong to it and are not returned, so every text node of the
+        document is in exactly one block.
+
+    Notes
+    -----
+    **Developer note:** The default ``.//*`` selection with ``itertext()``
+    emitted each text node once per ancestor (CX-46: TEI files came out 4 to
+    6 times their length). Blocks are found by structure alone, no element
+    names, so TEI, JATS, DocBook and plain XML are handled alike; an element
+    with only element children is a container and is descended into.
+
+    A block's text is joined exactly as written (:func:`_block_text`). In
+    mixed content such as ``<div><p>one</p>two</div>`` the ``div`` is one
+    block, ``onetwo``: XML does not say ``p`` ends a line. Pass an explicit
+    ``block_xpath`` for a vocabulary whose block elements are known.
+    """
+    blocks: list[Any] = []
+    stack = [root]
+    while stack:
+        element = stack.pop()
+        if _has_direct_text(element):
+            blocks.append(element)
+            continue
+        stack.extend(reversed([c for c in element if _is_element(c)]))
+    return blocks
+
+
 def _unparsable_xml(exc: BaseException) -> ValueError:
     """
     Build the one error raised for XML that cannot be parsed.
@@ -545,10 +645,13 @@ class XMLReader(DocumentReader):
     ----------
     input_path : pathlib.Path
         Path to the ``.xml`` file.
-    block_xpath : str, optional
+    block_xpath : str or None, optional
         XPath expression selecting the elements whose text content becomes
-        corpus chunks. Default: ``".//*"`` (all descendant elements that
-        have non-empty text content).
+        corpus chunks. ``None`` (default): the document's text blocks, the
+        outermost elements that hold text themselves, so every text node is
+        in exactly one chunk, in document order (see the Notes). An explicit
+        XPath keeps its meaning: ``".//*"`` selects every element, and an
+        element's chunk repeats the text of the elements inside it.
     text_xpath : str or None, optional
         Secondary XPath applied *within* each matched element to collect
         text. ``None`` uses ``itertext()`` on the element directly.
@@ -592,8 +695,13 @@ class XMLReader(DocumentReader):
 
     Notes
     -----
-    **Element selection:** Elements whose ``itertext()`` produces only
-    whitespace after stripping are silently skipped.
+    **Element selection:** By default an element is a text block when it
+    holds text itself (its text, or the tail of a child) and no ancestor
+    does; inline markup and notes inside it belong to its chunk. An element
+    with only element children is a container. So ``<sec><p>alpha <b>beta</b>
+    gamma</p></sec>`` gives one chunk, ``alpha beta gamma``, and a TEI file
+    gives each paragraph, heading and title once (CX-46). With an explicit
+    ``block_xpath``, elements whose text is only whitespace are skipped.
 
     **lxml vs stdlib:** lxml supports the full XPath 1.0 specification
     including functions, axes, and predicates. stdlib ElementTree supports
@@ -635,8 +743,9 @@ class XMLReader(DocumentReader):
     # avoid the false impression of a shared cross-module default.
     _DEFAULT_MAX_FILE_BYTES: ClassVar[int] = 200 * 1024 * 1024  # 200 MB
 
-    block_xpath: str = field(default=".//*")
-    """XPath selecting text-bearing elements. Default: all descendants."""
+    block_xpath: str | None = field(default=None)
+    """XPath selecting text-bearing elements. ``None`` (default): the
+    document's text blocks, each text node once."""
 
     text_xpath: str | None = field(default=None)
     """
@@ -721,7 +830,14 @@ class XMLReader(DocumentReader):
             return
         ns = self.namespaces or {}
 
-        elements = _xpath_elements(root, self.block_xpath, ns)
+        if self.block_xpath is None and self.text_xpath is None:
+            yield from self._block_chunks(root)
+            return
+        elements = (
+            _text_blocks(root)
+            if self.block_xpath is None
+            else _xpath_elements(root, self.block_xpath, ns)
+        )
         logger.info(
             "XMLReader: %s matched %d element(s) with XPath %r.",
             self.file_name,
@@ -741,6 +857,24 @@ class XMLReader(DocumentReader):
                 "section_type": SectionType.TEXT.value,
             }
 
+    def _block_chunks(self, root: Any) -> Generator[dict[str, Any], None, None]:
+        """Yield one chunk per text block (the default selection)."""
+        blocks = _text_blocks(root)
+        logger.info(
+            "XMLReader: %s holds %d text block(s).", self.file_name, len(blocks)
+        )
+        for block in blocks:
+            raw = _block_text(block)
+            text = _WS_RE.sub(" ", raw).strip()
+            if text:
+                yield {
+                    "text": text,
+                    # raw_text: the block's text exactly as written, before
+                    # whitespace normalisation.
+                    "raw_text": raw.strip(),
+                    "section_type": SectionType.TEXT.value,
+                }
+
     def _reads_as_alto(self, root: Any) -> bool:
         """
         Return whether this file is read as an ALTO page.
@@ -754,7 +888,7 @@ class XMLReader(DocumentReader):
         """
         if self.alto != "auto" or self.text_xpath is not None or self.namespaces:
             return False
-        if self.block_xpath != ".//*":
+        if self.block_xpath is not None:
             return False
         from ._alto import is_alto_root  # noqa: PLC0415
 
