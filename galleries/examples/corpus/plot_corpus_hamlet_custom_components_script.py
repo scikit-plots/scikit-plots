@@ -16,8 +16,9 @@ must meet and where a part of your own plugs in:
 4. an **embedding generator** (any function from texts to vectors);
 5. the **manual pipeline**: run, store, index, search, export, each step
    by hand;
-6. the **same parts in FluentCorpus**, so one plan reproduces the manual
-   run, with a policy that forbids network access.
+6. the **same parts in FluentCorpus** (``.filter(...)`` included), so one
+   plan reproduces the manual run, with a policy that forbids network
+   access.
 
 Every part is a few lines of standard Python and runs offline, so the
 output is the same on every run. Replace any one of them with your own.
@@ -270,18 +271,19 @@ plt.show()
 # 6. The same parts in FluentCorpus
 # ---------------------------------
 # The parts written above plug into the plan unchanged: the reader is found
-# by the ``.play`` extension, and the enricher and embedding function are
-# passed as they are. ``RuntimePolicy(allow_network=False)`` is the runtime
-# policy: a plan that tries to read a URL fails instead of downloading.
+# by the ``.play`` extension, and the filter, enricher and embedding
+# function are passed as they are. The filter is part of what gets built,
+# so changing it changes the plan's fingerprint. ``RuntimePolicy(
+# allow_network=False)`` is the runtime policy: a plan that tries to read a
+# URL fails instead of downloading.
 #
-# A plan has no filter stage yet (recorded in ``upcoming_changes/``), so it
-# keeps every speech the default quality filter keeps; the manual pipeline
-# above is the way to apply ``SpeechPolicy`` today.
+# The plan gives the same documents as the manual run.
 
 fluent = (
     FluentCorpus()
     .source(PLAY_PATH)
     .reader(DocumentReader)
+    .filter(POLICY)
     .enricher(KeywordEnricher())
     .embedder(EMBEDDER)
     .storage(InMemoryStorage)
@@ -292,8 +294,8 @@ print("Validation problems:", fluent.validate())
 
 with fluent.materialize(policy=RuntimePolicy(allow_network=False)) as runtime:
     runtime.run()
-    print("Plan documents:", len(runtime.documents),
-          "| manual run with SpeechPolicy:", len(documents))
+    same = [d.text for d in runtime.documents] == [d.text for d in documents]
+    print("Same documents as the manual run:", same)
     top = runtime.search(QUERY)
     print("Plan top hit:", top[0].doc.metadata["speaker"] if top else "(none)")
 

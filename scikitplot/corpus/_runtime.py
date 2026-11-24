@@ -273,6 +273,29 @@ def _resolve_normalizer(value: Any) -> Any:
     )
 
 
+def _resolve_filter(value: Any, registry: ComponentRegistry | None) -> Any:
+    """
+    Resolve the plan's ``filter`` fragment to a ``CorpusPipeline`` filter.
+
+    Accepts ``None`` (the pipeline's default filter), a filter instance (any
+    object with a callable ``include(doc) -> bool``, ``FilterBase`` or not),
+    a filter class (built with no arguments), or the name of a registered
+    filter (``registry.build_filter(name)``).
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return _component_registry(registry).build_filter(value)
+    if isinstance(value, type):
+        value = value()
+    if callable(getattr(value, "include", None)):
+        return value
+    raise TypeError(
+        "filter must be a registered filter name, a filter class, or an object "
+        f"implementing include(doc) -> bool; got {type(value).__name__!r}."
+    )
+
+
 def _resolve_enricher(  # ruff: ignore[too-many-return-statements]
     value: Any,
 ) -> Any:
@@ -651,6 +674,11 @@ def materialize_plan(
     normalizer = (
         _resolve_normalizer(plan.get("normalizer")) if "normalize" in stages else None
     )
+    # The filter decides which read documents are kept, so it belongs to the
+    # read stage.
+    filter_ = (
+        _resolve_filter(plan.get("filter"), registry) if "read" in stages else None
+    )
     enricher = _resolve_enricher(plan.get("enricher")) if "enrich" in stages else None
     embedder = _resolve_embedder(plan.get("embedder")) if "embed" in stages else None
     doc_id_scheme = _resolve_doc_id_scheme(plan.get("identity"))
@@ -659,6 +687,7 @@ def materialize_plan(
 
     pipeline = CorpusPipeline(
         chunker=chunker,
+        filter_=filter_,
         normalizer=normalizer,
         enricher=enricher,
         embedding_engine=embedder,

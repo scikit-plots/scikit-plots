@@ -1,0 +1,10 @@
+- A ``FluentCorpus`` plan carries a document filter:
+  ``FluentCorpus().filter(policy)`` (and ``replace_filter``) takes a filter
+  instance, a filter class or a registered filter name, and
+  ``materialize()`` passes it to the pipeline, so ``run()`` and ``add()``
+  keep the same documents a hand-built ``CorpusPipeline(filter_=...)``
+  keeps. The filter is part of what gets built: it changes the plan's
+  fingerprint, while plans without one keep theirs. ``CorpusPipeline``
+  now refuses ``reader_kwargs`` that set ``filter_``, ``chunker``,
+  ``default_language`` or ``filename_override``, which it passes to every
+  reader itself, instead of failing later inside ``run()``.
