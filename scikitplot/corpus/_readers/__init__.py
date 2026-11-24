@@ -67,6 +67,11 @@ Available readers:
     Optional Whisper ASR and audio classification (animal sounds,
     instruments, environmental sounds).
 
+:class:`HTMLReader`
+    Local HTML files (``.html``, ``.htm``, ``.xhtml``). Parsed offline
+    exactly as :class:`WebReader` parses a fetched page; a ``<meta>``
+    charset is honoured when the bytes are not UTF-8.
+
 **URL-based (via** ``DocumentReader.from_url(url)`` **)**
 
 :class:`WebReader`

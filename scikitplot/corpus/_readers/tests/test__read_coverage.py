@@ -56,7 +56,7 @@ def test_is_poor(read, empty, skipped, share, poor):
 def unsupported_zip(tmp_path):
     path = tmp_path / "only_unsupported.zip"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("page.html", "<p>x</p>")
+        zf.writestr("notes.toml", "x = 1")
         zf.writestr("data.csv", "a,b")
         zf.writestr("script.py", "x = 1")
     return path

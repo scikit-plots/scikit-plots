@@ -2124,6 +2124,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # vidoe
                     "VideoReader",
                     # web
+                    "HTMLReader",
                     "WebReader",
                     "YouTubeReader",
                     # xml
