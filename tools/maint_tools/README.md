@@ -513,3 +513,30 @@ public API (`seed` and `random_state`). It never imports the package
 itself; `--pythonpath DIR` puts a tree before the installed one. Tests:
 `tests/test_sweep_static.py`, `tests/test_sweep_runtime.py`. Keep such
 helpers here, with tests, rather than in a scratch folder (Rule 173).
+
+## Ledger notes from a probed catalog (`ledger_notes.py`)
+
+When a sweep, a benchmark or a capability review yields many findings, write
+them as one JSON catalog in `catalogs/` instead of drafting Markdown by hand.
+Each entry carries the `upcoming_changes/TEMPLATE.md` fields and the probes
+that would fail if its claim were wrong ("no reader for `.dcm`", "no public
+name matching `rerank`", "this pattern appears nowhere in the public code").
+
+```bash
+python -B tools/maint_tools/ledger_notes.py example > tools/maint_tools/catalogs/YYYY-MM-topic.json
+python -B tools/maint_tools/ledger_notes.py snapshot CATALOG --python VENV/bin/python --out /tmp/snap
+python -B tools/maint_tools/ledger_notes.py render CATALOG --snapshot /tmp/snap            # plan
+python -B tools/maint_tools/ledger_notes.py render CATALOG --snapshot /tmp/snap --apply    # write
+python -B tools/maint_tools/ledger_notes.py check CATALOG --snapshot /tmp/snap             # later: stale notes
+```
+
+`render` writes nothing while a probe fails, creates missing notes, leaves
+identical ones alone and reports hand-edited ones (`--force` overwrites), so
+a rerun changes nothing. `check` exits 1 when a probe no longer holds: the
+gap was closed or the code moved, and the note needs closing or updating.
+`snapshot` asks an installed interpreter (run from an empty directory, so the
+source tree is not imported) for the reader registry and the `api` listings
+the catalog's probes name. `catalogs/2026-11-sweeps-and-capability-review.json`
+is the catalog behind the 117 notes of PR 959 and a worked example of every
+probe kind. Name no private file, person or outside source in a catalog.
+Tests: `tests/test_ledger_notes.py`.
