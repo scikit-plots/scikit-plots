@@ -199,3 +199,8 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 ### PR 957: CX-47, PDFReader reads text inside figures
 - [x] Done (`../_maintenance/HISTORY.md`, 2026-11-24).
 - Next: CX-53 (glob filters); CX-48 (rotated text) with the same tools.
+
+### PR 959: ledger notes from the package sweeps and the capability review
+- [x] Done. 117 notes under `upcoming_changes/` (31 for corpus; CX-54:
+  legacy encodings read as mojibake). Every claim probed on main cba9383.
+- Next: CX-53 (glob filters), then CX-54 and the corpus notes by priority.
