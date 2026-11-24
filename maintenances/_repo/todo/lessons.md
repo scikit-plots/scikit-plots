@@ -95,3 +95,16 @@
   file opening into helpers; three files opened by `get_file_data` were never
   closed (a refused pickle, a `.npy` read), which passed locally and failed in
   CI's test shard.
+
+### Rule REPO-L8: A dependency change regenerates the partial-distribution files
+- **When:** a change edits an extra or a dependency in `pyproject.toml` or
+  `libs/*/pyproject.toml`.
+- **Then:** run `python -m libs._tools generate` and commit what it writes
+  (the `libs/*/README_*.md` install lines list each extra's requirements),
+  with `python tools/requirements/generate_requirements.py` for
+  `requirements/`.
+- **Verified by:** `python -m libs._tools check` exits 0.
+- **Added:** 2026-11-25. Root cause: PR 975 added `beautifulsoup4` to the
+  `corpus` extra by hand; `libs/corpus/README_CORPUS.md` went stale on
+  `main`, and the next pull request (976) failed "Generated packaging files
+  are up to date".
