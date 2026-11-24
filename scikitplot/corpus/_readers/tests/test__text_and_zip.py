@@ -124,15 +124,15 @@ class TestDetectEncoding:
         with patch.object(_text_module.logger, "warning") as warning:
             _detect_encoding(b"caf\xe9")
         (args,) = [call.args for call in warning.call_args_list]
-        assert args[1] == "cp1252"
-        assert "Pass encoding=" in args[0]
+        assert args[1:] == ("the file", "cp1252")  # the file name, then the codec
+        assert "encoding='detect'" in args[0]
 
     def test_chardet_is_used_when_confident_and_it_decodes_the_file(self) -> None:
         raw = "\u043f\u0430\u043c\u044f\u0442\u044c".encode("koi8-r") * 20
         chardet = MagicMock()
         chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.95}
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding(raw, use_chardet=True) == "KOI8-R"
+            assert _detect_encoding(raw, detector="chardet") == "KOI8-R"
             assert _detect_encoding(raw) == "cp1252"
 
     @pytest.mark.parametrize(
@@ -148,7 +148,7 @@ class TestDetectEncoding:
         chardet = MagicMock()
         chardet.detect.return_value = guess
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding(b"caf\xe9", use_chardet=True) == "cp1252"
+            assert _detect_encoding(b"caf\xe9", detector="chardet") == "cp1252"
 
     def test_nul_is_binary_even_where_the_bytes_are_valid_utf8(self) -> None:
         assert b"text\x00more".decode("utf-8") == "text\x00more"
@@ -158,14 +158,14 @@ class TestDetectEncoding:
         chardet = MagicMock()
         chardet.detect.return_value = {"encoding": "KOI8-R", "confidence": 0.99}
         with patch.dict("sys.modules", {"chardet": chardet}):
-            assert _detect_encoding(b"\xc3\xa9", use_chardet=True) == "utf-8"
-            assert _detect_encoding(b"\xe9\x00", use_chardet=True) is None
+            assert _detect_encoding(b"\xc3\xa9", detector="chardet") == "utf-8"
+            assert _detect_encoding(b"\xe9\x00", detector="chardet") is None
             assert _detect_encoding(b"caf\xe9") == "cp1252"
         chardet.detect.assert_not_called()
 
-    def test_use_chardet_without_chardet_is_an_import_error(self) -> None:
+    def test_chardet_detector_without_chardet_is_an_import_error(self) -> None:
         with pytest.raises(ImportError, match="pip install chardet"):
-            _detect_encoding(b"caf\xe9", use_chardet=True)
+            _detect_encoding(b"caf\xe9", detector="chardet")
 
 
 #: "pamyat" (memory) in KOI8-R: not UTF-8, decodable as cp1252.

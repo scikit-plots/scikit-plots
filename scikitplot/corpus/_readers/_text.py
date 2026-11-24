@@ -71,12 +71,27 @@ _TEXT_DEFAULT_MAX_FILE_BYTES: int = 500 * 1024 * 1024  # 500 MB
 # Minimum confidence threshold for accepting chardet's encoding guess.
 _CHARDET_MIN_CONFIDENCE: float = 0.80
 
+# encoding="detect": charset-normalizer ranks candidates by (chaos, -coherence).
+# When several share the best rank, the first of these wins (WHATWG decodes
+# text labelled ISO-8859-1 as windows-1252 for the same reason); otherwise
+# the detector's own order, so the choice is fixed for a given detector
+# version. A best chaos above this, or a file shorter than
+# _DETECT_MIN_BYTES, is a weak guess and logs a warning naming the file.
+_DETECT_TIE_PREFERENCE: tuple[str, ...] = ("cp1252",)
+_DETECT_MAX_CHAOS: float = 0.2
+_DETECT_MIN_BYTES: int = 64
+
 # Number of bytes read for encoding sniffing (avoids loading huge files
 # just to determine encoding).
 _SNIFF_BYTES: int = 8192
 
+#: Encoding policies that run a statistical detector after BOM and UTF-8.
+_DETECTORS: frozenset[str] = frozenset({"detect", "chardet"})
 
-def _detect_encoding(raw: bytes, *, use_chardet: bool = False) -> str | None:
+
+def _detect_encoding(
+    raw: bytes, *, detector: str | None = None, name: str = "the file"
+) -> str | None:
     r"""
     Return the codec that decodes ``raw``, or ``None`` if it is not text.
 
@@ -89,8 +104,9 @@ def _detect_encoding(raw: bytes, *, use_chardet: bool = False) -> str | None:
        comes before UTF-8 because NUL is valid UTF-8 (U+0000), and UTF-16
        text without a mark is valid UTF-8 full of NULs.
     3. Strict UTF-8 of all of ``raw``.
-    4. With ``use_chardet``: chardet's guess, when its confidence is at
-       least 0.80 and the codec it names decodes all of ``raw``.
+    4. With ``detector``: a statistical guess that decodes all of
+       ``raw`` (chardet at confidence 0.80 or more; for ``"detect"``,
+       :func:`_detect_statistical`).
     5. ``cp1252`` when it decodes all of ``raw``, else ``latin-1``.
 
     Parameters
@@ -99,8 +115,12 @@ def _detect_encoding(raw: bytes, *, use_chardet: bool = False) -> str | None:
         The whole file. A prefix is not enough: a multi-byte character cut
         at its end fails strict UTF-8, and a non-UTF-8 byte after it is
         missed.
-    use_chardet : bool, optional
-        Ask chardet before the fallback. Default: ``False``.
+    detector : {None, "chardet", "detect"}, optional
+        Statistical step before the fallback: none (default), chardet, or
+        ``"detect"`` (charset-normalizer, else chardet; see
+        :func:`_detect_statistical`).
+    name : str, optional
+        File name for log messages.
 
     Returns
     -------
@@ -118,13 +138,13 @@ def _detect_encoding(raw: bytes, *, use_chardet: bool = False) -> str | None:
     cp1252 leaves undefined; it decodes every byte, so step 5 never fails.
 
     **chardet** is a statistical guess, so it is used only when asked for:
-    without ``use_chardet`` the result depends on the bytes alone, not on
+    without ``detector`` the result depends on the bytes alone, not on
     what is installed.
 
     Raises
     ------
     ImportError
-        If ``use_chardet`` is true, chardet is needed and not installed.
+        If the requested detector is not installed.
 
     Examples
     --------
@@ -153,35 +173,116 @@ def _detect_encoding(raw: bytes, *, use_chardet: bool = False) -> str | None:
     except UnicodeDecodeError:
         pass
 
-    # --- Stage 4: chardet, only when asked for ---
-    if use_chardet:
-        try:
-            import chardet  # type: ignore[] # noqa: PLC0415
-        except ImportError as exc:
-            raise ImportError(
-                "TextReader(encoding='chardet') requires chardet. Install it"
-                " with:\n  pip install chardet"
-            ) from exc
-        result = chardet.detect(raw[:_SNIFF_BYTES])
-        confidence = result.get("confidence") or 0.0
-        enc = result.get("encoding")
-        if enc and confidence >= _CHARDET_MIN_CONFIDENCE and _decodes(raw, enc):
-            logger.debug(
-                "TextReader: chardet detected encoding %r (confidence=%.2f).",
-                enc,
-                confidence,
-            )
-            return enc
+    # --- Stage 4: a statistical detector, only when asked for ---
+    if detector == "detect":
+        guessed = _detect_statistical(raw, name)
+        if guessed is not None:
+            return guessed
+    elif detector == "chardet":
+        guessed = _chardet_guess(raw)
+        if guessed is not None:
+            return guessed
 
     # --- Stage 5: cp1252, then latin-1 (never fails) ---
     fallback = "cp1252" if _decodes(raw, "cp1252") else "latin-1"
     logger.warning(
-        "TextReader: the file is not UTF-8 and its encoding is unknown;"
-        " decoding as %r. Pass encoding=... (a codec, a list of candidate"
-        " codecs, 'chardet', or a callable) if that is wrong.",
+        "TextReader: %s is not UTF-8 and its encoding is unknown; decoding"
+        " as %r. Pass encoding='detect' (pip install charset-normalizer) to"
+        " detect legacy encodings (cp1254, Shift-JIS, GB18030, EUC-KR, Big5,"
+        " KOI8-R, ...), or a codec, a list of candidate codecs or a callable.",
+        name,
         fallback,
     )
     return fallback
+
+
+def _chardet_guess(raw: bytes) -> str | None:
+    """Return chardet's guess when confident (0.80+) and it decodes ``raw``."""
+    try:
+        import chardet  # type: ignore[] # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            "TextReader(encoding='chardet') requires chardet. Install it"
+            " with:\n  pip install chardet"
+        ) from exc
+    result = chardet.detect(raw[:_SNIFF_BYTES])
+    confidence = result.get("confidence") or 0.0
+    enc = result.get("encoding")
+    if enc and confidence >= _CHARDET_MIN_CONFIDENCE and _decodes(raw, enc):
+        logger.debug(
+            "TextReader: chardet detected encoding %r (confidence=%.2f).",
+            enc,
+            confidence,
+        )
+        return enc
+    return None
+
+
+def _detect_statistical(raw: bytes, name: str = "the file") -> str | None:
+    """
+    Return the encoding charset-normalizer ranks best for ``raw`` (else chardet's).
+
+    Parameters
+    ----------
+    raw : bytes
+        Whole file, already known not to be UTF-8 or to carry a BOM.
+    name : str, optional
+        File name for the warning on a weak guess.
+
+    Returns
+    -------
+    str or None
+        A codec that decodes all of ``raw``; ``None`` when no candidate
+        does (the caller falls back to cp1252/latin-1 with a warning).
+
+    Raises
+    ------
+    ImportError
+        If neither charset-normalizer nor chardet is installed.
+
+    Notes
+    -----
+    **Ranking.** Candidates are ordered by the detector's chaos (lower is
+    better), then coherence (higher is better). Ties at the best rank go to
+    :data:`_DETECT_TIE_PREFERENCE` (``cp1252``: Western text that cp1250
+    and cp1252 decode identically well), then to the detector's order, so
+    one detector version always gives one answer.
+
+    **Weak guesses.** Short files (under ``_DETECT_MIN_BYTES``) or a best
+    chaos above ``_DETECT_MAX_CHAOS`` are decoded as guessed and logged as
+    a warning naming the file: detection needs text to work on.
+    """
+    try:
+        import charset_normalizer  # noqa: PLC0415
+    except ImportError:
+        try:
+            return _chardet_guess(raw)
+        except ImportError:
+            raise ImportError(
+                "TextReader(encoding='detect') requires charset-normalizer (or"
+                " chardet). Install it with:\n  pip install charset-normalizer"
+            ) from None
+    matches = list(charset_normalizer.from_bytes(raw))
+    if not matches:
+        return None
+    rank = {m.encoding: (m.chaos, -m.coherence) for m in matches}
+    best = min(rank.values())
+    tied = [m.encoding for m in matches if rank[m.encoding] == best]
+    chosen = next((e for e in _DETECT_TIE_PREFERENCE if e in tied), tied[0])
+    if not _decodes(raw, chosen):
+        return None
+    if best[0] > _DETECT_MAX_CHAOS or len(raw) < _DETECT_MIN_BYTES:
+        logger.warning(
+            "TextReader: %s: the detected encoding %r is a weak guess (%d"
+            " bytes, chaos %.2f); pass encoding=<codec> if the text looks wrong.",
+            name,
+            chosen,
+            len(raw),
+            best[0],
+        )
+    else:
+        logger.debug("TextReader: detected encoding %r for %s.", chosen, name)
+    return chosen
 
 
 def _bom_encoding(raw: bytes) -> str | None:
@@ -253,6 +354,14 @@ class TextReader(DocumentReader):
           "cp1252"]``): the first that decodes the whole file. A
           byte-order mark comes first. ``ValueError`` if none does; end the
           list with ``"latin-1"`` to always succeed.
+        - ``"detect"``: as ``None``, with a statistical detector before the
+          fallback: charset-normalizer (``pip install charset-normalizer``),
+          else chardet. Reads cp1254, Shift-JIS, GB18030, EUC-KR, Big5,
+          KOI8-R and other legacy encodings; ties go to cp1252, and a weak
+          guess (a short file) logs a warning naming the file. Fixed for a
+          given detector version. Single-byte Western text is ambiguous
+          (French cp1252 can rank as cp1257): when the region is known,
+          a list such as ``["utf-8", "cp1252"]`` is exact.
         - ``"chardet"``: as ``None``, with chardet's guess before the
           fallback (``pip install chardet``). The guess is statistical.
         - a callable ``policy(raw) -> codec`` given the file's bytes when
@@ -358,7 +467,11 @@ class TextReader(DocumentReader):
                 f"TextReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."
             )
         policy = self.encoding
-        if policy is None or callable(policy) or policy == "chardet":
+        if (
+            policy is None
+            or callable(policy)
+            or (isinstance(policy, str) and policy in _DETECTORS)
+        ):
             return
         if isinstance(policy, str):
             if not _is_codec(policy):
@@ -376,7 +489,8 @@ class TextReader(DocumentReader):
             return
         raise TypeError(
             "TextReader: encoding must be None, a codec name, a non-empty list"
-            " or tuple of codec names, 'chardet', or a callable (raw) -> codec;"
+            " or tuple of codec names, 'detect', 'chardet', or a callable"
+            " (raw) -> codec;"
             f" got {policy!r}."
         )
 
@@ -387,18 +501,20 @@ class TextReader(DocumentReader):
         Raises
         ------
         ValueError
-            If the file is binary under ``None`` or ``"chardet"``, no
+            If the file is binary under ``None``, ``"detect"`` or ``"chardet"``, no
             candidate decodes it, or a callable names a codec that does not.
         TypeError
             If a callable returns something other than a codec name.
         ImportError
-            If ``encoding="chardet"`` and chardet is not installed.
+            If ``encoding="detect"`` or ``"chardet"`` and its detector is
+            not installed.
         """
         policy = self.encoding
-        if isinstance(policy, str) and policy != "chardet":
+        detector = policy if isinstance(policy, str) and policy in _DETECTORS else None
+        if isinstance(policy, str) and detector is None:
             return policy
-        if policy is None or policy == "chardet":
-            detected = _detect_encoding(raw, use_chardet=policy == "chardet")
+        if policy is None or detector is not None:
+            detected = _detect_encoding(raw, detector=detector, name=self.file_name)
             if detected is None:
                 offset = raw.index(b"\x00")
                 raise ValueError(

@@ -209,3 +209,10 @@ everywhere, with opt-in UUIDv7). D14: (a), PR 926. D12: (a), PR 928.
 - [x] Done: one `_skip_reason` rule for both; hidden parts judged below the
   glob's fixed prefix (`_glob_base`); one warning when all matches skip.
 - Next: CX-54 (legacy encodings), then CX-48 (rotated text).
+
+### PR 966: CX-54, `TextReader(encoding="detect")` for legacy encodings
+- [x] Done: charset-normalizer (else chardet) after BOM and UTF-8; ties to
+  cp1252; weak guesses warn with the file name. Default policy unchanged.
+- Known limit: single-byte Western text is ambiguous to the detector (French
+  cp1252 ranks as cp1257); documented, with the exact list policy.
+- Next: CX-48 (rotated text).
