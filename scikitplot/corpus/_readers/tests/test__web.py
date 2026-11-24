@@ -76,6 +76,10 @@ from scikitplot.corpus._schema import (        # noqa: E402
 from scikitplot.corpus._readers import _web
 import scikitplot.corpus._readers._web as _web_mod  # noqa: E402
 
+# The URL handler resolves every host first (SSRF fail-closed, CORPUS-NET-002);
+# answer DNS here so these HTTP-mocked tests do not need the network.
+pytestmark = pytest.mark.usefixtures("fake_dns")
+
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 import pytest
 
 import importlib
+import importlib.util
 
 # Use importlib to reliably obtain the corpus package module object.
 # `from ... import __init__ as corpus` resolves to a method-wrapper on
@@ -66,6 +67,17 @@ from .. import (
     GoogleDriveDownloader,
     WebDownloader,
     YouTubeDownloader,
+)
+
+# The URL handler resolves every host first (SSRF fail-closed, CORPUS-NET-002);
+# answer DNS here so these HTTP-mocked tests do not need the network.
+pytestmark = pytest.mark.usefixtures("fake_dns")
+
+# These tests patch requests.Session, so the optional requests package must
+# be importable; without it they used to fail (behind the DNS failure above).
+_needs_requests = pytest.mark.skipif(
+    importlib.util.find_spec("requests") is None,
+    reason="requests is not installed (optional download dependency)",
 )
 
 
@@ -488,6 +500,7 @@ class TestGitHubDownloader:
 
     # ── download() ───────────────────────────────────────────────────────
 
+    @_needs_requests
     def test_download_uses_raw_url(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"# Hello", content_type="text/plain")
         with patch("requests.Session") as MockSession:
@@ -510,6 +523,7 @@ class TestGitHubDownloader:
         assert parsed.scheme == "https"
         assert parsed.netloc == "raw.githubusercontent.com"
 
+    @_needs_requests
     def test_download_sends_token(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"secret")
         with patch("requests.Session") as MockSession:
@@ -522,6 +536,7 @@ class TestGitHubDownloader:
         headers_arg = session.headers.update.call_args[0][0]
         assert headers_arg.get("Authorization") == "Bearer ghp_tok"
 
+    @_needs_requests
     def test_download_size_exceeded_raises(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"x" * 200)
         with patch("requests.Session") as MockSession:
@@ -582,6 +597,7 @@ class TestGoogleDriveDownloader:
         )
         assert "1abc-DEF" in dl.resolve_download_url()
 
+    @_needs_requests
     def test_download_normal(self, tmp_dir: Path) -> None:
         resp = _mock_response(
             content=b"%PDF-1.4",
@@ -597,6 +613,7 @@ class TestGoogleDriveDownloader:
         assert result.suffix == ".pdf"
         assert result.output_path.read_bytes() == b"%PDF-1.4"
 
+    @_needs_requests
     def test_confirm_bypass(self, tmp_dir: Path) -> None:
         warning = _mock_response(
             content=b'<html><a href="/uc?confirm=t0k3n&id=big">Download</a></html>',
@@ -614,6 +631,7 @@ class TestGoogleDriveDownloader:
         assert "confirm=t0k3n" in second_url
         assert result.output_path.read_bytes() == b"real data"
 
+    @_needs_requests
     def test_size_exceeded_raises_and_cleans(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"x" * 500)
         with patch("requests.Session") as MockSession:
@@ -1442,6 +1460,7 @@ class TestEdgeCases:
         with pytest.raises(ValueError):
             AnyDownloader("ftp://example.com/f")
 
+    @_needs_requests
     def test_github_at_exactly_max_bytes(self, tmp_dir: Path) -> None:
         """Content of exactly max_bytes must NOT raise."""
         content = b"x" * 100
@@ -1455,6 +1474,7 @@ class TestEdgeCases:
             ).download()
         assert result.output_path.read_bytes() == content
 
+    @_needs_requests
     def test_github_one_over_max_bytes_raises(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"x" * 101)
         with patch("requests.Session") as MockSession:
