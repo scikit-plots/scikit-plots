@@ -43,6 +43,8 @@ Probe: `DocumentReader.create("page.html")` and
 - HTML (`.html`, `.htm`, `.xhtml`): `HTMLReader`, PR 975. The shared
   parse path also reads nested elements once (a quadratic read that
   affected `WebReader` too).
+- Compiled HTML Help (`.chm`), added on request: `CHMReader`, PR 976,
+  pure-Python container and LZX decoder.
 
 ## Root cause / current understanding
 
