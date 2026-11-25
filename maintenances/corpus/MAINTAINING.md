@@ -98,6 +98,10 @@ Each step is a check a past pull request missed; the lesson in
    dependency, `python -m libs._tools generate` (REPO-L8).
 8. **Real data:** snapshot `main` and the branch (section above); record
    counts only.
+9. **Regex cost:** a pattern that skips to a closer stops at the next
+   opener (`<[^<>]*>`, not `<[^>]*>`); time it on 40 kB of its own opener
+   in a test. `sweep_static.py --fail-on regex-unbounded-scan` guards the
+   shape in CI.
 
 ## Core Corpus rule
 

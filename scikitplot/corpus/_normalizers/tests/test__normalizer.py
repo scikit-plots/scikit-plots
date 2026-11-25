@@ -151,6 +151,23 @@ class TestHTMLStripNormalizer:
     def test_repr(self) -> None:
         assert "HTMLStripNormalizer" in repr(HTMLStripNormalizer())
 
+    def test_a_lone_less_than_keeps_the_text_around_it(self) -> None:
+        # "<[^>]+>" removed "< y and <b>" here; a tag cannot hold "<".
+        result = HTMLStripNormalizer().normalize_doc(_doc("x < y and <b>bold</b> end"))
+        assert result.normalized_text == "x < y and bold end"
+
+    def test_unclosed_less_thans_cost_linear_time(self) -> None:
+        import time
+
+        start = time.perf_counter()
+        HTMLStripNormalizer().normalize_doc(_doc("<" * 400_000))
+        # Was quadratic: about 0.7 s at 40 kB, so over a minute here.
+        assert time.perf_counter() - start < 1.0
+
+    def test_tags_spanning_lines_are_still_removed(self) -> None:
+        result = HTMLStripNormalizer().normalize_doc(_doc('a <span\n class="x">b</span>'))
+        assert result.normalized_text == "a b"
+
 
 # ===========================================================================
 # LowercaseNormalizer

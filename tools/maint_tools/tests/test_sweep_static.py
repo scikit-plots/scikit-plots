@@ -22,7 +22,7 @@ SPEC.loader.exec_module(MODULE)
 #: One file holding one example of (nearly) every category, line by line.
 RISKY = textwrap.dedent(
     """
-    import hashlib, os, pickle, subprocess, tempfile, yaml, requests
+    import hashlib, os, pickle, re, subprocess, tempfile, yaml, requests
     import xml.etree.ElementTree as ET
     from lxml import etree
     from pathlib import Path
@@ -51,6 +51,11 @@ RISKY = textwrap.dedent(
         s.removeprefix("a")
         zip(a, b, strict=True)
         isinstance(x, int | str)
+        re.sub(r"<[^>]+>", "", s)
+        re.compile(r"<[^<>]+>")
+        re.match(r"<[^>]+>", s)
+        re.compile(r"^<a[^>]*>$")
+        re.compile(r"(?P<name>[^/]+)/")
         try:
             pass
         except Exception:
@@ -118,6 +123,7 @@ class SweepTests(unittest.TestCase):
             "print-in-library", "assert-in-library", "floor-str-removeprefix",
             "floor-zip-strict", "floor-isinstance-union", "silent-broad-except",
             "bare-except", "mutable-default", "floor-annotation",
+            "regex-unbounded-scan",
         }
         self.assertEqual(set(found), expected)
         mod = [f for c in found.values() for f in c if f["file"] == "scikitplot/alpha/mod.py"]
@@ -184,6 +190,13 @@ class SweepTests(unittest.TestCase):
         found = self.categories()
         self.assertEqual([f["line"] for f in found["open-without-encoding"]], [15, 16])
         self.assertEqual([f["line"] for f in found["path-text-without-encoding"]], [17, 18])
+
+    def test_unbounded_regex_scans(self) -> None:
+        unbounded = MODULE._unbounded_scan
+        for pattern in (r"<[^>]+>", r"<[^>\n]*>", r"\{\\[^}]*\}", r"<object\b[^<>]*>(.*?)</object>", r"x<v\s+([^>]+)>"):
+            self.assertTrue(unbounded(pattern), pattern)
+        for pattern in (r"<[^<>]+>", r"\{[^{}]*\}", r"^<a[^>]*>$", r"\A<[^>]+>", r"(?P<pre>://[^/\s]+)", r"(?<=a)[^b]+", r"[^>]+"):
+            self.assertFalse(unbounded(pattern), pattern)
 
     def test_tests_conftest_and_vendored_code_are_left_out(self) -> None:
         files = {f["file"] for f in MODULE.sweep(self.repo.root)}

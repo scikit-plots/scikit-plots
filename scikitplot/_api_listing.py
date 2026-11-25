@@ -62,7 +62,7 @@ SIGNATURE_MAX = 110
 _MODULE_RE = re.compile(r"scikitplot(?:\.[A-Za-z_][A-Za-z0-9_]*)*\Z")
 _SECTION = re.compile(r"^([A-Z][A-Za-z ]+)\n-{3,}\s*$", re.MULTILINE)
 _TITLE = re.compile(r"\A[^\n]+\n([=\-~^*#\"'`+])\1{2,}[ \t]*(\n|\Z)")
-_ROLE = re.compile(r":(?:[a-z]+:)?[a-z]+:`(~?)([^`<]*?)(?:\s*<([^>]+)>)?`")
+_ROLE = re.compile(r":(?:[a-z]+:)?[a-z]+:`(~?)([^`<]*?)(?:\s*<([^<>`]+)>)?`")
 _FOOTNOTE = re.compile(r"\s*\[(?:\d+|#\w*|\*)\]_")
 _TYPING_PREFIX = re.compile(r"(?<![\w.])typing(?:_extensions)?\.")
 _FORWARD_REF = re.compile(r"""ForwardRef\((['"])(.*?)\1(?:, [^)]*)?\)""")

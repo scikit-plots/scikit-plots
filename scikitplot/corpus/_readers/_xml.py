@@ -478,7 +478,7 @@ def _clark_to_prefix(
             uri_to_prefix[uri] = prefix
         return f"{prefix}:{local}"
 
-    rewritten = re.sub(r"\{([^}]+)\}(\w+)", _replace, xpath)
+    rewritten = re.sub(r"\{([^{}]+)\}(\w+)", _replace, xpath)
     return rewritten, ns_map
 
 

@@ -81,7 +81,10 @@ __all__ = [
 _WS_RE: re.Pattern[str] = re.compile(r"\s+")
 
 # Matches HTML/XML tags.
-_HTML_TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>", re.DOTALL)
+# Stops at the next "<": text full of unclosed "<" is stripped in linear
+# time (with [^>] each "<" scanned to the end: quadratic), and in
+# "x < y and <b>bold</b>" only the tags go, not "< y and <b>".
+_HTML_TAG_RE: re.Pattern[str] = re.compile(r"<[^<>]+>")
 
 # Common HTML entities (subset — full decode via html module).
 _HTML_ENTITY_RE: re.Pattern[str] = re.compile(r"&(?:#\d+|#x[\da-fA-F]+|\w+);")

@@ -97,6 +97,7 @@ CATEGORIES: Dict[str, Tuple[Any, Tuple[str, ...], str]] = {
     "print-in-library": (None, ("T201",), "print() inside a function: bypasses logging"),
     "assert-in-library": (None, ("S101",), "assert outside tests: removed by python -O"),
     "mutable-default": (None, ("B006",), "a list/dict/set default argument (shared between calls)"),
+    "regex-unbounded-scan": (None, (), "a regex whose scan from an unclosed opener runs to the end (<[^>]*>, (.*?)</): quadratic on text full of openers"),
 }
 
 _NOQA = re.compile(r"#\s*noqa(?::\s*(?P<codes>[A-Za-z0-9, ]+))?", re.IGNORECASE)
@@ -188,6 +189,46 @@ def _annotation_needs(annotation: ast.AST) -> Tuple[int, int] | None:
     return needed
 
 
+#: ``re`` functions that search every position of the text.
+_RE_SEARCHING = frozenset({"compile", "sub", "subn", "findall", "finditer", "search", "split"})
+#: An opener, then a repeated class that excludes its closer but not the
+#: opener itself: a scan from each unclosed opener runs to the text's end.
+_UNBOUNDED_SCAN = re.compile(r"(<|\\{)[^\[]{0,40}?\[\^(?P<cls>[^\]]*)\][*+]")
+_GROUP_SYNTAX = re.compile(r"\(\?(?:P<\w+>|<[=!]|P=\w+\))")
+_LAZY_TO_CLOSING_TAG = re.compile(r"\.\*\??\)?</")
+
+
+def _unbounded_scan(pattern: str) -> bool:
+    """
+    Return whether *pattern* scans from each unclosed opener to the end.
+
+    ``<[^>]*>`` (or ``{[^}]*}``) tried at every ``<`` of a text full of
+    them scans to the end each time: quadratic. ``<[^<>]*>`` stops at the
+    next opener and is linear. ``(.*?)</tag>`` under ``re.DOTALL`` does the
+    same for every opening tag. A pattern anchored at the start (``^``,
+    ``\\A``) is tried at one position and is not flagged. A heuristic for a
+    sweep, not a proof.
+
+    Examples
+    --------
+    >>> _unbounded_scan(r"<[^>]+>"), _unbounded_scan(r"<[^<>]+>")
+    (True, False)
+    >>> _unbounded_scan(r"<object\\b[^<>]*>(.*?)</object>"), _unbounded_scan(r"^<a[^>]*>$")
+    (True, False)
+    >>> _unbounded_scan(r"(?P<pre>://[^/]+)"), _unbounded_scan(r"(?<=x)[^y]+")
+    (False, False)
+    """
+    if pattern.startswith(("^", "\\A")):
+        return False
+    # "<" in a group name or a lookbehind is syntax, not an opener.
+    pattern = _GROUP_SYNTAX.sub("(", pattern)
+    for match in _UNBOUNDED_SCAN.finditer(pattern):
+        opener = "<" if match.group(1) == "<" else "{"
+        if opener not in match.group("cls"):
+            return True
+    return bool(_LAZY_TO_CLOSING_TAG.search(pattern))
+
+
 class _Checker(ast.NodeVisitor):
     """Collect findings of one parsed file."""
 
@@ -254,6 +295,15 @@ class _Checker(ast.NodeVisitor):
             name.startswith(("xml.etree.", "xml.dom.minidom.")) or name.split(".")[0] in self.xml_aliases
         ):
             self.emit("stdlib-xml-parse", node)
+        if (
+            name.split(".")[0] in ("re", "regex")
+            and last in _RE_SEARCHING
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+            and _unbounded_scan(node.args[0].value)
+        ):
+            self.emit("regex-unbounded-scan", node)
         if name == "print" and self.depth:
             self.emit("print-in-library", node)
         if last in ("removeprefix", "removesuffix") and isinstance(node.func, ast.Attribute):

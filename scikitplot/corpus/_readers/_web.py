@@ -90,7 +90,8 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 # HTML tag pattern for stripping tags from cue text (reuse from module level)
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
+# [^<>]: linear on unclosed "<" (see _normalizers._normalizer._HTML_TAG_RE).
+_HTML_TAG_RE = re.compile(r"<[^<>]+>")
 
 # HTML tags whose text content maps to section types
 _HEADING_TAGS: tuple[str, ...] = ("h1", "h2", "h3", "h4", "h5", "h6")

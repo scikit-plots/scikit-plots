@@ -86,7 +86,11 @@ _ANSI_CODE_PAGE = {
 }
 _TRADITIONAL_CHINESE = {0x0404, 0x0C04, 0x1404}
 
-_OBJECT_RE = re.compile(r"<object\b[^>]*>(.*?)</object>", re.IGNORECASE | re.DOTALL)
+#: An opening ``<object ...>`` or a closing ``</object>`` tag. Blocks are
+#: paired by one scan over these tokens (:func:`_object_blocks`), not by
+#: ``<object[^>]*>(.*?)</object>``, which rescans to the end from every
+#: unclosed opening tag: quadratic on a hostile contents file.
+_OBJECT_TAG_RE = re.compile(r"<(/?)object\b[^<>]*>", re.IGNORECASE)
 _PARAM_RE = re.compile(
     r"""<param\s+name\s*=\s*["']?([^"'>\s]+)["']?\s+value\s*=\s*"([^"]*)\"""",
     re.IGNORECASE,
@@ -142,6 +146,31 @@ def _page_codec(raw: bytes, lcid: int) -> str:
     return "cp1252" if _decodes(raw, "cp1252") else "latin-1"
 
 
+def _object_blocks(text: str) -> list[str]:
+    """
+    Return the inside of each ``<object>...</object>`` block, in order.
+
+    One pass over the tags: an opening tag starts a block (a later one,
+    before any close, restarts it), a closing tag ends the open block.
+    Linear in *text*, however many tags are left unclosed.
+
+    Examples
+    --------
+    >>> _object_blocks("<OBJECT a>x</OBJECT><object>y<object>z</object></object>")
+    ['x', 'z']
+    """
+    blocks: list[str] = []
+    start: int | None = None
+    for match in _OBJECT_TAG_RE.finditer(text):
+        if match.group(1):
+            if start is not None:
+                blocks.append(text[start : match.start()])
+                start = None
+        else:
+            start = match.end()
+    return blocks
+
+
 def _toc(text: str, base: str) -> list[tuple[str, str]]:
     r"""
     Return ``(page key, title)`` pairs of a table of contents, in order.
@@ -169,10 +198,8 @@ def _toc(text: str, base: str) -> list[tuple[str, str]]:
     """
     entries: list[tuple[str, str]] = []
     seen: set[str] = set()
-    for block in _OBJECT_RE.finditer(text):
-        params = {
-            k.lower(): _html.unescape(v) for k, v in _PARAM_RE.findall(block.group(1))
-        }
+    for block in _object_blocks(text):
+        params = {k.lower(): _html.unescape(v) for k, v in _PARAM_RE.findall(block)}
         local = params.get("local")
         if not local:
             continue

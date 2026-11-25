@@ -648,3 +648,14 @@ class TestWebReaderSsrfConsolidation:
     def test_allow_private_opt_out_preserved(self, monkeypatch) -> None:
         self._set_dns(monkeypatch, {"internal.example": ["10.0.0.5"]})
         validate_url_safety("http://internal.example/x", allow_private_networks=True)
+
+
+def test_transcript_tag_stripping_is_linear_and_keeps_lone_less_thans() -> None:
+    import time
+
+    from .._web import _HTML_TAG_RE
+
+    assert _HTML_TAG_RE.sub("", "a < b <i>c</i>") == "a < b c"
+    start = time.perf_counter()
+    _HTML_TAG_RE.sub("", "<" * 400_000)
+    assert time.perf_counter() - start < 1.0
