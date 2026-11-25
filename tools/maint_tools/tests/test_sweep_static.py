@@ -56,6 +56,8 @@ RISKY = textwrap.dedent(
         re.match(r"<[^>]+>", s)
         re.compile(r"^<a[^>]*>$")
         re.compile(r"(?P<name>[^/]+)/")
+        re.search(rb"<[^<>]+>", s)
+        re.compile(TAG_OK)
         try:
             pass
         except Exception:
@@ -64,6 +66,9 @@ RISKY = textwrap.dedent(
             pass
         except:
             x = 1
+
+
+    TAG_OK = r"<[^<>]+>"
 
 
     def mutable(a=[]):
@@ -190,6 +195,28 @@ class SweepTests(unittest.TestCase):
         found = self.categories()
         self.assertEqual([f["line"] for f in found["open-without-encoding"]], [15, 16])
         self.assertEqual([f["line"] for f in found["path-text-without-encoding"]], [17, 18])
+
+    def test_named_and_bytes_patterns_are_checked(self) -> None:
+        source = textwrap.dedent(
+            """
+            import re
+            BAD = r"<[^>]+>"
+            BAD_BYTES: bytes = rb"<meta[^>]+charset"
+            FINE = r"<[^<>]+>"
+            re.compile(BAD)
+            re.search(BAD_BYTES, b"")
+            re.compile(FINE)
+            re.compile(undefined)
+            """
+        )
+        root = self.repo.root
+        (root / "scikitplot" / "alpha" / "named.py").write_text(source, encoding="utf-8")
+        lines = sorted(
+            f["line"]
+            for f in MODULE.sweep(root)
+            if f["category"] == "regex-unbounded-scan" and f["file"].endswith("named.py")
+        )
+        self.assertEqual(lines, [6, 7])
 
     def test_unbounded_regex_scans(self) -> None:
         unbounded = MODULE._unbounded_scan

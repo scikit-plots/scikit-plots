@@ -285,7 +285,7 @@ def _outermost(root: Any, tags: frozenset[str]) -> Generator[Any, None, None]:
 
 
 _META_CHARSET_RE = re.compile(
-    rb"""<meta[^>]+charset\s*=\s*["']?\s*([A-Za-z0-9_.:-]+)""",
+    rb"""<meta[^<>]+charset\s*=\s*["']?\s*([A-Za-z0-9_.:-]+)""",
     re.IGNORECASE,
 )
 

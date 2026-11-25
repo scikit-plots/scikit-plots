@@ -229,13 +229,57 @@ def _unbounded_scan(pattern: str) -> bool:
     return bool(_LAZY_TO_CLOSING_TAG.search(pattern))
 
 
+def _string_constants(tree: ast.AST) -> Dict[str, str]:
+    """Return the module's ``NAME = "text"`` (or bytes) assignments, as text."""
+    found: Dict[str, str] = {}
+    for node in getattr(tree, "body", []):
+        targets: List[ast.AST] = []
+        value = None
+        if isinstance(node, ast.Assign):
+            targets, value = list(node.targets), node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        text = _pattern_text(value, {}) if value is not None else None
+        if text is None:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name):
+                found[target.id] = text
+    return found
+
+
+def _pattern_text(node: ast.AST, constants: Dict[str, str]) -> str | None:
+    """
+    Return a regex argument's text: a str or bytes literal, or a module constant.
+
+    Bytes are decoded as Latin-1, which maps every byte to one character,
+    so the shape check sees the same pattern.
+    """
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, str):
+            return node.value
+        if isinstance(node.value, bytes):
+            return node.value.decode("latin-1")
+        return None
+    if isinstance(node, ast.Name):
+        return constants.get(node.id)
+    return None
+
+
 class _Checker(ast.NodeVisitor):
     """Collect findings of one parsed file."""
 
-    def __init__(self, emit: Any, future_annotations: bool, xml_aliases: frozenset) -> None:
+    def __init__(
+        self,
+        emit: Any,
+        future_annotations: bool,
+        xml_aliases: frozenset,
+        constants: Dict[str, str] | None = None,
+    ) -> None:
         self.emit = emit
         self.future = future_annotations
         self.xml_aliases = xml_aliases  # names bound to xml.etree / xml.dom.minidom
+        self.constants = constants or {}  # module-level NAME = "pattern"
         self.depth = 0  # function nesting
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: C901, PLR0912
@@ -295,15 +339,10 @@ class _Checker(ast.NodeVisitor):
             name.startswith(("xml.etree.", "xml.dom.minidom.")) or name.split(".")[0] in self.xml_aliases
         ):
             self.emit("stdlib-xml-parse", node)
-        if (
-            name.split(".")[0] in ("re", "regex")
-            and last in _RE_SEARCHING
-            and node.args
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-            and _unbounded_scan(node.args[0].value)
-        ):
-            self.emit("regex-unbounded-scan", node)
+        if name.split(".")[0] in ("re", "regex") and last in _RE_SEARCHING and node.args:
+            pattern = _pattern_text(node.args[0], self.constants)
+            if pattern is not None and _unbounded_scan(pattern):
+                self.emit("regex-unbounded-scan", node)
         if name == "print" and self.depth:
             self.emit("print-in-library", node)
         if last in ("removeprefix", "removesuffix") and isinstance(node.func, ast.Attribute):
@@ -467,7 +506,7 @@ def sweep(root: Path, *, floor: Tuple[int, int] = (3, 8), exclude: Sequence[str]
             isinstance(n, ast.ImportFrom) and n.module == "__future__" and any(a.name == "annotations" for a in n.names)
             for n in tree.body
         )
-        _Checker(emit, future, _xml_aliases(tree)).visit(tree)
+        _Checker(emit, future, _xml_aliases(tree), _string_constants(tree)).visit(tree)
     findings.sort(key=lambda f: (f["file"], f["line"], f["category"]))
     return findings
 

@@ -1,13 +1,17 @@
-- Markup patterns no longer cost quadratic time on text full of
-  unclosed ``<`` or ``{``: ``HTMLStripNormalizer``, the YouTube
-  transcript cleaner, the CHM contents parser and the subtitle cleaners
-  each stop a tag at the next opener (``<[^<>]+>``), and CHM ``<object>``
-  blocks are paired in one pass. 400 kB of ``<`` now takes milliseconds
-  (it was over a minute), and a lone ``<`` keeps the text after it:
-  ``x < y and <b>bold</b>`` becomes ``x < y and bold``, where
-  ``< y and`` was deleted. Also lands the subtitle review fixes merged
-  without them in #983: companion lookup in 0.14 s instead of about
-  330 s for 5000 videos, ``companion_options`` on ``VideoReader`` and
-  ``AudioReader``, and the encoding policy for plain-text companions. A
-  static check (``sweep_static.py --fail-on regex-unbounded-scan``, now
-  in CI) refuses the pattern shape anywhere in first-party code.
+- Markup patterns no longer cost quadratic time on text full of unclosed
+  ``<`` or ``{``: ``HTMLStripNormalizer``, the YouTube transcript
+  cleaner, the CHM contents parser and the subtitle cleaners each stop a
+  tag at the next opener (``<[^<>]+>``), and CHM ``<object>`` blocks are
+  paired in one pass. 400 kB of ``<`` now takes milliseconds (it was
+  over a minute), and a lone ``<`` keeps the text after it: ``x < y and
+  <b>bold</b>`` becomes ``x < y and bold``, where ``< y and`` was
+  deleted. HTML comments are removed before tags, so a ``<`` inside a
+  comment no longer leaves comment text behind. Also lands the subtitle
+  review fixes merged without them in #983: companion lookup in 0.14 s
+  instead of about 330 s for 5000 videos (folder listings are cached for
+  at most eight folders and refreshed when a folder changes),
+  ``companion_options`` on ``VideoReader`` and ``AudioReader``, and the
+  encoding policy for plain-text companions. A static check
+  (``sweep_static.py --fail-on regex-unbounded-scan``, now in CI)
+  refuses the pattern shape anywhere in first-party code, including
+  bytes patterns and patterns held in module constants.

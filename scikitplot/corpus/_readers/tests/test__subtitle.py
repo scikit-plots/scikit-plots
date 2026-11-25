@@ -469,15 +469,34 @@ def test_find_companion_prefers_a_language():
 
 
 def test_find_companion_lists_a_folder_once_per_change(tmp_path):
+    import os
+
     from .. import _subtitle as sub
 
     media = [tmp_path / f"v{i}.mp4" for i in range(50)]
     for m in media:
         m.write_bytes(b"")
         m.with_suffix(".srt").write_text("x", encoding="utf-8")
-    sub._listing.cache_clear()
-    assert all(find_companion(m, [".srt"]) for m in media)
-    assert sub._listing.cache_info().misses == 1
+    sub._LISTINGS.clear()
+    with mock.patch.object(sub.os, "scandir", wraps=os.scandir) as scandir:
+        assert all(find_companion(m, [".srt"]) for m in media)
+        assert scandir.call_count == 1
+        (tmp_path / "new.txt").write_text("x", encoding="utf-8")
+        os.utime(tmp_path, ns=(1, 2))  # a change the folder's mtime shows
+        find_companion(media[0], [".srt"])
+        assert scandir.call_count == 2
+
+
+def test_the_listing_cache_is_bounded(tmp_path):
+    from .. import _subtitle as sub
+
+    sub._LISTINGS.clear()
+    for i in range(sub._LISTING_FOLDERS + 5):
+        folder = tmp_path / f"d{i}"
+        folder.mkdir()
+        find_companion(folder / "a.mp4", [".srt"])
+    assert len(sub._LISTINGS) == sub._LISTING_FOLDERS
+    assert str(tmp_path / f"d{sub._LISTING_FOLDERS + 4}") in sub._LISTINGS
 
 
 @pytest.mark.parametrize(

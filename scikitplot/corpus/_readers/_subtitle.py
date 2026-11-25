@@ -22,11 +22,12 @@ linear in the file: one pass over its lines, no backtracking regex.
 from __future__ import annotations
 
 import bisect
-import functools
 import html
 import logging
 import os
 import re
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (  # noqa: F401
@@ -547,18 +548,43 @@ def merge_rolling(cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-@functools.lru_cache(maxsize=64)
-def _listing(folder: str, stamp: int) -> tuple[tuple[str, str], ...]:
+#: Folders whose listing is kept: one entry per folder, replaced when the
+#: folder changes, so memory holds at most this many listings.
+_LISTING_FOLDERS = 8
+_LISTINGS: OrderedDict[str, tuple[int, tuple[tuple[str, str], ...]]] = OrderedDict()
+_LISTINGS_LOCK = threading.Lock()
+
+
+def _listing(folder: str) -> tuple[tuple[str, str], ...]:
     """
     Return ``(lower-case name, name)`` of a folder's files, sorted.
 
-    Cached per folder and modification time (*stamp*), so a folder is
-    listed once per change, not once per media file in it. ``scandir``
-    entries carry their type, so no file is stat-ed.
+    Kept per folder and replaced when the folder's modification time
+    changes, so a folder is listed once per change, not once per media
+    file in it; at most :data:`_LISTING_FOLDERS` folders are kept. ``scandir``
+    entries carry their type, so no file is stat-ed. Thread-safe.
+
+    Raises
+    ------
+    OSError
+        If the folder cannot be read.
     """
+    stamp = os.stat(folder).st_mtime_ns
+    with _LISTINGS_LOCK:
+        kept = _LISTINGS.get(folder)
+        if kept is not None and kept[0] == stamp:
+            _LISTINGS.move_to_end(folder)
+            return kept[1]
     with os.scandir(folder) as entries:
-        names = [(e.name.lower(), e.name) for e in entries if e.is_file()]
-    return tuple(sorted(names))
+        listing = tuple(
+            sorted((e.name.lower(), e.name) for e in entries if e.is_file())
+        )
+    with _LISTINGS_LOCK:
+        _LISTINGS[folder] = (stamp, listing)
+        _LISTINGS.move_to_end(folder)
+        while len(_LISTINGS) > _LISTING_FOLDERS:
+            _LISTINGS.popitem(last=False)
+    return listing
 
 
 def find_companion(
@@ -592,9 +618,10 @@ def find_companion(
 
     Notes
     -----
-    The folder listing is cached by the folder's modification time: a
-    lookup costs a binary search, so a folder of thousands of media files
-    is not listed once per file. A file system whose time stamps are
+    The folder listing is kept per folder (eight at most) and replaced
+    when the folder's modification time changes: a lookup costs a binary
+    search, so a folder of thousands of media files is not listed once
+    per file, and memory stays bounded. A file system whose time stamps are
     coarse may hide a companion created within the same tick until the
     folder changes again.
 
@@ -605,7 +632,7 @@ def find_companion(
     """
     folder = media.parent
     try:
-        listing = _listing(str(folder), os.stat(folder).st_mtime_ns)
+        listing = _listing(str(folder))
     except OSError:
         return None
     prefix = media.stem.lower() + "."
