@@ -96,7 +96,7 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `bridge_chunker` | function | Wrap *chunker* in a bridge if it is a new-style chunker. |
 | `register_bridge` | function | Register a custom bridge for a user-defined chunker class. |
 
-430 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
+431 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
 (or `print(m.__all__)` and `help()`, above).
 
 ## Example (from the docstring of `scikitplot.corpus`)

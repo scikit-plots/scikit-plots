@@ -1,0 +1,20 @@
+- :class:`~scikitplot.corpus.TarReader` reads tar archives, plain or
+  compressed with gzip, bzip2 or xz (``.tar``, ``.tar.gz``, ``.tgz``,
+  ``.tar.bz2``, ``.tbz2``, ``.tar.xz``, ``.txz``), and single compressed
+  files (``notes.txt.gz`` is read as ``notes.txt``). The file's first
+  bytes decide the format, not its name. Each member is read by its own
+  reader, in natural order, under the same nesting depth, extraction
+  budget and path checks as :class:`~scikitplot.corpus.ZipReader`. Only
+  regular files are read (links and devices are skipped), the last copy
+  of a repeated name wins, and in a compressed tar every member's size,
+  read or not, counts against the extraction limit, since reaching a
+  member decompresses everything stored before it. Hostile headers are
+  refused before memory is spent: one member's headers may take 1 MiB (a
+  300 MiB pax header in a 300 kB file needed 600 MiB before), a
+  compressed stream is never decompressed past the extraction limit, and
+  ``max_files`` counts a tar's directories too. In zip and tar archives
+  alike, a member whose name the file system cannot hold (too long, or a
+  forbidden character) is skipped and counted as ``unwritable-name``
+  instead of stopping the whole archive, and member paths are checked
+  against the extraction folder with one resolve each (10,000 members:
+  tar 32%, zip 7% faster).

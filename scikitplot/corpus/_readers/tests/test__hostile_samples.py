@@ -33,11 +33,16 @@ finding (a strict ``xfail``), so the fix must remove it.
 
 from __future__ import annotations
 
+import bz2
+import gzip
 import hashlib
+import io
 import json
+import lzma
 import os
 import subprocess
 import sys
+import tarfile
 import zipfile
 from pathlib import Path
 from typing import Callable
@@ -253,6 +258,81 @@ _OPEN = {
 }
 
 #: (sample id, file name, builder).
+def _tar_member(tf: tarfile.TarFile, name: str, data: bytes) -> None:
+    info = tarfile.TarInfo(name)
+    info.size = len(data)
+    tf.addfile(info, io.BytesIO(data))
+
+
+_INFLATED_TEXT = ("x" * 1023 + "\n").encode("ascii") * 1024 * 24  # 24 MiB
+
+
+def _tar_nested_compressed(path: Path) -> Path:
+    """A plain tar holding a gzip member that inflates about 1000x."""
+    with tarfile.open(path, "w") as tf:
+        _tar_member(tf, "a.txt.gz", gzip.compress(_INFLATED_TEXT, 9))
+    return path
+
+
+def _tgz_skipped_blob_first(path: Path) -> Path:
+    """40 MiB of an unsupported member stored before a small text member."""
+    with tarfile.open(path, "w:gz", compresslevel=9) as tf:
+        _tar_member(tf, "blob.bin", bytes(40 * 1024 * 1024))
+        _tar_member(tf, "a.txt", b"Small text.")
+    return path
+
+
+def _txz_compressed_member(path: Path) -> Path:
+    """A text member that inflates about 1000x, xz-compressed."""
+    with tarfile.open(path, "w:xz") as tf:
+        _tar_member(tf, "a.txt", _INFLATED_TEXT)
+    return path
+
+
+def _bz2_single_file(path: Path) -> Path:
+    """One bzip2-compressed text file of 192 MiB."""
+    path.write_bytes(bz2.compress(_INFLATED_TEXT * 8, 9))
+    return path
+
+
+def _gz_single_file(path: Path) -> Path:
+    """One gzip-compressed text file of 24 MiB."""
+    path.write_bytes(gzip.compress(_INFLATED_TEXT, 9))
+    return path
+
+
+def _tgz_oversized_pax_header(path: Path) -> Path:
+    """One pax header of 48 MiB, which tarfile would hold in memory whole."""
+    body = b"x" * (48 * 1024 * 1024)
+    header = tarfile.TarInfo("././@PaxHeader")
+    header.type = tarfile.XHDTYPE
+    header.size = len(body)
+    member = tarfile.TarInfo("a.txt")
+    member.size = 5
+    raw = (
+        header.tobuf(format=tarfile.USTAR_FORMAT)
+        + body
+        + b"\0" * (-len(body) % 512)
+        + member.tobuf(format=tarfile.USTAR_FORMAT)
+        + b"hello".ljust(512, b"\0")
+        + b"\0" * 1024
+    )
+    path.write_bytes(gzip.compress(raw, 9))
+    return path
+
+
+def _tgz_member_at_the_text_floor(path: Path) -> Path:
+    """
+    The most text a tiny compressed tar may yield: one member of 1 Mi characters.
+
+    Within every archive limit (4 Mi bytes extracted, 1 Mi bytes scanned,
+    1 Mi characters), so it must be read.
+    """
+    with tarfile.open(path, "w:gz", compresslevel=9) as tf:
+        _tar_member(tf, "a.txt", ("x" * 1023 + "\n").encode("ascii") * 1024)
+    return path
+
+
 _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("xlsx-far-column", "a.xlsx", _xlsx_far_column),
     ("ods-repeat-both-axes", "a.ods", _ods_repeat_both_axes),
@@ -273,6 +353,13 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("ipynb-many-cells", "a.ipynb", _ipynb_many_cells),
     ("srt-many-cues", "a.srt", _srt_many_cues),
     ("vtt-unclosed-markup", "a.vtt", _vtt_unclosed_markup),
+    ("tar-nested-compressed", "a.tar", _tar_nested_compressed),
+    ("tgz-skipped-blob-first", "a.tar.gz", _tgz_skipped_blob_first),
+    ("txz-compressed-member", "a.tar.xz", _txz_compressed_member),
+    ("bz2-single-file", "a.txt.bz2", _bz2_single_file),
+    ("gz-single-file", "b.txt.gz", _gz_single_file),
+    ("tgz-oversized-pax-header", "d.tar.gz", _tgz_oversized_pax_header),
+    ("tgz-member-at-the-text-floor", "c.tar.gz", _tgz_member_at_the_text_floor),
 ]
 
 
@@ -299,10 +386,11 @@ _MUST_READ = {
     "docx-part-at-the-ratio-limit",
     "zip-member-at-the-text-floor",
     "chm-repetitive-page",
+    "tgz-member-at-the-text-floor",
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt", ".vtt"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt", ".vtt", ".tar", ".gz", ".xz", ".bz2"}
 
 
 _CHILD = """

@@ -189,6 +189,7 @@ from . import (
     _structured,
     _subtitle,
     _table,
+    _tar,
     _text,
     _video,
     _web,
@@ -209,6 +210,7 @@ from ._pdf import *  # noqa: F403
 from ._structured import *  # noqa: F403
 from ._subtitle import *  # noqa: F403
 from ._table import *  # noqa: F403
+from ._tar import *  # noqa: F403  # a ZipReader: after _zip
 from ._text import *  # noqa: F403
 from ._video import *  # noqa: F403
 from ._web import *  # noqa: F403
@@ -236,3 +238,4 @@ __all__ += _web.__all__
 __all__ += _whisper.__all__
 __all__ += _xml.__all__
 __all__ += _zip.__all__
+__all__ += _tar.__all__
