@@ -478,12 +478,14 @@ def test_find_companion_lists_a_folder_once_per_change(tmp_path):
         m.write_bytes(b"")
         m.with_suffix(".srt").write_text("x", encoding="utf-8")
     sub._LISTINGS.clear()
-    os.utime(tmp_path, ns=(1, 1))  # a settled folder time
+    # Whole seconds: Windows keeps file times in 100 ns units and FAT in
+    # 2 s units, so finer values can round to the same stored time.
+    os.utime(tmp_path, (1_000_000_000, 1_000_000_000))  # a settled folder time
     with mock.patch.object(sub.os, "scandir", wraps=os.scandir) as scandir:
         assert all(find_companion(m, [".srt"]) for m in media)
         assert scandir.call_count == 1
         (tmp_path / "new.txt").write_text("x", encoding="utf-8")
-        os.utime(tmp_path, ns=(1, 2))  # a change the folder's mtime shows
+        os.utime(tmp_path, (1_000_000_000, 1_000_000_010))  # a visible change
         find_companion(media[0], [".srt"])
         assert scandir.call_count == 2
 
@@ -515,7 +517,7 @@ def test_the_listing_cache_is_bounded(tmp_path):
     for i in range(sub._LISTING_FOLDERS + 5):
         folder = tmp_path / f"d{i}"
         folder.mkdir()
-        os.utime(folder, ns=(1, 1))  # a settled folder time
+        os.utime(folder, (1_000_000_000, 1_000_000_000))  # a settled folder time
         find_companion(folder / "a.mp4", [".srt"])
     assert len(sub._LISTINGS) == sub._LISTING_FOLDERS
     assert str(tmp_path / f"d{sub._LISTING_FOLDERS + 4}") in sub._LISTINGS

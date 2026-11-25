@@ -181,7 +181,9 @@
   File times move in steps (about 15.6 ms on Windows, 2 s on FAT), so
   two changes in one step leave the time unchanged.
 - **Verified by:** a test that writes, sets the folder time back to its
-  old value with `os.utime`, and still sees the new file.
+  old value with `os.utime`, and still sees the new file. Tests set
+  times in whole seconds: Windows stores 100 ns units and FAT 2 s
+  units, so `ns=(1, 2)` stores the same time twice there.
 - **Added:** 2026-11-25. Root cause: PR 984's folder-listing cache
   served a stale listing on Windows CI, because files created within
   one clock step left the folder time unchanged.
