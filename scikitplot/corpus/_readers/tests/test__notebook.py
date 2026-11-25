@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -141,12 +142,25 @@ def test_nbformat_3_worksheets(tmp_path):
         ("{not json", "is not JSON"),
         ('{"nbformat": 4}', "not a notebook"),
         ("[1, 2]", "not a notebook"),
-        ("[" * 100_000 + "]" * 100_000, "nests too deeply"),
     ],
 )
 def test_files_that_are_refused(tmp_path, data, message):
     with pytest.raises(ValueError, match=message):
         _chunks(_write(tmp_path, data))
+
+
+def test_deep_nesting_never_crashes(tmp_path):
+    # Whether json parses 100 000 levels depends on the Python version
+    # (3.14+ bounds recursion by stack size, not a count): the contract is
+    # a ValueError either way (too deep, or not a notebook), never a crash.
+    with pytest.raises(ValueError, match="nests too deeply|not a notebook"):
+        _chunks(_write(tmp_path, "[" * 100_000 + "]" * 100_000))
+
+
+def test_a_parser_recursion_error_names_the_depth(tmp_path):
+    with mock.patch("json.loads", side_effect=RecursionError):
+        with pytest.raises(ValueError, match="NotebookReader: n.ipynb nests too deeply"):
+            _chunks(_write(tmp_path, _nb4([])))
 
 
 def test_an_empty_file_yields_nothing(tmp_path):
