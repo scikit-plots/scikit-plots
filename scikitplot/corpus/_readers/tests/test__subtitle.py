@@ -458,7 +458,7 @@ def test_find_companion_prefers_a_language():
         media = folder / "talk.mp4"
         media.write_bytes(b"")
         for name in ("talk.srt", "talk.de.srt", "talk.en-US.forced.srt", "talk.fr.vtt"):
-            (folder / name).write_text("x")
+            (folder / name).write_text("x", encoding="utf-8")
         assert find_companion(media, [".srt", ".vtt"]).name == "talk.srt"
         assert find_companion(media, [".srt"], language="en").name == "talk.en-US.forced.srt"
         assert find_companion(media, [".srt"], language="DE").name == "talk.de.srt"
@@ -474,7 +474,7 @@ def test_find_companion_lists_a_folder_once_per_change(tmp_path):
     media = [tmp_path / f"v{i}.mp4" for i in range(50)]
     for m in media:
         m.write_bytes(b"")
-        m.with_suffix(".srt").write_text("x")
+        m.with_suffix(".srt").write_text("x", encoding="utf-8")
     sub._listing.cache_clear()
     assert all(find_companion(m, [".srt"]) for m in media)
     assert sub._listing.cache_info().misses == 1
