@@ -433,3 +433,85 @@ def test_audio_lrc_companion_uses_the_shared_parser(tmp_path):
     with mock.patch.object(_audio, "logger") as logger:
         assert _audio._parse_lrc(_write(tmp_path, b"\x00bin", "bad.lrc")) == ([], {})
     assert "unreadable" in logger.warning.call_args.args[0]
+
+
+# ---------------------------------------------------------------------------
+# Review: cost, language and companion options
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("spam", ["<", "<v ", "{\\", "{y:", "<i"])
+def test_markup_that_never_closes_costs_linear_time(spam):
+    # Each pattern stops at the next opener; this was 39 s for "<v " * 40000.
+    start = time.perf_counter()
+    from .._subtitle import _clean
+
+    _clean([spam * 40_000])
+    assert time.perf_counter() - start < 1.0
+
+
+def test_find_companion_prefers_a_language():
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as tmp:
+        folder = Path(tmp)
+        media = folder / "talk.mp4"
+        media.write_bytes(b"")
+        for name in ("talk.srt", "talk.de.srt", "talk.en-US.forced.srt", "talk.fr.vtt"):
+            (folder / name).write_text("x")
+        assert find_companion(media, [".srt", ".vtt"]).name == "talk.srt"
+        assert find_companion(media, [".srt"], language="en").name == "talk.en-US.forced.srt"
+        assert find_companion(media, [".srt"], language="DE").name == "talk.de.srt"
+        # A language without a match keeps the usual order.
+        assert find_companion(media, [".srt"], language="ja").name == "talk.srt"
+        # The extension order still decides first.
+        assert find_companion(media, [".vtt", ".srt"], language="en").name == "talk.fr.vtt"
+
+
+def test_find_companion_lists_a_folder_once_per_change(tmp_path):
+    from .. import _subtitle as sub
+
+    media = [tmp_path / f"v{i}.mp4" for i in range(50)]
+    for m in media:
+        m.write_bytes(b"")
+        m.with_suffix(".srt").write_text("x")
+    sub._listing.cache_clear()
+    assert all(find_companion(m, [".srt"]) for m in media)
+    assert sub._listing.cache_info().misses == 1
+
+
+@pytest.mark.parametrize(
+    ("options", "error", "message"),
+    [
+        ([("encoding", "x")], TypeError, "must be a dict"),
+        ({"codec": "x"}, ValueError, "unknown key"),
+        ({"language": ""}, TypeError, "non-empty str"),
+        ({"encoding": "no-such-codec"}, ValueError, "not a codec"),
+        ({"dedupe_rolling": "yes"}, TypeError, "dedupe_rolling"),
+    ],
+)
+def test_companion_options_fail_when_the_reader_is_made(tmp_path, options, error, message):
+    media = _write(tmp_path, b"", "clip.mp4")
+    with pytest.raises(error, match=message):
+        _video.VideoReader(input_path=media, companion_options=options)
+    with pytest.raises(error, match=message):
+        _audio.AudioReader(input_path=media.with_suffix(".mp3"), companion_options=options)
+
+
+def test_video_companion_options_reach_the_parser(tmp_path):
+    media = _write(tmp_path, b"\x00" * 16, "clip.mp4")
+    _write(tmp_path, "1\n00:00:01,000 --> 00:00:02,000\nEnglish\n", "clip.en.srt")
+    _write(tmp_path, "1\n00:00:01,000 --> 00:00:02,000\nПри\n".encode("cp1251"), "clip.ru.srt")
+    reader = _video.VideoReader(
+        input_path=media, companion_options={"language": "ru", "encoding": "cp1251"}
+    )
+    assert [c["text"] for c in reader.get_raw_chunks()] == ["При"]
+    reader = _video.VideoReader(input_path=media)
+    assert [c["text"] for c in reader.get_raw_chunks()] == ["English"]
+
+
+def test_audio_txt_companion_follows_the_encoding_policy(tmp_path):
+    path = _write(tmp_path, "café\nüber\n".encode("cp1252"), "song.txt")
+    assert [c["text"] for c in _audio._parse_txt_companion(path)] == ["café", "über"]
+    path = _write(tmp_path, "При\n".encode("cp1251"), "ru.txt")
+    assert [c["text"] for c in _audio._parse_txt_companion(path, encoding="cp1251")] == ["При"]

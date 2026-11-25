@@ -233,6 +233,13 @@ def _srt_many_cues(path: Path) -> Path:
     return path
 
 
+def _vtt_unclosed_markup(path: Path) -> Path:
+    """One cue of 60 kB of tags that never close: quadratic before PR 983."""
+    head = "WEBVTT\n\n00:01.000 --> 00:02.000\n"
+    path.write_bytes((head + "<v " * ((60_000 - len(head)) // 3)).encode("ascii"))
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -265,6 +272,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("code-one-long-line", "a.js", _code_one_long_line),
     ("ipynb-many-cells", "a.ipynb", _ipynb_many_cells),
     ("srt-many-cues", "a.srt", _srt_many_cues),
+    ("vtt-unclosed-markup", "a.vtt", _vtt_unclosed_markup),
 ]
 
 
@@ -294,7 +302,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt", ".vtt"}
 
 
 _CHILD = """

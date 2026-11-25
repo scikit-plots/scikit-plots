@@ -117,7 +117,9 @@ _COMPANION_EXTENSIONS: tuple[str, ...] = (".lrc", ".srt", ".vtt", ".txt")
 # =========================================================================
 
 
-def _find_companion(audio_path: Path) -> tuple[Path, str] | None:
+def _find_companion(
+    audio_path: Path, language: str | None = None
+) -> tuple[Path, str] | None:
     """
     Find a companion transcript or lyrics file for the given audio file.
 
@@ -125,6 +127,8 @@ def _find_companion(audio_path: Path) -> tuple[Path, str] | None:
     ----------
     audio_path : pathlib.Path
         Path to the audio file.
+    language : str or None, optional
+        Preferred language tag (``song.en.lrc`` for ``"en"``).
 
     Returns
     -------
@@ -134,7 +138,9 @@ def _find_companion(audio_path: Path) -> tuple[Path, str] | None:
         A tagged name (``song.en.lrc``) and any letter case are found too
         (:func:`scikitplot.corpus._readers._subtitle.find_companion`).
     """
-    found = _subtitle.find_companion(audio_path, _COMPANION_EXTENSIONS)
+    found = _subtitle.find_companion(
+        audio_path, _COMPANION_EXTENSIONS, language=language
+    )
     if found is None:
         return None
     fmt = found.suffix.lower().lstrip(".")
@@ -184,7 +190,9 @@ def _parse_lrc(
 # =========================================================================
 
 
-def _parse_srt(srt_path: Path) -> list[dict[str, Any]]:
+def _parse_srt(
+    srt_path: Path, encoding: Any = None, dedupe_rolling: bool = False
+) -> list[dict[str, Any]]:
     """
     Parse an SRT companion with the shared subtitle reader.
 
@@ -195,17 +203,23 @@ def _parse_srt(srt_path: Path) -> list[dict[str, Any]]:
         when named, ``speaker``. An unreadable file logs a warning and
         gives no cues.
     """
-    return _companion_cues(srt_path, "srt")
+    return _companion_cues(srt_path, "srt", encoding, dedupe_rolling)
 
 
-def _parse_vtt(vtt_path: Path) -> list[dict[str, Any]]:
+def _parse_vtt(
+    vtt_path: Path, encoding: Any = None, dedupe_rolling: bool = False
+) -> list[dict[str, Any]]:
     """Parse a WebVTT companion with the shared subtitle reader (see :func:`_parse_srt`)."""
-    return _companion_cues(vtt_path, "vtt")
+    return _companion_cues(vtt_path, "vtt", encoding, dedupe_rolling)
 
 
-def _companion_cues(path: Path, fmt: str) -> list[dict[str, Any]]:
+def _companion_cues(
+    path: Path, fmt: str, encoding: Any = None, dedupe_rolling: bool = False
+) -> list[dict[str, Any]]:
     try:
-        return _subtitle.read_cues(path, fmt)[0]
+        return _subtitle.read_cues(
+            path, fmt, encoding=encoding, dedupe_rolling=dedupe_rolling
+        )[0]
     except ValueError as exc:
         logger.warning("AudioReader: companion %s is unreadable: %s", path.name, exc)
         return []
@@ -214,6 +228,7 @@ def _companion_cues(path: Path, fmt: str) -> list[dict[str, Any]]:
 def _parse_txt_companion(
     txt_path: Path,
     as_single_chunk: bool = False,
+    encoding: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Parse a plain-text companion transcript.
@@ -225,6 +240,9 @@ def _parse_txt_companion(
     as_single_chunk : bool, optional
         When ``True``, the entire file is yielded as one chunk.
         When ``False`` (default), each non-empty line is a separate chunk.
+    encoding : str, sequence, callable or None, optional
+        The :class:`~scikitplot.corpus._readers.TextReader` encoding
+        policy. Default: ``None`` (detect).
 
     Returns
     -------
@@ -233,9 +251,14 @@ def _parse_txt_companion(
         Plain-text companions have no timecodes.
     """
     try:
-        raw = txt_path.read_text("utf-8")
-    except UnicodeDecodeError:
-        raw = txt_path.read_text("latin-1")
+        # The TextReader policy, not "UTF-8 else Latin-1": a legacy code
+        # page is detected or named instead of read as Latin-1.
+        raw = _subtitle.read_text(txt_path, encoding=encoding)
+    except ValueError as exc:
+        logger.warning(
+            "AudioReader: companion %s is unreadable: %s", txt_path.name, exc
+        )
+        return []
 
     if as_single_chunk:
         text = raw.strip()
@@ -255,6 +278,9 @@ def _parse_companion(
     companion_path: Path,
     format: str,
     txt_as_single_chunk: bool = False,
+    *,
+    encoding: Any = None,
+    dedupe_rolling: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """
     Dispatch companion file parsing to the appropriate format parser.
@@ -267,6 +293,11 @@ def _parse_companion(
         Format identifier: ``"lrc"``, ``"srt"``, ``"vtt"``, or ``"txt"``.
     txt_as_single_chunk : bool, optional
         Passed through to ``_parse_txt_companion``. Default: ``False``.
+    encoding : str, sequence, callable or None, optional
+        The encoding policy for the companion. Default: ``None``.
+    dedupe_rolling : bool, optional
+        Remove repeated rolling-caption lines (SRT, WebVTT). Default:
+        ``False``.
 
     Returns
     -------
@@ -282,14 +313,16 @@ def _parse_companion(
         If ``format`` is not a supported format.
     """
     if format == "lrc":
-        return _parse_lrc(companion_path)
+        return _parse_lrc(companion_path, encoding)
     if format == "srt":
-        return _parse_srt(companion_path), {}
+        return _parse_srt(companion_path, encoding, dedupe_rolling), {}
     if format == "vtt":
-        return _parse_vtt(companion_path), {}
+        return _parse_vtt(companion_path, encoding, dedupe_rolling), {}
     if format == "txt":
         return (
-            _parse_txt_companion(companion_path, as_single_chunk=txt_as_single_chunk),
+            _parse_txt_companion(
+                companion_path, as_single_chunk=txt_as_single_chunk, encoding=encoding
+            ),
             {},
         )
     raise ValueError(
@@ -715,6 +748,13 @@ class AudioReader(DocumentReader):
         When a ``.txt`` companion is found, yield the entire file as one
         chunk (``True``) or one chunk per non-empty line (``False``).
         Default: ``False``.
+    companion_options : dict or None, optional
+        How the companion file is chosen and read: ``"language"`` prefers
+        a tagged file (``song.en.lrc`` for ``"en"``), ``"encoding"``
+        decodes it (the :class:`TextReader` policy, for a legacy code page
+        such as ``"cp1251"`` or ``"detect"``) and ``"dedupe_rolling"``
+        removes repeated rolling-caption lines (SRT and WebVTT). Checked
+        when the reader is made. Default: ``None``.
     max_file_bytes : int, optional
         Maximum file size in bytes. Default: 5 GB.
     chunker : ChunkerBase or None, optional
@@ -874,6 +914,12 @@ class AudioReader(DocumentReader):
     """Extract audio features (MFCCs, chroma) via librosa."""
 
     txt_as_single_chunk: bool = field(default=False)
+
+    companion_options: dict[str, Any] | None = field(default=None)
+    """
+    Options for the companion file: ``encoding``, ``dedupe_rolling`` and
+    ``language`` (the tag preferred, ``song.en.lrc`` for ``"en"``).
+    """
     """Yield entire ``.txt`` companion as one chunk if ``True``."""
 
     max_file_bytes: int = field(default=5 * 1024 * 1024 * 1024)
@@ -912,6 +958,9 @@ class AudioReader(DocumentReader):
             If ``custom_extractor`` is not callable (and not ``None``).
         """
         super().__post_init__()
+        self._companion_options = _subtitle.companion_options(
+            self.companion_options, "AudioReader"
+        )
         if self.whisper_model not in self._VALID_WHISPER_MODELS:
             raise ValueError(
                 f"AudioReader: whisper_model must be one of"
@@ -1023,13 +1072,16 @@ class AudioReader(DocumentReader):
         yielded_any = False
 
         # --- Strategy 1: companion transcript / lyrics file ---
-        companion_result = _find_companion(self.input_path)
+        options = self._companion_options
+        companion_result = _find_companion(self.input_path, options.get("language"))
         if companion_result is not None:
             comp_path, comp_fmt = companion_result
             cues, comp_meta = _parse_companion(
                 comp_path,
                 comp_fmt,
                 txt_as_single_chunk=self.txt_as_single_chunk,
+                encoding=options.get("encoding"),
+                dedupe_rolling=options.get("dedupe_rolling", False),
             )
             logger.info(
                 "AudioReader: parsed %d cues from %s (format=%s).",

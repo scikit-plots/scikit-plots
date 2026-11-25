@@ -117,7 +117,9 @@ _parse_sub = _subtitle.parse_sub
 _tc_to_seconds = _subtitle._seconds
 
 
-def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
+def _find_subtitle(
+    video_path: Path, language: str | None = None
+) -> tuple[Path, str] | None:
     """
     Search for a companion subtitle file next to the video.
 
@@ -125,6 +127,8 @@ def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
     ----------
     video_path : Path
         Path to the video file.
+    language : str or None, optional
+        Preferred language tag (``talk.en.srt`` for ``"en"``).
 
     Returns
     -------
@@ -134,7 +138,9 @@ def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
         :func:`scikitplot.corpus._readers._subtitle.find_companion`);
         ``None`` if there is none.
     """
-    found = _subtitle.find_companion(video_path, _SUBTITLE_EXTENSIONS)
+    found = _subtitle.find_companion(
+        video_path, _SUBTITLE_EXTENSIONS, language=language
+    )
     if found is None:
         return None
     logger.info(
@@ -144,7 +150,12 @@ def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
 
 
 def _parse_subtitle(
-    path: Path, format: str, frame_rate: float | None = None
+    path: Path,
+    format: str,
+    frame_rate: float | None = None,
+    *,
+    encoding: Any = None,
+    dedupe_rolling: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Parse a subtitle file with the shared subtitle reader.
@@ -161,7 +172,13 @@ def _parse_subtitle(
         when named, ``speaker``.
     """
     try:
-        return _subtitle.read_cues(path, format, frame_rate=frame_rate)[0]
+        return _subtitle.read_cues(
+            path,
+            format,
+            frame_rate=frame_rate,
+            encoding=encoding,
+            dedupe_rolling=dedupe_rolling,
+        )[0]
     except ValueError as exc:
         logger.warning(
             "VideoReader: companion subtitle %s is unreadable: %s", path.name, exc
@@ -233,6 +250,13 @@ class VideoReader(DocumentReader):
         Frames per second used to convert MicroDVD ``.sub`` frame numbers
         to seconds; ``None`` (default) uses the file's own ``{1}{1}fps``
         header, else 25. Ignored for all other subtitle formats.
+    companion_options : dict or None, optional
+        How the companion subtitle is chosen and read: ``"language"``
+        prefers a tagged file (``talk.en.srt`` for ``"en"``),
+        ``"encoding"`` decodes it (the :class:`TextReader` policy, for a
+        legacy code page such as ``"cp1251"`` or ``"detect"``) and
+        ``"dedupe_rolling"`` removes repeated rolling-caption lines.
+        Checked when the reader is made. Default: ``None``.
     max_file_bytes : int, optional
         Maximum file size in bytes. Files larger than this raise
         ``ValueError`` before processing. Default: 10 GB.
@@ -329,6 +353,12 @@ class VideoReader(DocumentReader):
     """Whisper model size for transcription. Default: ``"base"``."""
 
     subtitle_frame_rate: float | None = field(default=None)
+
+    companion_options: dict[str, Any] | None = field(default=None)
+    """
+    Options for the companion subtitle: ``encoding``, ``dedupe_rolling``
+    and ``language`` (the tag preferred, ``talk.en.srt`` for ``"en"``).
+    """
     """Frames per second for MicroDVD SUB format. Default: 25.0."""
 
     max_file_bytes: int = field(default=10 * 1024 * 1024 * 1024)
@@ -390,6 +420,9 @@ class VideoReader(DocumentReader):
                 f"VideoReader: custom_extractor must be callable or None; "
                 f"got {type(self.custom_extractor).__name__!r}."
             )
+        self._companion_options = _subtitle.companion_options(
+            self.companion_options, "VideoReader"
+        )
         if self.subtitle_frame_rate is not None and self.subtitle_frame_rate <= 0:
             raise ValueError(
                 f"VideoReader: subtitle_frame_rate must be > 0;"
@@ -460,10 +493,17 @@ class VideoReader(DocumentReader):
             return
 
         # --- Strategy 1: companion subtitle file ---
-        subtitle_result = _find_subtitle(self.input_path)
+        options = self._companion_options
+        subtitle_result = _find_subtitle(self.input_path, options.get("language"))
         if subtitle_result is not None:
             sub_path, sub_fmt = subtitle_result
-            cues = _parse_subtitle(sub_path, sub_fmt, self.subtitle_frame_rate)
+            cues = _parse_subtitle(
+                sub_path,
+                sub_fmt,
+                self.subtitle_frame_rate,
+                encoding=options.get("encoding"),
+                dedupe_rolling=options.get("dedupe_rolling", False),
+            )
             logger.info(
                 "VideoReader: parsed %d cues from %s (%s).",
                 len(cues),

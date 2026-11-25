@@ -16,3 +16,11 @@
   an instrumental break, and apply ``[offset:]`` in the direction the
   format defines (a positive offset makes lyrics sooner). A video whose
   companion gives no cue now falls back to transcription.
+  ``VideoReader`` and ``AudioReader`` take ``companion_options``
+  (``language`` to prefer ``talk.en.srt``, ``encoding``,
+  ``dedupe_rolling``), checked when the reader is made. Finding
+  companions lists a folder once per change instead of once per media
+  file (5000 videos: from about 330 s to 0.14 s), and markup that never
+  closes (``<``, ``<v``, ``{\``) is removed in linear time (40 kB of
+  ``<v`` took 39 s). A plain-text audio companion follows the encoding
+  policy too.
