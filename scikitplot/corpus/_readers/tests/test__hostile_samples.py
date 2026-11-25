@@ -333,6 +333,28 @@ def _tgz_member_at_the_text_floor(path: Path) -> Path:
     return path
 
 
+def _lean_unclosed_openers(path: Path) -> Path:
+    """40 kB of nested comment openers that never close, on one line."""
+    path.write_text("/-" * 20_000, encoding="utf-8")
+    return path
+
+
+def _lean_deep_scopes(path: Path) -> Path:
+    """Five thousand nested namespaces (refused by max_scope_depth)."""
+    path.write_text("namespace N\n" * 5_000, encoding="utf-8")
+    return path
+
+
+def _lean_many_small_commands(path: Path) -> Path:
+    """
+    About 3,600 one-line definitions: a chunk each, all within the limits.
+
+    Measures the cost of many small chunks, so it must be read.
+    """
+    path.write_text("".join(f"def d{i} := {i}\n" for i in range(3_600)), encoding="utf-8")
+    return path
+
+
 _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("xlsx-far-column", "a.xlsx", _xlsx_far_column),
     ("ods-repeat-both-axes", "a.ods", _ods_repeat_both_axes),
@@ -360,6 +382,9 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("gz-single-file", "b.txt.gz", _gz_single_file),
     ("tgz-oversized-pax-header", "d.tar.gz", _tgz_oversized_pax_header),
     ("tgz-member-at-the-text-floor", "c.tar.gz", _tgz_member_at_the_text_floor),
+    ("lean-unclosed-openers", "a.lean", _lean_unclosed_openers),
+    ("lean-deep-scopes", "b.lean", _lean_deep_scopes),
+    ("lean-many-small-commands", "c.lean", _lean_many_small_commands),
 ]
 
 
@@ -387,10 +412,11 @@ _MUST_READ = {
     "zip-member-at-the-text-floor",
     "chm-repetitive-page",
     "tgz-member-at-the-text-floor",
+    "lean-many-small-commands",
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt", ".vtt", ".tar", ".gz", ".xz", ".bz2"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt", ".vtt", ".tar", ".gz", ".xz", ".bz2", ".lean"}
 
 
 _CHILD = """

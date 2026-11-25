@@ -187,3 +187,16 @@
 - **Added:** 2026-11-25. Root cause: PR 984's folder-listing cache
   served a stale listing on Windows CI, because files created within
   one clock step left the folder time unchanged.
+
+### Rule REPO-L15: Survey real files for what a keyword rule leaves out
+- **When:** a reader finds structure by keywords (commands, headings,
+  sections) and treats an unknown keyword as a continuation.
+- **Then:** before review, run it over a real corpus of that format and
+  count the line starts the rule did not recognise, by first word; add
+  the real keywords, and confirm the rest are continuations.
+- **Verified by:** the pull request lists the survey's top entries and
+  what was added.
+- **Added:** 2026-11-26. Root cause: PR 986's Lean command list missed
+  `grind_pattern` (492 lines in the files surveyed), the Lake build
+  commands and a dozen more; each would have merged into the declaration
+  before it. A survey of 8,534 files found them in one run.
