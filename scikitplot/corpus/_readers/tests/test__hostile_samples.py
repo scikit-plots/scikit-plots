@@ -197,6 +197,21 @@ def _csv_wide_and_quoted(path: Path) -> Path:
     return path
 
 
+def _yaml_alias_bomb(path: Path) -> Path:
+    """Nested aliases: 10**9 strings if every alias were expanded."""
+    body = "a: &a [" + ", ".join(['"xxxxxxxx"'] * 10) + "]\n"
+    for name, prev in zip("bcdefghij", "abcdefghi"):
+        body += f"{name}: &{name} [" + ", ".join(["*" + prev] * 10) + "]\n"
+    path.write_bytes(body.encode("ascii"))
+    return path
+
+
+def _json_deep_nesting(path: Path) -> Path:
+    """Thirty thousand nested arrays: past the parser's recursion limit."""
+    path.write_bytes(b"[" * 30_000 + b"]" * 30_000)
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -224,6 +239,8 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("chm-repetitive-page", "a.chm", _chm_repetitive_page),
     ("mhtml-many-parts", "a.mhtml", _mhtml_many_parts),
     ("csv-wide-and-quoted", "a.csv", _csv_wide_and_quoted),
+    ("yaml-alias-bomb", "a.yaml", _yaml_alias_bomb),
+    ("json-deep-nesting", "a.json", _json_deep_nesting),
 ]
 
 
@@ -253,7 +270,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json"}
 
 
 _CHILD = """

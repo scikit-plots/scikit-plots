@@ -1,0 +1,13 @@
+- Structured data is read by the new ``JSONReader`` (``.json``,
+  ``.jsonl``, ``.ndjson``), ``YAMLReader`` (``.yaml``, ``.yml``, every
+  document of a stream) and ``TOMLReader`` (``.toml``). Every value
+  becomes a line ``path: value`` (``users[0].name: Ada``), so the text
+  keeps what each value means, grouped by top-level item,
+  ``items_per_chunk`` items a chunk; ``values="text"`` keeps strings only.
+  YAML is read with the safe loader only; a tag it does not know (as in
+  MkDocs configs) is read as plain data, never run, or refused with
+  ``unknown_tags="refuse"``. A JSON Lines record that does not parse is
+  refused, or skipped and counted with ``on_error="skip"``. Deep nesting,
+  self-referencing anchors and alias "bombs" are bounded by
+  ``max_values`` and the text ratio limit. ``pyyaml`` and, before Python
+  3.11, ``tomli`` join the ``corpus`` extra.

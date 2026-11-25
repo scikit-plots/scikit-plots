@@ -76,6 +76,12 @@ Available readers:
     Delimited tables (``.csv``, ``.tsv``): rows as tab-separated lines,
     ``rows_per_chunk`` a chunk, each chunk opening with the header row.
 
+:class:`JSONReader`, :class:`YAMLReader`, :class:`TOMLReader`
+    Structured data (``.json``, ``.jsonl``, ``.ndjson``, ``.yaml``,
+    ``.yml``, ``.toml``): every value as a ``path: value`` line, grouped
+    by top-level item. YAML needs PyYAML; TOML before Python 3.11 needs
+    ``tomli``.
+
 :class:`HTMLReader`
     Local HTML files (``.html``, ``.htm``, ``.xhtml``). Parsed offline
     exactly as :class:`WebReader` parses a fetched page; a ``<meta>``
@@ -164,6 +170,7 @@ from . import (
     _mhtml,
     _office,
     _pdf,
+    _structured,
     _table,
     _text,
     _video,
@@ -180,6 +187,7 @@ from ._image import *  # noqa: F403
 from ._mhtml import *  # noqa: F403
 from ._office import *  # noqa: F403
 from ._pdf import *  # noqa: F403
+from ._structured import *  # noqa: F403
 from ._table import *  # noqa: F403
 from ._text import *  # noqa: F403
 from ._video import *  # noqa: F403
@@ -197,6 +205,7 @@ __all__ += _image.__all__
 __all__ += _mhtml.__all__
 __all__ += _office.__all__
 __all__ += _pdf.__all__
+__all__ += _structured.__all__
 __all__ += _table.__all__
 __all__ += _text.__all__
 __all__ += _video.__all__
