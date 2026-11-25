@@ -219,19 +219,6 @@ class CSVReader(TextReader):
                 f"CSVReader: rows_per_chunk must be an int > 0; got {rows!r}."
             )
 
-    def _encoding_of_file(self) -> str | None:
-        """Check the size, choose the codec from the whole file, release it."""
-        size = self.input_path.stat().st_size
-        if size > self.max_file_bytes:
-            raise ValueError(
-                f"CSVReader: {self.file_name} is {size:,} bytes, which exceeds"
-                f" max_file_bytes={self.max_file_bytes:,}."
-            )
-        raw = self.input_path.read_bytes()
-        if not raw or raw.isspace():  # no copy, unlike raw.strip()
-            return None
-        return self._choose_encoding(raw)
-
     def _rows(self, stream: Any, delimiter: str) -> Iterator[tuple[int, str]]:
         """Yield ``(record number, tab-joined line)`` for each non-blank row."""
         reader = csv.reader(stream, delimiter=delimiter)
@@ -286,7 +273,7 @@ class CSVReader(TextReader):
         ValueError
             If the file is too large, binary or has an oversized field.
         """
-        encoding = self._encoding_of_file()
+        encoding = self._codec_of_file()
         if encoding is None:
             logger.warning("CSVReader: %s is empty.", self.file_name)
             return
