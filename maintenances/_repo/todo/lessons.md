@@ -122,3 +122,29 @@
 - **Added:** 2026-11-25. Root cause: PR 977's hostile sample wrote with
   `Path.write_text(..., newline="")`; the syntax check passed and the
   py3.9 job failed with `TypeError`.
+
+### Rule REPO-L10: Check what a commit holds before pushing it
+- **When:** any commit, and above all after `git stash` / `git stash pop`
+  between staging and committing (a plain `pop` restores changes as
+  unstaged, so an earlier `git add` is lost).
+- **Then:** stage right before committing, compare against a base with a
+  copy (`git show main:path > /tmp/x`) rather than a stash, and read
+  `git show --stat HEAD` before `git push`: every changed source, test and
+  record file must be listed.
+- **Verified by:** the pushed commit's file list matches the pull
+  request's description.
+- **Added:** 2026-11-25. Root cause: PR 982 was pushed holding only its
+  release note; a stash and pop used for a before/after comparison had
+  unstaged the code and tests.
+
+### Rule REPO-L11: Tests assert the contract, not one Python's limit
+- **When:** a test exercises a limit set by the interpreter or a library
+  (recursion depth, a parser's nesting limit, float formatting).
+- **Then:** assert what holds on every supported version (a clean read
+  or the documented `ValueError`, never a crash), and force the limit's
+  own path with a mock to test its message.
+- **Verified by:** the partial distributions' newest-Python job passes.
+- **Added:** 2026-11-25. Root cause: PR 981's test expected `json` to
+  raise `RecursionError` at 100 000 levels; Python 3.15 parses that deep
+  (recursion is bounded by stack size since 3.14), so the file was
+  refused for its shape instead and the message differed.

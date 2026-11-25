@@ -53,6 +53,8 @@ Probe: `DocumentReader.create("page.html")` and
   PR 980. Extensionless files (`LICENSE`, `Makefile`) wait for the
   content sniff.
 - Notebooks (`.ipynb`): `NotebookReader`, PR 981.
+- Structured data shaped for a task (records mode, include/exclude):
+  PR 982.
 
 ## Root cause / current understanding
 

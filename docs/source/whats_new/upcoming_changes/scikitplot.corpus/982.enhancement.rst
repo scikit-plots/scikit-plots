@@ -1,0 +1,12 @@
+- ``JSONReader``, ``YAMLReader`` and ``TOMLReader`` can be shaped for a
+  task. ``include`` and ``exclude`` keep or drop subtrees by path, and a
+  *records mode* yields one chunk per record: ``record_path`` says where
+  the records are (``data.articles[*]``), ``text_fields`` or a
+  ``template`` (``"{title}\n\n{body}"``) makes the text, and
+  ``metadata_fields`` carries chosen values as metadata, under their path
+  or a name you give (``{"url": "meta.link"}`` also sets the document's
+  ``url``). A chat dataset in JSON Lines, for example, becomes one
+  document per conversation with ``text_fields=["messages[*].content"]``.
+  Paths use the syntax the path lines are written in (``.key``,
+  ``["any key"]``, ``[0]``, ``[*]``, ``*``), are checked when the reader
+  is made, and a template only substitutes values, never evaluates them.
