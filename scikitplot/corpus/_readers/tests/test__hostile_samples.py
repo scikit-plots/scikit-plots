@@ -189,6 +189,14 @@ def _mhtml_many_parts(path: Path) -> Path:
     return path
 
 
+def _csv_wide_and_quoted(path: Path) -> Path:
+    """One header and rows of 3000 one-character fields, one quoted run."""
+    row = ",".join("x" * 3000) + "\n"
+    body = "h\n" + row * 9 + '"' + "a,\n" * 1000 + '"\n'
+    path.write_bytes(body.encode("ascii"))
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -215,6 +223,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("html-unclosed-nesting", "a.html", _html_unclosed_nesting),
     ("chm-repetitive-page", "a.chm", _chm_repetitive_page),
     ("mhtml-many-parts", "a.mhtml", _mhtml_many_parts),
+    ("csv-wide-and-quoted", "a.csv", _csv_wide_and_quoted),
 ]
 
 
@@ -244,7 +253,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv"}
 
 
 _CHILD = """

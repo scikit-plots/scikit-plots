@@ -46,6 +46,7 @@ Probe: `DocumentReader.create("page.html")` and
 - Compiled HTML Help (`.chm`), added on request: `CHMReader`, PR 976,
   pure-Python container and LZX decoder.
 - Saved pages (`.mhtml`, `.mht`): `MHTMLReader`, PR 977.
+- Tables (`.csv`, `.tsv`): `CSVReader`, PR 978.
 
 ## Root cause / current understanding
 

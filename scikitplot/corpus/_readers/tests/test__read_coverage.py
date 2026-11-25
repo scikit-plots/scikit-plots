@@ -57,7 +57,7 @@ def unsupported_zip(tmp_path):
     path = tmp_path / "only_unsupported.zip"
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("notes.toml", "x = 1")
-        zf.writestr("data.csv", "a,b")
+        zf.writestr("data.json", "{}")
         zf.writestr("script.py", "x = 1")
     return path
 
