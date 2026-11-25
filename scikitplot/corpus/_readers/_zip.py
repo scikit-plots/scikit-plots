@@ -697,169 +697,37 @@ class ZipReader(DocumentReader):
 
                 for info in members:
                     member_path = info.filename
-
-                    # ── Skip hidden / system files ────────────────────
-                    if _should_skip(member_path):
-                        logger.debug(
-                            "ZipReader: skipping hidden/system member %s",
-                            member_path,
-                        )
-                        coverage.skip("hidden")
+                    placed = self._member_target(
+                        member_path, tmp_dir, supported, coverage, archive_name
+                    )
+                    if placed is None:
                         continue
-
-                    # ── ZipSlip guard ─────────────────────────────────
-                    target = (tmp_dir / member_path).resolve()
-                    if not _is_within(target, tmp_dir):
-                        logger.warning(
-                            "ZipReader: ZipSlip detected for member %r — "
-                            "skipping (escapes %s).",
-                            member_path,
-                            archive_name,
-                        )
-                        coverage.skip("unsafe-path")
-                        continue
-
-                    # ── Extension filter ──────────────────────────────
-                    ext = Path(member_path).suffix.lower()
-                    if ext not in supported:
-                        if self.skip_unsupported:
-                            logger.debug(
-                                "ZipReader: skipping unsupported extension "
-                                "%r for member %s",
-                                ext,
-                                member_path,
-                            )
-                            coverage.skip("unsupported")
-                            continue
-                        raise ValueError(
-                            f"ZipReader: member {member_path!r} has "
-                            f"unsupported extension {ext!r}. "
-                            f"Set skip_unsupported=True to ignore."
-                        )
+                    target, ext = placed
 
                     # ── Bomb guard: declared pre-check + actual-byte budget ──
-                    if own_limit - total_bytes <= budget.remaining:
-                        allowed, described = own_limit - total_bytes, own_described
-                    else:
-                        allowed, described = budget.remaining, budget.described
+                    allowed, described = self._allowance(
+                        own_limit, own_described, total_bytes, budget
+                    )
                     if info.file_size > allowed:
                         raise ArchiveBudgetError(
-                            f"ZipReader: member {member_path!r} of"
+                            f"{type(self).__name__}: member {member_path!r} of"
                             f" {archive_path.name!r} declares {info.file_size:,}"
                             f" bytes, {allowed:,} left of {described}."
                             " Possible zip bomb."
                         )
 
                     # ── Extract single member (streamed, memory-bounded) ──
-                    from .._archive_handler import (  # noqa: PLC0415
-                        stream_copy_bounded,
-                    )
-
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(info) as src, open(target, "wb") as dst:
-                        try:
-                            copied = stream_copy_bounded(
-                                src,
-                                dst,
-                                max_bytes=allowed,
-                                member_name=member_path,
-                                archive_name=archive_path.name,
-                            )
-                        except ValueError as exc:  # the content outgrew its header
-                            raise ArchiveBudgetError(
-                                f"ZipReader: {exc} ({described})"
-                            ) from exc
+                    with zf.open(info) as src:
+                        copied = self._copy_bounded(
+                            src, target, allowed, described, member_path
+                        )
                     total_bytes += copied
                     budget.remaining -= copied
 
-                    # ── Dispatch to correct reader ────────────────────
-                    provenance = dict(self.source_provenance)
-                    provenance["input_path"] = f"{archive_name}/{member_path}"
-
-                    # Infer source_type from member extension when not set
-                    member_st = provenance.get("source_type")
-                    if member_st is None and self.infer_source_type:
-                        try:
-                            from .._schema import (  # noqa: PLC0415
-                                SourceType,
-                            )
-
-                            inferred = SourceType.infer(target)
-                            if inferred.value != "unknown":
-                                member_st = inferred
-                        except Exception:  # noqa: BLE001
-                            pass
-
-                    # Merge global kwargs with per-extension overrides
-                    member_kw: dict[str, Any] = {}
-                    if self.reader_kwargs:
-                        member_kw.update(self.reader_kwargs.get(ext, {}))
-
-                    try:
-                        sub_reader = DocumentReader._create_one(
-                            target,
-                            chunker=self.chunker,
-                            filter_=self.filter_,
-                            filename_override=f"{archive_name}/{member_path}",
-                            default_language=self.default_language,
-                            source_type=member_st,
-                            source_title=provenance.get("source_title"),
-                            source_author=provenance.get("source_author"),
-                            source_date=provenance.get("source_date"),
-                            collection_id=provenance.get("collection_id"),
-                            doi=provenance.get("doi"),
-                            isbn=provenance.get("isbn"),
-                            **member_kw,
-                        )
-                        # Preserve child-reader provenance when yielding
-                        # through the outer ZipReader.  Without this bridge,
-                        # DocumentReader.get_documents() only sees the outer
-                        # archive reader and collapses every document to the
-                        # archive filename / UNKNOWN source type.
-                        member_label = f"{archive_name}/{member_path}"
-                        # The member's own text limit (an OfficeReader or
-                        # PDFReader default, or reader_kwargs): a refused
-                        # member is logged and skipped like any member error.
-                        if isinstance(sub_reader, ZipReader):
-                            # A nested archive's counts roll up into this
-                            # one's: one warning for the whole tree.
-                            sub_reader._warn_coverage = False
-                        n_member_chunks = 0
-                        for raw_chunk in sub_reader._within_text_limit(
-                            sub_reader.get_raw_chunks()
-                        ):
-                            n_member_chunks += 1
-                            bridged = dict(raw_chunk)
-                            bridged.setdefault("input_path", member_label)
-                            for key, value in sub_reader.source_provenance.items():
-                                if value is not None:
-                                    bridged.setdefault(key, value)
-                            yield bridged
-                        logger.debug(
-                            "ZipReader: processed member %s from %s (type=%s)",
-                            member_path,
-                            archive_name,
-                            member_st,
-                        )
-                        nested = getattr(sub_reader, "coverage", None)
-                        if isinstance(nested, ReadCoverage):
-                            # A nested archive: its members count, not itself.
-                            coverage.merge(nested)
-                        elif n_member_chunks:
-                            coverage.read += 1
-                        else:
-                            coverage.empty += 1
-                    except (ArchiveNestingError, ArchiveBudgetError):
-                        # Security limits: abort the whole tree, never swallow.
-                        raise
-                    except Exception as exc:  # noqa: BLE001
-                        coverage.skip("error")
-                        logger.warning(
-                            "ZipReader: failed to read member %s from %s: %s",
-                            member_path,
-                            archive_name,
-                            _archive_relative(str(exc), tmp_dir, archive_name),
-                        )
+                    yield from self._read_member(
+                        target, member_path, ext, tmp_dir, coverage
+                    )
 
         finally:
             # Always remove the temporary directory
@@ -867,18 +735,226 @@ class ZipReader(DocumentReader):
 
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+        self._finish_read(members_count, coverage)
+
+    # -- shared by every archive format (ZipReader, TarReader) -------------
+
+    def _member_target(
+        self,
+        member_path: str,
+        tmp_dir: Path,
+        supported: set[str],
+        coverage: ReadCoverage,
+        archive_name: str,
+    ) -> tuple[Path, str] | None:
+        """
+        Return where a member is extracted and its extension, or ``None`` to skip it.
+
+        A member is skipped, and counted in *coverage*, when it is hidden or
+        a system file (``"hidden"``), would land outside *tmp_dir*
+        (``"unsafe-path"``), or has no registered reader (``"unsupported"``,
+        unless ``skip_unsupported=False``, which raises).
+
+        Raises
+        ------
+        ValueError
+            If the extension is unsupported and ``skip_unsupported`` is ``False``.
+        """
+        name = type(self).__name__
+        if _should_skip(member_path):
+            logger.debug("%s: skipping hidden/system member %s", name, member_path)
+            coverage.skip("hidden")
+            return None
+        target = (tmp_dir / member_path).resolve()
+        if not _is_within(target, tmp_dir):
+            logger.warning(
+                "%s: ZipSlip detected for member %r — skipping (escapes %s).",
+                name,
+                member_path,
+                archive_name,
+            )
+            coverage.skip("unsafe-path")
+            return None
+        ext = Path(member_path).suffix.lower()
+        if ext not in supported:
+            if self.skip_unsupported:
+                logger.debug(
+                    "%s: skipping unsupported extension %r for member %s",
+                    name,
+                    ext,
+                    member_path,
+                )
+                coverage.skip("unsupported")
+                return None
+            raise ValueError(
+                f"{name}: member {member_path!r} has unsupported extension"
+                f" {ext!r}. Set skip_unsupported=True to ignore."
+            )
+        return target, ext
+
+    @staticmethod
+    def _allowance(
+        own_limit: int, own_described: str, used: int, budget: _ExtractBudget
+    ) -> tuple[int, str]:
+        """Return the bytes the next member may take and how a message names the limit.
+
+        The smaller of what is left of this archive's own limit (*used*
+        bytes taken of *own_limit*) and of the tree's shared *budget*.
+        """
+        if own_limit - used <= budget.remaining:
+            return own_limit - used, own_described
+        return budget.remaining, budget.described
+
+    def _copy_bounded(
+        self, src: Any, target: Path, allowed: int, described: str, member_path: str
+    ) -> int:
+        """Copy *src* to *target* in blocks, refusing past *allowed* bytes.
+
+        Returns
+        -------
+        int
+            Bytes copied.
+
+        Raises
+        ------
+        ArchiveBudgetError
+            If the content outgrows *allowed* (its header understated it).
+        """
+        from .._archive_handler import stream_copy_bounded  # noqa: PLC0415
+
+        with open(target, "wb") as dst:
+            try:
+                return stream_copy_bounded(
+                    src,
+                    dst,
+                    max_bytes=allowed,
+                    member_name=member_path,
+                    archive_name=self.input_path.name,
+                )
+            except ValueError as exc:  # the content outgrew its header
+                raise ArchiveBudgetError(
+                    f"{type(self).__name__}: {exc} ({described})"
+                ) from exc
+
+    def _read_member(  # noqa: PLR0912
+        self,
+        target: Path,
+        member_path: str,
+        ext: str,
+        tmp_dir: Path,
+        coverage: ReadCoverage,
+    ) -> Generator[dict[str, Any], None, None]:
+        """
+        Yield the raw chunks of one extracted member, read by its own reader.
+
+        Each chunk is labelled ``<archive>/<member>``, and the member's
+        provenance is bridged onto it. A member that fails is logged,
+        counted as skipped (``"error"``) and passed over; the archive's
+        security limits (:exc:`ArchiveNestingError`,
+        :exc:`ArchiveBudgetError`) abort the whole tree.
+        """
+        archive_name = self.file_name
+        member_label = f"{archive_name}/{member_path}"
+        provenance = dict(self.source_provenance)
+        provenance["input_path"] = member_label
+
+        # Infer source_type from member extension when not set
+        member_st = provenance.get("source_type")
+        if member_st is None and self.infer_source_type:
+            try:
+                from .._schema import SourceType  # noqa: PLC0415
+
+                inferred = SourceType.infer(target)
+                if inferred.value != "unknown":
+                    member_st = inferred
+            except Exception:  # noqa: BLE001
+                pass
+
+        member_kw: dict[str, Any] = {}
+        if self.reader_kwargs:
+            member_kw.update(self.reader_kwargs.get(ext, {}))
+
+        try:
+            sub_reader = DocumentReader._create_one(
+                target,
+                chunker=self.chunker,
+                filter_=self.filter_,
+                filename_override=member_label,
+                default_language=self.default_language,
+                source_type=member_st,
+                source_title=provenance.get("source_title"),
+                source_author=provenance.get("source_author"),
+                source_date=provenance.get("source_date"),
+                collection_id=provenance.get("collection_id"),
+                doi=provenance.get("doi"),
+                isbn=provenance.get("isbn"),
+                **member_kw,
+            )
+            # Preserve child-reader provenance when yielding through the
+            # outer archive reader. Without this bridge,
+            # DocumentReader.get_documents() only sees the outer reader and
+            # collapses every document to the archive filename / UNKNOWN
+            # source type. The member's own text limit (an OfficeReader or
+            # PDFReader default, or reader_kwargs) applies: a refused member
+            # is logged and skipped like any member error.
+            if isinstance(sub_reader, ZipReader):
+                # A nested archive's counts roll up into this one's: one
+                # warning for the whole tree.
+                sub_reader._warn_coverage = False
+            n_member_chunks = 0
+            for raw_chunk in sub_reader._within_text_limit(sub_reader.get_raw_chunks()):
+                n_member_chunks += 1
+                bridged = dict(raw_chunk)
+                bridged.setdefault("input_path", member_label)
+                for key, value in sub_reader.source_provenance.items():
+                    if value is not None:
+                        bridged.setdefault(key, value)
+                yield bridged
+            logger.debug(
+                "%s: processed member %s from %s (type=%s)",
+                type(self).__name__,
+                member_path,
+                archive_name,
+                member_st,
+            )
+            nested = getattr(sub_reader, "coverage", None)
+            if isinstance(nested, ReadCoverage):
+                # A nested archive: its members count, not itself.
+                coverage.merge(nested)
+            elif n_member_chunks:
+                coverage.read += 1
+            else:
+                coverage.empty += 1
+        except (ArchiveNestingError, ArchiveBudgetError):
+            # Security limits: abort the whole tree, never swallow.
+            raise
+        except Exception as exc:  # noqa: BLE001
+            coverage.skip("error")
+            logger.warning(
+                "%s: failed to read member %s from %s: %s",
+                type(self).__name__,
+                member_path,
+                archive_name,
+                _archive_relative(str(exc), tmp_dir, archive_name),
+            )
+
+    def _finish_read(self, members_count: int, coverage: ReadCoverage) -> None:
+        """Log the read's coverage: a warning when it is poor, then a summary."""
+        name = type(self).__name__
         if getattr(self, "_warn_coverage", True) and coverage.is_poor(
             self.coverage_warn_share
         ):
             logger.warning(
-                "ZipReader: %s gave little text: %s. Skipped members are not in"
+                "%s: %s gave little text: %s. Skipped members are not in"
                 " the corpus; register a reader for their type or extract them.",
-                archive_name,
+                name,
+                self.file_name,
                 coverage.summary(),
             )
         logger.info(
-            "ZipReader: finished %s (%d member(s)): %s",
-            archive_name,
+            "%s: finished %s (%d member(s)): %s",
+            name,
+            self.file_name,
             members_count,
             coverage.summary(),
         )

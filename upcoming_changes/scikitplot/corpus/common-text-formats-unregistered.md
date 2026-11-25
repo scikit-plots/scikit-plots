@@ -55,6 +55,10 @@ Probe: `DocumentReader.create("page.html")` and
 - Notebooks (`.ipynb`): `NotebookReader`, PR 981.
 - Structured data shaped for a task (records mode, include/exclude):
   PR 982.
+- Tar archives (`.tar`, `.tgz`, `.tbz`, `.tbz2`, `.txz`, and `.gz`,
+  `.bz2`, `.xz` holding a tar) and single compressed files
+  (`notes.txt.gz`): `TarReader`, PR 985, a `ZipReader` sharing its
+  limits and nesting.
 
 ## Root cause / current understanding
 

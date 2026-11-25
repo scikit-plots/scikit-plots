@@ -2154,6 +2154,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ArchiveBudgetError",
                     "ArchiveNestingError",
                     "ZipReader",
+                    # tar
+                    "TarReader",
                 ],
                 # for inheritance-diagram
                 "classes": [
