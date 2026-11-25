@@ -186,7 +186,7 @@ class NotebookReader(TextReader):
         if whole is None:
             return None
         try:
-            notebook = json.loads(whole["text"].lstrip("﻿"))
+            notebook = json.loads(whole["text"].lstrip("\ufeff"))
         except json.JSONDecodeError as exc:
             raise ValueError(
                 f"NotebookReader: {self.file_name} is not JSON (line {exc.lineno}"

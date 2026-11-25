@@ -226,7 +226,7 @@ class CSVReader(TextReader):
         try:
             for record in reader:
                 number += 1
-                if number == 1 and record and record[0].startswith("﻿"):
+                if number == 1 and record and record[0].startswith("\ufeff"):
                     record[0] = record[0][1:]
                 while record and not record[-1].strip():
                     record.pop()

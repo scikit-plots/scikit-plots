@@ -1,0 +1,18 @@
+- Subtitle, caption and lyrics files are read by the new
+  ``SubtitleReader`` (``.srt``, ``.vtt``, ``.sbv``, ``.sub``, ``.ass``,
+  ``.ssa``, ``.lrc``), and ``VideoReader`` and ``AudioReader`` now parse
+  companion files with the same parser, which fixes, for all three:
+  WebVTT cues with short ``01:02.000`` times and SubRip times with fewer
+  than three fraction digits were dropped silently; UTF-16 files gave no
+  cues and legacy encodings were read as Latin-1 (the ``TextReader``
+  encoding policy applies now); entities stayed escaped and ASS
+  ``{\an8}`` tags stayed in the text; a malformed cue is dropped and
+  counted instead of spilling into its neighbour. New: Advanced
+  SubStation Alpha, a speaker from a WebVTT ``<v Name>`` tag or the ASS
+  ``Name`` field, ``cues_per_chunk`` and ``max_chunk_seconds`` grouping,
+  ``dedupe_rolling`` for automatic "rolling" captions, tagged companions
+  (``talk.en.srt``) in any letter case, and the MicroDVD file's own frame
+  rate. LRC lyrics keep every timestamp of a repeated line, end a line at
+  an instrumental break, and apply ``[offset:]`` in the direction the
+  format defines (a positive offset makes lyrics sooner). A video whose
+  companion gives no cue now falls back to transcription.

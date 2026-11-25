@@ -225,6 +225,14 @@ def _ipynb_many_cells(path: Path) -> Path:
     return path
 
 
+def _srt_many_cues(path: Path) -> Path:
+    """About 2000 one-word cues with markup to strip."""
+    cue = "{0}\n00:00:01,000 --> 00:00:02,000\n<i>w</i> &amp;\n\n"
+    body = "".join(cue.format(i) for i in range(1600))
+    path.write_bytes(body[:60_000].encode("ascii"))
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -256,6 +264,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("json-deep-nesting", "a.json", _json_deep_nesting),
     ("code-one-long-line", "a.js", _code_one_long_line),
     ("ipynb-many-cells", "a.ipynb", _ipynb_many_cells),
+    ("srt-many-cues", "a.srt", _srt_many_cues),
 ]
 
 
@@ -285,7 +294,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb", ".srt"}
 
 
 _CHILD = """

@@ -60,6 +60,11 @@ Available readers:
     Optional Whisper transcription fallback (``faster-whisper`` or
     ``openai-whisper``).
 
+:class:`SubtitleReader`
+    Subtitle and caption files (``.srt``, ``.vtt``, ``.sbv``, ``.sub``,
+    ``.ass``, ``.ssa``): timed cues, alone or grouped, with the speaker
+    when named. The same parser reads audio and video companions.
+
 :class:`AudioReader`
     Audio files (``.mp3``, ``.wav``, ``.flac``, ``.ogg``, ``.m4a``,
     ``.wma``, ``.aac``, ``.aiff``, ``.opus``, ``.wv``).
@@ -182,6 +187,7 @@ from . import (
     _office,
     _pdf,
     _structured,
+    _subtitle,
     _table,
     _text,
     _video,
@@ -201,6 +207,7 @@ from ._notebook import *  # noqa: F403
 from ._office import *  # noqa: F403
 from ._pdf import *  # noqa: F403
 from ._structured import *  # noqa: F403
+from ._subtitle import *  # noqa: F403
 from ._table import *  # noqa: F403
 from ._text import *  # noqa: F403
 from ._video import *  # noqa: F403
@@ -221,6 +228,7 @@ __all__ += _notebook.__all__
 __all__ += _office.__all__
 __all__ += _pdf.__all__
 __all__ += _structured.__all__
+__all__ += _subtitle.__all__
 __all__ += _table.__all__
 __all__ += _text.__all__
 __all__ += _video.__all__

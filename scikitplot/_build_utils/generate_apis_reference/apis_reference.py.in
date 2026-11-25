@@ -2130,6 +2130,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "JSONReader",
                     "TOMLReader",
                     "YAMLReader",
+                    # subtitle
+                    "SubtitleReader",
                     # table
                     "CSVReader",
                     # text
