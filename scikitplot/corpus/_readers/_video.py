@@ -47,7 +47,13 @@ Format support details:
     YouTube's subtitle format. Comma-separated timecodes, no index lines.
 ``SUB``
     MicroDVD frame-based format — timecodes converted to seconds using
-    the ``frame_rate`` parameter (default 25 fps).
+    ``subtitle_frame_rate``, else the file's own header, else 25 fps.
+``ASS`` / ``SSA``
+    Advanced SubStation Alpha ``Dialogue`` lines; ``Name`` is the speaker.
+
+All formats are parsed by :mod:`scikitplot.corpus._readers._subtitle`,
+which :class:`SubtitleReader` also uses for standalone files. A tagged
+companion (``talk.en.srt``) is found too, in any letter case.
 
 Python compatibility:
 
@@ -58,7 +64,6 @@ imports. The subtitle parser is pure Python (stdlib only).
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (  # noqa: F401
@@ -77,6 +82,7 @@ from .._backends import BackendPolicy
 from .._base import DocumentReader
 from .._capabilities import CapabilityRegistry
 from .._schema import SectionType, SourceType
+from . import _subtitle
 from ._whisper import WHISPER_MODELS, ASRBackend, asr_segment_metadata
 from ._whisper import plan_whisper_backends as _shared_plan_whisper_backends
 from ._whisper import transcribe_whisper as _shared_transcribe_whisper
@@ -101,182 +107,14 @@ _VIDEO_EXTENSIONS: list[str] = [
 ]
 
 # Priority order for companion subtitle files
-_SUBTITLE_EXTENSIONS: tuple[str, ...] = (".srt", ".vtt", ".sbv", ".sub")
+_SUBTITLE_EXTENSIONS: tuple[str, ...] = (".srt", ".vtt", ".ass", ".ssa", ".sbv", ".sub")
 
-# Timecode regex: handles SRT (HH:MM:SS,mmm) and VTT (HH:MM:SS.mmm)
-_TC_RE = re.compile(
-    r"(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})"
-    r"\s*-->\s*"
-    r"(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})"
-)
-
-# SBV timecode: H:MM:SS.mmm,H:MM:SS.mmm
-_SBV_TC_RE = re.compile(
-    r"(\d{1,2}):(\d{2}):(\d{2})\.(\d{3}),(\d{1,2}):(\d{2}):(\d{2})\.(\d{3})"
-)
-
-# MicroDVD SUB: {start_frame}{end_frame}text
-_SUB_RE = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
-
-# HTML tag stripper
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def _tc_to_seconds(h: str, m: str, s: str, ms: str) -> float:
-    """Convert timecode components to total seconds."""
-    return int(h) * 3600 + int(m) * 60 + int(s) + int(ms) / 1000
-
-
-def _parse_srt(content: str) -> list[dict[str, Any]]:
-    """
-    Parse SRT subtitle content into a list of cue dicts.
-
-    Parameters
-    ----------
-    content : str
-        Full SRT file contents.
-
-    Returns
-    -------
-    list of dict
-        Each dict has ``"text"``, ``"timecode_start"``, ``"timecode_end"``.
-    """
-    results = []
-    blocks = re.split(r"\n\s*\n", content.strip())
-    for block in blocks:
-        lines = block.strip().splitlines()
-        if not lines:
-            continue
-        tc_match = None
-        text_start = 0
-        for i, line in enumerate(lines):
-            m = _TC_RE.match(line.strip())
-            if m:
-                tc_match = m
-                text_start = i + 1
-                break
-        if tc_match is None:
-            continue
-        start = _tc_to_seconds(*tc_match.groups()[:4])
-        end = _tc_to_seconds(*tc_match.groups()[4:])
-        # raw_text: verbatim joined cue lines before HTML tag stripping.
-        raw_text = " ".join(lines[text_start:]).strip()
-        text = _HTML_TAG_RE.sub("", raw_text).strip()
-        if text:
-            results.append(
-                {
-                    "text": text,
-                    "raw_text": raw_text,
-                    "timecode_start": start,
-                    "timecode_end": end,
-                }
-            )
-    return results
-
-
-def _parse_vtt(content: str) -> list[dict[str, Any]]:
-    """
-    Parse WebVTT subtitle content. Strips the ``WEBVTT`` header line then
-    delegates to the SRT parser (same timecode format, dot ms separator
-    is already handled by ``_TC_RE``).
-
-    Parameters
-    ----------
-    content : str
-        Full VTT file contents.
-
-    Returns
-    -------
-    list of dict
-        See :func:`_parse_srt`.
-    """  # noqa: D205
-    lines = content.splitlines(keepends=True)
-    # Drop WEBVTT header (first line, possibly with metadata)
-    stripped = lines[1:] if lines and lines[0].startswith("WEBVTT") else lines
-    return _parse_srt("".join(stripped))
-
-
-def _parse_sbv(content: str) -> list[dict[str, Any]]:
-    """
-    Parse SBV (YouTube) subtitle content.
-
-    Parameters
-    ----------
-    content : str
-        Full SBV file contents.
-
-    Returns
-    -------
-    list of dict
-        Each dict has ``"text"``, ``"timecode_start"``, ``"timecode_end"``.
-        See :func:`_parse_srt`.
-    """
-    results = []
-    blocks = re.split(r"\n\s*\n", content.strip())
-    for block in blocks:
-        lines = block.strip().splitlines()
-        if not lines:
-            continue
-        m = _SBV_TC_RE.match(lines[0].strip())
-        if not m:
-            continue
-        start = _tc_to_seconds(*m.groups()[:4])
-        end = _tc_to_seconds(*m.groups()[4:])
-        # raw_text: verbatim joined lines before HTML tag stripping.
-        raw_text = " ".join(lines[1:]).strip()
-        text = _HTML_TAG_RE.sub("", raw_text).strip()
-        if text:
-            results.append(
-                {
-                    "text": text,
-                    "raw_text": raw_text,
-                    "timecode_start": start,
-                    "timecode_end": end,
-                }
-            )
-    return results
-
-
-def _parse_sub(content: str, frame_rate: float = 25.0) -> list[dict[str, Any]]:
-    """
-    Parse MicroDVD SUB subtitle content.
-
-    Parameters
-    ----------
-    content : str
-        Full SUB file contents.
-    frame_rate : float
-        Frames per second used to convert frame numbers to seconds.
-        Default: 25.0.
-
-    Returns
-    -------
-    list of dict
-        Each dict has ``"text"``, ``"timecode_start"``, ``"timecode_end"``.
-        See :func:`_parse_srt`.
-    """
-    results = []
-    for line in content.splitlines():
-        m = _SUB_RE.match(line.strip())
-        if not m:
-            continue
-        start_f, end_f, text = m.group(1), m.group(2), m.group(3)
-        start = int(start_f) / frame_rate
-        end = int(end_f) / frame_rate
-        # raw_text: pipe-separator replaced (structural normalisation) but
-        # HTML tags NOT yet stripped — enables before/after comparison.
-        raw_text = text.replace("|", " ").strip()
-        text = _HTML_TAG_RE.sub("", raw_text).strip()
-        if text:
-            results.append(
-                {
-                    "text": text,
-                    "raw_text": raw_text,
-                    "timecode_start": start,
-                    "timecode_end": end,
-                }
-            )
-    return results
+# One parser for companions and standalone files (scikitplot.corpus._subtitle).
+_parse_srt = _subtitle.parse_srt
+_parse_vtt = _subtitle.parse_vtt
+_parse_sbv = _subtitle.parse_sbv
+_parse_sub = _subtitle.parse_sub
+_tc_to_seconds = _subtitle._seconds
 
 
 def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
@@ -291,53 +129,44 @@ def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
     Returns
     -------
     tuple of (Path, str) or None
-        ``(subtitle_path, format_name)`` where ``format_name`` is one of
-        ``"srt"``, ``"vtt"``, ``"sbv"``, ``"sub"``.
-        ``None`` if no companion subtitle file found.
+        ``(subtitle_path, format_name)``: ``talk.srt`` or a tagged
+        ``talk.en.srt``, any case, in ``_SUBTITLE_EXTENSIONS`` order (see
+        :func:`scikitplot.corpus._readers._subtitle.find_companion`);
+        ``None`` if there is none.
     """
-    for ext in _SUBTITLE_EXTENSIONS:
-        candidate = video_path.with_suffix(ext)
-        if candidate.is_file():
-            logger.info(
-                "VideoReader: found companion subtitle %s for %s.",
-                candidate.name,
-                video_path.name,
-            )
-            return candidate, ext.lstrip(".")
-    return None
+    found = _subtitle.find_companion(video_path, _SUBTITLE_EXTENSIONS)
+    if found is None:
+        return None
+    logger.info(
+        "VideoReader: found companion subtitle %s for %s.", found.name, video_path.name
+    )
+    return found, _subtitle.FORMATS[found.suffix.lower()]
 
 
-def _parse_subtitle(path: Path, format: str, frame_rate: float) -> list[dict[str, Any]]:
+def _parse_subtitle(
+    path: Path, format: str, frame_rate: float | None = None
+) -> list[dict[str, Any]]:
     """
-    Parse a subtitle file and return a list of cue dicts.
+    Parse a subtitle file with the shared subtitle reader.
 
-    Parameters
-    ----------
-    path : Path
-        Path to the subtitle file.
-    format : str
-        Format identifier: ``"srt"``, ``"vtt"``, ``"sbv"``, or ``"sub"``.
-    frame_rate : float
-        Frames per second (only used for SUB format).
+    Decoding follows :class:`~scikitplot.corpus._readers.TextReader`. A
+    file that cannot be read (binary, or UTF-16 without a byte-order mark)
+    logs a warning and gives no cues, so the video falls back to
+    transcription instead of failing.
 
     Returns
     -------
     list of dict
+        ``text``, ``raw_text``, ``timecode_start``, ``timecode_end`` and,
+        when named, ``speaker``.
     """
-    # Try UTF-8 first; fall back to latin-1
     try:
-        content = path.read_text("utf-8")
-    except UnicodeDecodeError:
-        content = path.read_text("latin-1")
-
-    dispatch = {
-        "srt": _parse_srt,
-        "vtt": _parse_vtt,
-        "sbv": _parse_sbv,
-        "sub": lambda c: _parse_sub(c, frame_rate),
-    }
-    parser = dispatch.get(format, _parse_srt)
-    return parser(content)
+        return _subtitle.read_cues(path, format, frame_rate=frame_rate)[0]
+    except ValueError as exc:
+        logger.warning(
+            "VideoReader: companion subtitle %s is unreadable: %s", path.name, exc
+        )
+        return []
 
 
 def _transcribe_whisper(
@@ -400,9 +229,10 @@ class VideoReader(DocumentReader):
         Whisper failure policy. ``False`` (default) logs backend failures,
         tries the next backend, and yields no ASR chunks if all backends fail.
         ``True`` raises after the fallback cascade is exhausted.
-    subtitle_frame_rate : float, optional
+    subtitle_frame_rate : float or None, optional
         Frames per second used to convert MicroDVD ``.sub`` frame numbers
-        to seconds. Ignored for all other subtitle formats. Default: 25.0.
+        to seconds; ``None`` (default) uses the file's own ``{1}{1}fps``
+        header, else 25. Ignored for all other subtitle formats.
     max_file_bytes : int, optional
         Maximum file size in bytes. Files larger than this raise
         ``ValueError`` before processing. Default: 10 GB.
@@ -498,7 +328,7 @@ class VideoReader(DocumentReader):
     whisper_model: str = field(default="base")
     """Whisper model size for transcription. Default: ``"base"``."""
 
-    subtitle_frame_rate: float = field(default=25.0)
+    subtitle_frame_rate: float | None = field(default=None)
     """Frames per second for MicroDVD SUB format. Default: 25.0."""
 
     max_file_bytes: int = field(default=10 * 1024 * 1024 * 1024)
@@ -560,7 +390,7 @@ class VideoReader(DocumentReader):
                 f"VideoReader: custom_extractor must be callable or None; "
                 f"got {type(self.custom_extractor).__name__!r}."
             )
-        if self.subtitle_frame_rate <= 0:
+        if self.subtitle_frame_rate is not None and self.subtitle_frame_rate <= 0:
             raise ValueError(
                 f"VideoReader: subtitle_frame_rate must be > 0;"
                 f" got {self.subtitle_frame_rate!r}."
@@ -641,10 +471,9 @@ class VideoReader(DocumentReader):
                 sub_fmt.upper(),
             )
             for cue in cues:
-                yield {
+                chunk = {
                     "text": cue["text"],
-                    # raw_text: pre-HTML-strip form from subtitle parser
-                    # (SRT/SBV/VTT); equals text for formats with no HTML tags.
+                    # raw_text: the cue's lines as written, markup kept.
                     "raw_text": cue.get("raw_text", cue["text"]),
                     "section_type": SectionType.TEXT.value,
                     "timecode_start": cue[
@@ -657,7 +486,16 @@ class VideoReader(DocumentReader):
                     "source_type": SourceType.SUBTITLE.value,
                     "subtitle_format": sub_fmt,  # non-promoted → metadata
                 }
-            return  # Done — do not fall through to transcription
+                if cue.get("speaker"):
+                    chunk["speaker"] = cue["speaker"]
+                yield chunk
+            if cues:
+                return  # Done — do not fall through to transcription
+            logger.warning(
+                "VideoReader: companion subtitle %s gave no cues; trying"
+                " transcription if enabled.",
+                sub_path.name,
+            )
 
         # --- Strategy 2: Whisper transcription (opt-in) ---
         if self.transcribe:

@@ -148,3 +148,16 @@
   raise `RecursionError` at 100 000 levels; Python 3.15 parses that deep
   (recursion is bounded by stack size since 3.14), so the file was
   refused for its shape instead and the message differed.
+
+### Rule REPO-L12: Write invisible characters as escapes
+- **When:** source text needs a byte-order mark, a no-break space or
+  another invisible or look-alike character.
+- **Then:** write the escape (`"﻿"`, `" "`), never the
+  character; some editing tools turn an escape into the character, so
+  search new files for them before committing
+  (`grep -rP '\x{feff}|\x{a0}' --include=*.py`).
+- **Verified by:** ruff's ambiguous-character checks (RUF001-RUF003) pass
+  and the search finds nothing.
+- **Added:** 2026-11-25. Root cause: `_table.py` (PR 978) and
+  `_notebook.py` (PR 981) were merged with a literal byte-order mark in a
+  string; ruff does not flag that one. PR 983 replaced them with escapes.

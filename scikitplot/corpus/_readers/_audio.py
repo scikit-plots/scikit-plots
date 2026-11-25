@@ -65,7 +65,6 @@ The LRC parser is pure Python (stdlib only).
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (  # noqa: F401
@@ -84,6 +83,7 @@ from .._backends import BackendCandidate, BackendPolicy, run_backend_chain
 from .._base import DocumentReader
 from .._capabilities import CapabilityRegistry
 from .._schema import SectionType, SourceType
+from . import _subtitle
 from ._whisper import WHISPER_MODELS, ASRBackend, asr_segment_metadata
 from ._whisper import plan_whisper_backends as _shared_plan_whisper_backends
 from ._whisper import transcribe_whisper as _shared_transcribe_whisper
@@ -111,33 +111,6 @@ _AUDIO_EXTENSIONS: list[str] = [
 # Priority order for companion transcript / lyrics files
 _COMPANION_EXTENSIONS: tuple[str, ...] = (".lrc", ".srt", ".vtt", ".txt")
 
-# ---------------------------------------------------------------------------
-# LRC timestamp patterns
-# ---------------------------------------------------------------------------
-# Standard LRC: [MM:SS.xx] or [MM:SS.xxx]
-_LRC_LINE_RE = re.compile(r"\[(\d{1,2}):(\d{2})(?:[.:](\d{2,3}))?\]\s*(.*)")
-
-# Extended LRC: [HH:MM:SS.xx]
-_LRC_LINE_EXT_RE = re.compile(r"\[(\d{1,2}):(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\]\s*(.*)")
-
-# LRC metadata tags: [ti:Title], [ar:Artist], [al:Album], etc.
-_LRC_META_RE = re.compile(r"\[([a-zA-Z]{2,}):\s*(.*?)\s*\]")
-
-# Enhanced LRC word-level inline tags: <MM:SS.xx>word
-_LRC_INLINE_TAG_RE = re.compile(r"<\d{1,2}:\d{2}(?:[.:]\d{2,3})?>")
-
-# SRT timecode: HH:MM:SS,mmm --> HH:MM:SS,mmm
-_SRT_TC_RE = re.compile(
-    r"(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})"
-    r"\s*-->\s*"
-    r"(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})"
-)
-
-# HTML tag stripper (for VTT formatting tags)
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-# VTT header
-_VTT_HEADER = "WEBVTT"
 
 # =========================================================================
 # Companion file detection
@@ -158,20 +131,15 @@ def _find_companion(audio_path: Path) -> tuple[Path, str] | None:
     tuple of (pathlib.Path, str) or None
         ``(companion_path, format_name)`` if found; ``None`` otherwise.
         ``format_name`` is one of ``"lrc"``, ``"srt"``, ``"vtt"``, ``"txt"``.
+        A tagged name (``song.en.lrc``) and any letter case are found too
+        (:func:`scikitplot.corpus._readers._subtitle.find_companion`).
     """
-    stem = audio_path.stem
-    parent = audio_path.parent
-    for ext in _COMPANION_EXTENSIONS:
-        candidate = parent / (stem + ext)
-        if candidate.is_file():
-            fmt = ext.lstrip(".")
-            logger.debug(
-                "AudioReader: found companion file %s (format=%s).",
-                candidate.name,
-                fmt,
-            )
-            return candidate, fmt
-    return None
+    found = _subtitle.find_companion(audio_path, _COMPANION_EXTENSIONS)
+    if found is None:
+        return None
+    fmt = found.suffix.lower().lstrip(".")
+    logger.debug("AudioReader: found companion file %s (format=%s).", found.name, fmt)
+    return found, fmt
 
 
 # =========================================================================
@@ -179,335 +147,68 @@ def _find_companion(audio_path: Path) -> tuple[Path, str] | None:
 # =========================================================================
 
 
-def _lrc_ts_to_seconds(
-    minutes: str,
-    seconds: str,
-    centis: str | None,
-    hours: str | None = None,
-) -> float:
-    """
-    Convert LRC timestamp components to seconds.
-
-    Parameters
-    ----------
-    minutes : str
-        Minutes component (or hours if ``hours`` is provided).
-    seconds : str
-        Seconds component.
-    centis : str or None
-        Centisecond (2-digit) or millisecond (3-digit) component.
-    hours : str or None, optional
-        Hours component for extended LRC format.
-
-    Returns
-    -------
-    float
-        Timestamp in seconds.
-    """
-    h = int(hours) if hours else 0
-    m = int(minutes)
-    s = int(seconds)
-    if centis is not None:
-        if len(centis) == 2:  # noqa: PLR2004, SIM108
-            frac = int(centis) / 100.0
-        else:
-            frac = int(centis) / 1000.0
-    else:
-        frac = 0.0
-    return h * 3600.0 + m * 60.0 + s + frac
-
-
-def _parse_lrc(  # noqa: PLR0912
+def _parse_lrc(
     lrc_path: Path,
-    encoding: str = "utf-8",
+    encoding: Any = None,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """
-    Parse an LRC (timestamped lyrics) file.
+    Parse an LRC (timestamped lyrics) companion with the shared parser.
 
-    Parameters
-    ----------
-    lrc_path : pathlib.Path
-        Path to the ``.lrc`` file.
-    encoding : str, optional
-        File encoding. Default: ``"utf-8"``.
+    Decoding follows :class:`~scikitplot.corpus._readers.TextReader`
+    (``encoding=None`` detects); parsing is
+    :func:`scikitplot.corpus._readers._subtitle.lrc_parts`: every
+    timestamp of a line, empty timestamps ending the line before, and a
+    positive ``[offset:]`` shifting lyrics sooner. An unreadable file logs
+    a warning and gives no cues.
 
     Returns
     -------
     cues : list of dict
-        Each dict has keys: ``"text"``, ``"timecode_start"``,
-        ``"timecode_end"`` (estimated from next cue), ``"line_index"``.
+        ``text``, ``raw_text``, ``timecode_start``, ``timecode_end``,
+        ``line_index``.
     lrc_meta : dict of str to str
-        LRC metadata tags (``ti`` → title, ``ar`` → artist, ``al`` →
-        album, ``by`` → LRC author, ``offset`` → timing offset ms).
-
-    Notes
-    -----
-    ``timecode_end`` for each cue is estimated as the ``timecode_start``
-    of the next cue. The last cue has ``timecode_end = timecode_start + 5.0``
-    as a reasonable default. This is the standard LRC convention since the
-    format does not include explicit end times.
-
-    Enhanced LRC word-level inline tags ``<MM:SS.xx>`` are stripped from
-    the text since word-level timing is below the chunk granularity of this
-    reader. The line-level timestamp is preserved.
+        LRC metadata tags (``ti`` title, ``ar`` artist, ``al`` album, ...).
     """
     try:
-        raw = lrc_path.read_text(encoding)
-    except UnicodeDecodeError:
-        raw = lrc_path.read_text("latin-1")
-
-    lrc_meta: dict[str, str] = {}
-    raw_cues: list[tuple[float, str]] = []
-
-    for line in raw.splitlines():
-        line = line.strip()  # noqa: PLW2901
-        if not line:
-            continue
-
-        # Check for metadata tags first
-        meta_match = _LRC_META_RE.match(line)
-        if meta_match and not _LRC_LINE_RE.match(line):
-            tag, value = meta_match.group(1).lower(), meta_match.group(2)
-            lrc_meta[tag] = value
-            continue
-
-        # Try extended format [HH:MM:SS.xx] first
-        ext_match = _LRC_LINE_EXT_RE.match(line)
-        if ext_match:
-            hours_str = ext_match.group(1)
-            mins_str = ext_match.group(2)
-            secs_str = ext_match.group(3)
-            centis_str = ext_match.group(4)
-            # raw_text: verbatim match group before inline-tag stripping.
-            # Carried through the tuple so the cue dict can expose both forms
-            # for before/after comparison at the corpus level.
-            raw_text = ext_match.group(5)
-            ts = _lrc_ts_to_seconds(mins_str, secs_str, centis_str, hours_str)
-            # Strip enhanced LRC inline tags → cleaned form
-            text = _LRC_INLINE_TAG_RE.sub("", raw_text).strip()
-            if text:
-                raw_cues.append((ts, text, raw_text))
-            continue
-
-        # Try standard format [MM:SS.xx]
-        std_match = _LRC_LINE_RE.match(line)
-        if std_match:
-            mins_str = std_match.group(1)
-            secs_str = std_match.group(2)
-            centis_str = std_match.group(3)
-            raw_text = std_match.group(4)
-            ts = _lrc_ts_to_seconds(mins_str, secs_str, centis_str)
-            # Strip enhanced LRC inline tags → cleaned form
-            text = _LRC_INLINE_TAG_RE.sub("", raw_text).strip()
-            if text:
-                raw_cues.append((ts, text, raw_text))
-
-    # Apply offset if present
-    offset_ms = 0.0
-    if "offset" in lrc_meta:
-        try:
-            offset_ms = float(lrc_meta["offset"])
-        except ValueError:
-            logger.warning(
-                "AudioReader: invalid LRC offset value %r; ignoring.",
-                lrc_meta["offset"],
-            )
-
-    offset_s = offset_ms / 1000.0
-
-    # Sort by timestamp and build cue dicts with estimated end times
-    raw_cues.sort(key=lambda c: c[0])
-    cues: list[dict[str, Any]] = []
-    for i, (ts, text, raw_text) in enumerate(raw_cues):
-        adjusted_ts = ts + offset_s
-        adjusted_ts = max(adjusted_ts, 0.0)
-        # Estimate end time from next cue's start
-        if i + 1 < len(raw_cues):
-            end_ts = raw_cues[i + 1][0] + offset_s
-            end_ts = max(end_ts, 0.0)
-        else:
-            # Last cue: assume 5 seconds duration
-            end_ts = adjusted_ts + 5.0
-        cues.append(
-            {
-                "text": text,
-                # raw_text: verbatim cue content before LRC inline-tag
-                # stripping — enables before/after comparison downstream.
-                "raw_text": raw_text,
-                "timecode_start": round(adjusted_ts, 3),
-                "timecode_end": round(end_ts, 3),
-                "line_index": i,
-            }
+        content = _subtitle.read_text(lrc_path, encoding=encoding)
+    except ValueError as exc:
+        logger.warning(
+            "AudioReader: companion %s is unreadable: %s", lrc_path.name, exc
         )
-
-    return cues, lrc_meta
+        return [], {}
+    return _subtitle.lrc_parts(content)
 
 
 # =========================================================================
-# SRT / VTT parser (reused from VideoReader conventions)
+# SRT / VTT companions: the shared subtitle parser
 # =========================================================================
-
-
-def _tc_to_seconds(h: str, m: str, s: str, ms: str) -> float:
-    """
-    Convert ``HH:MM:SS,mmm`` components to seconds.
-
-    Parameters
-    ----------
-    h, m, s, ms : str
-        Hours, minutes, seconds, milliseconds as strings.
-
-    Returns
-    -------
-    float
-        Timestamp in seconds.
-    """
-    return int(h) * 3600 + int(m) * 60 + int(s) + int(ms) / 1000.0
 
 
 def _parse_srt(srt_path: Path) -> list[dict[str, Any]]:
     """
-    Parse an SRT subtitle file.
-
-    Parameters
-    ----------
-    srt_path : pathlib.Path
-        Path to the ``.srt`` file.
+    Parse an SRT companion with the shared subtitle reader.
 
     Returns
     -------
     list of dict
-        Each dict has keys: ``"text"``, ``"timecode_start"``,
-        ``"timecode_end"``.
+        ``text``, ``raw_text``, ``timecode_start``, ``timecode_end`` and,
+        when named, ``speaker``. An unreadable file logs a warning and
+        gives no cues.
     """
-    try:
-        raw = srt_path.read_text("utf-8-sig")
-    except UnicodeDecodeError:
-        raw = srt_path.read_text("latin-1")
-
-    cues: list[dict[str, Any]] = []
-    blocks = re.split(r"\n\s*\n", raw.strip())
-
-    for block in blocks:
-        lines = block.strip().splitlines()
-        if len(lines) < 2:  # noqa: PLR2004
-            continue
-
-        # Find the timecode line
-        tc_match = None
-        text_start = 0
-        for i, line in enumerate(lines):
-            tc_match = _SRT_TC_RE.search(line)
-            if tc_match:
-                text_start = i + 1
-                break
-        if tc_match is None:
-            continue
-
-        text = " ".join(lines[text_start:]).strip()
-        if not text:
-            continue
-
-        cues.append(
-            {
-                "text": text,
-                # raw_text: SRT has no HTML-stripping step; verbatim joined
-                # cue lines are both the raw and clean form.
-                "raw_text": text,
-                "timecode_start": _tc_to_seconds(
-                    tc_match.group(1),
-                    tc_match.group(2),
-                    tc_match.group(3),
-                    tc_match.group(4),
-                ),
-                "timecode_end": _tc_to_seconds(
-                    tc_match.group(5),
-                    tc_match.group(6),
-                    tc_match.group(7),
-                    tc_match.group(8),
-                ),
-            }
-        )
-
-    return cues
+    return _companion_cues(srt_path, "srt")
 
 
 def _parse_vtt(vtt_path: Path) -> list[dict[str, Any]]:
-    """
-    Parse a WebVTT file.
+    """Parse a WebVTT companion with the shared subtitle reader (see :func:`_parse_srt`)."""
+    return _companion_cues(vtt_path, "vtt")
 
-    Parameters
-    ----------
-    vtt_path : pathlib.Path
-        Path to the ``.vtt`` file.
 
-    Returns
-    -------
-    list of dict
-        Each dict has keys: ``"text"``, ``"timecode_start"``,
-        ``"timecode_end"``.
-    """
+def _companion_cues(path: Path, fmt: str) -> list[dict[str, Any]]:
     try:
-        raw = vtt_path.read_text("utf-8-sig")
-    except UnicodeDecodeError:
-        raw = vtt_path.read_text("latin-1")
-
-    # Skip header
-    lines = raw.splitlines()
-    start_idx = 0
-    for i, line in enumerate(lines):
-        if line.strip().startswith(_VTT_HEADER):
-            start_idx = i + 1
-            break
-    raw = "\n".join(lines[start_idx:])
-
-    cues: list[dict[str, Any]] = []
-    blocks = re.split(r"\n\s*\n", raw.strip())
-
-    for block in blocks:
-        blines = block.strip().splitlines()
-        if not blines:
-            continue
-
-        tc_match = None
-        text_start = 0
-        for i, line in enumerate(blines):
-            tc_match = _SRT_TC_RE.search(line)
-            if tc_match:
-                text_start = i + 1
-                break
-        if tc_match is None:
-            continue
-
-        # raw_text: verbatim joined cue lines before HTML tag stripping.
-        # Kept separate so downstream code can compare original VTT markup
-        # against the cleaned plain-text form.
-        raw_text = " ".join(blines[text_start:]).strip()
-        # Strip HTML formatting tags → cleaned plain-text form
-        text = _HTML_TAG_RE.sub("", raw_text).strip()
-        if not text:
-            continue
-
-        cues.append(
-            {
-                "text": text,
-                "raw_text": raw_text,
-                "timecode_start": _tc_to_seconds(
-                    tc_match.group(1),
-                    tc_match.group(2),
-                    tc_match.group(3),
-                    tc_match.group(4),
-                ),
-                "timecode_end": _tc_to_seconds(
-                    tc_match.group(5),
-                    tc_match.group(6),
-                    tc_match.group(7),
-                    tc_match.group(8),
-                ),
-            }
-        )
-
-    return cues
+        return _subtitle.read_cues(path, fmt)[0]
+    except ValueError as exc:
+        logger.warning("AudioReader: companion %s is unreadable: %s", path.name, exc)
+        return []
 
 
 def _parse_txt_companion(
