@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import tracemalloc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
@@ -50,7 +51,8 @@ def test_languages_is_read_only():
 @pytest.mark.parametrize(
     ("name", "language"),
     [("a.py", "python"), ("A.PY", "python"), ("run.sh", "shell"), ("x.R", "r"),
-     ("q.xq", "xquery"), ("setup.cfg", "ini"), ("main.tf", "terraform")],
+     ("q.xq", "xquery"), ("setup.cfg", "ini"), ("main.tf", "terraform"),
+     ("api.h", "c/c++")],
 )
 def test_the_language_follows_the_extension(tmp_path, name, language):
     [chunk] = _chunks(_write(tmp_path, "x = 1\n", name))
@@ -137,3 +139,33 @@ def test_a_subclass_adds_a_language(tmp_path):
 def test_documents_are_built(tmp_path):
     docs = list(CodeReader(input_path=_write(tmp_path, _PY, "a.py")).get_documents())
     assert docs and docs[0].source_type == SourceType.CODE
+
+
+@pytest.mark.parametrize(
+    ("raw", "lines"),
+    [
+        (b"a\rb\rc", ["a", "b", "c"]),  # classic Mac line endings
+        (b"a\r\nb\nc\r", ["a", "b", "c"]),  # mixed
+        (b"a\x0cb\nc\n", ["a\x0cb", "c"]),  # a form feed does not end a line
+        ("\ufeffa\nb\n".encode("utf-16"), ["a", "b"]),  # byte-order mark dropped
+    ],
+)
+def test_line_numbers_follow_line_breaks_only(tmp_path, raw, lines):
+    [chunk] = _chunks(_write(tmp_path, raw, "a.c"))
+    assert chunk["text"].split("\n") == lines
+    assert chunk["line_end"] == len(lines)
+
+
+def test_a_large_file_is_read_as_a_stream(tmp_path):
+    body = "".join(f"    value_{i} = compute(a, b)  # note\n" for i in range(200_000))
+    path = _write(tmp_path, body, "big.py")  # about 8 MB
+    reader = CodeReader(input_path=path, max_text_chars_per_byte=None)
+    tracemalloc.start()
+    try:
+        ends = [c["line_end"] for c in reader.get_raw_chunks()]
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert (len(ends), ends[-1]) == (1000, 200_000)
+    # The bytes are held once, to choose the codec; the text never whole.
+    assert peak < 1.5 * path.stat().st_size

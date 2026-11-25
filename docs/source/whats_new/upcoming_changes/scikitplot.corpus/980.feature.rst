@@ -4,7 +4,11 @@
   ``.ini``, ``.cfg`` and more; ``LANGUAGES`` lists them) are yielded in
   blocks of whole lines, ``lines_per_chunk`` (200) a block, each naming
   its ``language`` and its ``line_start`` and ``line_end``, so a
-  retrieved chunk points back to its lines. Indentation is kept.
+  retrieved chunk points back to its lines. Indentation is kept, and a
+  line ends only at a line break, so numbers match an editor's. The file
+  is read as a stream after the codec is chosen: peak memory is about the
+  file's size once.
   ``.env`` is left out because it holds secrets, and extensions two
   languages share (``.m``, ``.pl``, ``.v``, ``.fs``, ``.s``) are left out
-  rather than guessed; a subclass adds a language.
+  rather than guessed (``.h``, shared by C and C++, is named ``c/c++``);
+  a subclass adds a language.

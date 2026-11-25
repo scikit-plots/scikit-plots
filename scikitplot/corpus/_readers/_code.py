@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, ClassVar, Generator, Mapping, Optional  # noqa: F401
+from typing import Any, ClassVar, Generator, Iterator, Mapping, Optional  # noqa: F401
 
 from .._schema import SectionType, SourceType
 from ._text import TextReader
@@ -71,7 +71,7 @@ _LANGUAGES = {
     ".less": "less",
     # Compiled languages
     ".c": "c",
-    ".h": "c",
+    ".h": "c/c++",  # shared by C and C++: named as such, not guessed
     ".cc": "cpp",
     ".cpp": "cpp",
     ".cxx": "cpp",
@@ -137,6 +137,8 @@ _LANGUAGES = {
 #: are left out rather than guessed: ``.m`` (MATLAB, Objective-C), ``.pl``
 #: (Perl, Prolog), ``.v`` (Verilog, Coq), ``.fs`` (F#, GLSL) and ``.s``
 #: (assembly dialects); pass ``language=`` with a subclass to read them.
+#: ``.h`` is shared by C and C++ but too common to leave out: it is named
+#: ``"c/c++"``, not guessed as one of them.
 LANGUAGES: Mapping[str, str] = MappingProxyType(_LANGUAGES)
 
 
@@ -187,6 +189,11 @@ class CodeReader(TextReader):
     become ``"\n"``. A file is read as it is: comments, keys and any
     secret it holds included. Redact before sharing a corpus built from
     configuration, or leave such files out of the input.
+
+    **Developer note:** The bytes are read once to choose the codec
+    (``TextReader._codec_of_file``), then the file is read line by line:
+    peak memory is about the file's size once, not the decoded text and a
+    list of every line.
 
     **Customising:** add a language by subclassing::
 
@@ -255,33 +262,46 @@ class CodeReader(TextReader):
         ValueError
             If the file is too large or binary.
         """
-        whole = next(iter(super().get_raw_chunks()), None)
-        if whole is None:
+        codec = self._codec_of_file()
+        if codec is None:
             return
-        lines = whole["text"].lstrip("﻿").split("\n")
-        if lines and lines[-1] == "":
-            lines.pop()  # the final line break ends the last line
-        meta = {"language": self._language(), "encoding": whole["encoding"]}
-        step = self.lines_per_chunk or len(lines) or 1
+        meta = {"language": self._language(), "encoding": codec}
+        step = self.lines_per_chunk
         cap = self._text_limit()[0]
-        start = 0
-        while start < len(lines):
-            end = min(start + step, len(lines))
-            if cap is not None:
-                size = -1
-                for i in range(start, end):
-                    size += len(lines[i]) + 1
-                    if size > cap:
-                        end = i + 1
-                        break
-            block = lines[start:end]
-            if any(line.strip() for line in block):
-                yield {
-                    "text": "\n".join(block),
-                    "section_type": SectionType.CODE.value,
-                    "source_type": SourceType.CODE.value,
-                    "line_start": start + 1,
-                    "line_end": end,
-                    **meta,
-                }
-            start = end
+        block: list[str] = []
+        size = -1
+        start = 1
+        number = 0
+        # Streamed: memory is one block, not the file. Universal newlines
+        # end a line at "\r\n", "\r" or "\n", as TextReader normalises, so
+        # line numbers match an editor's (str.splitlines would also break
+        # at form feeds and other separators).
+        with open(self.input_path, encoding=codec, newline=None) as stream:
+            for number, read in enumerate(stream, start=1):
+                line = read[:-1] if read.endswith("\n") else read
+                if number == 1 and line.startswith("\ufeff"):
+                    line = line[1:]
+                block.append(line)
+                size += len(line) + 1
+                if (step is not None and len(block) >= step) or (
+                    cap is not None and size > cap
+                ):
+                    yield from _block(block, start, number, meta)
+                    block, size, start = [], -1, number + 1
+        if block:
+            yield from _block(block, start, number, meta)
+
+
+def _block(
+    lines: list[str], start: int, end: int, meta: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
+    """Yield one chunk for *lines* (``start``..``end``) unless all are blank."""
+    if any(line.strip() for line in lines):
+        yield {
+            "text": "\n".join(lines),
+            "section_type": SectionType.CODE.value,
+            "source_type": SourceType.CODE.value,
+            "line_start": start,
+            "line_end": end,
+            **meta,
+        }

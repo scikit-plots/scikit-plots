@@ -521,6 +521,36 @@ class TextReader(DocumentReader):
             f" got {policy!r}."
         )
 
+    def _codec_of_file(self) -> str | None:
+        """
+        Return the codec for the whole file, holding its bytes only meanwhile.
+
+        For readers that then parse the file as a stream (``open(path,
+        encoding=codec)``): the bytes are read once, the codec is chosen
+        from all of them, and they are released, so the decoded text is
+        never held whole.
+
+        Returns
+        -------
+        str or None
+            The codec; ``None`` for an empty or whitespace-only file.
+
+        Raises
+        ------
+        ValueError
+            If the file exceeds ``max_file_bytes`` or is binary.
+        """
+        size = self.input_path.stat().st_size
+        if size > self.max_file_bytes:
+            raise ValueError(
+                f"{type(self).__name__}: {self.file_name} is {size:,} bytes,"
+                f" which exceeds max_file_bytes={self.max_file_bytes:,}."
+            )
+        raw = self.input_path.read_bytes()
+        if not raw or raw.isspace():  # no copy, unlike raw.strip()
+            return None
+        return self._choose_encoding(raw)
+
     def _choose_encoding(self, raw: bytes) -> str:  # noqa: PLR0911
         """
         Return the codec that decodes *raw* under :attr:`encoding`.
