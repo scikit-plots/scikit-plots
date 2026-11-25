@@ -52,6 +52,7 @@ Probe: `DocumentReader.create("page.html")` and
 - Code and plain configuration (about 90 extensions): `CodeReader`,
   PR 980. Extensionless files (`LICENSE`, `Makefile`) wait for the
   content sniff.
+- Notebooks (`.ipynb`): `NotebookReader`, PR 981.
 
 ## Root cause / current understanding
 

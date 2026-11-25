@@ -2120,6 +2120,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ImageReader",
                     # mhtml
                     "MHTMLReader",
+                    # notebook
+                    "NotebookReader",
                     # office
                     "OfficeReader",
                     # pdf

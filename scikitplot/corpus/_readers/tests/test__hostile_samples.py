@@ -218,6 +218,13 @@ def _code_one_long_line(path: Path) -> Path:
     return path
 
 
+def _ipynb_many_cells(path: Path) -> Path:
+    """About 850 one-line cells, each with an output list."""
+    cell = {"cell_type": "code", "source": "x", "outputs": [], "execution_count": 1}
+    path.write_bytes(json.dumps({"cells": [cell] * 850, "metadata": {}}).encode("ascii"))
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -248,6 +255,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("yaml-alias-bomb", "a.yaml", _yaml_alias_bomb),
     ("json-deep-nesting", "a.json", _json_deep_nesting),
     ("code-one-long-line", "a.js", _code_one_long_line),
+    ("ipynb-many-cells", "a.ipynb", _ipynb_many_cells),
 ]
 
 
@@ -277,7 +285,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js", ".ipynb"}
 
 
 _CHILD = """
