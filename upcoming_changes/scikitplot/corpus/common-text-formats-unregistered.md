@@ -49,6 +49,9 @@ Probe: `DocumentReader.create("page.html")` and
 - Tables (`.csv`, `.tsv`): `CSVReader`, PR 978.
 - Structured data (`.json`, `.jsonl`, `.ndjson`, `.yaml`, `.yml`,
   `.toml`): `JSONReader`, `YAMLReader`, `TOMLReader`, PR 979.
+- Code and plain configuration (about 90 extensions): `CodeReader`,
+  PR 980. Extensionless files (`LICENSE`, `Makefile`) wait for the
+  content sniff.
 
 ## Root cause / current understanding
 

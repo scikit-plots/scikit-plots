@@ -58,7 +58,7 @@ def unsupported_zip(tmp_path):
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("notes.xyz", "x = 1")
         zf.writestr("data.bin", "{}")
-        zf.writestr("script.py", "x = 1")
+        zf.writestr("script.zzz", "x = 1")
     return path
 
 
@@ -91,7 +91,7 @@ def test_a_mostly_read_archive_is_quiet(tmp_path):
     with zipfile.ZipFile(path, "w") as zf:
         for i in range(3):
             zf.writestr(f"{i}.txt", f"Sentence number {i} is long enough to keep.")
-        zf.writestr("one.py", "x = 1")
+        zf.writestr("one.zzz", "x = 1")
     reader = DocumentReader.create(path)
     _, warnings = _warnings(_zip, lambda: list(reader.get_raw_chunks()))
     assert warnings == [] and reader.coverage.read == 3

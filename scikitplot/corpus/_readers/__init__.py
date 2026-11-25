@@ -72,6 +72,11 @@ Available readers:
     are decompressed in pure Python and parsed as :class:`HTMLReader`
     parses a file, in table-of-contents order.
 
+:class:`CodeReader`
+    Source code and plain configuration (``.py``, ``.sh``, ``.js``,
+    ``.c``, ``.sql``, ``.ini`` and about 70 more, see ``LANGUAGES``):
+    blocks of whole lines with their language and line range.
+
 :class:`CSVReader`
     Delimited tables (``.csv``, ``.tsv``): rows as tab-separated lines,
     ``rows_per_chunk`` a chunk, each chunk opening with the header row.
@@ -165,6 +170,7 @@ from . import (
     _alto,
     _audio,
     _chm,
+    _code,
     _custom,
     _image,
     _mhtml,
@@ -182,6 +188,7 @@ from . import (
 from ._alto import *  # noqa: F403
 from ._audio import *  # noqa: F403
 from ._chm import *  # noqa: F403
+from ._code import *  # noqa: F403
 from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
 from ._mhtml import *  # noqa: F403
@@ -200,6 +207,7 @@ __all__ = ["DummyReader"]
 __all__ += _alto.__all__
 __all__ += _audio.__all__
 __all__ += _chm.__all__
+__all__ += _code.__all__
 __all__ += _custom.__all__
 __all__ += _image.__all__
 __all__ += _mhtml.__all__

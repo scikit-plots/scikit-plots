@@ -212,6 +212,12 @@ def _json_deep_nesting(path: Path) -> Path:
     return path
 
 
+def _code_one_long_line(path: Path) -> Path:
+    """A minified script: 60 kB on one line, no line break."""
+    path.write_bytes(b"var a=1;" * 7500)
+    return path
+
+
 def _html_unclosed_nesting(path: Path) -> Path:
     """Unclosed ``<li>`` tags nest; reading each level repeats the text."""
     path.write_bytes(b"<li>xy" * 10_000)
@@ -241,6 +247,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("csv-wide-and-quoted", "a.csv", _csv_wide_and_quoted),
     ("yaml-alias-bomb", "a.yaml", _yaml_alias_bomb),
     ("json-deep-nesting", "a.json", _json_deep_nesting),
+    ("code-one-long-line", "a.js", _code_one_long_line),
 ]
 
 
@@ -270,7 +277,7 @@ _MUST_READ = {
 }
 
 #: Every format the gate must cover (one sample each at least).
-_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json"}
+_REQUIRED_SUFFIXES = {".xlsx", ".ods", ".docx", ".pptx", ".pdf", ".zip", ".xml", ".html", ".chm", ".mhtml", ".csv", ".yaml", ".json", ".js"}
 
 
 _CHILD = """

@@ -2110,6 +2110,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "AudioReader",
                     # chm
                     "CHMReader",
+                    # code
+                    "CodeReader",
+                    "LANGUAGES",
                     # custom
                     "CustomReader",
                     "normalize_extractor_output",
