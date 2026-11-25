@@ -1,0 +1,8 @@
+- Delimited tables (``.csv``, ``.tsv``) are read by the new ``CSVReader``,
+  with the standard library ``csv`` module: rows become tab-separated
+  lines, ``rows_per_chunk`` a chunk as for spreadsheets, and each chunk
+  opens with the header row so it reads on its own. The delimiter is tab
+  for ``.tsv`` and sniffed among comma, semicolon, tab and bar otherwise
+  (or set with ``delimiter=``); quoted fields may hold delimiters, quotes
+  and line breaks, a UTF-8 byte-order mark is dropped, and legacy
+  encodings are detected as for text files.

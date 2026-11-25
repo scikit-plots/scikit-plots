@@ -2121,6 +2121,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "OfficeReader",
                     # pdf
                     "PDFReader",
+                    # table
+                    "CSVReader",
                     # text
                     "MarkdownReader",
                     "ReSTReader",
