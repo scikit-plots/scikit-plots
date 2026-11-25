@@ -6,6 +6,8 @@ lxml
 pypdf
 pdfminer.six
 pypdfium2
+pyyaml>=5.1
+tomli;python_version<"3.11"
 langdetect
 gensim
 nltk

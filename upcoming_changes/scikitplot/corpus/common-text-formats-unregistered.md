@@ -47,6 +47,8 @@ Probe: `DocumentReader.create("page.html")` and
   pure-Python container and LZX decoder.
 - Saved pages (`.mhtml`, `.mht`): `MHTMLReader`, PR 977.
 - Tables (`.csv`, `.tsv`): `CSVReader`, PR 978.
+- Structured data (`.json`, `.jsonl`, `.ndjson`, `.yaml`, `.yml`,
+  `.toml`): `JSONReader`, `YAMLReader`, `TOMLReader`, PR 979.
 
 ## Root cause / current understanding
 
