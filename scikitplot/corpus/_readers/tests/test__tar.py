@@ -18,7 +18,6 @@ from __future__ import annotations
 import bz2
 import gzip
 import io
-import logging
 import lzma
 import tarfile
 import zipfile
@@ -29,6 +28,7 @@ import pytest
 from ... import _readers  # noqa: F401  (registers every reader)
 from ..._base import DocumentReader
 from .. import _tar as tar_module
+from .. import _zip as zip_module
 from .._tar import TarReader, _compression, _inner_name
 from .._zip import ArchiveBudgetError, ArchiveNestingError, ZipReader, _archive_ctx
 
@@ -291,7 +291,7 @@ def test_a_compressed_scan_counts_skipped_members(tmp_path):
         list(TarReader(input_path=packed, **options).get_raw_chunks())
 
 
-def test_truncate_keeps_the_members_extracted_before_the_limit(tmp_path, caplog):
+def test_truncate_keeps_the_members_extracted_before_the_limit(tmp_path):
     path = _make(
         tmp_path / "a.tar",
         [("a.txt", b"a" * 600_000), ("b.txt", b"b" * 600_000), ("c.txt", b"Small.")],
@@ -302,11 +302,13 @@ def test_truncate_keeps_the_members_extracted_before_the_limit(tmp_path, caplog)
         max_text_chars_per_byte=None,
         on_text_limit="truncate",
     )
-    with caplog.at_level(logging.WARNING):
+    # Patch the logger: caplog depends on how the installed package
+    # configures logging, which differs between distributions.
+    with mock.patch.object(zip_module, "logger") as logger:
         got = _paths(reader)
     assert got == ["a.tar/a.txt"]  # b.txt is past the limit; c.txt after it
     assert reader.coverage.skipped == {"over-budget": 2}
-    assert "not read" in caplog.text
+    assert "not read" in logger.warning.call_args.args[0]
 
 
 def test_members_are_extracted_in_one_forward_pass(tmp_path):
