@@ -332,7 +332,7 @@ class _Item:
 _ZERO_WIDTH_ESCAPES = set("bBAZz")
 _QUANT = re.compile(r"\{(\d*)(,?)(\d*)\}")
 _NUMERIC_ESCAPE = re.compile(
-    r"\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|N\{[^}]*\}|0[0-7]{0,2}|[1-9][0-9]?)"
+    r"\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|N\{[^{}]*\}|0[0-7]{0,2}|[1-9][0-9]?)"
 )
 
 

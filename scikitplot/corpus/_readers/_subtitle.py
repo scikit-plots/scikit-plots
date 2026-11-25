@@ -21,11 +21,16 @@ linear in the file: one pass over its lines, no backtracking regex.
 
 from __future__ import annotations
 
+import bisect
 import html
 import logging
+import os
 import re
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import time_ns
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -93,10 +98,13 @@ def _span(match: re.Match[str]) -> tuple[float, float]:
 # Cue text
 # ---------------------------------------------------------------------------
 
-_VOICE_RE = re.compile(r"<v(?:\.[^\s>]*)?\s+([^>]+)>", re.IGNORECASE)
-_TAG_RE = re.compile(r"<[^>\n]*>")
-_ASS_OVERRIDE_RE = re.compile(r"\{\\[^}]*\}")
-_MICRODVD_STYLE_RE = re.compile(r"\{[a-zA-Z]:[^}]*\}")
+# Every markup pattern stops at the next opener ([^<>], [^{}]): a scan
+# from an opener that never closes ends there instead of at the end of the
+# line, so text full of "<" or "{" costs linear time, not quadratic.
+_VOICE_RE = re.compile(r"<v(?:\.[^\s<>]*)?\s+([^<>\n]+)>", re.IGNORECASE)
+_TAG_RE = re.compile(r"<[^<>\n]*>")
+_ASS_OVERRIDE_RE = re.compile(r"\{\\[^{}]*\}")
+_MICRODVD_STYLE_RE = re.compile(r"\{[a-zA-Z]:[^{}]*\}")
 _SPACES_RE = re.compile(r"[ \t\u00a0]+")
 
 
@@ -541,39 +549,184 @@ def merge_rolling(cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def find_companion(media: Path, extensions: Iterable[str]) -> Path | None:
+#: Folders whose listing is kept: one entry per folder, replaced when the
+#: folder changes, so memory holds at most this many listings.
+_LISTING_FOLDERS = 8
+_LISTINGS: OrderedDict[str, tuple[int, tuple[tuple[str, str], ...]]] = OrderedDict()
+_LISTINGS_LOCK = threading.Lock()
+#: A listing is reused only if the folder changed at least this long before
+#: it was taken. File times move in steps (about 15.6 ms on Windows, 2 s on
+#: FAT), so a folder changed more recently can change again without its
+#: time moving; such a folder is listed again on every lookup.
+_SETTLED_NS = 2_000_000_000
+
+
+def _listing(folder: str) -> tuple[tuple[str, str], ...]:
+    """
+    Return ``(lower-case name, name)`` of a folder's files, sorted.
+
+    Kept per folder and replaced when the folder's modification time
+    changes, so a folder is listed once per change, not once per media
+    file in it; at most :data:`_LISTING_FOLDERS` folders are kept. ``scandir``
+    entries carry their type, so no file is stat-ed. Thread-safe.
+
+    A listing is kept only when the folder's time is at least
+    :data:`_SETTLED_NS` older than the moment of listing. File times are
+    coarse, so a change within the same step as the last one leaves the
+    time unchanged; a settled time cannot hide a later change, because
+    any later change sets a newer time.
+
+    Raises
+    ------
+    OSError
+        If the folder cannot be read.
+    """
+    stamp = os.stat(folder).st_mtime_ns
+    with _LISTINGS_LOCK:
+        kept = _LISTINGS.get(folder)
+        if kept is not None and kept[0] == stamp:
+            _LISTINGS.move_to_end(folder)
+            return kept[1]
+    listed_at = time_ns()
+    with os.scandir(folder) as entries:
+        listing = tuple(
+            sorted((e.name.lower(), e.name) for e in entries if e.is_file())
+        )
+    if listed_at - stamp < _SETTLED_NS:
+        return listing
+    with _LISTINGS_LOCK:
+        _LISTINGS[folder] = (stamp, listing)
+        _LISTINGS.move_to_end(folder)
+        while len(_LISTINGS) > _LISTING_FOLDERS:
+            _LISTINGS.popitem(last=False)
+    return listing
+
+
+def find_companion(
+    media: Path, extensions: Iterable[str], *, language: str | None = None
+) -> Path | None:
     """
     Return the subtitle file that belongs to *media*, or ``None``.
 
     Candidates sit in the same folder and share the media file's stem:
-    ``talk.srt``, or a tagged one such as ``talk.en.srt``. Extensions match
-    in any case (``TALK.SRT``). The first extension in *extensions* that
-    has a candidate wins; among its candidates the exact stem comes first,
-    then tagged names in sorted order, so the choice is the same on every
-    file system.
+    ``talk.srt``, or a tagged one such as ``talk.en.srt`` or
+    ``talk.en-US.forced.srt``. Names match in any letter case. The first
+    extension in *extensions* that has a candidate wins; among its
+    candidates the order is: with *language*, a tag whose first part is
+    that language (``en`` matches ``en`` and ``en-US``); then the exact
+    stem; then tagged names in sorted order. The choice is the same on
+    every file system.
+
+    Parameters
+    ----------
+    media : pathlib.Path
+        The audio or video file.
+    extensions : iterable of str
+        Companion extensions in priority order, lower case with the dot.
+    language : str or None, optional
+        Preferred language tag (``"en"``, ``"pt-BR"``). Default: none.
+
+    Returns
+    -------
+    pathlib.Path or None
+        The companion, or ``None``.
+
+    Notes
+    -----
+    The folder listing is kept per folder (eight at most) and replaced
+    when the folder's modification time changes: a lookup costs a binary
+    search, so a folder of thousands of media files is not listed once
+    per file, and memory stays bounded. A file system whose time stamps are
+    coarse may hide a companion created within the same tick until the
+    folder changes again.
 
     Examples
     --------
     >>> find_companion(Path("/nonexistent/talk.mp4"), [".srt"]) is None
     True
     """
+    folder = media.parent
     try:
-        names = [p for p in media.parent.iterdir() if p.is_file()]
+        listing = _listing(str(folder))
     except OSError:
         return None
-    stem = media.stem
+    prefix = media.stem.lower() + "."
+    start = bisect.bisect_left(listing, (prefix,))
+    rests: list[tuple[str, str]] = []  # (lower-case rest after "stem.", name)
+    for lower, name in listing[start:]:
+        if not lower.startswith(prefix):
+            break
+        rests.append((lower[len(prefix) :], name))
+    wanted = language.lower() if language else None
     for ext in extensions:
-        exact = [p for p in names if p.name.lower() == (stem + ext).lower()]
+        bare = ext.lstrip(".")
+        exact = [name for rest, name in rests if rest == bare]
         tagged = sorted(
-            p
-            for p in names
-            if p.suffix.lower() == ext
-            and p.name.lower().startswith(stem.lower() + ".")
-            and p not in exact
+            (rest[: -len(ext)], name)
+            for rest, name in rests
+            if rest.endswith(ext) and rest != bare
         )
-        if exact or tagged:
-            return (exact or tagged)[0]
+        ordered: list[str] = []
+        if wanted:
+            ordered += [
+                name
+                for tag, name in tagged
+                if tag.split(".")[0] == wanted
+                or tag.split(".")[0].startswith(wanted + "-")
+            ]
+        ordered += exact + [name for _, name in tagged]
+        if ordered:
+            return folder / ordered[0]
     return None
+
+
+#: Keys ``companion_options`` accepts on the audio and video readers.
+COMPANION_OPTIONS = frozenset({"encoding", "dedupe_rolling", "language"})
+
+
+def companion_options(value: Any, owner: str) -> dict[str, Any]:
+    """
+    Validate a reader's ``companion_options`` and return them as a dict.
+
+    Keys: ``encoding`` (the :class:`TextReader` policy for the companion),
+    ``dedupe_rolling`` (see :func:`merge_rolling`) and ``language`` (the
+    tag :func:`find_companion` prefers). Values are checked by building a
+    :class:`SubtitleReader` with them, so a bad one fails when the owning
+    reader is made, not in the middle of a corpus build.
+
+    Raises
+    ------
+    TypeError
+        If *value* is not a mapping or ``language`` is not a str.
+    ValueError
+        If a key is unknown or a value is invalid.
+    """
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise TypeError(
+            f"{owner}: companion_options must be a dict or None; got {value!r}."
+        )
+    unknown = sorted(set(value) - COMPANION_OPTIONS)
+    if unknown:
+        raise ValueError(
+            f"{owner}: companion_options has unknown key(s) {unknown};"
+            f" known: {sorted(COMPANION_OPTIONS)}."
+        )
+    language = value.get("language")
+    if language is not None and (not isinstance(language, str) or not language.strip()):
+        raise TypeError(
+            f"{owner}: companion_options['language'] must be a non-empty str."
+        )
+    try:
+        SubtitleReader(
+            input_path=Path("companion.srt"),
+            encoding=value.get("encoding"),
+            dedupe_rolling=value.get("dedupe_rolling", False),
+        )
+    except (TypeError, ValueError) as exc:
+        raise type(exc)(f"{owner}: companion_options: {exc}") from exc
+    return dict(value)
 
 
 def read_text(path: Path, *, encoding: Any = None) -> str:

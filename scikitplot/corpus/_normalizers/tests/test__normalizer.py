@@ -151,6 +151,43 @@ class TestHTMLStripNormalizer:
     def test_repr(self) -> None:
         assert "HTMLStripNormalizer" in repr(HTMLStripNormalizer())
 
+    def test_a_lone_less_than_keeps_the_text_around_it(self) -> None:
+        # "<[^>]+>" removed "< y and <b>" here; a tag cannot hold "<".
+        result = HTMLStripNormalizer().normalize_doc(_doc("x < y and <b>bold</b> end"))
+        assert result.normalized_text == "x < y and bold end"
+
+    def test_unclosed_less_thans_cost_linear_time(self) -> None:
+        import time
+
+        start = time.perf_counter()
+        HTMLStripNormalizer().normalize_doc(_doc("<" * 400_000))
+        # Was quadratic: about 0.7 s at 40 kB, so over a minute here.
+        assert time.perf_counter() - start < 1.0
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            ("a <!-- note: a < b --> c", "a  c"),
+            ("a <!--[if lt IE 9]><script src=x></script><![endif]--> c", "a  c"),
+            ("<script>if (a < b) { f(); }</script>text", "if (a < b) { f(); }text"),
+            ("a <!-- never closed", "a <!-- never closed"),
+        ],
+    )
+    def test_comments_go_first_even_holding_a_less_than(self, text, expected) -> None:
+        result = HTMLStripNormalizer(decode_entities=False).normalize_doc(_doc(text))
+        assert (result.normalized_text or result.text) == expected
+
+    def test_many_unclosed_comments_cost_linear_time(self) -> None:
+        import time
+
+        start = time.perf_counter()
+        HTMLStripNormalizer().normalize_doc(_doc("<!-- " * 100_000))
+        assert time.perf_counter() - start < 1.0
+
+    def test_tags_spanning_lines_are_still_removed(self) -> None:
+        result = HTMLStripNormalizer().normalize_doc(_doc('a <span\n class="x">b</span>'))
+        assert result.normalized_text == "a b"
+
 
 # ===========================================================================
 # LowercaseNormalizer

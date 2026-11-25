@@ -95,9 +95,17 @@ Each step is a check a past pull request missed; the lesson in
 6. **Floor:** standard-library keyword arguments exist on Python 3.8
    (REPO-L9).
 7. **Generated files:** API reference, usage skill (REPO-L6) and, for a
-   dependency, `python -m libs._tools generate` (REPO-L8).
+   dependency, `python -m libs._tools generate` (REPO-L8). Then run
+   `python -m pytest libs/_tools/tests` in a bare environment (only
+   `pytest` installed, as CI does): it also refuses a test that opens or
+   writes a file without `encoding=`, which `sweep_static.py` (it leaves
+   tests out) does not see.
 8. **Real data:** snapshot `main` and the branch (section above); record
    counts only.
+9. **Regex cost:** a pattern that skips to a closer stops at the next
+   opener (`<[^<>]*>`, not `<[^>]*>`); time it on 40 kB of its own opener
+   in a test. `sweep_static.py --fail-on regex-unbounded-scan` guards the
+   shape in CI.
 
 ## Core Corpus rule
 

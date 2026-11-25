@@ -90,7 +90,8 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 # HTML tag pattern for stripping tags from cue text (reuse from module level)
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
+# [^<>]: linear on unclosed "<" (see _normalizers._normalizer._HTML_TAG_RE).
+_HTML_TAG_RE = re.compile(r"<[^<>]+>")
 
 # HTML tags whose text content maps to section types
 _HEADING_TAGS: tuple[str, ...] = ("h1", "h2", "h3", "h4", "h5", "h6")
@@ -284,7 +285,7 @@ def _outermost(root: Any, tags: frozenset[str]) -> Generator[Any, None, None]:
 
 
 _META_CHARSET_RE = re.compile(
-    rb"""<meta[^>]+charset\s*=\s*["']?\s*([A-Za-z0-9_.:-]+)""",
+    rb"""<meta[^<>]+charset\s*=\s*["']?\s*([A-Za-z0-9_.:-]+)""",
     re.IGNORECASE,
 )
 

@@ -161,3 +161,29 @@
 - **Added:** 2026-11-25. Root cause: `_table.py` (PR 978) and
   `_notebook.py` (PR 981) were merged with a literal byte-order mark in a
   string; ruff does not flag that one. PR 983 replaced them with escapes.
+
+### Rule REPO-L13: Check that a pull request is still open before pushing to it
+- **When:** pushing a follow-up commit to a pull request's branch.
+- **Then:** read its state first (`gh api repos/OWNER/REPO/pulls/N --jq
+  .merged`); a branch pushed after its pull request merged changes
+  nothing on `main`. If it merged, open a new pull request from `main`
+  with the commit, and correct the old description.
+- **Verified by:** after merging, `git log origin/main` holds the commit.
+- **Added:** 2026-11-25. Root cause: PR 983 merged at its first commit;
+  its review commit (fast companion lookup, companion options, linear
+  markup) was pushed minutes later and never reached `main`. PR 984
+  carries it.
+
+### Rule REPO-L14: Do not treat an unchanged file time as "nothing changed"
+- **When:** a cache is keyed on a file or folder modification time.
+- **Then:** reuse an entry only when the time is settled, at least 2 s
+  older than the moment the entry was taken; otherwise recompute.
+  File times move in steps (about 15.6 ms on Windows, 2 s on FAT), so
+  two changes in one step leave the time unchanged.
+- **Verified by:** a test that writes, sets the folder time back to its
+  old value with `os.utime`, and still sees the new file. Tests set
+  times in whole seconds: Windows stores 100 ns units and FAT 2 s
+  units, so `ns=(1, 2)` stores the same time twice there.
+- **Added:** 2026-11-25. Root cause: PR 984's folder-listing cache
+  served a stale listing on Windows CI, because files created within
+  one clock step left the folder time unchanged.

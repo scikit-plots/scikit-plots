@@ -97,6 +97,7 @@ CATEGORIES: Dict[str, Tuple[Any, Tuple[str, ...], str]] = {
     "print-in-library": (None, ("T201",), "print() inside a function: bypasses logging"),
     "assert-in-library": (None, ("S101",), "assert outside tests: removed by python -O"),
     "mutable-default": (None, ("B006",), "a list/dict/set default argument (shared between calls)"),
+    "regex-unbounded-scan": (None, (), "a regex whose scan from an unclosed opener runs to the end (<[^>]*>, (.*?)</): quadratic on text full of openers"),
 }
 
 _NOQA = re.compile(r"#\s*noqa(?::\s*(?P<codes>[A-Za-z0-9, ]+))?", re.IGNORECASE)
@@ -188,13 +189,97 @@ def _annotation_needs(annotation: ast.AST) -> Tuple[int, int] | None:
     return needed
 
 
+#: ``re`` functions that search every position of the text.
+_RE_SEARCHING = frozenset({"compile", "sub", "subn", "findall", "finditer", "search", "split"})
+#: An opener, then a repeated class that excludes its closer but not the
+#: opener itself: a scan from each unclosed opener runs to the text's end.
+_UNBOUNDED_SCAN = re.compile(r"(<|\\{)[^\[]{0,40}?\[\^(?P<cls>[^\]]*)\][*+]")
+_GROUP_SYNTAX = re.compile(r"\(\?(?:P<\w+>|<[=!]|P=\w+\))")
+_LAZY_TO_CLOSING_TAG = re.compile(r"\.\*\??\)?</")
+
+
+def _unbounded_scan(pattern: str) -> bool:
+    """
+    Return whether *pattern* scans from each unclosed opener to the end.
+
+    ``<[^>]*>`` (or ``{[^}]*}``) tried at every ``<`` of a text full of
+    them scans to the end each time: quadratic. ``<[^<>]*>`` stops at the
+    next opener and is linear. ``(.*?)</tag>`` under ``re.DOTALL`` does the
+    same for every opening tag. A pattern anchored at the start (``^``,
+    ``\\A``) is tried at one position and is not flagged. A heuristic for a
+    sweep, not a proof.
+
+    Examples
+    --------
+    >>> _unbounded_scan(r"<[^>]+>"), _unbounded_scan(r"<[^<>]+>")
+    (True, False)
+    >>> _unbounded_scan(r"<object\\b[^<>]*>(.*?)</object>"), _unbounded_scan(r"^<a[^>]*>$")
+    (True, False)
+    >>> _unbounded_scan(r"(?P<pre>://[^/]+)"), _unbounded_scan(r"(?<=x)[^y]+")
+    (False, False)
+    """
+    if pattern.startswith(("^", "\\A")):
+        return False
+    # "<" in a group name or a lookbehind is syntax, not an opener.
+    pattern = _GROUP_SYNTAX.sub("(", pattern)
+    for match in _UNBOUNDED_SCAN.finditer(pattern):
+        opener = "<" if match.group(1) == "<" else "{"
+        if opener not in match.group("cls"):
+            return True
+    return bool(_LAZY_TO_CLOSING_TAG.search(pattern))
+
+
+def _string_constants(tree: ast.AST) -> Dict[str, str]:
+    """Return the module's ``NAME = "text"`` (or bytes) assignments, as text."""
+    found: Dict[str, str] = {}
+    for node in getattr(tree, "body", []):
+        targets: List[ast.AST] = []
+        value = None
+        if isinstance(node, ast.Assign):
+            targets, value = list(node.targets), node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        text = _pattern_text(value, {}) if value is not None else None
+        if text is None:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name):
+                found[target.id] = text
+    return found
+
+
+def _pattern_text(node: ast.AST, constants: Dict[str, str]) -> str | None:
+    """
+    Return a regex argument's text: a str or bytes literal, or a module constant.
+
+    Bytes are decoded as Latin-1, which maps every byte to one character,
+    so the shape check sees the same pattern.
+    """
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, str):
+            return node.value
+        if isinstance(node.value, bytes):
+            return node.value.decode("latin-1")
+        return None
+    if isinstance(node, ast.Name):
+        return constants.get(node.id)
+    return None
+
+
 class _Checker(ast.NodeVisitor):
     """Collect findings of one parsed file."""
 
-    def __init__(self, emit: Any, future_annotations: bool, xml_aliases: frozenset) -> None:
+    def __init__(
+        self,
+        emit: Any,
+        future_annotations: bool,
+        xml_aliases: frozenset,
+        constants: Dict[str, str] | None = None,
+    ) -> None:
         self.emit = emit
         self.future = future_annotations
         self.xml_aliases = xml_aliases  # names bound to xml.etree / xml.dom.minidom
+        self.constants = constants or {}  # module-level NAME = "pattern"
         self.depth = 0  # function nesting
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: C901, PLR0912
@@ -254,6 +339,10 @@ class _Checker(ast.NodeVisitor):
             name.startswith(("xml.etree.", "xml.dom.minidom.")) or name.split(".")[0] in self.xml_aliases
         ):
             self.emit("stdlib-xml-parse", node)
+        if name.split(".")[0] in ("re", "regex") and last in _RE_SEARCHING and node.args:
+            pattern = _pattern_text(node.args[0], self.constants)
+            if pattern is not None and _unbounded_scan(pattern):
+                self.emit("regex-unbounded-scan", node)
         if name == "print" and self.depth:
             self.emit("print-in-library", node)
         if last in ("removeprefix", "removesuffix") and isinstance(node.func, ast.Attribute):
@@ -417,7 +506,7 @@ def sweep(root: Path, *, floor: Tuple[int, int] = (3, 8), exclude: Sequence[str]
             isinstance(n, ast.ImportFrom) and n.module == "__future__" and any(a.name == "annotations" for a in n.names)
             for n in tree.body
         )
-        _Checker(emit, future, _xml_aliases(tree)).visit(tree)
+        _Checker(emit, future, _xml_aliases(tree), _string_constants(tree)).visit(tree)
     findings.sort(key=lambda f: (f["file"], f["line"], f["category"]))
     return findings
 

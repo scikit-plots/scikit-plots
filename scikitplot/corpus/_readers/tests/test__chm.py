@@ -418,3 +418,27 @@ def test_toc(text, base, expected):
 )
 def test_ansi_code_page(lcid, codec):
     assert _ansi_code_page(lcid) == codec
+
+
+def test_object_blocks_pair_tags_in_one_pass():
+    from .._chm import _object_blocks
+
+    text = "<OBJECT type=x>a</OBJECT> junk </object> <object>b<object>c</object>"
+    assert _object_blocks(text) == ["a", "c"]
+    assert _object_blocks("<object>never closed") == []
+
+
+def test_unclosed_object_tags_cost_linear_time():
+    import time
+
+    from .._chm import _object_blocks
+
+    start = time.perf_counter()
+    assert _object_blocks("<object>" * 100_000) == []
+    # "<object[^>]*>(.*?)</object>" rescanned to the end from every tag.
+    assert time.perf_counter() - start < 1.0
+
+
+def test_toc_with_unclosed_objects_still_reads_the_closed_ones():
+    text = '<object><object><param name="Local" value="a.htm"></object>'
+    assert _toc(text, "/") == [("/a.htm", "")]

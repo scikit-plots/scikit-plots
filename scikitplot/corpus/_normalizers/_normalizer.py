@@ -81,7 +81,41 @@ __all__ = [
 _WS_RE: re.Pattern[str] = re.compile(r"\s+")
 
 # Matches HTML/XML tags.
-_HTML_TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>", re.DOTALL)
+# Stops at the next "<": text full of unclosed "<" is stripped in linear
+# time (with [^>] each "<" scanned to the end: quadratic), and in
+# "x < y and <b>bold</b>" only the tags go, not "< y and <b>".
+_HTML_TAG_RE: re.Pattern[str] = re.compile(r"<[^<>]+>")
+
+
+def _strip_comments(text: str) -> str:
+    """
+    Remove ``<!-- ... -->`` comments in one pass, before tags are stripped.
+
+    A comment may hold ``<`` (``<!-- a < b -->``), which the tag pattern
+    stops at; ``str.find`` moves forward only, so the cost is linear. An
+    unclosed ``<!--`` is left to the tag pattern.
+
+    Examples
+    --------
+    >>> _strip_comments("a <!-- x < y --> b <!-- open")
+    'a  b <!-- open'
+    """
+    if "<!--" not in text:
+        return text
+    parts: list[str] = []
+    at = 0
+    while True:
+        start = text.find("<!--", at)
+        if start < 0:
+            break
+        end = text.find("-->", start + 4)
+        if end < 0:
+            break
+        parts.append(text[at:start])
+        at = end + 3
+    parts.append(text[at:])
+    return "".join(parts)
+
 
 # Common HTML entities (subset — full decode via html module).
 _HTML_ENTITY_RE: re.Pattern[str] = re.compile(r"&(?:#\d+|#x[\da-fA-F]+|\w+);")
@@ -366,6 +400,16 @@ class HTMLStripNormalizer(_TextStep):
     decode_entities : bool, optional
         Decode HTML entities (e.g. ``&amp;`` → ``&``). Default: ``True``.
 
+    Notes
+    -----
+    **Regex mode:** comments go first (``<!-- ... -->``, even holding
+    ``<``), then every ``<...>`` holding no other ``<``. So a lone ``<`` in
+    text keeps what follows it (``x < y and <b>b</b>`` gives ``x < y and
+    b``), and the cost is linear in the text however many ``<`` it holds.
+    A tag whose attribute value holds an unescaped ``<``
+    (``title="a < b"``) is not recognised and leaves a fragment; use
+    ``use_beautifulsoup=True`` for markup that needs exact parsing.
+
     Examples
     --------
     >>> norm = HTMLStripNormalizer()
@@ -409,7 +453,7 @@ class HTMLStripNormalizer(_TextStep):
 
     def _strip_with_regex(self, text: str) -> str:
         """Remove tags with regex and optionally decode entities."""
-        result = _HTML_TAG_RE.sub("", text)
+        result = _HTML_TAG_RE.sub("", _strip_comments(text))
         if self.decode_entities:
             import html  # noqa: PLC0415
 

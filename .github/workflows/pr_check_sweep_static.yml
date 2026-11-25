@@ -59,6 +59,7 @@ jobs:
           --fail-on stdlib-xml-parse
           --fail-on urlopen-without-timeout
           --fail-on requests-without-timeout
+          --fail-on regex-unbounded-scan
 
       - name: "🧪 Tool tests"
         run: python -m unittest tools/maint_tools/tests/test_sweep_static.py -v
