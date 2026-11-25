@@ -92,6 +92,10 @@ Available readers:
     exactly as :class:`WebReader` parses a fetched page; a ``<meta>``
     charset is honoured when the bytes are not UTF-8.
 
+:class:`NotebookReader`
+    Jupyter notebooks (``.ipynb``): one chunk per cell, markdown as text
+    and code in the kernel's language; printed output on request.
+
 :class:`MHTMLReader`
     Saved web pages (``.mhtml``, ``.mht``): every HTML part of the MIME
     message, page first, parsed as :class:`HTMLReader` parses a file.
@@ -174,6 +178,7 @@ from . import (
     _custom,
     _image,
     _mhtml,
+    _notebook,
     _office,
     _pdf,
     _structured,
@@ -192,6 +197,7 @@ from ._code import *  # noqa: F403
 from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
 from ._mhtml import *  # noqa: F403
+from ._notebook import *  # noqa: F403
 from ._office import *  # noqa: F403
 from ._pdf import *  # noqa: F403
 from ._structured import *  # noqa: F403
@@ -211,6 +217,7 @@ __all__ += _code.__all__
 __all__ += _custom.__all__
 __all__ += _image.__all__
 __all__ += _mhtml.__all__
+__all__ += _notebook.__all__
 __all__ += _office.__all__
 __all__ += _pdf.__all__
 __all__ += _structured.__all__

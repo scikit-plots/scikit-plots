@@ -1,0 +1,9 @@
+- Jupyter notebooks (``.ipynb``) are read by the new ``NotebookReader``,
+  with the standard library ``json``: one chunk per cell, markdown as text
+  and code as code in the kernel's language (from the notebook metadata),
+  each naming its ``cell_index`` and, for code, its ``execution_count``.
+  ``cell_types=`` selects markdown, code and raw cells; ``outputs=True``
+  adds the text each code cell printed (stream output, errors and
+  ``text/markdown`` or ``text/plain`` results), never images or HTML.
+  nbformat 4 and the older nbformat 3 are read; skipped cells are counted
+  in ``reader.coverage``.
