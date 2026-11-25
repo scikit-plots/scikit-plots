@@ -83,6 +83,94 @@ _MAGIC: tuple[tuple[bytes, str], ...] = (
 #: Extensions that name a tar archive; these never hold a single file.
 _TAR_ONLY: frozenset[str] = frozenset({".tar", ".tgz", ".tbz", ".tbz2", ".txz"})
 
+#: Most bytes ``tarfile`` may ask for in one read; member data is read in
+#: 1 MiB blocks, far below it.
+_MAX_READ_BYTES: int = 8 * 1024 * 1024
+
+#: Most header bytes one member may have. ``tarfile`` keeps a pax or GNU
+#: long-name header in memory whole (in one read, or in pieces it joins),
+#: so this bounds the memory a header takes. Real headers take a few KiB.
+_MAX_HEADER_BYTES: int = 1024 * 1024
+
+#: Header bytes allowed for each file a compressed scan may pass, on top of
+#: the members' data: a header block plus a pax or long-name record.
+_HEADER_BYTES_PER_FILE: int = 4096
+
+
+class _BoundedStream:
+    """
+    A read-only stream for ``tarfile`` that refuses what a hostile archive needs.
+
+    Refuses a single read of more than :data:`_MAX_READ_BYTES`; while
+    members are listed, more than :data:`_MAX_HEADER_BYTES` of headers for
+    one member; and, when *limit* is given, any read or seek past that
+    position in the decompressed stream, before decompressing it.
+
+    Parameters
+    ----------
+    raw : file-like
+        The binary stream: the file itself, or its decompressed view.
+    name : str
+        The archive's name, for messages.
+    limit : int or None
+        Furthest position the stream may reach; ``None`` for no bound.
+    """
+
+    def __init__(self, raw: Any, name: str, limit: int | None) -> None:
+        self._raw = raw
+        self._name = name
+        self._limit = limit
+        #: Header bytes read for the member being listed; ``None`` once
+        #: listing ends. While listing, ``tarfile`` passes over member data
+        #: with ``seek``, so every byte it reads is a header byte.
+        self.header_bytes: int | None = 0
+
+    def _refuse_past(self, end: int) -> None:
+        if self._limit is not None and end > self._limit:
+            raise ArchiveBudgetError(
+                f"TarReader: reading {self._name!r} would decompress past"
+                f" {self._limit:,} bytes (its members' extraction limit plus"
+                f" {_HEADER_BYTES_PER_FILE:,} bytes of headers per file)."
+                " Possible tar bomb."
+            )
+
+    def read(self, size: int = -1) -> bytes:
+        if size is None or size < 0 or size > _MAX_READ_BYTES:
+            raise ArchiveBudgetError(
+                f"TarReader: reading {self._name!r} asks for {size!r} bytes at"
+                f" once, more than {_MAX_READ_BYTES:,}. Possible tar bomb."
+            )
+        if self.header_bytes is not None:
+            self.header_bytes += size
+            if self.header_bytes > _MAX_HEADER_BYTES:
+                raise ArchiveBudgetError(
+                    f"TarReader: a header in {self._name!r} takes more than"
+                    f" {_MAX_HEADER_BYTES:,} bytes. Possible tar bomb."
+                )
+        self._refuse_past(self._raw.tell() + size)
+        return self._raw.read(size)
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        if whence == 0:
+            self._refuse_past(offset)
+        elif whence == 1:
+            self._refuse_past(self._raw.tell() + offset)
+        else:  # tarfile reads never seek from the end
+            raise OSError(f"TarReader: unsupported seek whence={whence!r}")
+        return self._raw.seek(offset, whence)
+
+    def tell(self) -> int:
+        return self._raw.tell()
+
+    def close(self) -> None:
+        self._raw.close()
+
+    def __enter__(self) -> _BoundedStream:  # noqa: PYI034  (Self needs 3.11)
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
 
 def _compression(path: Path) -> str | None:
     """
@@ -214,6 +302,17 @@ class TarReader(ZipReader):
     ``max_text_chars_per_byte`` (or ``None``). In a plain ``.tar`` other
     members are passed over without being read and do not count.
 
+    **max_files** counts every entry of a tar, directories included
+    (``ZipReader`` counts files only): ``tarfile`` keeps a record of each
+    entry it lists, so the count bounds that memory.
+
+    **Hostile headers.** One member's headers (a pax or GNU long-name
+    record, which ``tarfile`` holds in memory whole) may take at most
+    1 MiB, and a compressed stream is never decompressed past the
+    extraction limit plus 4 KiB of headers for each entry ``max_files``
+    allows. Both refuse with :exc:`ArchiveBudgetError` before the memory
+    or the decompression is spent.
+
     **With** ``on_text_limit="truncate"`` the top-level archive keeps the
     members extracted, in stored order, before the limit was reached, reads
     them, and then logs a warning.
@@ -261,14 +360,15 @@ class TarReader(ZipReader):
         path = self.input_path
         compression = _compression(path)
         own_limit, own_described = self._extract_limit(path.stat().st_size)
-        tmp_dir = Path(tempfile.mkdtemp(prefix="skplt_tar_"))
+        # Resolved once: each member path is checked against it.
+        tmp_dir = Path(tempfile.mkdtemp(prefix="skplt_tar_")).resolve()
         coverage = ReadCoverage(unit="member")
         self.coverage = coverage
         members_count = 0
         try:
             if path.stat().st_size > 0:  # an empty file has no members
-                tar = self._open_tar(path, compression)
-                if tar is None:
+                opened = self._open_tar(path, compression, own_limit)
+                if opened is None:
                     members_count = 1
                     yield from self._single(
                         compression=compression,
@@ -279,9 +379,11 @@ class TarReader(ZipReader):
                         budget=budget,
                     )
                 else:
-                    with tar:
+                    tar, stream = opened
+                    with stream, tar:
                         members_count, chunks = self._from_tar(
                             tar=tar,
+                            stream=stream,
                             compression=compression,
                             tmp_dir=tmp_dir,
                             coverage=coverage,
@@ -296,26 +398,39 @@ class TarReader(ZipReader):
             shutil.rmtree(tmp_dir, ignore_errors=True)
         self._finish_read(members_count, coverage)
 
-    def _open_tar(self, path: Path, compression: str | None) -> Any:
+    def _open_tar(self, path: Path, compression: str | None, own_limit: int) -> Any:
         """
         Open *path* as a tar archive, or return ``None`` for a single compressed file.
+
+        Returns ``(archive, stream)``: ``tarfile`` leaves a caller's stream
+        open, so the caller closes both.
+
+        ``tarfile`` reads through a :class:`_BoundedStream`: one read is at
+        most :data:`_MAX_READ_BYTES`, and a compressed stream is never
+        decompressed past *own_limit* plus :data:`_HEADER_BYTES_PER_FILE`
+        for each file ``max_files`` allows.
 
         Raises
         ------
         ValueError
             If the file must be a tar archive (by its extension, or because
-            it is not compressed) and is not one, or if this Python lacks
-            the module its compression needs.
+            it is not compressed) and is not one, is damaged, or if this
+            Python lacks the module its compression needs.
+        ArchiveBudgetError
+            If a header or the scan exceeds the bounds above.
         """
-        mode = "r:" if compression is None else f"r:{compression}"
+        if compression is None:
+            # Returned with the archive; the caller closes it.
+            raw = open(path, "rb")  # noqa: SIM115
+            limit = None
+        else:
+            raw = _open_stream(path, compression)
+            limit = own_limit + _HEADER_BYTES_PER_FILE * (self.max_files + 1)
+        stream = _BoundedStream(raw, path.name, limit)
         try:
-            return tarfile.open(path, mode)
-        except tarfile.CompressionError as exc:
-            raise ValueError(
-                f"TarReader: {path.name!r} is {compression}-compressed, and this"
-                f" Python cannot read it: {exc}"
-            ) from exc
+            tar = tarfile.open(fileobj=stream, mode="r:")  # noqa: SIM115  (returned)
         except tarfile.ReadError:
+            stream.close()
             if compression is None or path.suffix.lower() in _TAR_ONLY:
                 what = (
                     f"a {compression}-compressed file"
@@ -326,8 +441,16 @@ class TarReader(ZipReader):
                     f"TarReader: {path.name!r} holds no tar archive ({what})."
                 ) from None
             return None
+        except ArchiveBudgetError:
+            stream.close()
+            raise
         except _codec_errors() as exc:
+            stream.close()
             raise ValueError(f"TarReader: {path.name!r} is damaged: {exc}") from exc
+        except BaseException:
+            stream.close()
+            raise
+        return tar, stream
 
     def _single(
         self,
@@ -352,9 +475,12 @@ class TarReader(ZipReader):
             return
         target, ext = placed
         allowed, described = self._allowance(own_limit, own_described, 0, budget)
+        dst = self._open_target(target, inner, coverage)
+        if dst is None:  # a name this file system cannot hold
+            return
         try:
-            with _open_stream(self.input_path, compression) as src:
-                copied = self._copy_bounded(src, target, allowed, described, inner)
+            with dst, _open_stream(self.input_path, compression) as src:
+                copied = self._copy_into(src, dst, allowed, described, inner)
         except _codec_errors() as exc:
             raise ValueError(
                 f"TarReader: {self.input_path.name!r} is damaged: {exc}"
@@ -366,6 +492,7 @@ class TarReader(ZipReader):
         self,
         *,
         tar: tarfile.TarFile,
+        stream: _BoundedStream,
         compression: str | None,
         tmp_dir: Path,
         coverage: ReadCoverage,
@@ -385,16 +512,21 @@ class TarReader(ZipReader):
         entries: list[tarfile.TarInfo] = []
         scanned = 0
         try:
+            listed = 0
             for info in tar:
+                stream.header_bytes = 0  # the next member's headers start here
+                # Every entry counts, directories too: tarfile keeps each one.
+                listed += 1
+                if listed > self.max_files:
+                    raise ValueError(
+                        f"TarReader: archive {name!r} contains more than"
+                        f" {self.max_files} entries (max_files={self.max_files};"
+                        " a tar counts directories too). Increase max_files or"
+                        " split the archive."
+                    )
                 if info.isdir():
                     continue
                 entries.append(info)
-                if len(entries) > self.max_files:
-                    raise ValueError(
-                        f"TarReader: archive {name!r} contains more than"
-                        f" {self.max_files} files (max_files={self.max_files})."
-                        " Increase max_files or split the archive."
-                    )
                 scanned += info.size
                 if compression is not None and scanned > own_limit:
                     raise ArchiveBudgetError(
@@ -404,6 +536,8 @@ class TarReader(ZipReader):
                     )
         except damaged as exc:
             raise ValueError(f"TarReader: {name!r} is damaged: {exc}") from exc
+
+        stream.header_bytes = None  # listing is over: reads are member data now
 
         # 2. Select: regular files, last copy of each name, readable type.
         last: dict[str, tarfile.TarInfo] = {}
@@ -424,7 +558,8 @@ class TarReader(ZipReader):
             if placed is not None:
                 chosen.append((info, *placed))
 
-        # 3. Extract in stored order, in one pass.
+        # 3. Extract in stored order, in one pass. Creating a file is kept
+        # out of the damage handler: a full disk is not a damaged archive.
         ctx = _archive_ctx.get()
         keep_partial = (
             ctx is not None and ctx[0] == 1 and self.on_text_limit == "truncate"
@@ -432,36 +567,37 @@ class TarReader(ZipReader):
         extracted: set[str] = set()
         stopped: ArchiveBudgetError | None = None
         used = 0
-        try:
-            for info, target, _ext in sorted(chosen, key=lambda c: c[0].offset_data):
-                allowed, described = self._allowance(
-                    own_limit, own_described, used, budget
-                )
+        unwritable = 0
+        for info, target, _ext in sorted(chosen, key=lambda c: c[0].offset_data):
+            allowed, described = self._allowance(own_limit, own_described, used, budget)
+            try:
+                if info.size > allowed:
+                    raise ArchiveBudgetError(
+                        f"TarReader: member {info.name!r} of {name!r} declares"
+                        f" {info.size:,} bytes, {allowed:,} left of {described}."
+                        " Possible tar bomb."
+                    )
+                dst = self._open_target(target, info.name, coverage)
+                if dst is None:  # a name this file system cannot hold
+                    unwritable += 1
+                    continue
                 try:
-                    if info.size > allowed:
-                        raise ArchiveBudgetError(
-                            f"TarReader: member {info.name!r} of {name!r} declares"
-                            f" {info.size:,} bytes, {allowed:,} left of {described}."
-                            " Possible tar bomb."
+                    with dst, tar.extractfile(info) as src:
+                        copied = self._copy_into(
+                            src, dst, allowed, described, info.name
                         )
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    src = tar.extractfile(info)
-                    with src:
-                        copied = self._copy_bounded(
-                            src, target, allowed, described, info.name
-                        )
-                except ArchiveBudgetError as exc:
-                    if not keep_partial:
-                        raise
-                    stopped = exc
-                    break
-                used += copied
-                budget.remaining -= copied
-                extracted.add(info.name)
-        except damaged as exc:
-            raise ValueError(f"TarReader: {name!r} is damaged: {exc}") from exc
+                except damaged as exc:
+                    raise ValueError(f"TarReader: {name!r} is damaged: {exc}") from exc
+            except ArchiveBudgetError as exc:
+                if not keep_partial:
+                    raise
+                stopped = exc
+                break
+            used += copied
+            budget.remaining -= copied
+            extracted.add(info.name)
         if stopped is not None:
-            coverage.skip("over-budget", len(chosen) - len(extracted))
+            coverage.skip("over-budget", len(chosen) - len(extracted) - unwritable)
 
         def chunks() -> Generator[dict[str, Any], None, None]:
             for info, target, ext in chosen:

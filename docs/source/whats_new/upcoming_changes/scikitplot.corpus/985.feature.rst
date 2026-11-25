@@ -8,4 +8,13 @@
   regular files are read (links and devices are skipped), the last copy
   of a repeated name wins, and in a compressed tar every member's size,
   read or not, counts against the extraction limit, since reaching a
-  member decompresses everything stored before it.
+  member decompresses everything stored before it. Hostile headers are
+  refused before memory is spent: one member's headers may take 1 MiB (a
+  300 MiB pax header in a 300 kB file needed 600 MiB before), a
+  compressed stream is never decompressed past the extraction limit, and
+  ``max_files`` counts a tar's directories too. In zip and tar archives
+  alike, a member whose name the file system cannot hold (too long, or a
+  forbidden character) is skipped and counted as ``unwritable-name``
+  instead of stopping the whole archive, and member paths are checked
+  against the extraction folder with one resolve each (10,000 members:
+  tar 32%, zip 7% faster).

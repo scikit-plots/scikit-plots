@@ -301,6 +301,26 @@ def _gz_single_file(path: Path) -> Path:
     return path
 
 
+def _tgz_oversized_pax_header(path: Path) -> Path:
+    """One pax header of 48 MiB, which tarfile would hold in memory whole."""
+    body = b"x" * (48 * 1024 * 1024)
+    header = tarfile.TarInfo("././@PaxHeader")
+    header.type = tarfile.XHDTYPE
+    header.size = len(body)
+    member = tarfile.TarInfo("a.txt")
+    member.size = 5
+    raw = (
+        header.tobuf(format=tarfile.USTAR_FORMAT)
+        + body
+        + b"\0" * (-len(body) % 512)
+        + member.tobuf(format=tarfile.USTAR_FORMAT)
+        + b"hello".ljust(512, b"\0")
+        + b"\0" * 1024
+    )
+    path.write_bytes(gzip.compress(raw, 9))
+    return path
+
+
 def _tgz_member_at_the_text_floor(path: Path) -> Path:
     """
     The most text a tiny compressed tar may yield: one member of 1 Mi characters.
@@ -338,6 +358,7 @@ _SAMPLES: list[tuple[str, str, Callable[[Path], Path]]] = [
     ("txz-compressed-member", "a.tar.xz", _txz_compressed_member),
     ("bz2-single-file", "a.txt.bz2", _bz2_single_file),
     ("gz-single-file", "b.txt.gz", _gz_single_file),
+    ("tgz-oversized-pax-header", "d.tar.gz", _tgz_oversized_pax_header),
     ("tgz-member-at-the-text-floor", "c.tar.gz", _tgz_member_at_the_text_floor),
 ]
 

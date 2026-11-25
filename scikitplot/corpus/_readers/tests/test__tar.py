@@ -258,10 +258,15 @@ def test_the_last_copy_of_a_name_wins_ignoring_case(tmp_path):
     assert reader.coverage.skipped == {"duplicate": 2}
 
 
-def test_max_files_counts_every_non_directory_entry(tmp_path):
-    path = _make(tmp_path / "a.tar", [(f"f{i}.txt", b"x") for i in range(4)])
-    with pytest.raises(ValueError, match="more than 3 files"):
-        list(TarReader(input_path=path, max_files=3).get_raw_chunks())
+def test_max_files_counts_every_entry_directories_too(tmp_path):
+    files = _make(tmp_path / "a.tar", [(f"f{i}.txt", b"x") for i in range(4)])
+    with pytest.raises(ValueError, match="more than 3 entries"):
+        list(TarReader(input_path=files, max_files=3).get_raw_chunks())
+    dirs = _make(
+        tmp_path / "b.tar", [(f"d{i}", b"", tarfile.DIRTYPE) for i in range(4)]
+    )
+    with pytest.raises(ValueError, match="a tar counts directories too"):
+        list(TarReader(input_path=dirs, max_files=3).get_raw_chunks())
 
 
 # ---------------------------------------------------------------------------
@@ -419,3 +424,121 @@ def test_extraction_streams_in_bounded_memory(tmp_path):
     # A fixed cost (one 1 MiB copy block and the decompressor's buffers,
     # about 4 MiB) that does not grow with the member: well under a quarter.
     assert peak < len(big) // 4, f"peak {peak:,} bytes for a {len(big):,}-byte member"
+
+
+# ---------------------------------------------------------------------------
+# Hostile headers: bounded before tarfile spends the memory
+# ---------------------------------------------------------------------------
+
+
+def _raw_header(name, kind, size):
+    info = tarfile.TarInfo(name)
+    info.type = kind
+    info.size = size
+    return info.tobuf(format=tarfile.USTAR_FORMAT)
+
+
+def _record(body):
+    return body + b"\0" * (-len(body) % 512)
+
+
+def _with_header(kind, body):
+    """A tar whose only member is preceded by a pax or long-name header."""
+    regular = tarfile.TarInfo("a.txt")
+    regular.size = 5
+    return (
+        _raw_header("././@LongLink", kind, len(body))
+        + _record(body)
+        + regular.tobuf(format=tarfile.USTAR_FORMAT)
+        + _record(b"hello")
+        + b"\0" * 1024
+    )
+
+
+@pytest.mark.parametrize("kind", [tarfile.XHDTYPE, tarfile.GNUTYPE_LONGNAME])
+@pytest.mark.parametrize("compress", [None, gzip.compress])
+def test_an_oversized_header_is_refused_in_bounded_memory(tmp_path, kind, compress):
+    import tracemalloc
+
+    raw = _with_header(kind, b"x" * (40 * MB))
+    path = tmp_path / ("a.tar.gz" if compress else "a.tar")
+    path.write_bytes(compress(raw) if compress else raw)
+    tracemalloc.start()
+    try:
+        with pytest.raises(ArchiveBudgetError, match="header"):
+            list(TarReader(input_path=path).get_raw_chunks())
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < 16 * MB, f"peak {peak:,} bytes"
+
+
+def test_a_header_of_ordinary_size_is_read(tmp_path):
+    long_name = "d/" + "n" * 300 + ".txt"  # a GNU long-name record
+    with tarfile.open(tmp_path / "a.tar", "w", format=tarfile.GNU_FORMAT) as tf:
+        _add(tf, long_name, b"Text under a long name.")
+    with tarfile.open(tmp_path / "b.tar.gz", "w:gz", format=tarfile.PAX_FORMAT) as tf:
+        info = tarfile.TarInfo("p.txt")
+        info.pax_headers = {"comment": "c" * 100_000}
+        info.size = 4
+        tf.addfile(info, io.BytesIO(b"Pax."))
+    assert _paths(TarReader(input_path=tmp_path / "b.tar.gz")) == ["b.tar.gz/p.txt"]
+    # The 306-character name is read whole from its header; whether the
+    # file system can hold it decides only whether it is extracted.
+    reader = TarReader(input_path=tmp_path / "a.tar")
+    got = _paths(reader)
+    assert got in ([f"a.tar/{long_name}"], [])
+    if not got:
+        assert reader.coverage.skipped == {"unwritable-name": 1}
+
+
+@pytest.mark.parametrize("reader_cls", [TarReader, ZipReader])
+def test_a_name_the_file_system_cannot_hold_skips_only_that_member(
+    tmp_path, reader_cls
+):
+    too_long = "n" * 400 + ".txt"  # past every file system's name limit
+    members = [("a.txt", b"First text."), (too_long, b"Lost."), ("b.txt", b"Last.")]
+    if reader_cls is TarReader:
+        path = _make(tmp_path / "a.tar", members)
+    else:
+        path = tmp_path / "a.zip"
+        with zipfile.ZipFile(path, "w") as zf:
+            for name, data in members:
+                zf.writestr(name, data)
+    reader = reader_cls(input_path=path)
+    assert [p.split("/", 1)[1] for p in _paths(reader)] == ["a.txt", "b.txt"]
+    assert reader.coverage.skipped == {"unwritable-name": 1}
+
+
+def test_other_write_errors_still_stop_the_read(tmp_path):
+    import errno as errno_codes
+
+    path = _make(tmp_path / "a.tar", [("a.txt", b"Text.")])
+    real_open = open
+    writes = []
+
+    def full_disk(file, mode="r", *args, **kwargs):
+        if "w" in mode:  # only the extracted member is written
+            writes.append(file)
+            raise OSError(errno_codes.ENOSPC, "No space left on device")
+        return real_open(file, mode, *args, **kwargs)
+
+    with mock.patch("builtins.open", full_disk):
+        with pytest.raises(OSError, match="No space left"):
+            list(TarReader(input_path=path).get_raw_chunks())
+    assert [str(w).rsplit("/", 1)[-1] for w in writes] == ["a.txt"]
+
+
+def test_a_compressed_scan_stops_at_its_position_bound(tmp_path):
+    # Directory entries carry no data size, yet each takes a header to
+    # decompress: the stream position bounds them.
+    raw = b"".join(
+        _raw_header(f"d{i}/", tarfile.DIRTYPE, 0) for i in range(20_000)
+    ) + b"\0" * 1024
+    path = tmp_path / "a.tar.gz"
+    path.write_bytes(gzip.compress(raw))
+    options = {"max_files": 1_000_000, "max_total_bytes": MB,
+               "max_text_chars_per_byte": None}
+    with mock.patch.object(tar_module, "_HEADER_BYTES_PER_FILE", 0):
+        with pytest.raises(ArchiveBudgetError, match="decompress past"):
+            list(TarReader(input_path=path, **options).get_raw_chunks())

@@ -62,6 +62,7 @@ Python 3.8-3.15.  Zero optional dependencies — ``zipfile`` is stdlib.
 from __future__ import annotations
 
 import contextvars
+import errno
 import logging
 import math
 import re
@@ -221,6 +222,24 @@ def _is_within(child: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+#: errno values meaning a path's name itself is unusable on this file system.
+_NAME_ERRNOS = frozenset({errno.ENAMETOOLONG, errno.EINVAL, errno.EILSEQ})
+#: Windows error codes for an invalid name (123) and a path too long (206).
+_NAME_WINERRORS = frozenset({123, 206})
+
+
+def _is_name_error(exc: OSError) -> bool:
+    """
+    Return ``True`` when *exc* says a path's name cannot exist on this file system.
+
+    A name too long, with a character the file system forbids, or not
+    encodable; not a full disk, a missing permission or other faults.
+    """
+    return (
+        exc.errno in _NAME_ERRNOS or getattr(exc, "winerror", None) in _NAME_WINERRORS
+    )
 
 
 def _archive_relative(text: str, extract_dir: Path, archive_name: str) -> str:
@@ -663,7 +682,8 @@ class ZipReader(DocumentReader):
         archive_name = self.file_name
         supported = set(DocumentReader.supported_types())
 
-        tmp_dir = Path(tempfile.mkdtemp(prefix="skplt_zip_"))
+        # Resolved once: each member path is checked against it.
+        tmp_dir = Path(tempfile.mkdtemp(prefix="skplt_zip_")).resolve()
         # Track member count for the final log line regardless of
         # whether the ZipFile block completes normally or raises early.
         members_count: int = 0
@@ -717,10 +737,12 @@ class ZipReader(DocumentReader):
                         )
 
                     # ── Extract single member (streamed, memory-bounded) ──
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(info) as src:
-                        copied = self._copy_bounded(
-                            src, target, allowed, described, member_path
+                    dst = self._open_target(target, member_path, coverage)
+                    if dst is None:  # a name this file system cannot hold
+                        continue
+                    with dst, zf.open(info) as src:
+                        copied = self._copy_into(
+                            src, dst, allowed, described, member_path
                         )
                     total_bytes += copied
                     budget.remaining -= copied
@@ -753,7 +775,8 @@ class ZipReader(DocumentReader):
         A member is skipped, and counted in *coverage*, when it is hidden or
         a system file (``"hidden"``), would land outside *tmp_dir*
         (``"unsafe-path"``), or has no registered reader (``"unsupported"``,
-        unless ``skip_unsupported=False``, which raises).
+        unless ``skip_unsupported=False``, which raises). *tmp_dir* must
+        already be resolved (``Path.resolve``).
 
         Raises
         ------
@@ -765,8 +788,14 @@ class ZipReader(DocumentReader):
             logger.debug("%s: skipping hidden/system member %s", name, member_path)
             coverage.skip("hidden")
             return None
+        # tmp_dir is already resolved, so one resolve() per member suffices.
         target = (tmp_dir / member_path).resolve()
-        if not _is_within(target, tmp_dir):
+        try:
+            target.relative_to(tmp_dir)
+            inside = True
+        except ValueError:
+            inside = False
+        if not inside:
             logger.warning(
                 "%s: ZipSlip detected for member %r — skipping (escapes %s).",
                 name,
@@ -805,10 +834,45 @@ class ZipReader(DocumentReader):
             return own_limit - used, own_described
         return budget.remaining, budget.described
 
-    def _copy_bounded(
-        self, src: Any, target: Path, allowed: int, described: str, member_path: str
+    def _open_target(
+        self, target: Path, member_path: str, coverage: ReadCoverage
+    ) -> Any:
+        """
+        Create *target* (and its folders) for writing a member.
+
+        Returns
+        -------
+        file object or None
+            The open file; ``None`` when this file system cannot hold the
+            member's name (too long, or a character it forbids). That
+            member is logged and counted as skipped (``"unwritable-name"``):
+            the archive is not damaged, so the rest is read.
+
+        Raises
+        ------
+        OSError
+            If the file cannot be created for another reason (a full disk,
+            no permission).
+        """
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            return open(target, "wb")  # noqa: SIM115
+        except OSError as exc:
+            if not _is_name_error(exc):
+                raise
+        coverage.skip("unwritable-name")
+        logger.warning(
+            "%s: skipping member %r of %s: this file system cannot hold its name.",
+            type(self).__name__,
+            member_path,
+            self.file_name,
+        )
+        return None
+
+    def _copy_into(
+        self, src: Any, dst: Any, allowed: int, described: str, member_path: str
     ) -> int:
-        """Copy *src* to *target* in blocks, refusing past *allowed* bytes.
+        """Copy *src* into *dst* in blocks, refusing past *allowed* bytes.
 
         Returns
         -------
@@ -822,19 +886,18 @@ class ZipReader(DocumentReader):
         """
         from .._archive_handler import stream_copy_bounded  # noqa: PLC0415
 
-        with open(target, "wb") as dst:
-            try:
-                return stream_copy_bounded(
-                    src,
-                    dst,
-                    max_bytes=allowed,
-                    member_name=member_path,
-                    archive_name=self.input_path.name,
-                )
-            except ValueError as exc:  # the content outgrew its header
-                raise ArchiveBudgetError(
-                    f"{type(self).__name__}: {exc} ({described})"
-                ) from exc
+        try:
+            return stream_copy_bounded(
+                src,
+                dst,
+                max_bytes=allowed,
+                member_name=member_path,
+                archive_name=self.input_path.name,
+            )
+        except ValueError as exc:  # the content outgrew its header
+            raise ArchiveBudgetError(
+                f"{type(self).__name__}: {exc} ({described})"
+            ) from exc
 
     def _read_member(  # noqa: PLR0912
         self,
