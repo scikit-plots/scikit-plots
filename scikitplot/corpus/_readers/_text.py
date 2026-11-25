@@ -167,11 +167,8 @@ def _detect_encoding(
         return None
 
     # --- Stage 3: Strict UTF-8 ---
-    try:
-        raw.decode("utf-8")
+    if _decodes(raw, "utf-8"):
         return "utf-8"
-    except UnicodeDecodeError:
-        pass
 
     # --- Stage 4: a statistical detector, only when asked for ---
     if detector == "detect":
@@ -312,12 +309,42 @@ def _is_codec(name: Any) -> bool:
     return True
 
 
+#: Bytes checked at a time by :func:`_decodes`.
+_DECODE_CHECK_BYTES = 1 << 20
+
+
 def _decodes(raw: bytes, encoding: str) -> bool:
-    """Return whether ``raw`` decodes strictly with the codec ``encoding``."""
+    """
+    Return whether ``raw`` decodes strictly with the codec ``encoding``.
+
+    Checked in 1 MiB pieces with an incremental decoder, so the answer
+    (the same as ``raw.decode(encoding)`` succeeding) costs no copy of the
+    whole text: a 200 MB file is not decoded into a 200 MB string just to
+    test it.
+    """
     try:
-        raw.decode(encoding)
-    except (UnicodeDecodeError, LookupError):
+        name = codecs.lookup(encoding).name
+    except LookupError:
         return False
+    if len(raw) <= _DECODE_CHECK_BYTES or name.startswith(("utf-16", "utf-32")):
+        # Small, or a codec whose incremental decoder treats a missing
+        # byte-order mark differently from bytes.decode.
+        try:
+            raw.decode(encoding)
+        except UnicodeDecodeError:
+            return False
+        return True
+    decoder = codecs.getincrementaldecoder(encoding)("strict")
+    view = memoryview(raw)
+    step = _DECODE_CHECK_BYTES
+    try:
+        for start in range(0, len(view), step):
+            decoder.decode(view[start : start + step], final=False)
+        decoder.decode(b"", final=True)
+    except UnicodeDecodeError:
+        return False
+    finally:
+        view.release()
     return True
 
 

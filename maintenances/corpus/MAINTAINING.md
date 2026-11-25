@@ -71,6 +71,34 @@ python -B $B compare main.json branch.json   # exit 1 if a file got worse
 Tool tests: `python -B maintenances/corpus/_maintenance/tests/test_reader_snapshot.py`
 and `python -B maintenances/corpus/_maintenance/tests/test_reader_benchmark.py`.
 
+## Adding a reader: the checklist
+
+Each step is a check a past pull request missed; the lesson in
+`maintenances/_repo/todo/lessons.md` says why.
+
+1. **Shape:** subclass the closest reader (`TextReader` for text formats);
+   reuse its decoding, limits and chunk shape (spreadsheet rows,
+   `_html_chunks`), so one format family reads one way.
+2. **Limits:** file size, parts or pages, part size and, for a container,
+   decoded bytes under `ZipReader`'s ratio rule; a limit refuses with a
+   `ValueError` naming its option, or skips and counts in
+   `reader.coverage`.
+3. **Memory:** read as a stream after the one whole-file pass that
+   choosing a codec needs; measure the peak with `tracemalloc` against
+   the file size, in a test.
+4. **No guessing:** detection is a stated rule (delimiter, codec, root
+   part), deterministic for the same bytes, documented in the reader's
+   Notes, with an option to skip it.
+5. **Tests:** edge cases, bad options, one hostile sample in
+   `test__hostile_samples.py` (its suffix in `_REQUIRED_SUFFIXES`), and a
+   strict run (REPO-L7).
+6. **Floor:** standard-library keyword arguments exist on Python 3.8
+   (REPO-L9).
+7. **Generated files:** API reference, usage skill (REPO-L6) and, for a
+   dependency, `python -m libs._tools generate` (REPO-L8).
+8. **Real data:** snapshot `main` and the branch (section above); record
+   counts only.
+
 ## Core Corpus rule
 
 Never let an operation succeed on partial evidence. If an operation can partially fail, the public result must carry explicit status/error evidence; otherwise it raises. Prefer `UNKNOWN`, `REJECTED`, or `DEGRADED` to a confident guess.

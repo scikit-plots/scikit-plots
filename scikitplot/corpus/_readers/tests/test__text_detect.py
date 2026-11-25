@@ -111,3 +111,37 @@ def test_detect_is_a_valid_policy_and_binary_is_still_refused(tmp_path):
     path.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00")
     with pytest.raises(ValueError, match="not a text file"):
         _read(path, encoding="detect")
+
+
+@pytest.mark.parametrize(
+    "encoding",
+    ["utf-8", "utf-8-sig", "cp1252", "shift_jis", "koi8-r", "gb18030", "iso-2022-jp",
+     "utf-16", "utf-32", "latin-1"],
+)
+def test_decodes_matches_bytes_decode_across_the_piece_boundary(encoding):
+    # _decodes checks large inputs in 1 MiB pieces; a character split
+    # between pieces and a bad byte at the end must give bytes.decode's answer.
+    from .._text import _DECODE_CHECK_BYTES, _decodes
+
+    edge = _DECODE_CHECK_BYTES - 1
+    samples = [
+        b"a" * edge + "€".encode("utf-8"),
+        ("é" * 700_000).encode("utf-8") + b"\xff",
+        ("日本" * 300_000).encode("shift_jis"),
+        ("ä" * 700_000).encode("utf-16"),
+        b"plain ascii" * 120_000,
+        b"\xe2\x82",
+    ]
+    for raw in samples:
+        try:
+            raw.decode(encoding)
+            expected = True
+        except UnicodeDecodeError:
+            expected = False
+        assert _decodes(raw, encoding) is expected
+
+
+def test_decodes_refuses_an_unknown_codec():
+    from .._text import _decodes
+
+    assert _decodes(b"x", "no-such-codec") is False

@@ -2,7 +2,11 @@
   with the standard library ``csv`` module: rows become tab-separated
   lines, ``rows_per_chunk`` a chunk as for spreadsheets, and each chunk
   opens with the header row so it reads on its own. The delimiter is tab
-  for ``.tsv`` and sniffed among comma, semicolon, tab and bar otherwise
-  (or set with ``delimiter=``); quoted fields may hold delimiters, quotes
-  and line breaks, a UTF-8 byte-order mark is dropped, and legacy
-  encodings are detected as for text files.
+  for ``.tsv``; otherwise a stated rule picks, among
+  ``candidate_delimiters`` (comma, semicolon, tab, bar), the one whose
+  field count holds for most records, and a table where none does is read
+  as one column, so prose with commas is not split (``delimiter=`` skips
+  detection). The file is parsed as a stream: peak memory is about the
+  file's size once, not five times. Checking whether a file decodes in a
+  codec no longer builds the whole decoded text, which lowers the memory
+  of every text-based reader on large files.
