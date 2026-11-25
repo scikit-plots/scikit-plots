@@ -137,10 +137,22 @@ def test_malformed_json_names_the_position(tmp_path):
         list(JSONReader(input_path=_write(tmp_path, '{"a":\n  ]', "a.json")).get_raw_chunks())
 
 
-def test_deep_nesting_is_refused_not_crashed(tmp_path):
+def test_deep_nesting_never_crashes(tmp_path):
+    # Whether json parses 200 000 levels depends on the Python version
+    # (3.14+ bounds recursion by stack size, not a count): the contract is
+    # a clean read or a ValueError naming the depth, never a crash.
     path = _write(tmp_path, "[" * 200_000 + "]" * 200_000, "a.json")
-    with pytest.raises(ValueError, match="nests too deeply"):
+    try:
         list(JSONReader(input_path=path).get_raw_chunks())
+    except ValueError as exc:
+        assert "nests too deeply" in str(exc)
+
+
+def test_a_parser_recursion_error_names_the_depth(tmp_path):
+    path = _write(tmp_path, "[[1]]", "a.json")
+    with mock.patch("json.loads", side_effect=RecursionError):
+        with pytest.raises(ValueError, match="JSONReader: a.json nests too deeply"):
+            list(JSONReader(input_path=path).get_raw_chunks())
 
 
 def test_the_value_budget_refuses(tmp_path):
@@ -335,3 +347,178 @@ def test_lines_handle_deep_nesting_without_recursion():
         value = [value]
     lines = list(_lines(value, "", "all", [10**6]))
     assert len(lines) == 1 and lines[0].endswith(": []")
+
+
+# ---------------------------------------------------------------------------
+# Paths, include / exclude and records mode
+# ---------------------------------------------------------------------------
+
+from .._structured import _parse_path, _select  # noqa: E402
+
+_API = {
+    "meta": {"page": 1, "token": "secret"},
+    "data": {
+        "articles": [
+            {"title": "First", "body": "Alpha text.", "author": "Ada",
+             "tags": ["a", "b"], "link": {"href": "https://e.x/1"}},
+            {"title": "Second", "body": "Beta text.", "author": "Bob", "tags": []},
+            {"title": "", "body": "", "author": "Cy"},
+        ]
+    },
+}
+
+
+@pytest.mark.parametrize(
+    ("expr", "steps"),
+    [
+        ("$", ()),
+        ("", ()),
+        ("a", (("key", "a"),)),
+        ("$.a.b", (("key", "a"), ("key", "b"))),
+        ("a[0][*]", (("key", "a"), ("index", 0), ("any_index",))),
+        ('["odd key"].*', (("key", "odd key"), ("any_key",))),
+        ('*["q\\"x"]', (("any_key",), ("key", 'q"x'))),
+    ],
+)
+def test_parse_path(expr, steps):
+    assert _parse_path(expr) == steps
+
+
+@pytest.mark.parametrize("expr", ["a..b", "a[x]", "a[-1]", 'a["open', "a b", "a.", 3])
+def test_parse_path_refuses_bad_paths(expr):
+    with pytest.raises(ValueError):
+        _parse_path(expr)
+
+
+def test_select_fans_out_and_skips_missing():
+    assert _select(_API, _parse_path("data.articles[*].title")) == ["First", "Second", ""]
+    assert _select(_API, _parse_path("data.articles[*].link.href")) == ["https://e.x/1"]
+    assert _select(_API, _parse_path("data.articles[9].title")) == []
+    assert _select({1: "int key"}, _parse_path('["1"]')) == ["int key"]
+
+
+def test_include_and_exclude_choose_subtrees(tmp_path):
+    path = _write(tmp_path, json.dumps(_API), "a.json")
+    lines = _texts(JSONReader(input_path=path, include=["data.articles[*].title"]))
+    assert lines == [
+        "data.articles[0].title: First",
+        "data.articles[1].title: Second",
+        "data.articles[2].title: ",
+    ]
+    lines = _texts(JSONReader(input_path=path, exclude=["meta.token", "data.articles[*].tags"]))
+    assert "meta.token: secret" not in lines and "meta.page: 1" in lines
+    assert not any(".tags" in line for line in lines)
+
+
+def test_records_with_a_template_and_metadata(tmp_path):
+    path = _write(tmp_path, json.dumps(_API), "a.json")
+    reader = JSONReader(
+        input_path=path,
+        record_path="data.articles[*]",
+        template="# {title}\n\n{body} {{tags: {tags[*]}}}",
+        metadata_fields={"author": "author", "url": "link.href", "tag": "tags[*]"},
+    )
+    chunks = list(reader.get_raw_chunks())
+    assert [c["text"] for c in chunks] == [
+        "# First\n\nAlpha text. {tags: a\nb}",
+        "# Second\n\nBeta text. {tags: }",
+        "# \n\n {tags: }",
+    ]
+    assert [c["record_index"] for c in chunks] == [0, 1, 2]
+    assert chunks[0]["url"] == "https://e.x/1" and chunks[0]["tag"] == ["a", "b"]
+    assert chunks[1]["author"] == "Bob" and "url" not in chunks[1] and "tag" not in chunks[1]
+
+
+def test_records_with_text_fields_count_empty_records(tmp_path):
+    path = _write(tmp_path, json.dumps(_API), "a.json")
+    reader = JSONReader(input_path=path, record_path="data.articles[*]", text_fields=["title", "body"])
+    assert [c["text"] for c in reader.get_raw_chunks()] == [
+        "First\n\nAlpha text.",
+        "Second\n\nBeta text.",
+    ]
+    assert reader.coverage.read == 2 and reader.coverage.empty == 1
+
+
+def test_a_chat_dataset_in_json_lines(tmp_path):
+    rows = [
+        {"id": "c1", "messages": [{"role": "user", "content": "Hi?"}, {"role": "assistant", "content": "Hello."}]},
+        {"id": "c2", "messages": [{"role": "user", "content": "Bye."}]},
+    ]
+    path = _write(tmp_path, "\n".join(json.dumps(r) for r in rows), "chats.jsonl")
+    reader = JSONReader(
+        input_path=path,
+        text_fields=["messages[*].content"],
+        field_separator="\n",
+        metadata_fields={"conversation_id": "id"},
+    )
+    chunks = list(reader.get_raw_chunks())
+    assert [(c["text"], c["conversation_id"], c["record_start"]) for c in chunks] == [
+        ("Hi?\nHello.", "c1", 1),
+        ("Bye.", "c2", 2),
+    ]
+
+
+def test_records_default_to_top_level_elements_with_path_lines(tmp_path):
+    path = _write(tmp_path, json.dumps([{"a": 1}, {"a": 2, "b": [3]}]), "a.json")
+    chunks = list(JSONReader(input_path=path, metadata_fields=["a"]).get_raw_chunks())
+    assert [(c["text"], c["a"]) for c in chunks] == [(".a: 1", 1), (".a: 2\n.b[0]: 3", 2)]
+
+
+def test_a_container_field_is_compact_json(tmp_path):
+    path = _write(tmp_path, json.dumps({"x": {"k": [1, "é"]}}), "a.json")
+    [chunk] = JSONReader(input_path=path, text_fields=["x"]).get_raw_chunks()
+    assert chunk["text"] == '{"k":[1,"é"]}'
+
+
+def test_documents_carry_promoted_metadata(tmp_path):
+    rows = [{"text": "A sentence that is long enough to keep.", "link": "https://e.x/a"}]
+    path = _write(tmp_path, json.dumps(rows), "a.json")
+    reader = JSONReader(input_path=path, text_fields=["text"], metadata_fields={"url": "link"})
+    [doc] = list(reader.get_documents())
+    assert doc.url == "https://e.x/a"
+
+
+def test_yaml_documents_are_records(tmp_path):
+    pytest.importorskip("yaml")
+    path = _write(tmp_path, "title: One\n---\ntitle: Two\n", "a.yaml")
+    chunks = list(YAMLReader(input_path=path, text_fields=["title"]).get_raw_chunks())
+    assert [(c["text"], c["record_start"]) for c in chunks] == [("One", 0), ("Two", 1)]
+
+
+def test_the_value_budget_applies_in_records_mode(tmp_path):
+    path = _write(tmp_path, json.dumps([{"t": list(range(100))}]), "a.json")
+    with pytest.raises(ValueError, match="max_values"):
+        list(JSONReader(input_path=path, text_fields=["t[*]"], max_values=10).get_raw_chunks())
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "error", "message"),
+    [
+        ({"text_fields": ["a"], "template": "{a}"}, ValueError, "not both"),
+        ({"text_fields": []}, ValueError, "must not be empty"),
+        ({"text_fields": "a"}, TypeError, "list of paths"),
+        ({"include": ["a..b"]}, ValueError, "include: bad path"),
+        ({"record_path": "a[x]"}, ValueError, "record_path: bad path"),
+        ({"template": "{a..b}"}, ValueError, "template: bad path"),
+        ({"template": "{a"}, ValueError, "unmatched brace"),
+        ({"template": 3}, TypeError, "template must be a str"),
+        ({"metadata_fields": {"text": "a"}}, ValueError, "reserved"),
+        ({"metadata_fields": ["source_type"]}, ValueError, "reserved"),
+        ({"metadata_fields": "a"}, TypeError, "list of paths or a mapping"),
+        ({"field_separator": None}, TypeError, "field_separator"),
+    ],
+)
+def test_bad_record_options_fail_at_construction(tmp_path, kwargs, error, message):
+    with pytest.raises(error, match=message):
+        JSONReader(input_path=_write(tmp_path, "{}", "a.json"), **kwargs)
+
+
+def test_filters_stay_linear_on_deep_nesting():
+    from .._structured import _Filter, _lines
+
+    value: list = ["leaf"]
+    for _ in range(50_000):
+        value = [value]
+    keep = _Filter((_parse_path("[0][0][*]"),), (_parse_path("[1]"),))
+    lines = list(_lines(value, "", "all", [10**6], keep=keep))
+    assert len(lines) == 1 and lines[0].endswith(": leaf")
