@@ -173,3 +173,15 @@
   its review commit (fast companion lookup, companion options, linear
   markup) was pushed minutes later and never reached `main`. PR 984
   carries it.
+
+### Rule REPO-L14: Do not treat an unchanged file time as "nothing changed"
+- **When:** a cache is keyed on a file or folder modification time.
+- **Then:** reuse an entry only when the time is settled, at least 2 s
+  older than the moment the entry was taken; otherwise recompute.
+  File times move in steps (about 15.6 ms on Windows, 2 s on FAT), so
+  two changes in one step leave the time unchanged.
+- **Verified by:** a test that writes, sets the folder time back to its
+  old value with `os.utime`, and still sees the new file.
+- **Added:** 2026-11-25. Root cause: PR 984's folder-listing cache
+  served a stale listing on Windows CI, because files created within
+  one clock step left the folder time unchanged.

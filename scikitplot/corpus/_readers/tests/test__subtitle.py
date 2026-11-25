@@ -478,6 +478,7 @@ def test_find_companion_lists_a_folder_once_per_change(tmp_path):
         m.write_bytes(b"")
         m.with_suffix(".srt").write_text("x", encoding="utf-8")
     sub._LISTINGS.clear()
+    os.utime(tmp_path, ns=(1, 1))  # a settled folder time
     with mock.patch.object(sub.os, "scandir", wraps=os.scandir) as scandir:
         assert all(find_companion(m, [".srt"]) for m in media)
         assert scandir.call_count == 1
@@ -487,13 +488,34 @@ def test_find_companion_lists_a_folder_once_per_change(tmp_path):
         assert scandir.call_count == 2
 
 
+def test_a_recently_changed_folder_is_listed_again(tmp_path):
+    # File times move in coarse steps (about 15.6 ms on Windows), so two
+    # changes in one step leave the folder's time unchanged; a folder
+    # changed within the settle window must never be served from cache.
+    import os
+
+    from .. import _subtitle as sub
+
+    media = _write(tmp_path, b"", "talk.mp4")
+    sub._LISTINGS.clear()
+    frozen = os.stat(tmp_path).st_mtime_ns
+    assert find_companion(media, [".srt"]) is None
+    _write(tmp_path, "x", "talk.srt")
+    os.utime(tmp_path, ns=(frozen, frozen))  # the time did not move
+    assert find_companion(media, [".srt"]).name == "talk.srt"
+    assert str(tmp_path) not in sub._LISTINGS
+
+
 def test_the_listing_cache_is_bounded(tmp_path):
     from .. import _subtitle as sub
+
+    import os
 
     sub._LISTINGS.clear()
     for i in range(sub._LISTING_FOLDERS + 5):
         folder = tmp_path / f"d{i}"
         folder.mkdir()
+        os.utime(folder, ns=(1, 1))  # a settled folder time
         find_companion(folder / "a.mp4", [".srt"])
     assert len(sub._LISTINGS) == sub._LISTING_FOLDERS
     assert str(tmp_path / f"d{sub._LISTING_FOLDERS + 4}") in sub._LISTINGS

@@ -30,6 +30,7 @@ import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import time_ns
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -553,6 +554,11 @@ def merge_rolling(cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
 _LISTING_FOLDERS = 8
 _LISTINGS: OrderedDict[str, tuple[int, tuple[tuple[str, str], ...]]] = OrderedDict()
 _LISTINGS_LOCK = threading.Lock()
+#: A listing is reused only if the folder changed at least this long before
+#: it was taken. File times move in steps (about 15.6 ms on Windows, 2 s on
+#: FAT), so a folder changed more recently can change again without its
+#: time moving; such a folder is listed again on every lookup.
+_SETTLED_NS = 2_000_000_000
 
 
 def _listing(folder: str) -> tuple[tuple[str, str], ...]:
@@ -563,6 +569,12 @@ def _listing(folder: str) -> tuple[tuple[str, str], ...]:
     changes, so a folder is listed once per change, not once per media
     file in it; at most :data:`_LISTING_FOLDERS` folders are kept. ``scandir``
     entries carry their type, so no file is stat-ed. Thread-safe.
+
+    A listing is kept only when the folder's time is at least
+    :data:`_SETTLED_NS` older than the moment of listing. File times are
+    coarse, so a change within the same step as the last one leaves the
+    time unchanged; a settled time cannot hide a later change, because
+    any later change sets a newer time.
 
     Raises
     ------
@@ -575,10 +587,13 @@ def _listing(folder: str) -> tuple[tuple[str, str], ...]:
         if kept is not None and kept[0] == stamp:
             _LISTINGS.move_to_end(folder)
             return kept[1]
+    listed_at = time_ns()
     with os.scandir(folder) as entries:
         listing = tuple(
             sorted((e.name.lower(), e.name) for e in entries if e.is_file())
         )
+    if listed_at - stamp < _SETTLED_NS:
+        return listing
     with _LISTINGS_LOCK:
         _LISTINGS[folder] = (stamp, listing)
         _LISTINGS.move_to_end(folder)
