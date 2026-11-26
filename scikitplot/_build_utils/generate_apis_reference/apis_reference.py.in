@@ -1521,8 +1521,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "ChunkerBase",
-                    # Concrete built-in filter
+                    # Concrete built-in filters
+                    "CodeAwareFilter",
                     "DefaultFilter",
+                    "NonBlankFilter",
                     # Abstract bases
                     "DocumentReader",
                     # Utility readers

@@ -169,3 +169,100 @@ def test_a_large_file_is_read_as_a_stream(tmp_path):
     assert (len(ends), ends[-1]) == (1000, 200_000)
     # The bytes are held once, to choose the codec; the text never whole.
     assert peak < 1.5 * path.stat().st_size
+
+
+# ---------------------------------------------------------------------------
+# Documents keep every line, as chunks do
+# ---------------------------------------------------------------------------
+
+SHORT = "x = 1\n# comment\ny = 2\n}\n42\n"
+
+
+def _documents(path, **options):
+    return list(CodeReader(input_path=path, **options).get_documents())
+
+
+def test_documents_keep_short_blocks_of_code(tmp_path):
+    # DefaultFilter (built for prose) dropped "y = 2", "}" and "42".
+    path = tmp_path / "short.py"
+    path.write_text(SHORT, encoding="utf-8")
+    docs = _documents(path, lines_per_chunk=1)
+    assert [d.text for d in docs] == ["x = 1", "# comment", "y = 2", "}", "42"]
+    covered = [
+        n
+        for d in docs
+        for n in range(d.metadata["line_start"], d.metadata["line_end"] + 1)
+    ]
+    assert covered == [1, 2, 3, 4, 5]
+
+
+def test_a_filter_the_caller_chooses_still_applies(tmp_path):
+    from ..._base import DefaultFilter  # noqa: PLC0415
+
+    path = tmp_path / "short.py"
+    path.write_text(SHORT, encoding="utf-8")
+    docs = _documents(
+        path, lines_per_chunk=1, filter_=DefaultFilter(min_words=1, min_chars=1)
+    )
+    assert [d.text for d in docs] == ["x = 1", "# comment", "y = 2"]  # no letters: dropped
+
+
+def test_prose_is_filtered_as_before(tmp_path):
+    # The default keeps code that is not blank and judges the rest as prose,
+    # with DefaultFilter's rules unchanged.
+    from ..._base import CodeAwareFilter, DefaultFilter  # noqa: PLC0415
+    from .._text import TextReader  # noqa: PLC0415
+
+    (tmp_path / "a.txt").write_text("ok\n\n42\n\nA sentence of prose here.\n", encoding="utf-8")
+    reader = TextReader(input_path=tmp_path / "a.txt")
+    assert isinstance(reader.filter_, CodeAwareFilter)
+    assert isinstance(reader.filter_.prose, DefaultFilter)
+    texts = [d.text for d in reader.get_documents()]
+    explicit = [
+        d.text
+        for d in TextReader(
+            input_path=tmp_path / "a.txt", filter_=DefaultFilter()
+        ).get_documents()
+    ]
+    assert texts == explicit
+
+
+def test_code_aware_filter_options():
+    from ..._base import CodeAwareFilter, NonBlankFilter  # noqa: PLC0415
+
+    keep_all = CodeAwareFilter(prose=NonBlankFilter())
+    assert "NonBlankFilter" in repr(keep_all)
+    with pytest.raises(TypeError, match="prose"):
+        CodeAwareFilter(prose="strict")
+
+
+def test_code_in_an_archive_keeps_its_short_blocks(tmp_path):
+    import zipfile  # noqa: PLC0415
+
+    from ..._base import DefaultFilter  # noqa: PLC0415
+    from .._zip import ZipReader  # noqa: PLC0415
+
+    archive = tmp_path / "src.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("pkg/short.py", SHORT)
+    one_line = {".py": {"lines_per_chunk": 1}}  # each line a document of its own
+    reader = ZipReader(input_path=archive, reader_kwargs=one_line)
+    texts = [d.text for d in reader.get_documents()]
+    assert texts == ["x = 1", "# comment", "y = 2", "}", "42"]
+    chosen = ZipReader(
+        input_path=archive,
+        reader_kwargs=one_line,
+        filter_=DefaultFilter(min_words=50, min_chars=1),
+    )
+    assert list(chosen.get_documents()) == []  # the caller's filter reaches members
+
+
+def test_lean_end_of_namespace_is_kept(tmp_path):
+    from .._lean import LeanReader  # noqa: PLC0415
+
+    path = tmp_path / "A.lean"
+    path.write_text(
+        "namespace Foo\ntheorem t : True := trivial\nend Foo\n", encoding="utf-8"
+    )
+    texts = [d.text for d in LeanReader(input_path=path).get_documents()]
+    assert "end Foo" in texts
