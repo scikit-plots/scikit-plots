@@ -1,0 +1,5 @@
+- ``LeanIndex`` is :class:`scikitplot.lean.LeanIndex`; it is no longer in
+  :mod:`scikitplot.corpus`. :class:`~scikitplot.corpus.LeanReader` is
+  built on :mod:`scikitplot.lean`: the partial ``scikit-plots-corpus``
+  needs its ``lean`` extra to read ``.lean`` files, and without it the
+  reader raises :class:`ImportError` with the command to install.

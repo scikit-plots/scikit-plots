@@ -1,0 +1,9 @@
+- :mod:`scikitplot.lean` is a subpackage of its own: :class:`~scikitplot.lean.LeanIndex`,
+  :data:`~scikitplot.lean.AUDIT_FLAGS` and :data:`~scikitplot.lean.LEAN_FLAGS`,
+  standard library only, with the command ``scikitplot lean FOLDER
+  [--target NAME] [--fail-on FLAG]`` (also ``python -m scikitplot.lean``)
+  and the partial distribution ``scikit-plots-lean``.
+  :meth:`~scikitplot.lean.LeanIndex.export` into a folder it exported to
+  before removes the files it no longer writes, and no other file; a
+  project import no file provides is reported missing whenever it makes
+  a proof's imports unknown.
