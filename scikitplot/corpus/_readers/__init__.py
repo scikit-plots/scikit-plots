@@ -182,6 +182,7 @@ from . import (
     _code,
     _custom,
     _image,
+    _lean,
     _mhtml,
     _notebook,
     _office,
@@ -203,6 +204,7 @@ from ._chm import *  # noqa: F403
 from ._code import *  # noqa: F403
 from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
+from ._lean import *  # noqa: F403
 from ._mhtml import *  # noqa: F403
 from ._notebook import *  # noqa: F403
 from ._office import *  # noqa: F403
@@ -225,6 +227,7 @@ __all__ += _chm.__all__
 __all__ += _code.__all__
 __all__ += _custom.__all__
 __all__ += _image.__all__
+__all__ += _lean.__all__
 __all__ += _mhtml.__all__
 __all__ += _notebook.__all__
 __all__ += _office.__all__

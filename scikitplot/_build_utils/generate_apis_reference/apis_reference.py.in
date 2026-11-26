@@ -2118,6 +2118,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "normalize_extractor_output",
                     # image
                     "ImageReader",
+                    # lean
+                    "LEAN_FLAGS",
+                    "LeanReader",
                     # mhtml
                     "MHTMLReader",
                     # notebook

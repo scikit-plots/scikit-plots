@@ -101,7 +101,8 @@ Each step is a check a past pull request missed; the lesson in
    writes a file without `encoding=`, which `sweep_static.py` (it leaves
    tests out) does not see.
 8. **Real data:** snapshot `main` and the branch (section above); record
-   counts only.
+   counts only. A reader whose chunks carry `line_start` and `line_end`
+   takes `--lines` too: no line uncovered, overlapping or inexact.
 9. **Regex cost:** a pattern that skips to a closer stops at the next
    opener (`<[^<>]*>`, not `<[^>]*>`); time it on 40 kB of its own opener
    in a test. `sweep_static.py --fail-on regex-unbounded-scan` guards the

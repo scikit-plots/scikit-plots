@@ -59,6 +59,10 @@ Probe: `DocumentReader.create("page.html")` and
   `.bz2`, `.xz` holding a tar) and single compressed files
   (`notes.txt.gz`): `TarReader`, PR 985, a `ZipReader` sharing its
   limits and nesting.
+- Lean (`.lean`, Lean 4 and Lean 3): `LeanReader`, PR 986, one chunk per
+  command with its line range, qualified name and kind, every non-blank
+  line in exactly one chunk; lexical audit flags; statements without
+  proofs; names located across a project.
 
 ## Root cause / current understanding
 

@@ -31,7 +31,9 @@ crashing file cannot stall the run), ``--reader-kwargs JSON`` (passed to
 FILE.py:FUNCTION`` (snapshot another reading function, ``FUNCTION(path,
 **reader_kwargs)`` returning chunk dicts, instead of the corpus readers),
 ``--documents`` (snapshot the documents after the reader's filter instead of
-the raw chunks). ``compare`` exits 1 when the snapshots differ or a file is
+the raw chunks), ``--lines`` (for readers whose chunks carry ``line_start``
+and ``line_end``, such as the code and Lean readers, record whether the
+chunks account for every line: see :func:`line_coverage`). ``compare`` exits 1 when the snapshots differ or a file is
 unstable, 0 otherwise; ``--ignore-warnings`` leaves warnings out of the
 comparison, ``--text-only`` compares the texts and errors only (for a change
 that adds metadata), ``--timing`` adds ``timing:`` and ``slower:`` lines
@@ -51,6 +53,9 @@ snapshots of copies of a folder compare equal. ``seconds`` (the fastest of
 the reads of the file) and, written by the command line, ``run`` (total
 seconds, peak resident memory, Python and platform) describe cost; they are
 never compared as differences, only reported by ``compare --timing``.
+``lines`` (with ``--lines``; ``None`` otherwise): non-blank lines no chunk
+covers, chunks that overlap the one before, and chunks whose text is not
+the file's own lines; compared like the other fields.
 
 **Isolated reads.** With ``--timeout`` each read runs in a child process
 (``read-one``), which sends back the chunks and the warnings; the record is
@@ -104,7 +109,7 @@ _SLOWER_SECONDS = 1.0
 _RESULT_MARK = "@@reader_snapshot@@"
 
 #: Fields that describe what a reader produced; ``stable`` compares these.
-DATA_FIELDS = ("result", "chunks", "chars", "text_digest", "digest", "error")
+DATA_FIELDS = ("result", "chunks", "chars", "text_digest", "digest", "error", "lines")
 
 #: Fields compared by ``compare(..., text_only=True)``: the text, not metadata.
 TEXT_FIELDS = ("result", "chunks", "chars", "text_digest", "error")
@@ -145,7 +150,74 @@ def _text_digest(chunks: Sequence[dict[str, Any]]) -> str:
     return hashlib.sha256(blob.encode("ascii")).hexdigest()
 
 
-def read_once(path: Path, read: Reader, root: Path, logger: str) -> dict[str, Any]:
+def line_coverage(path: Path, chunks: Sequence[dict[str, Any]]) -> dict[str, int] | None:
+    """
+    Check that chunks with line ranges account for every line of *path*.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The file the chunks were read from.
+    chunks : sequence of dict
+        The chunks, in the order the reader yielded them.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when no chunk carries ``line_start`` and ``line_end``.
+        Otherwise counts: ``nonblank`` (non-blank lines of the file),
+        ``uncovered`` (non-blank lines in no chunk's range), ``overlaps``
+        (chunks that start at or before the end of an earlier one) and
+        ``inexact`` (chunks whose text is not the file's lines over their
+        range, or whose range runs past the file).
+
+    Notes
+    -----
+    The file is decoded with the first chunk's ``encoding`` (UTF-8 when
+    no chunk names one; undecodable bytes replaced), with universal
+    newlines and a leading byte order mark dropped, as the code readers
+    read it: line numbers are an editor's. A reader that leaves lines out
+    on purpose (``LeanReader(proofs="drop")``) reports them as
+    ``uncovered``; that is a count to explain, not an error.
+    """
+    ranges = [
+        (chunk["line_start"], chunk["line_end"], chunk.get("text"))
+        for chunk in chunks
+        if isinstance(chunk.get("line_start"), int)
+        and isinstance(chunk.get("line_end"), int)
+    ]
+    if not ranges:
+        return None
+    encoding = next((c["encoding"] for c in chunks if c.get("encoding")), "utf-8")
+    with open(path, encoding=encoding, errors="replace", newline=None) as stream:
+        lines = [line[:-1] if line.endswith("\n") else line for line in stream]
+    if lines and lines[0].startswith("\ufeff"):
+        lines[0] = lines[0][1:]
+    covered = bytearray(len(lines) + 2)
+    overlaps = inexact = 0
+    furthest = 0
+    for start, end, text in ranges:
+        if start <= furthest:
+            overlaps += 1
+        furthest = max(furthest, end)
+        if start < 1 or end > len(lines) or end < start:
+            inexact += 1
+            continue
+        covered[start : end + 1] = b"\x01" * (end - start + 1)
+        if text is not None and text != "\n".join(lines[start - 1 : end]):
+            inexact += 1
+    nonblank = [number for number, line in enumerate(lines, 1) if line.strip()]
+    return {
+        "nonblank": len(nonblank),
+        "uncovered": sum(1 for number in nonblank if not covered[number]),
+        "overlaps": overlaps,
+        "inexact": inexact,
+    }
+
+
+def read_once(
+    path: Path, read: Reader, root: Path, logger: str, *, lines: bool = False
+) -> dict[str, Any]:
     """
     Read one file once and describe the outcome.
 
@@ -159,12 +231,16 @@ def read_once(path: Path, read: Reader, root: Path, logger: str) -> dict[str, An
         The folder, replaced by ``<root>`` in messages.
     logger : str
         Name of the logger whose warnings are kept.
+    lines : bool, optional
+        Also check the chunks' line ranges (:func:`line_coverage`).
+        Default: ``False``.
 
     Returns
     -------
     dict
         ``result``, ``chunks``, ``chars``, ``text_digest`` (the texts),
-        ``digest`` (every key of every chunk), ``error``, ``warnings``.
+        ``digest`` (every key of every chunk), ``error``, ``lines`` (``None``
+        unless *lines*), ``warnings``.
     """
     handler = _Collect()
     log = logging.getLogger(logger)
@@ -178,6 +254,7 @@ def read_once(path: Path, read: Reader, root: Path, logger: str) -> dict[str, An
             "text_digest": _text_digest(chunks),
             "digest": _digest(chunks),
             "error": None,
+            "lines": line_coverage(path, chunks) if lines else None,
         }
     except Exception as exc:  # noqa: BLE001
         # Broad catch: any failure of a reader is an outcome to record.
@@ -188,6 +265,7 @@ def read_once(path: Path, read: Reader, root: Path, logger: str) -> dict[str, An
             "text_digest": None,
             "digest": None,
             "error": _clean(f"{type(exc).__name__}: {exc}", root),
+            "lines": None,
         }
     finally:
         log.removeHandler(handler)
@@ -446,6 +524,7 @@ def snapshot(
     include: Sequence[str] = (),
     exclude: Sequence[str] = (),
     max_per_type: int | None = None,
+    lines: bool = False,
 ) -> dict[str, Any]:
     """
     Read every file under *root* *repeat* times and describe each.
@@ -470,6 +549,8 @@ def snapshot(
         without one counts as its own type), the first in sorted order, after
         *include* and *exclude*: the same sample on every run. ``None``
         reads all. Default: ``None``.
+    lines : bool, optional
+        Record :func:`line_coverage` for each file. Default: ``False``.
 
     Returns
     -------
@@ -532,7 +613,7 @@ def snapshot(
         reads, seconds = [], []
         for _ in range(repeat):
             start = time.perf_counter()
-            reads.append(read_once(path, read, root, logger))
+            reads.append(read_once(path, read, root, logger, lines=lines))
             seconds.append(time.perf_counter() - start)
         record = dict(reads[0])
         record["stable"] = all(
@@ -715,6 +796,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0915
     take.add_argument("--exclude", action="append", default=[], metavar="GLOB")
     take.add_argument("--max-per-type", type=int, default=None, metavar="N")
     take.add_argument("--timeout", type=float, default=None, metavar="SECONDS")
+    take.add_argument("--lines", action="store_true")
     _reader_options(take)
     diff = sub.add_parser("compare", help="compare two snapshots")
     diff.add_argument("before", type=Path)
@@ -778,6 +860,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0915
                 include=args.include,
                 exclude=args.exclude,
                 max_per_type=args.max_per_type,
+                lines=args.lines,
             )
         except (TypeError, ValueError) as exc:
             parser.error(str(exc))
@@ -800,6 +883,15 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0915
             f" error(s), {sum(not r['stable'] for r in files.values())} unstable;"
             f" {run['seconds']:g} s, peak {peak}; written to {args.out}"
         )
+        if args.lines:
+            checked = [r["lines"] for r in files.values() if r.get("lines")]
+            print(  # noqa: T201
+                f"lines: {len(checked)} file(s) with line ranges;"
+                f" {sum(c['uncovered'] for c in checked)} uncovered,"
+                f" {sum(c['overlaps'] for c in checked)} overlapping,"
+                f" {sum(c['inexact'] for c in checked)} inexact"
+                f" of {sum(c['nonblank'] for c in checked)} non-blank line(s)"
+            )
         return 0
 
     before = json.loads(args.before.read_text(encoding="utf-8"))
