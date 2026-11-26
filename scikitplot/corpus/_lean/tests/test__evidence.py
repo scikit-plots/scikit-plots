@@ -50,6 +50,7 @@ PROJECT = {
     """,
     "Proj/Main.lean": """
         import Proj.Lemmas
+        import Proj.Inst
         import Mathlib.Data.Nat.Basic
         open Proj
         theorem main : MyClaim := fun n => helper_ok n
@@ -297,7 +298,7 @@ def test_chunks_of_a_reader_can_be_indexed_without_files(tmp_path):
         index.add_chunks(reader.get_raw_chunks(), label=path.relative_to(root).as_posix())
     report = index.dossier("main2")
     assert report["target"]["statement"] is None  # no file to quote
-    assert report["target"]["line_end"] == 6  # the two parts joined
+    assert report["target"]["line_end"] == 7  # the two parts joined
     assert [f["declaration"] for f in report["dependencies"]["red_flags"]["items"]] == [
         "Proj.bad"
     ]
@@ -472,3 +473,164 @@ def test_fail_on_refuses_an_unknown_flag(tmp_path):
     with pytest.raises(SystemExit) as exit_info, contextlib.redirect_stderr(io.StringIO()):
         main([root, "--fail-on", "no_such_flag"])
     assert exit_info.value.code == 2
+
+
+# ---------------------------------------------------------------------------
+# Visibility: a name links only into files its own file can see
+# ---------------------------------------------------------------------------
+
+
+VISIBLE = {
+    "V/Core.lean": "theorem helper : True := sorry\n",
+    "V/Mid.lean": "import V.Core\ntheorem mid : True := helper\n",
+    "V/Main.lean": "import V.Mid\ntheorem main : True := helper\n",
+    "Scratch/Other.lean": "theorem helper' : True := sorry\ntheorem stray : True := sorry\n",
+    "Scratch/Use.lean": "theorem uses_stray : True := stray\n",
+}
+
+
+def _named(report):
+    """The flagged declarations a proof names, directly or through others."""
+    return {d["declaration"] for d in report["dependencies"]["red_flags"]["items"]}
+
+
+def test_a_name_in_a_file_not_imported_is_not_a_dependency(tmp_path):
+    files = dict(VISIBLE)
+    files["V/Main.lean"] = "import V.Mid\ntheorem main : True := stray\n"
+    index = LeanIndex.from_folder(_project(tmp_path, files))
+    report = index.dossier("main")
+    assert report["visibility"] == "imports"
+    assert _named(report) == set() and report["flags_found"] == []
+
+
+def test_visibility_all_links_by_text_alone(tmp_path):
+    files = dict(VISIBLE)
+    files["V/Main.lean"] = "import V.Mid\ntheorem main : True := stray\n"
+    report = LeanIndex.from_folder(_project(tmp_path, files), visibility="all").dossier("main")
+    assert "stray" in _named(report) and report["flags_found"] == ["sorry"]
+
+
+def test_imports_are_followed_through_other_files(tmp_path):
+    report = LeanIndex.from_folder(_project(tmp_path, VISIBLE)).dossier("main")
+    assert "helper" in _named(report)  # Main -> Mid -> Core
+
+
+def test_an_index_of_a_subfolder_hides_nothing(tmp_path):
+    # Indexed from V/, `import V.Mid` matches no label; the file's imports
+    # are unknown, so it sees every declaration rather than none.
+    files = dict(VISIBLE)
+    files["V/Main.lean"] = "import V.Mid\ntheorem main : True := stray\n"
+    root = _project(tmp_path, files)
+    _project(root / "V", {"Stray.lean": "theorem stray : True := sorry\n"})
+    report = LeanIndex.from_folder(root / "V").dossier("main")
+    assert "stray" in _named(report) and report["flags_found"] == ["sorry"]
+
+
+def test_a_missing_project_module_hides_nothing(tmp_path):
+    files = {
+        "W/Main.lean": "import W.Gone\ntheorem main : True := stray\n",
+        "W/Other.lean": "theorem stray : True := sorry\n",
+    }
+    report = LeanIndex.from_folder(_project(tmp_path, files)).dossier("main")
+    assert report["flags_found"] == ["sorry"]
+    checks = {c["check"]: c["status"] for c in report["checks"]}
+    assert checks["imported_modules_present"] == "fail"
+
+
+def test_an_import_cycle_terminates(tmp_path):
+    files = {
+        "C/A.lean": "import C.B\ntheorem a : True := b\n",
+        "C/B.lean": "import C.A\ntheorem b : True := sorry\n",
+    }
+    report = LeanIndex.from_folder(_project(tmp_path, files)).dossier("a")
+    assert report["flags_found"] == ["sorry"]
+
+
+def test_visibility_is_validated_and_on_the_command_line(tmp_path):
+    with pytest.raises(ValueError, match="visibility"):
+        LeanIndex(visibility="some")
+    files = dict(VISIBLE)
+    files["V/Main.lean"] = "import V.Mid\ntheorem main : True := stray\n"
+    root = str(_project(tmp_path, files))
+    assert _run([root, "--target", "main", "--fail-on", "sorry"])[0] == 0
+    assert _run([root, "--target", "main", "--fail-on", "sorry", "--visibility", "all"])[0] == 1
+
+
+# ---------------------------------------------------------------------------
+# Modules: named from the project's source root, never by a tail of a path
+# ---------------------------------------------------------------------------
+
+
+def test_a_core_import_is_not_a_project_file_of_the_same_tail(tmp_path):
+    files = {
+        "M/Lean/Elab/Term.lean": "theorem shadow : True := sorry\n",
+        "M/Base.lean": "theorem base : True := trivial\n",
+        "M/Use.lean": "import Lean.Elab.Term\nimport M.Base\ntheorem use : True := shadow\n",
+        "M/Top.lean": "import M.Use\nimport M.Base\ntheorem top : True := use\n",
+    }
+    index = LeanIndex.from_folder(_project(tmp_path, files))
+    imports = index.summary()["imports"]
+    assert imports["external_roots"] == {"Lean": 1}
+    assert imports["missing_modules"]["count"] == 0
+    assert index.dossier("use")["flags_found"] == []  # Term.lean is not imported
+
+
+def test_a_source_folder_is_found_as_the_root(tmp_path):
+    files = {
+        "src/A/B.lean": "theorem b : True := sorry\n",
+        "src/A/C.lean": "import A.B\ntheorem c : True := b\n",
+    }
+    index = LeanIndex.from_folder(_project(tmp_path, files))
+    assert index.summary()["imports"]["missing_modules"]["count"] == 0
+    assert index.dossier("c")["flags_found"] == ["sorry"]
+
+
+def test_the_root_resolving_the_most_imports_wins(tmp_path):
+    # Depth 0 resolves `X.Y` once; depth 1 resolves `Y` and `Z` twice.
+    files = {
+        "X/Y.lean": "theorem y : True := sorry\n",
+        "X/Z.lean": "import Y\ntheorem z : True := y\n",
+        "X/W.lean": "import Z\nimport Y\ntheorem w : True := z\n",
+        "Q.lean": "import X.Y\ntheorem q : True := trivial\n",
+    }
+    index = LeanIndex.from_folder(_project(tmp_path, files))
+    assert set(index._module_files()) == {"Y", "Z", "W"}
+    assert index.dossier("w")["flags_found"] == ["sorry"]
+
+
+def test_an_ambiguous_root_can_be_set(tmp_path):
+    # One import, which could name the dependency or the file: detection
+    # takes the file; source_root="" starts module names at the index root,
+    # and the import is the dependency's.
+    files = {
+        "M/Lean/Elab/Term.lean": "theorem shadow : True := sorry\n",
+        "M/Use.lean": "import Lean.Elab.Term\ntheorem use : True := shadow\n",
+    }
+    root = _project(tmp_path, files)
+    assert LeanIndex.from_folder(root).dossier("use")["flags_found"] == ["sorry"]
+    index = LeanIndex.from_folder(root, source_root="")
+    assert index.dossier("use")["flags_found"] == []
+    assert index.summary()["imports"]["external_roots"] == {"Lean": 1}
+    status, _ = _run([str(root), "--target", "use", "--source-root", "", "--fail-on", "sorry"])
+    assert status == 0
+
+
+@pytest.mark.parametrize("bad", ["/abs", "a/../b", "a\\b", 3])
+def test_source_root_is_validated(bad):
+    with pytest.raises(ValueError, match="source_root"):
+        LeanIndex(source_root=bad)
+
+
+def test_implicit_risks_are_those_in_the_targets_environment(tmp_path):
+    files = {
+        "R/Inst.lean": "instance seen : Inhabited Nat := sorry\n",
+        "R/Far.lean": "instance unseen : Inhabited Nat := sorry\n",
+        "R/Main.lean": (
+            "import R.Inst\n"
+            "theorem main : True := trivial\n"
+            "instance later : Inhabited Nat := sorry\n"
+        ),
+    }
+    report = LeanIndex.from_folder(_project(tmp_path, files)).dossier("main")
+    # Far.lean is not imported; `later` comes after the theorem.
+    assert [i["declaration"] for i in report["implicit_risks"]["items"]] == ["seen"]

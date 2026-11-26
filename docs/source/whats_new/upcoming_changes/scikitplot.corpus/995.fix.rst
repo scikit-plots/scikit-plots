@@ -1,0 +1,7 @@
+- :class:`~scikitplot.corpus.LeanIndex` links a name only into the files
+  its own file imports, as Lean sees them, with modules named from the
+  project's source root found from the imports (``source_root`` sets it);
+  a file whose project imports are not all indexed hides nothing, and
+  ``visibility="all"`` links by text alone. Dossiers no longer report
+  dependencies, flags or generated declarations from files a proof cannot
+  reach.
