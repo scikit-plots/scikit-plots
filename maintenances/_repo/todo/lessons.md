@@ -200,3 +200,18 @@
   `grind_pattern` (492 lines in the files surveyed), the Lake build
   commands and a dozen more; each would have merged into the declaration
   before it. A survey of 8,534 files found them in one run.
+
+### Rule REPO-L16: Run examples and version-sensitive tests against what they ship with
+- **When:** a gallery example or a test is checked before its pull request
+  is opened.
+- **Then:** run it on a tree of `origin/main` plus the branch only (no
+  local overlay with uncommitted work). Run a test that depends on how
+  the standard library calls into our code on the oldest and newest
+  Python versions CI uses.
+- **Verified by:** the pull request names the tree and Python versions the
+  examples and tests ran on.
+- **Added:** 2026-11-26. Root cause: PR 989's Lean example used
+  `references=`, an option that existed only in uncommitted work in the
+  local overlay, and broke the docs build on main. PR 985's header test
+  passed on 3.13, whose `tarfile` reads long headers in chunks, and failed
+  on CI's 3.9–3.12 (fixed in #987).

@@ -56,7 +56,7 @@ Start here
     languages, custom extensions, awkward encodings and a line-coverage check.
 12. **Read Lean proofs** — :class:`LeanReader`: one chunk per command, proofs
     kept or dropped, audit flags (``sorry``, ``native_decide``, ``axiom``,
-    ``#exit``), references, long proofs in parts, Lean 3 and hostile input.
+    ``#exit``), long proofs in parts, Lean 3 and hostile input.
 
 Which API should I use?
 -----------------------
