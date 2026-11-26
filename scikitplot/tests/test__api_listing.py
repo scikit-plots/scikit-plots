@@ -249,3 +249,47 @@ class TestCommand:
         got, out, err = _cli(argv)
         assert got == code
         assert text in out + err
+
+
+class TestSubpackagesNeedingAnExtra:
+    """A package listing only subpackages, one of which needs a missing extra."""
+
+    @pytest.fixture
+    def parent(self, tmp_path, monkeypatch):
+        root = tmp_path / "_apitestparent"
+        for sub, body in {
+            "": '"""Parent."""\n__all__ = []\n',
+            "ok": '"""Fine child."""\n__all__ = []\n',
+            "needs": '"""Child."""\nimport not_installed_extra_xyz.sub  # noqa: F401\n',
+            "broken": '"""Child."""\nfrom scikitplot import _no_such_module_xyz  # noqa: F401\n',
+            "buggy": '"""Child."""\nraise RuntimeError("real bug")\n',
+        }.items():
+            folder = root / sub if sub else root
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / "__init__.py").write_text(body, encoding="utf-8")
+        monkeypatch.setattr(scikitplot, "__path__", [*scikitplot.__path__, str(tmp_path)])
+        yield root
+        for name in [m for m in sys.modules if m.startswith("scikitplot._apitestparent")]:
+            sys.modules.pop(name, None)
+
+    def _hide(self, root, *names):
+        for name in names:
+            (root / name / "__init__.py").write_text('"""Hidden."""\n__all__ = []\n')
+
+    def test_a_missing_extra_is_listed_not_raised(self, parent):
+        self._hide(parent, "broken", "buggy")
+        listing = api.module_listing("scikitplot._apitestparent")
+        children = {c["module"].rsplit(".", 1)[1]: c for c in listing["children"]}
+        assert children["needs"]["needs"] == "not_installed_extra_xyz"
+        assert children["needs"]["summary"].startswith(
+            "unavailable: needs not_installed_extra_xyz (ModuleNotFoundError"
+        )
+        assert "needs" not in children["ok"] and children["ok"]["summary"] == "Fine child."
+        out = api.render_text(listing)
+        assert "needs not_installed_extra_xyz" in out
+
+    @pytest.mark.parametrize(("bad", "error"), [("broken", ImportError), ("buggy", RuntimeError)])
+    def test_other_failures_still_raise(self, parent, bad, error):
+        self._hide(parent, *({"broken", "buggy"} - {bad}))
+        with pytest.raises(error):
+            api.module_listing("scikitplot._apitestparent")

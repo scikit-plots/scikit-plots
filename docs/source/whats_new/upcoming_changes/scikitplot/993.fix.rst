@@ -1,0 +1,5 @@
+- ``python -m scikitplot api`` lists a subpackage whose import needs a
+  third-party package that is not installed as ``unavailable: needs <package>``
+  instead of stopping with an internal error (exit 70); any other import
+  failure still raises. Names in ``__all__`` that fail for that reason say
+  ``needs <package>`` too.
