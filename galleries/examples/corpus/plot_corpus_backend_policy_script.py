@@ -17,8 +17,10 @@ This example shows the public pieces that keep those states separate:
 * :class:`ASRBackend` for a user-provided speech recognizer,
 * :attr:`DocumentReader.backend_reports` for structured runtime evidence.
 
-The executable path uses a tiny synthetic local backend.  It performs no
-network access, model download, or audio decoding.
+The executable path reads the two recordings bundled under ``data/`` with a
+small local backend that stands in for a speech model. It performs no
+network access, model download, or audio decoding; an empty file is shown
+being refused.
 """
 
 # Authors: The scikit-plots developers
@@ -58,17 +60,43 @@ for name, report in snapshot.items():
     )
 
 # %%
+# Locate the bundled recordings
+# -----------------------------
+# The two MP3 files ship with the gallery under ``data/``. A missing file is
+# reported as ``SKIP``; it never turns into a network request.
+
+
+def _resolve_example_dir() -> Path:
+    """Resolve the example directory across scripts and Sphinx-Gallery."""
+    file = globals().get("__file__")
+    return Path(file).resolve().parent if file else Path.cwd().resolve()
+
+
+_DATA_DIR = _resolve_example_dir() / "data"
+RECORDINGS = [
+    _DATA_DIR / "can-people-afford-to-pay-for-health-care.mp3",
+    _DATA_DIR / "tale_of_two_cities_01_dickens_64kb.mp3",
+]
+for path in RECORDINGS:
+    state = f"{path.stat().st_size:,} bytes" if path.is_file() else "SKIP: missing"
+    print(f"{path.name}: {state}")
+available = [path for path in RECORDINGS if path.is_file() and path.stat().st_size]
+
+# %%
 # Provide a user-side ASR backend
 # -------------------------------
 # Custom backends receive one immutable :class:`ASRRequest`, keeping the
-# extension signature stable as future request metadata is added.
+# extension signature stable as future request metadata is added. This one
+# stands in for a real recognizer: it reads only the file's size, so the
+# example runs without a model, yet the reader still checks a real recording.
 
 
 def local_demo_asr(request: ASRRequest):
-    """Return one deterministic segment without touching the media bytes."""
+    """Return one deterministic segment describing the media file."""
+    size = request.media_path.stat().st_size
     return [
         {
-            "text": f"synthetic transcript for {request.media_path.stem}",
+            "text": f"placeholder transcript of {request.media_path.stem} ({size:,} bytes)",
             "timecode_start": 0.0,
             "timecode_end": 1.25,
             "provider": "gallery-demo",
@@ -89,40 +117,52 @@ custom_backend = ASRBackend(
 # -------------------------------------
 # ``include_unlisted=False`` means the two built-in Whisper implementations
 # are not attempted.  This is useful for deterministic tests and for projects
-# that own their inference runtime.
+# that own their inference runtime. Preflight uses the same candidate
+# factory as execution but calls no backend; the runtime report is the
+# evidence that the selected backend actually ran.
 
 policy = BackendPolicy.resilient().with_order(
     "gallery-local-asr",
     include_unlisted=False,
 )
 
-with tempfile.TemporaryDirectory() as tmpdir:
-    audio_path = Path(tmpdir) / "demo.mp3"
-    audio_path.write_bytes(b"")
-
+for audio_path in available:
     reader = AudioReader(
         audio_path,
         transcribe=True,
         backend_policy=policy,
         asr_backends=(custom_backend,),
     )
-    # Preflight uses the same candidate factory as execution but does not call
-    # ``local_demo_asr`` or any model backend.
     plan = reader.plan_asr_backends()
-    print("preflight:", plan.to_dict())
     assert plan.selected == ("gallery-local-asr",)
-
     chunks = list(reader.get_raw_chunks())
+    report = reader.backend_reports[-1]
+    print(audio_path.name)
+    print("  preflight:", plan.selected)
+    print("  chunk text:", chunks[0]["text"])
+    print("  provider:", chunks[0]["asr_metadata"]["provider"])
+    print("  report:", {k: report[k] for k in ("backend", "status") if k in report})
+    assert chunks[0]["asr_metadata"]["provider"] == "gallery-demo"
+    assert report["status"] == "success" and report["backend"] == "gallery-local-asr"
 
-print("chunk text:", chunks[0]["text"])
-print("provider:", chunks[0]["asr_metadata"]["provider"])
-print("backend report:", reader.backend_reports[-1])
-print("policy skips:", reader.backend_reports[-1].get("skip_details", []))
+# %%
+# Edge case: an empty file is refused, not transcribed
+# ----------------------------------------------------
+# A 0-byte ``.mp3`` holds no audio. The reader refuses it before any backend
+# runs, with an error naming the file, so a truncated download cannot pass
+# as an empty transcript.
 
-# The runtime report is the evidence that a selected backend actually ran.
-assert chunks[0]["asr_metadata"]["provider"] == "gallery-demo"
-assert reader.backend_reports[-1]["status"] == "success"
-assert reader.backend_reports[-1]["backend"] == "gallery-local-asr"
+with tempfile.TemporaryDirectory() as tmpdir:
+    empty = Path(tmpdir) / "empty.mp3"
+    empty.write_bytes(b"")
+    try:
+        list(
+            AudioReader(
+                empty, transcribe=True, backend_policy=policy, asr_backends=(custom_backend,)
+            ).get_raw_chunks()
+        )
+    except ValueError as exc:
+        print("refused:", exc)
 
 # %%
 # Policy presets express orchestration, not reader semantics

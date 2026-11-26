@@ -1,0 +1,3 @@
+- The backend-policy gallery example reads the two MP3 recordings bundled
+  under ``data/`` instead of an empty file, which the reader now refuses;
+  the refusal is shown as its own edge case.
