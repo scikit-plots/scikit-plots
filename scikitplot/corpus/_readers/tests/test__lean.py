@@ -303,6 +303,7 @@ def test_flags_ignore_comments_strings_and_longer_names(tmp_path):
         "extern",
         "skip_kernel_tc",
         "add_decl",
+        "axiom",  # axiomDecl: meta code declaring an axiom
     }
 
 
@@ -320,6 +321,35 @@ def test_watched_names_are_located(tmp_path):
         None,
         None,
     ]
+
+
+def test_references_and_opens_are_recorded_on_request(tmp_path):
+    source = """
+    namespace N
+    open Foo Bar.Baz
+    open scoped Real
+    open Qux hiding a b
+    open Sets (union inter)
+    /-- Mentions ghost. -/
+    theorem t (h : P) : P := by
+      -- ghost in a comment
+      exact helper h "ghost" Foo.x
+    end N
+    open Only in
+    theorem u : P := by simp [Only.y]
+    #exit
+    """
+    chunks = _read(tmp_path, source, references=True)
+    by_name = {c.get("declaration"): c for c in chunks}
+    t = by_name["N.t"]
+    assert t["references"] == ["Foo.x", "P", "exact", "h", "helper"]
+    assert t["opens"] == ["Foo", "Bar.Baz", "Real", "Qux", "Sets"]
+    u = by_name["u"]
+    assert u["opens"] == ["Only"]  # N's opens ended with N; `in` is u's own
+    assert u["references"] == ["Only", "Only.y", "P", "simp"]  # its `open` line too
+    assert "references" in chunks[-1] and "exit" not in chunks[-1]["references"]
+    plain = _read(tmp_path, source)
+    assert not any("references" in c or "opens" in c for c in plain)
 
 
 # ---------------------------------------------------------------------------
@@ -609,6 +639,7 @@ def test_kinds_selects_chunks(tmp_path):
         ({"watch": ["two words"]}, ValueError, "single tokens"),
         ({"watch": "rh"}, TypeError, "watch must be a collection"),
         ({"commands": ["9lives"]}, ValueError, "commands holds identifiers"),
+        ({"references": "yes"}, TypeError, "references must be a bool"),
     ],
 )
 def test_invalid_options_are_refused(tmp_path, options, error, message):

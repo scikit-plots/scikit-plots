@@ -54,9 +54,12 @@ __all__ = ["LEAN_FLAGS", "LeanReader"]
 _LEAN_FLAGS = {
     "sorry": "sorry",
     "sorryAx": "sorry",
+    "mkSorry": "sorry",  # meta code that builds a `sorry` term
+    "mkLabeledSorry": "sorry",
     "admit": "admit",
     "native_decide": "native",
     "ofReduceBool": "native",
+    "ofReduceNat": "native",
     "+native": "native",
     "unsafe": "unsafe",
     "implemented_by": "implemented_by",
@@ -64,6 +67,7 @@ _LEAN_FLAGS = {
     "skipKernelTC": "skip_kernel_tc",
     "addDecl": "add_decl",
     "addAndCompile": "add_decl",
+    "axiomDecl": "axiom",  # meta code that declares an axiom
 }
 
 #: Code token to the audit flag it raises on its chunk. Tokens are matched
@@ -320,6 +324,22 @@ _RESERVED = frozenset(
     }
 )
 
+#: Words of Lean's syntax that ``references`` leaves out: they never name
+#: a declaration of the project.
+_NOT_REFERENCES = frozenset(
+    {
+        "fun", "by", "have", "show", "let", "if", "then", "else", "match", "with",
+        "do", "at", "from", "in", "where", "calc", "return", "for", "unless",
+        "try", "catch", "finally", "mut", "rec", "this", "sorry", "Type", "Sort",
+        "Prop", "theorem", "lemma", "def", "abbrev", "instance", "example",
+        "axiom", "opaque", "structure", "class", "inductive", "extends",
+        "deriving", "namespace", "section", "end", "open", "variable", "universe",
+        "set_option", "import", "private", "protected", "noncomputable", "partial",
+        "unsafe", "mutual", "local", "scoped", "attribute", "termination_by",
+        "decreasing_by", "begin", "assume", "obtain", "suffices", "using",
+    }
+)
+
 #: Declarations whose proof ``proofs="drop"`` leaves out.
 _DROPPABLE = frozenset({"theorem", "lemma", "example"})
 
@@ -343,6 +363,7 @@ _CHAR_LITERAL = re.compile(r"'(?:\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|.)|[^\\'])
 _NAME = r"(?:«[^«»]*»|[^\W\d][\w'!?]*)(?:\.(?:«[^«»]*»|[^\W\d][\w'!?]*|\d+))*"
 _HEAD_TOKEN = re.compile(rf"@\[|#[^\W\d][\w'!?]*|{_NAME}%?|:=|\S")
 _FULL_NAME = re.compile(rf"{_NAME}\Z")
+_REFERENCE = re.compile(rf"(?<![\w'!?.#]){_NAME}")
 _COMPONENT = re.compile(r"«[^«»]*»|[^.«»]+")
 
 _OPENERS = "([{⟨⦃⟦⟪⁅"
@@ -561,6 +582,7 @@ class _Head:
         "name",
         "open_depth",
         "scope",
+        "opens",
     )
 
     def __init__(self, category: str, kind: str) -> None:
@@ -573,6 +595,7 @@ class _Head:
         self.scope: tuple[str, str | None] | None = None
         self.body_col = 0
         self.open_depth = 0
+        self.opens: list[str] = []
 
 
 class _Held:
@@ -660,6 +683,10 @@ class _Command:
         "statement",
         "watch_lines",
         "watch_names",
+        "refs",
+        "opens",
+        "local_opens",
+        "written",
     )
 
     def __init__(self, head: _Head, namespace: str, after_exit: bool) -> None:
@@ -684,6 +711,37 @@ class _Command:
         self.boundary: tuple[int, int] | None = None
         self.parts = 0
         self.depth = 0  # brackets open at the end of the last line
+        self.refs: set[str] = set()  # identifiers its code uses
+        self.opens: tuple[str, ...] = ()  # namespaces open for it
+        self.local_opens: list[str] = []  # from its own `open .. in`
+        self.written: str | None = None  # its name as written
+
+
+def _opened(tokens: Iterator[Any]) -> list[str]:
+    """
+    Return the namespaces an ``open`` command opens, from the tokens after it.
+
+    ``scoped`` is skipped; an explicit name list ``(x y)`` opens its
+    namespace for those names, counted as opening it; reading stops at
+    ``hiding``, ``renaming``, ``in`` or ``:=``.
+    """
+    names: list[str] = []
+    depth = 0
+    for found in tokens:
+        token = found.group()
+        if token == "(":
+            depth += 1
+        elif token == ")":
+            depth = max(0, depth - 1)
+        elif depth:
+            continue
+        elif token in ("hiding", "renaming", "in", ":="):
+            break
+        elif token != "scoped" and _is_name(token):
+            names.append(
+                token[len("_root_.") :] if token.startswith("_root_.") else token
+            )
+    return names
 
 
 def _between(lines: list[int], values: list[str], start: int, end: int) -> set[str]:
@@ -774,6 +832,7 @@ class _Splitter:
         commands: frozenset[str],
         max_scope_depth: int,
         flag_tokens: Mapping[str, str],
+        references: bool = False,
     ) -> None:
         self._file_name = file_name
         self._meta = meta
@@ -789,6 +848,9 @@ class _Splitter:
         self._watch = _token_pattern(watch)
         self._lexer = _Lexer()
         self._scopes: list[tuple[str, str | None]] = []
+        self._references = references
+        self._file_opens: list[str] = []  # `open` outside any scope
+        self._scope_opens: list[list[str]] = []  # one list per scope
         self._namespace_cache: str | None = ""
         self._held: list[_Held] = []
         self._held_limit = max(step or 0, 256)
@@ -945,6 +1007,8 @@ class _Splitter:
                     ]
             elif keyword in _CONTEXT:
                 head = _Head("context", "context")
+                if keyword == "open":
+                    head.opens = _opened(rest)
             elif keyword in _OTHER:
                 head = _Head("command", keyword)
             else:
@@ -1059,6 +1123,7 @@ class _Splitter:
                 self._add(cur, held.number, held.text, held.masked)
             self._held = []
             self._become(cur, head, number)
+            self._apply_opens(cur, head, masked)
             self._add(cur, number, line, masked)
             return
         if (
@@ -1072,6 +1137,7 @@ class _Splitter:
             self._held = []
             cur.imports.extend(head.imports)
             self._apply_scope(head)
+            self._apply_opens(cur, head, masked)
             self._add(cur, number, line, masked)
             return
         attach, trailing = self._split_held(indent)
@@ -1088,6 +1154,7 @@ class _Splitter:
         self._held = []
         cur = self._cur = _Command(head, self._namespace, self._exited)
         self._become(cur, head, number)
+        self._apply_opens(cur, head, masked)
         for held in attach:
             self._take_prefix(cur, held)
             self._add(cur, held.number, held.text, held.masked)
@@ -1109,6 +1176,16 @@ class _Splitter:
                 cur.modifiers.append(modifier)
         cur.attributes.extend(head.attributes)
         cur.imports.extend(head.imports)
+        if head.name is not None:
+            cur.written = head.name
+        if self._references:
+            # Namespaces open for it: the file's, each enclosing scope's, and
+            # those of its own `open .. in` prefix.
+            seen = dict.fromkeys(self._file_opens)
+            for opened in self._scope_opens:
+                seen.update(dict.fromkeys(opened))
+            seen.update(dict.fromkeys(cur.local_opens))
+            cur.opens = tuple(seen)
         if self._drop and head.kind in _DROPPABLE:
             cur.statement = _Statement(
                 number, head.body_col, ":=" if self._lean3 else "=>"
@@ -1116,6 +1193,17 @@ class _Splitter:
         self._apply_scope(head)
         if head.kind == "#exit":
             self._exited = True
+
+    def _apply_opens(self, cur: _Command, head: _Head, masked: str) -> None:
+        """Record what an `open` opens: for its scope or, with `in`, its command."""
+        if not head.opens:
+            return
+        if _ENDS_IN.search(masked):
+            cur.local_opens.extend(head.opens)
+        elif self._scope_opens:
+            self._scope_opens[-1].extend(head.opens)
+        else:
+            self._file_opens.extend(head.opens)
 
     def _take_prefix(self, cur: _Command, held: _Held) -> None:
         """Record the attributes and modifiers of an attribute line before a command."""
@@ -1164,6 +1252,8 @@ class _Splitter:
                 for found in self._watch.finditer(masked):
                     cur.watch_lines.append(number)
                     cur.watch_names.append(found.group())
+            if self._references:
+                cur.refs.update(_REFERENCE.findall(masked))
             if cur.category != "declaration":
                 cur.ends_in = _ENDS_IN.search(masked) is not None
             cur.depth = max(
@@ -1204,6 +1294,7 @@ class _Splitter:
             cur.parts += 1
         if low == high or (self._kinds is not None and cur.kind not in self._kinds):
             cur.lines = []
+            cur.refs = set()
             return
         start, end = lines[low][0], lines[high - 1][0]
         upto = cur.last if final else end
@@ -1240,6 +1331,14 @@ class _Splitter:
             chunk["flags"] = sorted(flags)
         if watched:
             chunk["watched"] = sorted(watched)
+        if self._references:
+            own = {cur.written, cur.name}
+            chunk["references"] = sorted(
+                ref for ref in cur.refs if ref not in _NOT_REFERENCES and ref not in own
+            )
+            if cur.opens:
+                chunk["opens"] = list(cur.opens)
+            cur.refs = set()
         if cur.parts:
             chunk["part"] = cur.parts
         if final and cur.boundary is not None:
@@ -1257,7 +1356,9 @@ class _Splitter:
         scopes = self._scopes
         if keyword == "namespace":
             if name:
-                scopes.extend(("namespace", part) for part in _components(name))
+                parts = _components(name)
+                scopes.extend(("namespace", part) for part in parts)
+                self._scope_opens.extend([] for _part in parts)
         elif keyword == "end":
             count = len(_components(name)) if name else 1
             if count > len(scopes):
@@ -1266,8 +1367,10 @@ class _Splitter:
             if count:
                 self._mutuals -= sum(kind == "mutual" for kind, _n in scopes[-count:])
                 del scopes[-count:]
+                del self._scope_opens[-count:]
         else:  # section, mutual
             scopes.append((keyword, name))
+            self._scope_opens.append([])
             if keyword == "mutual":
                 self._mutuals += 1
                 self._mutual_col = None
@@ -1354,6 +1457,11 @@ class LeanReader(CodeReader):
     commands : collection of str, optional
         Further command keywords that start a chunk of their own at column
         0, for commands a project defines. Default: none.
+    references : bool, optional
+        Also record, per chunk, the identifiers its code uses
+        (``references``) and the namespaces open for it (``opens``): what
+        :class:`~scikitplot.corpus.LeanIndex` resolves into a dependency
+        graph. Default: ``False``.
     dialect : {"lean4", "lean3"}, optional
         ``"lean3"`` also reads Lean 3's ``begin ... end`` and
         ``match ... end`` blocks, whose ``end`` closes no namespace, and
@@ -1377,7 +1485,8 @@ class LeanReader(CodeReader):
     Raises
     ------
     TypeError
-        If ``kinds``, ``watch`` or ``commands`` is not a collection of str.
+        If ``kinds``, ``watch`` or ``commands`` is not a collection of str,
+        or ``references`` is not a bool.
     ValueError
         If an option's value is invalid, the file is too large or binary,
         or it nests more than ``max_scope_depth`` scopes.
@@ -1410,6 +1519,12 @@ class LeanReader(CodeReader):
       marks are on its statement.
     - ``watched``, ``part``, ``proof_line_start``, ``proof_line_end``:
       see the options.
+    - With ``references=True``: ``references``, the identifiers the
+      chunk's code uses, sorted, without Lean's own words and the chunk's
+      own name (with ``proofs="drop"``, the dropped proof's too); and
+      ``opens``, the namespaces open for it (its file's, its scopes', its
+      own ``open .. in``). Which declaration an identifier names is for
+      :class:`~scikitplot.corpus.LeanIndex` to resolve.
 
     With ``proofs="keep"`` and ``kinds=None`` every non-blank line of the
     file is in exactly one chunk, in order: the line ranges never overlap.
@@ -1493,6 +1608,9 @@ class LeanReader(CodeReader):
     max_scope_depth: int = field(default=256)
     """Most namespaces and sections open at once."""
 
+    references: bool = field(default=False)
+    """Record the identifiers each chunk uses and the namespaces open for it."""
+
     def __post_init__(self) -> None:
         """Validate the options."""
         super().__post_init__()
@@ -1508,6 +1626,10 @@ class LeanReader(CodeReader):
         if isinstance(depth, bool) or not isinstance(depth, int) or depth <= 0:
             raise ValueError(
                 f"LeanReader: max_scope_depth must be an int > 0; got {depth!r}."
+            )
+        if not isinstance(self.references, bool):
+            raise TypeError(
+                f"LeanReader: references must be a bool; got {self.references!r}."
             )
         if self.kinds is not None:
             self.kinds = frozenset(_strings(self.kinds, "kinds"))
@@ -1554,6 +1676,7 @@ class LeanReader(CodeReader):
             commands=frozenset(self.commands),
             max_scope_depth=self.max_scope_depth,
             flag_tokens=self.flag_tokens,
+            references=self.references,
         )
         # Universal newlines, as CodeReader reads: line numbers match an
         # editor's, and a "\r\n" file reads as Lean reads it.

@@ -2018,6 +2018,15 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Lean Evidence",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "LeanIndex",
+                ],
+            },
+            {
                 "title": "Hierarchy Report",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
