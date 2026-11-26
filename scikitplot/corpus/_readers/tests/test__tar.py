@@ -16,11 +16,13 @@ test reaches the network.
 from __future__ import annotations
 
 import bz2
+import contextlib
 import gzip
 import io
 import lzma
 import tarfile
 import zipfile
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -455,17 +457,33 @@ def _with_header(kind, body):
     )
 
 
+def _whole_header_reads():
+    """Make ``tarfile`` ask for a long header in one read, as older releases do.
+
+    Newer CPython releases read a pax or long-name header in bounded chunks
+    (``tarfile._safe_read``); older ones ask for all of it at once. Both
+    must be refused alike, so the test runs both on every Python.
+    """
+    if not hasattr(tarfile, "_safe_read"):
+        return contextlib.nullcontext()  # this Python already reads it whole
+    return mock.patch.object(tarfile, "_safe_read", lambda stream, size: stream.read(size))
+
+
 @pytest.mark.parametrize("kind", [tarfile.XHDTYPE, tarfile.GNUTYPE_LONGNAME])
 @pytest.mark.parametrize("compress", [None, gzip.compress])
-def test_an_oversized_header_is_refused_in_bounded_memory(tmp_path, kind, compress):
+@pytest.mark.parametrize("reads", ["as-this-python", "whole"])
+def test_an_oversized_header_is_refused_in_bounded_memory(
+    tmp_path, kind, compress, reads
+):
     import tracemalloc
 
     raw = _with_header(kind, b"x" * (40 * MB))
     path = tmp_path / ("a.tar.gz" if compress else "a.tar")
     path.write_bytes(compress(raw) if compress else raw)
+    patched = _whole_header_reads() if reads == "whole" else contextlib.nullcontext()
     tracemalloc.start()
     try:
-        with pytest.raises(ArchiveBudgetError, match="header"):
+        with patched, pytest.raises(ArchiveBudgetError, match="a header in .* takes more than"):
             list(TarReader(input_path=path).get_raw_chunks())
         peak = tracemalloc.get_traced_memory()[1]
     finally:
@@ -526,7 +544,7 @@ def test_other_write_errors_still_stop_the_read(tmp_path):
     with mock.patch("builtins.open", full_disk):
         with pytest.raises(OSError, match="No space left"):
             list(TarReader(input_path=path).get_raw_chunks())
-    assert [str(w).rsplit("/", 1)[-1] for w in writes] == ["a.txt"]
+    assert [Path(w).name for w in writes] == ["a.txt"]
 
 
 def test_a_compressed_scan_stops_at_its_position_bound(tmp_path):

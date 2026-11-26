@@ -135,18 +135,22 @@ class _BoundedStream:
             )
 
     def read(self, size: int = -1) -> bytes:
-        if size is None or size < 0 or size > _MAX_READ_BYTES:
-            raise ArchiveBudgetError(
-                f"TarReader: reading {self._name!r} asks for {size!r} bytes at"
-                f" once, more than {_MAX_READ_BYTES:,}. Possible tar bomb."
-            )
-        if self.header_bytes is not None:
+        # The header budget, the smaller bound, is checked first: an
+        # oversized header is refused as one whether ``tarfile`` asks for it
+        # in one read or in bounded chunks (newer CPython releases), so the
+        # refusal does not depend on the Python version.
+        if self.header_bytes is not None and size is not None and size >= 0:
             self.header_bytes += size
             if self.header_bytes > _MAX_HEADER_BYTES:
                 raise ArchiveBudgetError(
                     f"TarReader: a header in {self._name!r} takes more than"
                     f" {_MAX_HEADER_BYTES:,} bytes. Possible tar bomb."
                 )
+        if size is None or size < 0 or size > _MAX_READ_BYTES:
+            raise ArchiveBudgetError(
+                f"TarReader: reading {self._name!r} asks for {size!r} bytes at"
+                f" once, more than {_MAX_READ_BYTES:,}. Possible tar bomb."
+            )
         self._refuse_past(self._raw.tell() + size)
         return self._raw.read(size)
 
