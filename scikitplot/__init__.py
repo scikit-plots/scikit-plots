@@ -145,6 +145,7 @@ _submodules = sorted(
         "externals",
         "feature_selection",
         "impute",
+        "lean",
         "levenshtein",
         "mcp",
         "memmap",

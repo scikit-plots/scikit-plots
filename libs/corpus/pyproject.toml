@@ -91,6 +91,9 @@ corpus = [
 annoy = [
   "scikit-plots-annoy>=0.5.dev0",
 ]
+lean = [
+  "scikit-plots-lean>=0.5.dev0",
+]
 
 [project.urls]
 homepage = "https://scikit-plots.github.io"

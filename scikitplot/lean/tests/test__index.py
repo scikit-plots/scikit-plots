@@ -1,4 +1,4 @@
-# corpus/_lean/tests/test__evidence.py
+# lean/tests/test__index.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -23,8 +23,12 @@ import time
 
 import pytest
 
-from .._evidence import LeanIndex, main
-from ..._readers._lean import LeanReader
+from .._index import LeanIndex, main
+
+
+def _lean_reader():
+    """Return corpus's LeanReader; skip where only scikit-plots-lean is installed."""
+    return pytest.importorskip("scikitplot.corpus._readers._lean").LeanReader
 
 
 def _project(root, files):
@@ -294,7 +298,7 @@ def test_chunks_of_a_reader_can_be_indexed_without_files(tmp_path):
     root = _project(tmp_path, PROJECT)
     index = LeanIndex()
     for path in sorted(root.rglob("*.lean")):
-        reader = LeanReader(input_path=path, references=True, lines_per_chunk=1)
+        reader = _lean_reader()(input_path=path, references=True, lines_per_chunk=1)
         index.add_chunks(reader.get_raw_chunks(), label=path.relative_to(root).as_posix())
     report = index.dossier("main2")
     assert report["target"]["statement"] is None  # no file to quote
@@ -401,7 +405,7 @@ def test_a_query_does_not_spend_the_names_a_later_query_needs(tmp_path):
     root = _project(tmp_path, PROJECT)
     index = LeanIndex()
     for path in sorted(root.rglob("*.lean")):
-        reader = LeanReader(input_path=path, references=True)
+        reader = _lean_reader()(input_path=path, references=True)
         index.add_chunks(reader.get_raw_chunks(), label=path.relative_to(root).as_posix())
     before = _local_definitions(index.dossier("main"))
     index.discover()
@@ -634,3 +638,37 @@ def test_implicit_risks_are_those_in_the_targets_environment(tmp_path):
     report = LeanIndex.from_folder(_project(tmp_path, files)).dossier("main")
     # Far.lean is not imported; `later` comes after the theorem.
     assert [i["declaration"] for i in report["implicit_risks"]["items"]] == ["seen"]
+
+
+def test_the_package_imports_no_corpus_code():
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    code = (
+        "import sys, scikitplot.lean, scikitplot.lean._discovery\n"
+        "loaded = sorted(m for m in sys.modules if m.startswith('scikitplot.corpus'))\n"
+        "assert not loaded, loaded\n"
+    )
+    done = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert done.returncode == 0, done.stderr[-2000:]
+
+
+def test_a_subfolder_index_says_its_imports_are_missing(tmp_path):
+    # The import a file cannot resolve, and the check that reports it, agree.
+    files = {
+        "S/Core.lean": "theorem helper : True := trivial\n",
+        "S/Old.lean": "theorem stale : True := sorry\n",
+        "S/Main.lean": "import S.Core\ntheorem main : True := stale\n",
+    }
+    root = _project(tmp_path, files)
+    whole = LeanIndex.from_folder(root).dossier("main")
+    assert whole["flags_found"] == []  # Old.lean is not imported
+    part = LeanIndex.from_folder(root / "S")
+    report = part.dossier("main")
+    assert report["flags_found"] == ["sorry"]  # imports unknown: hides nothing
+    checks = {c["check"]: c["status"] for c in report["checks"]}
+    assert checks["imported_modules_present"] == "fail"
+    missing = part.summary()["imports"]["missing_modules"]["items"]
+    assert [m["module"] for m in missing] == ["S.Core"]

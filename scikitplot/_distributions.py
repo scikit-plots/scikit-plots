@@ -260,6 +260,15 @@ DISTRIBUTIONS: tuple[Distribution, ...] = (
         ),
     ),
     Distribution(
+        name="scikit-plots-lean",
+        trees=("lean",),
+        files=(),
+        summary=(
+            "Evidence on Lean projects (dossiers, project summaries, discovery), "
+            "read from source text, from scikit-plots."
+        ),
+    ),
+    Distribution(
         name="scikit-plots-annoy",
         trees=("annoy", "cexternals/_annoy"),
         files=("cexternals/__init__.py",),

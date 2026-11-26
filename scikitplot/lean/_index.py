@@ -1,4 +1,4 @@
-# scikitplot/corpus/_lean/_evidence.py
+# scikitplot/lean/_index.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -44,8 +44,7 @@ from collections import Counter, OrderedDict, deque
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from .._graph import EdgeTrust, RelationType
-from .._readers._lean import (
+from ._syntax import (
     _MODIFIERS,
     _NOT_REFERENCES,
     _REFERENCE,
@@ -58,7 +57,13 @@ from .._readers._lean import (
 __all__ = ["LeanIndex"]
 
 #: Identity of the rules that build the index, recorded on every report.
-PRODUCER = "corpus.lean-index/1"
+PRODUCER = "lean.index/1"
+
+#: Edge vocabulary of :mod:`scikitplot.corpus._graph` (``RelationType.REFERENCES``
+#: and ``EdgeTrust.EXTRACTED``), as plain strings: this package imports no
+#: corpus code; a corpus test pins the two equal.
+RELATION = "references"
+TRUST = "extracted"
 
 #: Chunks that declare nothing: no node of the graph.
 _NOT_NODES = frozenset({"import", "context", "moduledoc", "comment"})
@@ -247,6 +252,21 @@ def _binders() -> tuple[Any, Any]:
     return _BINDER, _QUANTIFIED
 
 
+def _names_the_project(module: str, modules: Any, roots: Any) -> bool:
+    """
+    Return whether an import no file provides still names the project.
+
+    Its first component is that of a provided module (a missing module), or
+    it is a provided module with leading components added (the index was
+    built from a subfolder: ``Mathlib/`` provides ``Algebra.X`` and the
+    files import ``Mathlib.Algebra.X``).
+    """
+    parts = module.split(".")
+    return parts[0] in roots or any(
+        ".".join(parts[i:]) in modules for i in range(1, len(parts))
+    )
+
+
 class LeanIndex:
     r"""
     Declarations of a Lean project, their audit flags and the names they use.
@@ -326,12 +346,12 @@ class LeanIndex:
     most: once to index it, once more to quote it.
 
     **Developer note.** Edges use the vocabulary of
-    :mod:`scikitplot.corpus._graph`: relation ``references``, trust
+    :mod:`scikitplot.corpus._graph` (:data:`RELATION`, :data:`TRUST`): relation ``references``, trust
     ``extracted`` (a deterministic extractor), producer :data:`PRODUCER`.
 
     Examples
     --------
-    >>> from scikitplot.corpus import LeanIndex
+    >>> from scikitplot.lean import LeanIndex
     >>> index = LeanIndex.from_folder("MyProject")  # doctest: +SKIP
     >>> report = index.dossier("MyProject.mainTheorem")  # doctest: +SKIP
     >>> report["verdict"]  # doctest: +SKIP
@@ -842,10 +862,7 @@ class LeanIndex:
                 if provider is not None:
                     found.append(provider)
                     continue
-                parts = module.split(".")
-                if parts[0] in roots or any(
-                    ".".join(parts[i:]) in modules for i in range(1, len(parts))
-                ):
+                if _names_the_project(module, modules, roots):
                     unknown.add(file_id)
             direct.append(found)
         self._import_files_cache = (key, direct, unknown)
@@ -1261,8 +1278,8 @@ class LeanIndex:
             "visibility": self._visibility,
             "query": target,
             "edge": {
-                "relation": RelationType.REFERENCES.value,
-                "trust": EdgeTrust.EXTRACTED.value,
+                "relation": RELATION,
+                "trust": TRUST,
             },
         }
         if len(nodes) != 1:
@@ -1520,23 +1537,25 @@ class LeanIndex:
         Return the imported project modules no file provides, and external roots.
 
         A module is provided by the file at its path from the project's
-        source root (:meth:`_module_files`); an import whose first
-        component is the first component of a provided module, but that
-        no file provides, is missing; any other is a dependency's, counted
-        by its first component.
+        source root (:meth:`_module_files`). An import no file provides
+        is missing when it names the project (:func:`_names_the_project`:
+        the same rule that makes a file's imports unknown, so a missing
+        module and a file that sees everything always come together); any
+        other is a dependency's, counted by its first component.
         """
         key = len(self._labels)
         cached = getattr(self, "_gaps", None)
         if cached is not None and cached[0] == key:
             return cached[1], cached[2]
         provided, roots = self._modules()
+        modules = self._module_files()
         missing: dict[str, list[str]] = {}
         external: Counter[str] = Counter()
         for file_id, imports in enumerate(self._imports):
             for module in imports:
                 if module in provided:
                     continue
-                if module.split(".", 1)[0] in roots:
+                if _names_the_project(module, modules, roots):
                     missing.setdefault(module, []).append(self._labels[file_id])
                 else:
                     external[module.split(".", 1)[0]] += 1
@@ -1633,7 +1652,11 @@ class LeanIndex:
         ----------
         folder : str or pathlib.Path
             Where to write; created if missing. Files already there under
-            the same names are replaced, each atomically.
+            the same names are replaced, each atomically. The export records
+            what it wrote in ``.lean-export.json``; the next export into the
+            same folder removes the files that record lists and it no longer
+            writes (an old target's dossier), and never any other file, so
+            exporting twice leaves the folder as one export would.
         targets : sequence of str, optional
             Declarations to write a dossier on, besides the headline
             results. Default: none.
@@ -1879,7 +1902,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     0 otherwise.
     """
     parser = argparse.ArgumentParser(
-        prog="python -m scikitplot.corpus._lean",
+        prog="python -m scikitplot.lean",
         description="Evidence on a Lean project: statements, dependencies, audit flags.",
     )
     parser.add_argument("folder", type=Path)

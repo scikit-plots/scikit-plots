@@ -25,9 +25,10 @@ import pytest
 
 from ... import _readers  # noqa: F401  (registers every reader)
 from ..._base import DocumentReader
-from .. import _lean
 from .._code import CodeReader
-from .._lean import LEAN_FLAGS, LeanReader, _Lexer
+from ....lean import _syntax
+from ....lean._syntax import _Lexer
+from .._lean import LEAN_FLAGS, LeanReader
 
 
 def _write(tmp_path, source, name="A.lean"):
@@ -247,7 +248,7 @@ def test_the_lexer_reports_what_is_left_open(tmp_path):
     lexer = _Lexer()
     lexer.mask("/- never closed")
     assert lexer.open_construct() == "comment"
-    with mock.patch.object(_lean, "logger") as logger:
+    with mock.patch.object(_syntax, "logger") as logger:  # the splitter warns
         chunks = _read(tmp_path, "theorem t : True := trivial\n/- open\nmore\n")
     message, _name, construct = logger.warning.call_args.args
     assert "ends inside a" in message and construct == "comment"
@@ -793,3 +794,54 @@ def test_a_long_declaration_streams_in_bounded_memory(tmp_path):
     # The file is read once to choose the codec (its size); the command is
     # never held whole (that would take about 15 times its size).
     assert peak < 3 * size, f"peak {peak:,} bytes for a {size:,}-byte file"
+
+
+# ---------------------------------------------------------------------------
+# The boundary with scikitplot.lean
+# ---------------------------------------------------------------------------
+
+
+def test_the_language_core_writes_the_corpus_vocabulary(tmp_path):
+    # scikitplot.lean imports no corpus code, so it writes the schema and
+    # graph values as plain strings; these must stay equal to the enums.
+    from ..._graph import EdgeTrust, RelationType  # noqa: PLC0415
+    from ..._schema import SectionType, SourceType  # noqa: PLC0415
+    from ....lean import _index  # noqa: PLC0415
+
+    chunks = _read(tmp_path, "/-! doc -/\ntheorem t : True := trivial\n")
+    assert {c["section_type"] for c in chunks} == {
+        SectionType.TEXT.value,
+        SectionType.CODE.value,
+    }
+    assert {c["source_type"] for c in chunks} == {SourceType.CODE.value}
+    assert _index.RELATION == RelationType.REFERENCES.value
+    assert _index.TRUST == EdgeTrust.EXTRACTED.value
+
+
+def _python(code):
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    return subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+
+
+def test_corpus_without_scikitplot_lean_says_what_to_install(tmp_path):
+    # The partial scikit-plots-corpus without its ``lean`` extra: the corpus
+    # imports, ``.lean`` still has its reader, and using it names the fix.
+    path = _write(tmp_path, "theorem t : True := trivial\n")
+    done = _python(
+        "import sys; sys.modules['scikitplot.lean'] = None\n"
+        "import scikitplot.corpus as corpus\n"
+        "from scikitplot.corpus._base import DocumentReader\n"
+        "assert 'LeanReader' in corpus.__all__\n"
+        "assert '.lean' in DocumentReader._registry\n"
+        "try:\n"
+        f"    corpus.LeanReader(input_path={str(path)!r})\n"
+        "except ImportError as exc:\n"
+        "    assert 'scikitplot.lean' in str(exc) and 'pip install' in str(exc), exc\n"
+        "    print('ok')\n"
+    )
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert done.stdout.strip().endswith("ok")

@@ -1,0 +1,121 @@
+.. currentmodule:: scikitplot.lean
+
+.. _lean-index:
+.. _lean-user-guide:
+
+Evidence on Lean projects
+=========================
+
+:mod:`scikitplot.lean` reads a Lean 4 (or Lean 3) project from its source
+text and answers the questions a reviewer of a formal proof asks first: what
+does this theorem claim, what does its proof rest on, and is any of that
+``sorry``, an axiom, ``native_decide`` or code that adds declarations at
+build time? Every answer names its file and lines. Nothing here is a proof:
+Lean's kernel decides proofs (``lake build``, ``#print axioms``, an
+independent replay), and every report says so.
+
+It uses the Python standard library only. To read ``.lean`` files as
+documents of a retrieval corpus, use :class:`scikitplot.corpus.LeanReader`,
+which is built on the same language core.
+
+Quick start
+-----------
+
+.. code-block:: python
+
+    from scikitplot.lean import LeanIndex
+
+    index = LeanIndex.from_folder("path/to/project")  # the project's root
+    report = index.dossier("MyProject.main_theorem")
+    print(report["verdict"])           # never claims more than the text shows
+    print(LeanIndex.render(report))    # Markdown, every item with file:line
+
+    summary = index.summary()          # the whole project
+    found = index.discover()           # rules, patterns, claims, anomalies
+    index.export("helpers/")           # all of it as documents and JSONL
+
+From the shell, and in a pipeline (exit status 1 when a flag is found)::
+
+    python -m scikitplot.lean path/to/project
+    python -m scikitplot.lean path/to/project --target main_theorem --fail-on sorry
+
+The reports
+-----------
+
+``summary()``
+    Files, lines and declarations; every audit flag with where it is;
+    names declared more than once; imported project modules no file
+    provides; syntax extensions; commands the project defines; code that
+    adds declarations no source line spells; files that were skipped, with
+    the reason.
+
+``dossier(name)``
+    The theorem's statement and the project definitions it unfolds to
+    (quoted); every declaration its proof names, directly or through
+    others, with the path to each flagged one; what it could use without
+    naming it (flagged instances, tagged lemmas, syntax extensions, and
+    generated declarations, in its environment only); checks with a status
+    each, a verdict, and the kernel steps that settle it.
+
+``discover()`` and ``export(folder)``
+    Candidates, each chosen by a stated rule: theorems and definitions
+    named from the most files; theorems of one statement shape and
+    numbered series of names; ``Prop`` definitions, axioms,
+    ``proof_wanted`` and ``sorry``; names declared in parallel; results
+    nothing names. ``export`` writes them as Markdown, JSON and one JSON
+    record per item (``records.jsonl``) for a corpus or an MCP server, with
+    a dossier per headline result.
+
+Reports are JSON-ready and deterministic: the same files give the same
+report, in any order of adding files and queries.
+
+Policies
+--------
+
+``visibility="imports"`` (default)
+    A name links only into its own file and the files it imports, as Lean
+    sees them. A file with a project import no file provides (a missing
+    module, or an index built from a subfolder) sees every declaration, so
+    an incomplete index links too much, never too little.
+    ``visibility="all"`` links by text alone.
+
+``source_root``
+    Module names start at the project's source root, found from the
+    imports (``Mathlib/Data/Nat.lean`` is ``Mathlib.Data.Nat`` from the
+    repository root; ``src/A/B.lean`` is ``A.B``). Set it (``"src"``, or
+    ``""`` for the index root) when a small project's imports could name
+    either a dependency or a project file.
+
+``suffix="unique"`` (default) or ``"none"``
+    Whether ``h.myLemma`` (dot notation on a hypothesis) links to the one
+    declaration whose last component is ``myLemma``.
+
+Limits
+    ``max_file_bytes`` and ``max_scope_depth`` skip a file (listed with the
+    reason) instead of stopping. Hidden folders such as ``.lake/packages``
+    are left out unless ``include_hidden=True``. Links to folders are never
+    followed, and a link to a file is read only when it stays inside the
+    project.
+
+``--fail-on FLAG``
+    One of :data:`AUDIT_FLAGS`; an unknown flag is refused, so a typo
+    cannot pass a pipeline.
+
+What a text index cannot see
+----------------------------
+
+Lean finds instances, ``@[simp]`` lemmas, coercions and notation without
+their names appearing in a proof, and metaprograms can create declarations
+under names no source line spells. A dossier lists those in the theorem's
+environment as risks to review rather than assume them unused. Names are
+resolved lexically, as Lean looks them up (namespaces, ``open``,
+``_root_``, derived names), keeping every candidate: a dossier may hold
+more than the proof uses, never less of what its text names.
+
+Scale
+-----
+
+Indexing is linear in the text and keeps a few integers and the used
+names per declaration. On mathlib4 (9,351 files, 288,006 declarations) on
+one core: indexing about 35 s, a summary about 10 s, discovery about
+35 s, a dossier in milliseconds, peak memory about 400 MB.

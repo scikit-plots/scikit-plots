@@ -68,7 +68,7 @@ rather than assuming unrelated releases are interchangeable.
 Partial-distribution registry
 -----------------------------
 
-Current project-owned partial distributions: **9**.
+Current project-owned partial distributions: **10**.
 
 The registry below is generated from the same ownership and packaging
 metadata used to build the distributions.  A new ``libs/`` distribution
@@ -98,6 +98,11 @@ therefore cannot be silently omitted from this page.
      - >=3.9
      - pure Python
      - Document ingestion, chunking, embedding and retrieval pipeline from scikit-plots.
+   * - ``scikit-plots-lean``
+     - ``scikitplot.lean``
+     - same as scikit-plots core
+     - pure Python
+     - Evidence on Lean projects (dossiers, project summaries, discovery), read from source text, from scikit-plots.
    * - ``scikit-plots-annoy``
      - ``scikitplot.annoy``, ``scikitplot.cexternals._annoy``
      - >=3.10
@@ -151,6 +156,8 @@ The current directory mapping is:
      - ``libs/rank-bm25/``
    * - ``scikit-plots-corpus``
      - ``libs/corpus/``
+   * - ``scikit-plots-lean``
+     - ``libs/lean/``
    * - ``scikit-plots-annoy``
      - ``libs/annoy/``
    * - ``scikit-plots-sphinx-ext``

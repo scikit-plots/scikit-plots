@@ -54,7 +54,7 @@ def measure(index_class: Any, folder: str | Path, *, out: str | Path, top: int) 
     Parameters
     ----------
     index_class : type
-        :class:`~scikitplot.corpus.LeanIndex`, or a stand-in with the same
+        :class:`~scikitplot.lean.LeanIndex`, or a stand-in with the same
         methods.
     folder : str or pathlib.Path
         The project's root.
@@ -125,7 +125,7 @@ def main(argv: Sequence[str] | None = None, *, index_class: Any = None) -> int:
     if args.top < 1:
         parser.error("--top must be at least 1")
     if index_class is None:
-        from scikitplot.corpus import LeanIndex as index_class  # noqa: PLC0415, N813
+        from scikitplot.lean import LeanIndex as index_class  # noqa: PLC0415, N813
     with tempfile.TemporaryDirectory() as scratch:
         result = measure(index_class, args.folder, out=args.out or scratch, top=args.top)
     print(json.dumps(result, indent=1, sort_keys=True) if args.json else _text(result))

@@ -108,8 +108,10 @@ def test_the_delegated_exemption_is_narrow():
     # to its own CLI, whose argparse and click frontends are held equal by that
     # submodule's frontend-parity lane (``scikitplot/cleanprompt/tests``);
     # ``env`` forwards every argument to the environment builder's own
-    # argparse CLI, tested in ``scikitplot/_env/tests/test_env_cli.py``.
-    assert delegated == {"mcp", "cleanprompt", "env"}, (
+    # argparse CLI, tested in ``scikitplot/_env/tests/test_env_cli.py``;
+    # ``lean`` forwards every argument to ``scikitplot.lean``'s own argparse
+    # CLI, tested in ``scikitplot/lean/tests/test__index.py``.
+    assert delegated == {"mcp", "cleanprompt", "env", "lean"}, (
         f"delegated commands are exempt from behavioural parity; {delegated} is "
         "more than expected, so the exemption has widened without review."
     )
