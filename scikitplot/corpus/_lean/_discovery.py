@@ -1,4 +1,4 @@
-# scikitplot/corpus/_lean_discovery.py
+# scikitplot/corpus/_lean/_discovery.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -45,8 +45,8 @@ from array import array
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from ._atomic import atomic_write_bytes
-from ._lean_evidence import (
+from .._atomic import atomic_write_bytes
+from ._evidence import (
     _DEFINITIONS,
     PRODUCER,
     LeanIndex,
@@ -54,7 +54,7 @@ from ._lean_evidence import (
     _listing,
     _positive,
 )
-from ._readers._lean import _NAME, _Lexer, _Splitter
+from .._readers._lean import _NAME, _Lexer, _Splitter
 
 __all__: list[str] = []
 

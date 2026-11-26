@@ -1,4 +1,4 @@
-# scikitplot/corpus/_lean_evidence.py
+# scikitplot/corpus/_lean/_evidence.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -43,8 +43,8 @@ from collections import Counter, OrderedDict, deque
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from ._graph import EdgeTrust, RelationType
-from ._readers._lean import (
+from .._graph import EdgeTrust, RelationType
+from .._readers._lean import (
     _MODIFIERS,
     _NOT_REFERENCES,
     _REFERENCE,
@@ -1336,7 +1336,7 @@ class LeanIndex:
         *patterns*, one more pass reads each file's statements with
         proofs left out.
         """
-        from ._lean_discovery import discover  # noqa: PLC0415  (imports this module)
+        from ._discovery import discover  # noqa: PLC0415  (imports this module)
 
         return discover(self, top=top, min_instances=min_instances, patterns=patterns)
 
@@ -1384,7 +1384,7 @@ class LeanIndex:
         --------
         discover, dossier, summary
         """
-        from ._lean_discovery import export  # noqa: PLC0415  (imports this module)
+        from ._discovery import export  # noqa: PLC0415  (imports this module)
 
         return export(self, folder, targets=targets, top=top, patterns=patterns)
 
@@ -1401,7 +1401,7 @@ class LeanIndex:
         if report.get("report") == "summary":
             return _render_summary(report)
         if report.get("report") == "discovery":
-            from ._lean_discovery import render  # noqa: PLC0415  (imports this module)
+            from ._discovery import render  # noqa: PLC0415  (imports this module)
 
             return render(report)
         return _render_dossier(report)
@@ -1576,7 +1576,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     0 otherwise.
     """
     parser = argparse.ArgumentParser(
-        prog="python -m scikitplot.corpus._lean_evidence",
+        prog="python -m scikitplot.corpus._lean",
         description="Evidence on a Lean project: statements, dependencies, audit flags.",
     )
     parser.add_argument("folder", type=Path)

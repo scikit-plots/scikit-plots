@@ -1,4 +1,4 @@
-# corpus/tests/test__lean_discovery.py
+# corpus/_lean/tests/test__discovery.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -19,8 +19,8 @@ import textwrap
 
 import pytest
 
-from .._lean_discovery import _safe
-from .._lean_evidence import LeanIndex
+from .._discovery import _safe
+from .._evidence import LeanIndex
 
 
 def _project(root, files):

@@ -10,7 +10,7 @@
   :meth:`~scikitplot.corpus.LeanIndex.summary` covers the project: flags,
   duplicate names, imported modules no file provides, syntax extensions,
   skipped files. Reports are JSON with a file and line on every item, and
-  render as Markdown; ``python -m scikitplot.corpus._lean_evidence
+  render as Markdown; ``python -m scikitplot.corpus._lean
   FOLDER --target NAME --fail-on sorry`` runs it in a pipeline.
   ``LeanReader(references=True)`` records the names each chunk uses and
   the namespaces open for it.

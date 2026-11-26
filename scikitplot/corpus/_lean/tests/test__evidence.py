@@ -1,4 +1,4 @@
-# corpus/tests/test__lean_evidence.py
+# corpus/_lean/tests/test__evidence.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -23,8 +23,8 @@ import time
 
 import pytest
 
-from .._lean_evidence import LeanIndex, main
-from .._readers._lean import LeanReader
+from .._evidence import LeanIndex, main
+from ..._readers._lean import LeanReader
 
 
 def _project(root, files):
