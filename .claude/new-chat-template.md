@@ -118,7 +118,19 @@ change, run
 which prints the pull request number, the open ledger (deferred notes
 marked), the fragments already filed, and per area the next free finding id
 and the next action, and exits 1 if a record cannot be read. Summarise it in
-a few lines. Then read what the task touches:
+a few lines.
+
+When the task is "continue with the next challenge" and others may be
+working at the same time, choose the note with
+
+    python -B maintenances/_repo/_maintenance/tools/next_challenges.py --github --slot K
+
+Here K is your slot (1 if you work alone). It offers only notes that no
+open pull request names or touches, pairwise disjoint in the paths they
+edit, in the same order for everyone (compare the `fingerprint`). Claim
+the note at once with a draft pull request naming its path. Name the
+release-note fragment only after the pull request has its number: the
+derived "next number" is the same for everyone who derives it at once. Then read what the task touches:
 
 - `upcoming_changes/**/*.md` with `status: open`: the open ledger. Skip the
   notes I defer above.

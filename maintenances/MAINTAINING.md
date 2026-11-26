@@ -110,6 +110,24 @@ orient
 For large areas, repeat the cycle section by section. Do not make a wide rewrite
 first and try to explain it afterward.
 
+### Working in parallel
+
+Many contributors can take the next challenge at once without editing the
+same files:
+
+1. `next_challenges.py --github` lists up to ten ledger notes. None of them
+   is named by an open pull request or overlaps one's files, and none
+   overlaps another in the paths its `Affected paths and ownership` section
+   names (a note naming no paths takes its whole `area`). Everyone sees the
+   same list and the same `fingerprint`.
+2. Contributor K takes slot K and opens a draft pull request at once,
+   naming the note's path. That draft is the lock: the next run skips it.
+3. A note that names precise paths can run beside more notes, so write
+   them precisely when filing one.
+4. Generated files (API listing, skill mirrors) and release-note fragments
+   are shared. Regenerate them after a rebase and number the fragment from
+   the opened pull request.
+
 ## Verification rules
 
 - Never edit the working tree while a verification run is still using that
