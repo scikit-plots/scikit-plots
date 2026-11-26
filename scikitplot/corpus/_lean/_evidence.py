@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import json
+import os
 import sys
 from array import array
 from collections import Counter, OrderedDict, deque
@@ -125,6 +126,72 @@ _RUNS_CODE = frozenset(
 
 #: Flags that mean code adds declarations to the environment.
 _ADDS = frozenset({"add_decl", "axiom"})
+
+#: Every audit flag a chunk can carry: the token flags of ``LEAN_FLAGS``,
+#: ``axiom`` on an ``axiom`` declaration and ``after_exit`` past ``#exit``.
+AUDIT_FLAGS = frozenset(LEAN_FLAGS.values()) | {"axiom", "after_exit"}
+
+#: Name-resolution contexts (namespace and opens) kept resolved at once.
+_CONTEXT_CACHE = 256
+
+#: Files whose lines are kept in memory for quoting at once.
+_LINES_CACHE = 64
+
+
+def _commands_of(path: Path) -> dict[str, int]:
+    """Return the commands *path* defines; none when it cannot be read (it is skipped later)."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as stream:
+            return _defined_commands(stream)
+    except OSError:
+        return {}
+
+
+def _lean_files(
+    root: Path, *, include_hidden: bool
+) -> tuple[list[tuple[Path, str]], list[tuple[str, str]]]:
+    """
+    Return the ``.lean`` files under *root* with their labels, and those refused.
+
+    ``os.walk`` without following links to folders, so the same files are
+    found on every Python (``Path.rglob`` changed how it treats links in
+    3.13). A link to a file is kept only when it resolves to a file inside
+    *root*: a project folder never makes the index read outside it. Labels
+    are POSIX paths relative to *root*; both lists are sorted by label.
+    """
+    base = root.resolve()
+    found: list[tuple[Path, str]] = []
+    refused: list[tuple[str, str]] = []
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        if not include_hidden:
+            dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        dirnames.sort()
+        here = Path(dirpath)
+        for name in filenames:
+            if not name.endswith(".lean"):
+                continue
+            path = here / name
+            label = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                try:
+                    target = path.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    refused.append((label, "broken symbolic link"))
+                    continue
+                try:  # different drives (Windows) raise: outside
+                    inside = os.path.commonpath([str(base), str(target)]) == str(base)
+                except ValueError:
+                    inside = False
+                if not inside:
+                    refused.append(
+                        (label, "symbolic link to a file outside the folder")
+                    )
+                    continue
+            if path.is_file():
+                found.append((path, label))
+    found.sort(key=lambda item: item[1])
+    refused.sort()
+    return found, refused
 
 
 def _defined_commands(lines: Iterable[str]) -> dict[str, int]:
@@ -236,7 +303,7 @@ class LeanIndex:
     **Statement versus proof.** A theorem's statement is read with
     ``LeanReader(proofs="drop")``; the project definitions it names, and the
     definitions those name in turn, are what the claim means, and a
-    dossier quotes each. Names a statement binds (``(s : ℂ)``, ``∀ n``)
+    dossier quotes each. Names a statement binds (``(s : Real)``, ``∀ n``)
     are left out; names found nowhere in the project come from its
     dependencies and are listed as external.
 
@@ -295,6 +362,7 @@ class LeanIndex:
         self._suffix = suffix
         # files
         self._labels: list[str] = []
+        self._label_ids: dict[str, int] = {}
         self._paths: list[Path | None] = []
         self._first_node: list[int] = []  # each file's first node
         self._learned: dict[str, tuple[str, int]] = {}
@@ -318,9 +386,9 @@ class LeanIndex:
         self._by_short: dict[str, Any] | None = None
         self._kinds: Counter[str] = Counter()
         self._intern: dict[Any, Any] = {}
-        self._contexts: OrderedDict[tuple[str, tuple[str, ...]], dict[str, tuple[int, ...]]] = (
-            OrderedDict()
-        )
+        self._contexts: OrderedDict[
+            tuple[str, tuple[str, ...]], dict[str, tuple[int, ...]]
+        ] = OrderedDict()
         self._lines_cache: OrderedDict[int, list[str]] = OrderedDict()
 
     # -- building ---------------------------------------------------------------
@@ -345,6 +413,9 @@ class LeanIndex:
             Also read files under a folder whose name starts with ``.``,
             such as Lake's ``.lake/packages`` (the project's dependencies,
             often far larger than the project). Default: ``False``.
+            Symbolic links to folders are never followed; a link to a file
+            is read only when it resolves inside *folder*, and is otherwise
+            listed as skipped. The same files are read on every Python.
         learn_commands : bool, optional
             Before indexing, read every file for the commands the project
             defines (``elab``, ``macro`` or ``syntax "kw" ... : command``)
@@ -366,25 +437,19 @@ class LeanIndex:
         root = Path(folder)
         if not root.is_dir():
             raise ValueError(f"LeanIndex: {folder!s} is not a folder.")
-        files = []
-        for path in sorted(root.rglob("*.lean"), key=lambda p: p.as_posix()):
-            relative = path.relative_to(root)
-            if not include_hidden and any(
-                part.startswith(".") for part in relative.parts[:-1]
-            ):
-                continue
-            if path.is_file():
-                files.append((path, relative.as_posix()))
+        files, refused = _lean_files(root, include_hidden=include_hidden)
         learned: dict[str, tuple[str, int]] = {}
         if learn_commands:
             for path, label in files:
-                with open(path, encoding="utf-8", errors="replace") as stream:
-                    for keyword, number in _defined_commands(stream).items():
-                        learned.setdefault(keyword, (label, number))
+                for keyword, number in _commands_of(path).items():
+                    learned.setdefault(keyword, (label, number))
         if learned:
-            options["commands"] = sorted(set(options.get("commands", ())) | set(learned))
+            options["commands"] = sorted(
+                set(options.get("commands", ())) | set(learned)
+            )
         index = cls(**options)
         index._learned = learned
+        index._skipped.extend(refused)
         for path, label in files:
             index.add_file(path, label=label)
         return index
@@ -409,17 +474,20 @@ class LeanIndex:
         """
         path = Path(path)
         label = str(path) if label is None else label
-        file_id = len(self._labels)
-        self._labels.append(label)
-        self._paths.append(path)
-        self._imports.append(())
-        self._file_lines.append(0)
-        self._first_node.append(len(self._name))
-        if path.stat().st_size > self._max_bytes:
-            self._skipped.append((label, f"larger than max_file_bytes={self._max_bytes:,}"))
+        file_id = self._new_file(label, path)
+        try:
+            size = path.stat().st_size
+        except OSError as exc:
+            self._skipped.append((label, f"unreadable: {exc.strerror or exc}"))
+            return
+        if size > self._max_bytes:
+            self._skipped.append(
+                (label, f"larger than max_file_bytes={self._max_bytes:,}")
+            )
             return
         splitter = self._splitter(label)
         nodes_before = len(self._name)
+        kinds_before = self._kinds.copy()
         number = 0
         try:
             with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
@@ -431,13 +499,18 @@ class LeanIndex:
                         self._add_chunk(chunk, file_id)
             for chunk in splitter.finish():
                 self._add_chunk(chunk, file_id)
-        except ValueError as exc:  # nesting past max_scope_depth
+        except (ValueError, OSError) as exc:  # nesting past max_scope_depth; I/O
             self._drop_nodes(nodes_before)
+            self._kinds = kinds_before
             self._imports[file_id] = ()
-            self._skipped.append((label, str(exc)))
+            reason = (
+                f"unreadable: {exc.strerror or exc}"
+                if isinstance(exc, OSError)
+                else str(exc)
+            )
+            self._skipped.append((label, reason))
             return
         self._file_lines[file_id] = number
-        self._by_short = None  # rebuilt on the next lookup
 
     def add_chunks(self, chunks: Iterable[dict[str, Any]], *, label: str) -> None:
         """
@@ -456,12 +529,7 @@ class LeanIndex:
         Parts of one long declaration (``part`` 2, 3, ...) join their first
         part. Without a file on disk, reports give locations but no text.
         """
-        file_id = len(self._labels)
-        self._labels.append(label)
-        self._paths.append(None)
-        self._imports.append(())
-        self._file_lines.append(0)
-        self._first_node.append(len(self._name))
+        file_id = self._new_file(label, None)
         last_end = 0
         for chunk in chunks:
             if chunk.get("part", 0) > 1 and self._name and self._file[-1] == file_id:
@@ -476,7 +544,32 @@ class LeanIndex:
                 self._add_chunk(chunk, file_id)
             last_end = max(last_end, chunk.get("line_end", 0))
         self._file_lines[file_id] = last_end
+
+    def _new_file(self, label: str, path: Path | None) -> int:
+        """
+        Register a file and drop every cache that a new declaration can change.
+
+        Name resolution and edges are cached per query; a file added later
+        may declare a name an earlier query looked up, so the caches go and
+        the next query resolves against the whole index. The names each
+        declaration uses are kept, so nothing has to be read again: adding
+        files in any order, with queries in between, gives the same index.
+        """
+        if label in self._label_ids:
+            raise ValueError(
+                f"LeanIndex: {label!r} is already indexed; give each file one label."
+            )
+        file_id = len(self._labels)
+        self._label_ids[label] = file_id
+        self._labels.append(label)
+        self._paths.append(path)
+        self._imports.append(())
+        self._file_lines.append(0)
+        self._first_node.append(len(self._name))
         self._by_short = None
+        self._edges.clear()
+        self._contexts.clear()
+        return file_id
 
     def _splitter(self, label: str) -> _Splitter:
         return _Splitter(
@@ -546,7 +639,13 @@ class LeanIndex:
             self._flags.pop(node, None)
             self._attributes.pop(node, None)
             self._private.discard(node)
-        for column in (self._name, self._kind, self._namespace, self._opens, self._refs):
+        for column in (
+            self._name,
+            self._kind,
+            self._namespace,
+            self._opens,
+            self._refs,
+        ):
             del column[keep:]
         for column in (self._file, self._start, self._end):
             del column[keep:]
@@ -648,7 +747,7 @@ class LeanIndex:
                 sources[fill[target]] = node * 4 + code % 4
                 fill[target] += 1
         del fill
-        toward: dict[int, tuple[int, int]] = {t: (-1, -1) for t in targets}
+        toward: dict[int, tuple[int, int]] = dict.fromkeys(targets, (-1, -1))
         queue = deque(targets)
         while queue:
             target = queue.popleft()
@@ -746,7 +845,9 @@ class LeanIndex:
             self._by_short = short
         return self._by_short
 
-    def _lookup(self, ref: str, prefixes: Sequence[str], opens: Sequence[str]) -> tuple[int, ...]:
+    def _lookup(
+        self, ref: str, prefixes: Sequence[str], opens: Sequence[str]
+    ) -> tuple[int, ...]:
         if ref.startswith(_ROOT):
             return self._ids(ref[len(_ROOT) :])
         hits: list[int] = []
@@ -757,13 +858,15 @@ class LeanIndex:
             hits.extend(self._ids(f"{opened}.{ref}"))
         return tuple(dict.fromkeys(hits))
 
-    def _resolve(self, ref: str, namespace: str, opens: tuple[str, ...]) -> tuple[int, ...]:
+    def _resolve(
+        self, ref: str, namespace: str, opens: tuple[str, ...]
+    ) -> tuple[int, ...]:
         """Return ``node * 4 + how`` codes for the declarations *ref* may name."""
         key = (namespace, opens)
         cache = self._contexts.get(key)
         if cache is None:
             cache = self._contexts[key] = {}
-            if len(self._contexts) > 256:
+            if len(self._contexts) > _CONTEXT_CACHE:
                 self._contexts.popitem(last=False)
         else:
             self._contexts.move_to_end(key)
@@ -816,14 +919,13 @@ class LeanIndex:
                     best[target] = how
         edges = array("l", sorted(target * 4 + how for target, how in best.items()))
         self._edges[node] = edges
-        self._refs[node] = None
         return edges
 
     def _closure(
         self, roots: Sequence[int], *, expand: frozenset[str] | None = None
     ) -> dict[int, tuple[int, int]]:
         """Breadth-first: each reached node to ``(parent, how)``; roots to ``(-1, -1)``."""
-        reached: dict[int, tuple[int, int]] = {root: (-1, -1) for root in roots}
+        reached: dict[int, tuple[int, int]] = dict.fromkeys(roots, (-1, -1))
         queue = deque(roots)
         while queue:
             node = queue.popleft()
@@ -851,7 +953,7 @@ class LeanIndex:
         if lines and lines[0].startswith("﻿"):
             lines[0] = lines[0][1:]
         self._lines_cache[file_id] = lines
-        if len(self._lines_cache) > 64:
+        if len(self._lines_cache) > _LINES_CACHE:
             self._lines_cache.popitem(last=False)
         return lines
 
@@ -973,7 +1075,12 @@ class LeanIndex:
             ],
         }
 
-    def dossier(self, target: str, *, max_items: int = 50) -> dict[str, Any]:  # noqa: PLR0912, PLR0915
+    def dossier(  # noqa: PLR0912, PLR0915
+        self,
+        target: str,
+        *,
+        max_items: int = 50,
+    ) -> dict[str, Any]:
         """
         Gather the evidence on one declaration: its statement, its dependencies, its risks.
 
@@ -1036,7 +1143,9 @@ class LeanIndex:
         definitions = []
         for item in sorted(meaning, key=lambda n: (self._file[n], self._start[n])):
             entry = self._location(item)
-            entry["found_by"] = _HOW[local[item]] if item in local else _HOW[meaning[item][1]]
+            entry["found_by"] = (
+                _HOW[local[item]] if item in local else _HOW[meaning[item][1]]
+            )
             entry["text"], entry["text_cut"] = self._excerpt(item)
             definitions.append(entry)
         report["statement"] = {
@@ -1089,7 +1198,10 @@ class LeanIndex:
             file_id = label_ids[invocation["file"]]
             if file_id not in imported:
                 continue
-            if file_id == self._file[node] and invocation["line_start"] > self._start[node]:
+            if (
+                file_id == self._file[node]
+                and invocation["line_start"] > self._start[node]
+            ):
                 continue  # later in the target's own file: not in its environment
             chain = []
             current = file_id
@@ -1097,49 +1209,64 @@ class LeanIndex:
                 chain.append(self._labels[current])
                 current = imported[current]
             generated.append(
-                {"risk": "generated_declarations", **generator, "via_imports": chain[::-1]}
+                {
+                    "risk": "generated_declarations",
+                    **generator,
+                    "via_imports": chain[::-1],
+                }
             )
         risks += generated
         report["implicit_risks"] = _listing(risks, max_items)
 
         missing = len(self._import_gaps()[0])
+        # Each detail is chosen in a statement: a conditional expression as
+        # an argument is laid out differently by black and ruff format.
+        if definitions:
+            on_definitions = (
+                f"{len(definitions)} project definition(s) give the statement its"
+                " meaning: read each"
+            )
+        else:
+            on_definitions = "the statement uses no project definition"
+        if red_flags:
+            on_named = (
+                f"{len(red_flags)} flagged declaration(s) among those the proof names"
+            )
+        else:
+            on_named = "no flagged declaration among those the proof names"
+        if risks:
+            on_implicit = (
+                f"{len(implicit)} flagged instance(s), tagged lemma(s) or syntax"
+                f" extension(s) could be used without being named; {len(generated)}"
+                " command(s) in imported modules add declarations no source spells"
+            )
+        else:
+            on_implicit = "no flagged declaration of a kind used without its name"
+        if duplicates:
+            on_duplicates = f"{len(duplicates)} name(s) declared more than once among the dependencies"
+        else:
+            on_duplicates = "every dependency's name is declared once"
+        if missing:
+            imports_status = "fail"
+            on_imports = f"{missing} imported module(s) missing from the project"
+        elif self._skipped:
+            imports_status = "review"
+            on_imports = f"{len(self._skipped)} file(s) could not be read"
+        else:
+            imports_status = "pass"
+            on_imports = "every imported project module is present"
         checks = [
             _check(
                 "statement_definitions",
                 "review" if definitions else "pass",
-                f"{len(definitions)} project definition(s) give the statement its"
-                " meaning: read each" if definitions else
-                "the statement uses no project definition",
+                on_definitions,
             ),
+            _check("named_dependencies", "fail" if red_flags else "pass", on_named),
+            _check("implicit_dependencies", "review" if risks else "pass", on_implicit),
             _check(
-                "named_dependencies",
-                "fail" if red_flags else "pass",
-                f"{len(red_flags)} flagged declaration(s) among those the proof names"
-                if red_flags else "no flagged declaration among those the proof names",
+                "duplicate_names", "review" if duplicates else "pass", on_duplicates
             ),
-            _check(
-                "implicit_dependencies",
-                "review" if risks else "pass",
-                f"{len(implicit)} flagged instance(s), tagged lemma(s) or syntax"
-                f" extension(s) could be used without being named; {len(generated)}"
-                " command(s) in imported modules add declarations no source spells"
-                if risks else "no flagged declaration of a kind used without its name",
-            ),
-            _check(
-                "duplicate_names",
-                "review" if duplicates else "pass",
-                f"{len(duplicates)} name(s) declared more than once among the dependencies"
-                if duplicates else "every dependency's name is declared once",
-            ),
-            _check(
-                "imported_modules_present",
-                "fail" if missing else ("review" if self._skipped else "pass"),
-                f"{missing} imported module(s) missing from the project"
-                if missing else (
-                    f"{len(self._skipped)} file(s) could not be read"
-                    if self._skipped else "every imported project module is present"
-                ),
-            ),
+            _check("imported_modules_present", imports_status, on_imports),
             _check(
                 "kernel",
                 "not_checked",
@@ -1212,7 +1339,9 @@ class LeanIndex:
         own = {self._name[node], (self._name[node] or "").rsplit(".", 1)[-1]}
         return text, {r for r in refs if r not in _NOT_REFERENCES and r not in own}
 
-    def _path(self, node: int, reached: dict[int, tuple[int, int]]) -> list[dict[str, Any]]:
+    def _path(
+        self, node: int, reached: dict[int, tuple[int, int]]
+    ) -> list[dict[str, Any]]:
         """Return the hops from the target to *node*, each with where it is and how it was found."""
         hops = []
         while True:
@@ -1419,7 +1548,11 @@ def _positive(value: Any, option: str) -> None:
 
 def _listing(items: list[Any], max_items: int) -> dict[str, Any]:
     """Return ``{"count", "items", "cut"}``: never a silently shortened list."""
-    return {"count": len(items), "items": items[:max_items], "cut": len(items) > max_items}
+    return {
+        "count": len(items),
+        "items": items[:max_items],
+        "cut": len(items) > max_items,
+    }
 
 
 def _check(name: str, status: str, detail: str) -> dict[str, str]:
@@ -1427,7 +1560,7 @@ def _check(name: str, status: str, detail: str) -> dict[str, str]:
 
 
 def _bound_names(statement: str) -> set[str]:
-    """Return the names a statement binds: ``(s : ℂ)``, ``{x y}``, ``∀ n``, ``fun x``."""
+    """Return the names a statement binds: ``(s : Real)``, ``{x y}``, ``∀ n``, ``fun x``."""
     binder, quantified = _binders()
     lexer = _Lexer()
     masked = "\n".join(lexer.mask(line) for line in statement.split("\n"))
@@ -1447,8 +1580,10 @@ def _render_summary(report: dict[str, Any]) -> str:
     out = [
         "# Lean project summary",
         "",
-        f"{report['files']:,} files, {report['lines']:,} lines,"
-        f" {report['declarations']:,} declarations.",
+        (
+            f"{report['files']:,} files, {report['lines']:,} lines,"
+            f" {report['declarations']:,} declarations."
+        ),
         "",
         "## Audit flags",
     ]
@@ -1456,17 +1591,25 @@ def _render_summary(report: dict[str, Any]) -> str:
         out.append("None found in code.")
     for flag, listing in report["flags"].items():
         out.append(f"- **{flag}**: {listing['count']}")
-        out.extend(f"  - {item['declaration'] or item['kind']} at {_where(item)}" for item in listing["items"])
+        out.extend(
+            f"  - {item['declaration'] or item['kind']} at {_where(item)}"
+            for item in listing["items"]
+        )
         if listing["cut"]:
             out.append("  - (list cut)")
     out += ["", "## Imports"]
     roots = report["imports"]["external_roots"]
     out.append(
-        "External: " + (", ".join(f"{r} ({n})" for r, n in roots.items()) or "none") + "."
+        "External: "
+        + (", ".join(f"{r} ({n})" for r, n in roots.items()) or "none")
+        + "."
     )
     missing = report["imports"]["missing_modules"]
     out.append(f"Missing project modules: {missing['count']}.")
-    out.extend(f"- `{m['module']}` (imported by {', '.join(m['imported_by'][:3])})" for m in missing["items"])
+    out.extend(
+        f"- `{m['module']}` (imported by {', '.join(m['imported_by'][:3])})"
+        for m in missing["items"]
+    )
     out += ["", "## Code that adds declarations at build time"]
     generators = report["generators"]
     if not generators["count"]:
@@ -1480,10 +1623,12 @@ def _render_summary(report: dict[str, Any]) -> str:
     learned = report["learned_commands"]
     out += [
         "",
-        f"Names declared more than once (as Lean counts): {report['duplicate_names']['count']}."
-        f" Syntax extensions: {report['syntax_extensions']['count']}."
-        f" Project commands learned: {len(learned)}."
-        f" Skipped files: {len(report['skipped_files'])}.",
+        (
+            f"Names declared more than once (as Lean counts): {report['duplicate_names']['count']}."
+            f" Syntax extensions: {report['syntax_extensions']['count']}."
+            f" Project commands learned: {len(learned)}."
+            f" Skipped files: {len(report['skipped_files'])}."
+        ),
     ]
     return "\n".join(out) + "\n"
 
@@ -1529,18 +1674,25 @@ def _render_dossier(report: dict[str, Any]) -> str:  # noqa: PLR0912
     out += [
         "",
         "## What the proof names",
-        f"{deps['declarations']:,} declarations in {deps['files']:,} files"
-        f" (found by name: {deps['found_by']['exact']:,} exact,"
-        f" {deps['found_by']['prefix']:,} by prefix, {deps['found_by']['suffix']:,} by suffix).",
+        (
+            f"{deps['declarations']:,} declarations in {deps['files']:,} files"
+            f" (found by name: {deps['found_by']['exact']:,} exact,"
+            f" {deps['found_by']['prefix']:,} by prefix,"
+            f" {deps['found_by']['suffix']:,} by suffix)."
+        ),
     ]
     for item in deps["red_flags"]["items"]:
         hops = item["path"]
         chain = (
-            " → ".join([f"`{hops[0]['from']}`"] + [f"`{h['declaration']}`" for h in hops])
+            " → ".join(
+                [f"`{hops[0]['from']}`"] + [f"`{h['declaration']}`" for h in hops]
+            )
             if hops
             else "the target itself"
         )
-        out.append(f"- **{', '.join(item['flags'])}** in `{item['declaration']}` at {_where(item)}: {chain}")
+        out.append(
+            f"- **{', '.join(item['flags'])}** in `{item['declaration']}` at {_where(item)}: {chain}"
+        )
     implicit = report["implicit_risks"]
     out += ["", f"## Used without a name: {implicit['count']}"]
     for item in implicit["items"]:
@@ -1557,7 +1709,9 @@ def _render_dossier(report: dict[str, Any]) -> str:  # noqa: PLR0912
                 f" at {_where(item)}"
             )
     out += ["", "## Checks"]
-    out.extend(f"- {c['check']}: **{c['status']}** ({c['detail']})" for c in report["checks"])
+    out.extend(
+        f"- {c['check']}: **{c['status']}** ({c['detail']})" for c in report["checks"]
+    )
     out += ["", "## To settle it", *[f"- `{step}`" for step in report["kernel_steps"]]]
     return "\n".join(out) + "\n"
 
@@ -1588,13 +1742,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--include-hidden", action="store_true")
     parser.add_argument("--fail-on", action="append", default=[], metavar="FLAG")
     parser.add_argument(
-        "--discover", action="store_true", help="print rules, patterns, claims and anomalies"
+        "--discover",
+        action="store_true",
+        help="print rules, patterns, claims and anomalies",
     )
     parser.add_argument(
-        "--export", type=Path, metavar="DIR", help="also write the helper documents to DIR"
+        "--export",
+        type=Path,
+        metavar="DIR",
+        help="also write the helper documents to DIR",
     )
     parser.add_argument("--no-learn-commands", action="store_true")
     args = parser.parse_args(argv)
+    unknown = sorted(set(args.fail_on) - AUDIT_FLAGS)
+    if unknown:
+        parser.error(
+            f"--fail-on: unknown flag(s) {', '.join(unknown)};"
+            f" choose from {', '.join(sorted(AUDIT_FLAGS))}"
+        )
     try:
         index = LeanIndex.from_folder(
             args.folder,
@@ -1611,10 +1776,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             reports = [index.summary(max_items=args.max_items)]
         if args.export is not None:
             index.export(args.export, targets=args.target, top=args.max_items)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OSError) as exc:
         parser.error(str(exc))
     if args.json:
-        print(json.dumps(reports if args.target else reports[0], indent=1, ensure_ascii=False))  # noqa: T201
+        print(  # noqa: T201
+            json.dumps(
+                reports if args.target else reports[0], indent=1, ensure_ascii=False
+            )
+        )  # noqa: T201
     else:
         print("\n".join(LeanIndex.render(r) for r in reports))  # noqa: T201
     found: set[str] = set()
@@ -1622,7 +1791,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if report["report"] == "dossier":
             found.update(report["flags_found"])
         else:
-            found.update(index.summary(max_items=1)["flags"])
+            found.update(flag for flags in index._flags.values() for flag in flags)
     return 1 if found & set(args.fail_on) else 0
 
 

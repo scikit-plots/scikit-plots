@@ -383,3 +383,92 @@ def test_the_command_line(tmp_path):
     assert _run([root, "--target", "main", "--fail-on", "sorry"])[0] == 1  # implicit
     assert _run([root, "--target", "main", "--fail-on", "axiom"])[0] == 0
     assert _run([root, "--fail-on", "sorry"])[0] == 1
+
+
+# ---------------------------------------------------------------------------
+# Building: order, repetition, unreadable and linked files
+# ---------------------------------------------------------------------------
+
+
+def _local_definitions(report):
+    return [d["declaration"] for d in report["statement"]["local_definitions"]["items"]]
+
+
+def test_a_query_does_not_spend_the_names_a_later_query_needs(tmp_path):
+    # Without files on disk the statement's names come from the index; a
+    # first query (discover resolves every edge) must leave them in place.
+    root = _project(tmp_path, PROJECT)
+    index = LeanIndex()
+    for path in sorted(root.rglob("*.lean")):
+        reader = LeanReader(input_path=path, references=True)
+        index.add_chunks(reader.get_raw_chunks(), label=path.relative_to(root).as_posix())
+    before = _local_definitions(index.dossier("main"))
+    index.discover()
+    assert _local_definitions(index.dossier("main")) == before
+    assert "MyClaim" in before
+
+
+def test_files_added_after_a_query_are_linked(tmp_path):
+    root = _project(tmp_path, PROJECT)
+    names = ["Proj/Main.lean", "Proj/Inst.lean", "Proj/Lemmas.lean", "Proj/Statements.lean"]
+    grown = LeanIndex()
+    for name in names:
+        grown.add_file(root / name, label=name)
+        grown.dossier("main2")  # a query between additions
+    whole = LeanIndex.from_folder(root)
+    report = json.dumps(grown.dossier("main2"), sort_keys=True)
+    assert report == json.dumps(whole.dossier("main2"), sort_keys=True)
+
+
+def test_a_file_is_indexed_once(tmp_path):
+    root = _project(tmp_path, {"A.lean": "def a := 1\n"})
+    index = LeanIndex()
+    index.add_file(root / "A.lean", label="A.lean")
+    with pytest.raises(ValueError, match="already indexed"):
+        index.add_file(root / "A.lean", label="A.lean")
+    assert index.summary()["duplicate_names"]["count"] == 0
+
+
+def test_a_skipped_file_adds_nothing_to_the_counts(tmp_path):
+    files = {"A.lean": "def a := 1\n", "Deep.lean": "def early := 1\n" + "namespace N\n" * 5}
+    summary = LeanIndex.from_folder(_project(tmp_path, files), max_scope_depth=3).summary()
+    assert summary["kinds"] == {"def": 1}
+    assert summary["declarations"] == 1
+
+
+def test_a_missing_file_is_skipped_not_raised(tmp_path):
+    index = LeanIndex()
+    index.add_file(tmp_path / "Gone.lean", label="Gone.lean")
+    skipped = index.summary()["skipped_files"]
+    assert skipped[0]["file"] == "Gone.lean" and skipped[0]["reason"].startswith("unreadable")
+
+
+def _symlink(link, target, *, folder=False):
+    try:
+        link.symlink_to(target, target_is_directory=folder)
+    except (OSError, NotImplementedError):
+        pytest.skip("symbolic links are not available here")
+
+
+def test_links_never_lead_outside_the_folder(tmp_path):
+    root = _project(tmp_path / "proj", {"A.lean": "def a := 1\n"})
+    outside = _project(tmp_path / "outside", {"Secret.lean": "def secret := 1\n", "D/In.lean": "def d := 1\n"})
+    _symlink(root / "Out.lean", outside / "Secret.lean")
+    _symlink(root / "Dir", outside / "D", folder=True)
+    _symlink(root / "Again.lean", root / "A.lean")
+    _symlink(root / "Broken.lean", root / "nothing.lean")
+    index = LeanIndex.from_folder(root)
+    assert sorted(index._labels) == ["A.lean", "Again.lean"]  # a link inside is kept
+    reasons = dict((s["file"], s["reason"]) for s in index.summary()["skipped_files"])
+    assert reasons == {
+        "Broken.lean": "broken symbolic link",
+        "Out.lean": "symbolic link to a file outside the folder",
+    }
+    assert index.find("secret") == [] and index.find("d") == []
+
+
+def test_fail_on_refuses_an_unknown_flag(tmp_path):
+    root = str(_project(tmp_path, PROJECT))
+    with pytest.raises(SystemExit) as exit_info, contextlib.redirect_stderr(io.StringIO()):
+        main([root, "--fail-on", "no_such_flag"])
+    assert exit_info.value.code == 2

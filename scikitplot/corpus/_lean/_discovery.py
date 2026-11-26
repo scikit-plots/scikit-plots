@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 from .._atomic import atomic_write_bytes
+from .._readers._lean import _NAME, _Lexer, _Splitter
 from ._evidence import (
     _DEFINITIONS,
     PRODUCER,
@@ -54,7 +55,6 @@ from ._evidence import (
     _listing,
     _positive,
 )
-from .._readers._lean import _NAME, _Lexer, _Splitter
 
 __all__: list[str] = []
 
@@ -72,6 +72,12 @@ _SERIES = re.compile(r"^(.*?[^\W\d])_?(\d+)\Z")
 
 #: Most members listed per pattern, series or parallel group.
 _MEMBERS = 20
+
+#: Fewest names that make a numbered series (two could be chance).
+_MIN_SERIES = 3
+
+#: Declarations of one name that make it declared in parallel.
+_MIN_PARALLEL = 2
 
 
 def _shape(statement: str, written: str | None) -> str | None:
@@ -125,14 +131,16 @@ class _Discovery:
         self.shapes: dict[bytes, list[int]] = {}
         self.claims: list[int] = []
         self.statements: dict[int, str] = {}
+        self._reach: list[int] | None = None
 
     # -- passes -------------------------------------------------------------
 
     def read_statements(self) -> None:
         """Pass over the files: the shape of each result, the ``Prop`` definitions."""
         index = self.index
+        skipped = {label for label, _ in index._skipped}
         for file_id, path in enumerate(index._paths):
-            if path is None or any(label == index._labels[file_id] for label, _ in index._skipped):
+            if path is None or index._labels[file_id] in skipped:
                 continue
             first = index._first_node[file_id]
             last = (
@@ -148,7 +156,9 @@ class _Discovery:
                 kind = index._kind[node]
                 if kind in _RESULTS:
                     written = (index._name[node] or "").rsplit(".", 1)[-1] or None
-                    shape = _shape(chunk["text"], _written(chunk["text"], kind) or written)
+                    shape = _shape(
+                        chunk["text"], _written(chunk["text"], kind) or written
+                    )
                     if shape is not None:
                         self.shapes.setdefault(_digest(shape), []).append(node)
                 elif kind in ("def", "abbrev") and _PROP_DEFINITION.search(
@@ -157,6 +167,12 @@ class _Discovery:
                     self.claims.append(node)
 
     def visible(self) -> list[int]:
+        """Return :meth:`_visible`, computed once per run."""
+        if self._reach is None:
+            self._reach = self._visible()
+        return self._reach
+
+    def _visible(self) -> list[int]:
         """
         Return, per file, a bitset of the project files it imports, transitively.
 
@@ -248,15 +264,21 @@ class _Discovery:
         nodes = [
             n
             for n in range(len(index._name))
-            if index._kind[n] in kinds and index._name[n] is not None and self.in_degree[n]
+            if index._kind[n] in kinds
+            and index._name[n] is not None
+            and self.in_degree[n]
         ]
-        nodes.sort(key=lambda n: (-self.in_files[n], -self.in_degree[n], index._name[n]))
+        nodes.sort(
+            key=lambda n: (-self.in_files[n], -self.in_degree[n], index._name[n])
+        )
         return nodes[: self.top]
 
     def patterns(self) -> tuple[list[dict[str, Any]], int]:
         index = self.index
         families = [
-            members for members in self.shapes.values() if len(members) >= self.min_instances
+            members
+            for members in self.shapes.values()
+            if len(members) >= self.min_instances
         ]
         families.sort(
             key=lambda m: (
@@ -282,7 +304,9 @@ class _Discovery:
                     "files": len({index._file[n] for n in members}),
                     "shape": shape,
                     "exemplar": self.statements.get(exemplar),
-                    "members": _listing([index._location(n) for n in members], _MEMBERS),
+                    "members": _listing(
+                        [index._location(n) for n in members], _MEMBERS
+                    ),
                 }
             )
         return out, total
@@ -299,7 +323,7 @@ class _Discovery:
                 groups.setdefault((head, found.group(1)), []).append(
                     (int(found.group(2)), node)
                 )
-        families = [sorted(g) for g in groups.values() if len(g) >= 3]
+        families = [sorted(g) for g in groups.values() if len(g) >= _MIN_SERIES]
         families.sort(key=lambda g: (-len(g), index._name[g[0][1]]))
         out = []
         for members in families[: self.top]:
@@ -308,7 +332,9 @@ class _Discovery:
             out.append(
                 {
                     "series": f"{head}.{stem}" if head else stem,
-                    "members": _listing([index._location(n) for _, n in members], _MEMBERS),
+                    "members": _listing(
+                        [index._location(n) for _, n in members], _MEMBERS
+                    ),
                     "numbers": [number for number, _ in members[:_MEMBERS]],
                 }
             )
@@ -323,7 +349,7 @@ class _Discovery:
         groups = []
         for name, held in index._clashes():
             public = [n for n in held if n not in index._private]
-            if len(public) < 2:
+            if len(public) < _MIN_PARALLEL:
                 continue
             keys = {shape_of.get(n) for n in public}
             same = None not in keys and len(keys) == 1
@@ -332,8 +358,9 @@ class _Discovery:
         out = []
         for name, public, same in groups[: self.top]:
             files = sorted({index._file[n] for n in public})
+            reach = self.visible()
             meets = any(
-                other in index._imported(f) for f in files for other in files if other != f
+                (reach[f] >> other) & 1 for f in files for other in files if other != f
             )
             out.append(
                 {
@@ -373,8 +400,12 @@ class _Discovery:
             n for n in sorted(index._flags) if {"sorry", "admit"} & set(index._flags[n])
         ]
         axioms = [n for n in range(len(index._name)) if index._kind[n] == "axiom"]
-        wanted = [n for n in range(len(index._name)) if index._kind[n] == "proof_wanted"]
-        claims = sorted(self.claims, key=lambda n: (-self.in_degree[n], index._name[n] or ""))
+        wanted = [
+            n for n in range(len(index._name)) if index._kind[n] == "proof_wanted"
+        ]
+        claims = sorted(
+            self.claims, key=lambda n: (-self.in_degree[n], index._name[n] or "")
+        )
         headline_set = set(headline)
         isolated = [
             n
@@ -383,28 +414,49 @@ class _Discovery:
             and not self.in_degree[n]
             and n not in headline_set
         ]
-        isolated.sort(key=lambda n: (-(index._end[n] - index._start[n]), index._name[n] or ""))
+        isolated.sort(
+            key=lambda n: (-(index._end[n] - index._start[n]), index._name[n] or "")
+        )
         listed = (
-            rules + concepts + headline[: self.top] + claims[: self.top]
-            + axioms[: self.top] + wanted[: self.top] + unproven[: self.top]
+            rules
+            + concepts
+            + headline[: self.top]
+            + claims[: self.top]
+            + axioms[: self.top]
+            + wanted[: self.top]
+            + unproven[: self.top]
         )
         self.statement_of(listed)
         patterns, pattern_count = self.patterns()
         series, series_count = self.series()
         parallel, parallel_count = self.parallel()
+        isolated_listing = _listing(
+            [self.item(n) for n in isolated[: self.top]], self.top
+        )
+        isolated_listing.update(count=len(isolated), cut=len(isolated) > self.top)
         return {
             "report": "discovery",
             "producer": DISCOVERY,
             "index": PRODUCER,
             "rules": {
-                "load_bearing_theorems": _listing([self.item(n) for n in rules], self.top),
-                "central_concepts": _listing([self.item(n) for n in concepts], self.top),
+                "load_bearing_theorems": _listing(
+                    [self.item(n) for n in rules], self.top
+                ),
+                "central_concepts": _listing(
+                    [self.item(n) for n in concepts], self.top
+                ),
             },
             "patterns": {
-                "statement_shapes": {"count": pattern_count, "items": patterns,
-                                     "cut": pattern_count > len(patterns)},
-                "numbered_series": {"count": series_count, "items": series,
-                                    "cut": series_count > len(series)},
+                "statement_shapes": {
+                    "count": pattern_count,
+                    "items": patterns,
+                    "cut": pattern_count > len(patterns),
+                },
+                "numbered_series": {
+                    "count": series_count,
+                    "items": series,
+                    "cut": series_count > len(series),
+                },
             },
             "claims": {
                 "claim_definitions": _listing([self.item(n) for n in claims], self.top),
@@ -413,12 +465,13 @@ class _Discovery:
                 "unproven": _listing([self.item(n) for n in unproven], self.top),
             },
             "anomalies": {
-                "parallel_declarations": {"count": parallel_count, "items": parallel,
-                                          "cut": parallel_count > len(parallel)},
+                "parallel_declarations": {
+                    "count": parallel_count,
+                    "items": parallel,
+                    "cut": parallel_count > len(parallel),
+                },
                 "generators": _listing(index._generators(), self.top),
-                "isolated_results": _listing(
-                    [self.item(n) for n in isolated[: self.top]], self.top
-                ) | {"count": len(isolated), "cut": len(isolated) > self.top},
+                "isolated_results": isolated_listing,
             },
             "headline_results": _listing([self.item(n) for n in headline], self.top),
         }
@@ -435,7 +488,9 @@ def _written(statement: str, kind: str) -> str | None:
     return None
 
 
-def _statement_chunks(index: LeanIndex, path: Path, file_id: int) -> Iterable[dict[str, Any]]:
+def _statement_chunks(
+    index: LeanIndex, path: Path, file_id: int
+) -> Iterable[dict[str, Any]]:
     """Yield the file's chunks with proofs left out, as the index reads the file."""
     splitter = _Splitter(
         file_name=index._labels[file_id],
@@ -589,7 +644,9 @@ def _patterns_md(report: dict[str, Any]) -> str:
     for family in series["items"]:
         members = family["members"]
         numbers = ", ".join(str(n) for n in family["numbers"])
-        out.append(f"- `{family['series']}`: {members['count']} members (numbers {numbers})")
+        out.append(
+            f"- `{family['series']}`: {members['count']} members (numbers {numbers})"
+        )
     return "\n".join(out) + "\n"
 
 
@@ -621,12 +678,22 @@ def _anomalies_md(report: dict[str, Any]) -> str:
         "",
     ]
     for group in parallel["items"]:
-        what = "the same statement" if group["same_statement"] else "different statements"
-        clash = "; one module imports another (Lean refuses that)" if group["one_imports_another"] else ""
+        what = (
+            "the same statement" if group["same_statement"] else "different statements"
+        )
+        clash = (
+            "; one module imports another (Lean refuses that)"
+            if group["one_imports_another"]
+            else ""
+        )
         places = ", ".join(_where(item) for item in group["at"]["items"])
         out.append(f"- `{group['declaration']}`: {what} at {places}{clash}")
     generators = anomalies["generators"]
-    out += ["", f"## Code that adds declarations no source spells ({generators['count']})", ""]
+    out += [
+        "",
+        f"## Code that adds declarations no source spells ({generators['count']})",
+        "",
+    ]
     for item in generators["items"]:
         adder = item["adds_declarations_at"]
         out.append(
@@ -634,7 +701,11 @@ def _anomalies_md(report: dict[str, Any]) -> str:
             f" runs `{adder['declaration']}` ({_where(adder)})"
         )
     isolated = anomalies["isolated_results"]
-    out += ["", f"## Results no declaration names ({isolated['count']}), largest first", ""]
+    out += [
+        "",
+        f"## Results no declaration names ({isolated['count']}), largest first",
+        "",
+    ]
     out += [
         f"- `{item['declaration']}` at {_where(item)}"
         f" ({item['line_end'] - item['line_start'] + 1} lines)"
@@ -647,7 +718,13 @@ def _records(report: dict[str, Any]) -> list[dict[str, Any]]:
     """One record per reported item: title, text, where, and its evidence."""
     records = []
 
-    def add(section: str, title: str, item: dict[str, Any], text: str | None, **evidence: Any):
+    def add(
+        section: str,
+        title: str,
+        item: dict[str, Any],
+        text: str | None,
+        **evidence: Any,
+    ):
         records.append(
             {
                 "section": section,
@@ -662,7 +739,10 @@ def _records(report: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
-    for key, section in (("load_bearing_theorems", "rule"), ("central_concepts", "concept")):
+    for key, section in (
+        ("load_bearing_theorems", "rule"),
+        ("central_concepts", "concept"),
+    ):
         for item in report["rules"][key]["items"]:
             add(
                 section,
@@ -701,8 +781,13 @@ def _records(report: dict[str, Any]) -> list[dict[str, Any]]:
         ("unproven", "open"),
     ):
         for item in report["claims"][key]["items"]:
-            add(section, f"{section}: {item['declaration']}", item, item.get("statement"),
-                named_by=item["named_by"])
+            add(
+                section,
+                f"{section}: {item['declaration']}",
+                item,
+                item.get("statement"),
+                named_by=item["named_by"],
+            )
     for group in report["anomalies"]["parallel_declarations"]["items"]:
         add(
             "anomaly",
@@ -722,7 +807,12 @@ def _records(report: dict[str, Any]) -> list[dict[str, Any]]:
             runs=item["adds_declarations_at"]["declaration"],
         )
     for item in report["headline_results"]["items"]:
-        add("headline", f"headline result: {item['declaration']}", item, item.get("statement"))
+        add(
+            "headline",
+            f"headline result: {item['declaration']}",
+            item,
+            item.get("statement"),
+        )
     return records
 
 
@@ -758,7 +848,12 @@ def export(
     report = discover(index, top=top, patterns=patterns)
     summary = index.summary(max_items=top)
     written: list[str] = []
-    _write(folder, "README.md", _README.format(producer=DISCOVERY, folder=folder.name), written)
+    _write(
+        folder,
+        "README.md",
+        _README.format(producer=DISCOVERY, folder=folder.name),
+        written,
+    )
     _write(folder, "summary.json", _json(summary), written)
     _write(folder, "summary.md", LeanIndex.render(summary), written)
     _write(folder, "discovery.json", _json(report), written)
@@ -767,9 +862,12 @@ def export(
     _write(folder, "claims.md", _claims_md(report), written)
     _write(folder, "anomalies.md", _anomalies_md(report), written)
     records = _records(report)
-    names = list(dict.fromkeys(
-        [item["declaration"] for item in report["headline_results"]["items"]] + list(targets)
-    ))
+    names = list(
+        dict.fromkeys(
+            [item["declaration"] for item in report["headline_results"]["items"]]
+            + list(targets)
+        )
+    )
     for name in names:
         dossier = index.dossier(name, max_items=top)
         stem = f"dossiers/{_safe(name)}"
@@ -777,23 +875,29 @@ def export(
         _write(folder, f"{stem}.md", LeanIndex.render(dossier), written)
         if "target" in dossier:
             target = dossier["target"]
+            title = f"evidence on {target['declaration']}: {dossier['verdict']}"
             records.append(
                 {
                     "section": "dossier",
-                    "title": f"evidence on {target['declaration']}: {dossier['verdict']}",
+                    "title": title,
                     "text": LeanIndex.render(dossier),
                     "declaration": target["declaration"],
                     "file": target["file"],
                     "line_start": target["line_start"],
                     "line_end": target["line_end"],
-                    "evidence": {"verdict": dossier["verdict"], "flags_found": dossier["flags_found"]},
+                    "evidence": {
+                        "verdict": dossier["verdict"],
+                        "flags_found": dossier["flags_found"],
+                    },
                     "producer": DISCOVERY,
                 }
             )
     _write(
         folder,
         "records.jsonl",
-        "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records),
+        "".join(
+            json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records
+        ),
         written,
     )
     return written
@@ -802,5 +906,10 @@ def export(
 def render(report: dict[str, Any]) -> str:
     """Render a discovery report as one Markdown document."""
     return "\n".join(
-        [_rules_md(report), _patterns_md(report), _claims_md(report), _anomalies_md(report)]
+        [
+            _rules_md(report),
+            _patterns_md(report),
+            _claims_md(report),
+            _anomalies_md(report),
+        ]
     )

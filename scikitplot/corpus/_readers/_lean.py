@@ -328,15 +328,72 @@ _RESERVED = frozenset(
 #: a declaration of the project.
 _NOT_REFERENCES = frozenset(
     {
-        "fun", "by", "have", "show", "let", "if", "then", "else", "match", "with",
-        "do", "at", "from", "in", "where", "calc", "return", "for", "unless",
-        "try", "catch", "finally", "mut", "rec", "this", "sorry", "Type", "Sort",
-        "Prop", "theorem", "lemma", "def", "abbrev", "instance", "example",
-        "axiom", "opaque", "structure", "class", "inductive", "extends",
-        "deriving", "namespace", "section", "end", "open", "variable", "universe",
-        "set_option", "import", "private", "protected", "noncomputable", "partial",
-        "unsafe", "mutual", "local", "scoped", "attribute", "termination_by",
-        "decreasing_by", "begin", "assume", "obtain", "suffices", "using",
+        "fun",
+        "by",
+        "have",
+        "show",
+        "let",
+        "if",
+        "then",
+        "else",
+        "match",
+        "with",
+        "do",
+        "at",
+        "from",
+        "in",
+        "where",
+        "calc",
+        "return",
+        "for",
+        "unless",
+        "try",
+        "catch",
+        "finally",
+        "mut",
+        "rec",
+        "this",
+        "sorry",
+        "Type",
+        "Sort",
+        "Prop",
+        "theorem",
+        "lemma",
+        "def",
+        "abbrev",
+        "instance",
+        "example",
+        "axiom",
+        "opaque",
+        "structure",
+        "class",
+        "inductive",
+        "extends",
+        "deriving",
+        "namespace",
+        "section",
+        "end",
+        "open",
+        "variable",
+        "universe",
+        "set_option",
+        "import",
+        "private",
+        "protected",
+        "noncomputable",
+        "partial",
+        "unsafe",
+        "mutual",
+        "local",
+        "scoped",
+        "attribute",
+        "termination_by",
+        "decreasing_by",
+        "begin",
+        "assume",
+        "obtain",
+        "suffices",
+        "using",
     }
 )
 
@@ -581,8 +638,8 @@ class _Head:
         "modifiers",
         "name",
         "open_depth",
-        "scope",
         "opens",
+        "scope",
     )
 
     def __init__(self, category: str, kind: str) -> None:
@@ -675,17 +732,17 @@ class _Command:
         "kind",
         "last",
         "lines",
+        "local_opens",
         "modifiers",
         "name",
         "namespace",
+        "opens",
         "parts",
+        "refs",
         "size",
         "statement",
         "watch_lines",
         "watch_names",
-        "refs",
-        "opens",
-        "local_opens",
         "written",
     )
 
@@ -728,19 +785,17 @@ def _opened(tokens: Iterator[Any]) -> list[str]:
     names: list[str] = []
     depth = 0
     for found in tokens:
-        token = found.group()
-        if token == "(":
+        word = found.group()
+        if word == "(":
             depth += 1
-        elif token == ")":
+        elif word == ")":
             depth = max(0, depth - 1)
         elif depth:
             continue
-        elif token in ("hiding", "renaming", "in", ":="):
+        elif word in ("hiding", "renaming", "in", ":="):
             break
-        elif token != "scoped" and _is_name(token):
-            names.append(
-                token[len("_root_.") :] if token.startswith("_root_.") else token
-            )
+        elif word != "scoped" and _is_name(word):
+            names.append(word[len("_root_.") :] if word.startswith("_root_.") else word)
     return names
 
 

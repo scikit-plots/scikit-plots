@@ -17,7 +17,7 @@ Reading a single file stays in :mod:`scikitplot.corpus._readers._lean`
 (:class:`~scikitplot.corpus.LeanReader`), with the other readers.
 
 Run ``python -m scikitplot.corpus._lean FOLDER --target NAME``.
-"""
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
