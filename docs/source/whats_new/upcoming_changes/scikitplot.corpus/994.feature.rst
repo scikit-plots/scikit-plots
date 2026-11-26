@@ -1,0 +1,24 @@
+- :class:`~scikitplot.corpus.LeanIndex` gathers the evidence on a claim in
+  a Lean project: :meth:`~scikitplot.corpus.LeanIndex.dossier` gives a
+  theorem's statement, the project definitions it unfolds to (quoted),
+  the names it takes from dependencies, every declaration its proof names
+  (directly or through others) with the path to each audit flag, the
+  flagged instances and syntax extensions a proof could use without
+  naming them, and checks with a verdict that never claims more than the
+  text shows, followed by the kernel steps that settle it (``lake build``,
+  ``#print axioms``, an independent replay).
+  :meth:`~scikitplot.corpus.LeanIndex.summary` covers the project: flags,
+  duplicate names, imported modules no file provides, syntax extensions,
+  skipped files. Reports are JSON with a file and line on every item, and
+  render as Markdown; ``python -m scikitplot.corpus._lean_evidence
+  FOLDER --target NAME --fail-on sorry`` runs it in a pipeline.
+  ``LeanReader(references=True)`` records the names each chunk uses and
+  the namespaces open for it.
+  :meth:`~scikitplot.corpus.LeanIndex.discover` lists candidates a project
+  implies, each with its file and lines: theorems and definitions named
+  from the most files, theorems of one statement shape and numbered series
+  of names, ``Prop`` definitions, axioms, ``proof_wanted`` and ``sorry``,
+  names declared in parallel, code that adds declarations at build time,
+  and results nothing names; :meth:`~scikitplot.corpus.LeanIndex.export`
+  writes them, with dossiers, as Markdown, JSON and one JSON record per
+  item for a corpus or an MCP server.

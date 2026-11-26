@@ -14,10 +14,11 @@ raises. This example goes from the simplest case to the hard ones:
 2. statements without proofs (``proofs="drop"``), for reading claims;
 3. audit flags: ``sorry``, ``native_decide``, ``axiom``, code after ``#exit``;
 4. choosing what to read: ``kinds``, ``watch``, ``commands``;
-5. very long proofs read in parts (``lines_per_chunk``);
-6. Lean 3 sources (``dialect="lean3"``);
-7. hostile input: unclosed comments, too-deep scopes;
-8. a generated project of thousands of declarations, with a check that
+5. what a declaration refers to (``references=True``);
+6. very long proofs read in parts (``lines_per_chunk``);
+7. Lean 3 sources (``dialect="lean3"``);
+8. hostile input: unclosed comments, too-deep scopes;
+9. a generated project of thousands of declarations, with a check that
    every line lands in exactly one chunk.
 
 Everything runs on files the example writes: no Lean toolchain, no download.
@@ -124,7 +125,21 @@ print([c["lean_kind"] for c in read(custom, "Custom.lean")])
 print([c["lean_kind"] for c in read(custom, "Custom.lean", commands=["my_check"])])
 
 # %%
-# 5. Very long proofs
+# 5. What a declaration refers to
+# -------------------------------
+# With ``references=True`` each chunk lists the names it uses, and the
+# ``open`` namespaces in force, so a dependency graph can be built.
+
+refs = """\
+def base : Nat := 1
+def next : Nat := base + 1
+open Nat in
+theorem uses : next = 2 := by simp [next, base]
+"""
+show(read(refs, "Refs.lean", references=True), "references", "opens")
+
+# %%
+# 6. Very long proofs
 # -------------------
 # A proof of thousands of lines is read in parts of ``lines_per_chunk``
 # lines; ``part`` numbers them, and every part keeps the declaration name.
@@ -134,7 +149,7 @@ parts = read(long_proof, "Long.lean", lines_per_chunk=300)
 print([(c["part"], c["line_start"], c["line_end"]) for c in parts])
 
 # %%
-# 6. Lean 3
+# 7. Lean 3
 # ---------
 # Lean 3 proofs use ``begin ... end`` blocks; ``dialect="lean3"`` reads them
 # as one command each.
@@ -150,7 +165,7 @@ end
 show(read(lean3, "Old.lean", dialect="lean3"))
 
 # %%
-# 7. Hostile input
+# 8. Hostile input
 # ----------------
 # A comment that never closes swallows the rest of the file as comment, as
 # Lean would. Scopes nested deeper than ``max_scope_depth`` are refused with
@@ -163,7 +178,7 @@ except ValueError as exc:
     print("refused:", str(exc)[:70])
 
 # %%
-# 8. A generated project
+# 9. A generated project
 # ----------------------
 # Thousands of small declarations, a few of them flagged. Counting the
 # flags points straight at the lines to review, and the partition check

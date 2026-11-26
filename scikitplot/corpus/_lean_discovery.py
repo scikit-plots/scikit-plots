@@ -47,14 +47,14 @@ from typing import Any, Iterable, Sequence
 
 from ._atomic import atomic_write_bytes
 from ._lean_evidence import (
+    _DEFINITIONS,
     PRODUCER,
     LeanIndex,
     _bound_names,
-    _DEFINITIONS,
     _listing,
     _positive,
 )
-from ._readers._lean import _NAME, LEAN_FLAGS, _Lexer, _Splitter
+from ._readers._lean import _NAME, _Lexer, _Splitter
 
 __all__: list[str] = []
 
@@ -119,8 +119,9 @@ class _Discovery:
         self.top = top
         self.min_instances = min_instances
         n = len(index._name)
-        self.in_degree = array("l", bytes(8 * n)) if n else array("l")
-        self.in_files = array("l", bytes(8 * n)) if n else array("l")
+        # "q" is 8 bytes on every platform ("l" is 4 on Windows).
+        self.in_degree = array("q", bytes(8 * n))
+        self.in_files = array("q", bytes(8 * n))
         self.shapes: dict[bytes, list[int]] = {}
         self.claims: list[int] = []
         self.statements: dict[int, str] = {}
@@ -155,14 +156,61 @@ class _Discovery:
                 ):
                     self.claims.append(node)
 
-    def count_uses(self) -> None:
-        """Pass over the edges: how many declarations, and files, name each node."""
+    def visible(self) -> list[int]:
+        """
+        Return, per file, a bitset of the project files it imports, transitively.
+
+        Bit ``g`` of entry ``f`` is set when file ``f`` imports file ``g``
+        directly or through others. Iterative, memoised depth-first order;
+        an import cycle (refused by Lean) ends where it closes. Memory is
+        one bit per pair of files.
+        """
         index = self.index
-        last_file = array("l", [-1]) * len(index._name)
+        modules = index._module_files()
+        direct = [
+            [modules[m] for m in imports if m in modules] for imports in index._imports
+        ]
+        reach: list[int | None] = [None] * len(direct)
+        for root in range(len(direct)):
+            if reach[root] is not None:
+                continue
+            stack = [(root, 0)]
+            reach[root] = 0  # in progress: a cycle back here contributes nothing more
+            while stack:
+                file_id, i = stack.pop()
+                if i < len(direct[file_id]):
+                    stack.append((file_id, i + 1))
+                    child = direct[file_id][i]
+                    if reach[child] is None:
+                        reach[child] = 0
+                        stack.append((child, 0))
+                    continue
+                bits = 0
+                for child in direct[file_id]:
+                    bits |= (1 << child) | (reach[child] or 0)
+                reach[file_id] = bits
+        return [bits or 0 for bits in reach]
+
+    def count_uses(self) -> None:
+        """
+        Pass over the edges: how many declarations, and files, name each node.
+
+        A use counts only when the named declaration's file is the user's
+        own or one it imports: a lexical match into a file the user cannot
+        see (a bound ``s`` against a top-level ``s`` in a test file) is not
+        a use.
+        """
+        index = self.index
+        reach = self.visible()
+        last_file = array("q", [-1]) * len(index._name)
         for node in range(len(index._name)):
             file_id = index._file[node]
+            sees = reach[file_id] if file_id < len(reach) else 0
             for code in index._edges_of(node):
                 target = code // 4
+                target_file = index._file[target]
+                if target_file != file_id and not (sees >> target_file) & 1:
+                    continue
                 self.in_degree[target] += 1
                 if last_file[target] != file_id:  # nodes come file by file
                     last_file[target] = file_id
@@ -327,12 +375,13 @@ class _Discovery:
         axioms = [n for n in range(len(index._name)) if index._kind[n] == "axiom"]
         wanted = [n for n in range(len(index._name)) if index._kind[n] == "proof_wanted"]
         claims = sorted(self.claims, key=lambda n: (-self.in_degree[n], index._name[n] or ""))
+        headline_set = set(headline)
         isolated = [
             n
             for n in range(len(index._name))
             if index._kind[n] in _RESULTS
             and not self.in_degree[n]
-            and n not in set(headline)
+            and n not in headline_set
         ]
         isolated.sort(key=lambda n: (-(index._end[n] - index._start[n]), index._name[n] or ""))
         listed = (
@@ -368,7 +417,7 @@ class _Discovery:
                                           "cut": parallel_count > len(parallel)},
                 "generators": _listing(index._generators(), self.top),
                 "isolated_results": _listing(
-                    [self.item(n) for n in isolated[: self.top]] , self.top
+                    [self.item(n) for n in isolated[: self.top]], self.top
                 ) | {"count": len(isolated), "cut": len(isolated) > self.top},
             },
             "headline_results": _listing([self.item(n) for n in headline], self.top),
