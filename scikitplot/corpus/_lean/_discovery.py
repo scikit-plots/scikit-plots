@@ -131,7 +131,6 @@ class _Discovery:
         self.shapes: dict[bytes, list[int]] = {}
         self.claims: list[int] = []
         self.statements: dict[int, str] = {}
-        self._reach: list[int] | None = None
 
     # -- passes -------------------------------------------------------------
 
@@ -166,67 +165,20 @@ class _Discovery:
                 ):
                     self.claims.append(node)
 
-    def visible(self) -> list[int]:
-        """Return :meth:`_visible`, computed once per run."""
-        if self._reach is None:
-            self._reach = self._visible()
-        return self._reach
-
-    def _visible(self) -> list[int]:
-        """
-        Return, per file, a bitset of the project files it imports, transitively.
-
-        Bit ``g`` of entry ``f`` is set when file ``f`` imports file ``g``
-        directly or through others. Iterative, memoised depth-first order;
-        an import cycle (refused by Lean) ends where it closes. Memory is
-        one bit per pair of files.
-        """
-        index = self.index
-        modules = index._module_files()
-        direct = [
-            [modules[m] for m in imports if m in modules] for imports in index._imports
-        ]
-        reach: list[int | None] = [None] * len(direct)
-        for root in range(len(direct)):
-            if reach[root] is not None:
-                continue
-            stack = [(root, 0)]
-            reach[root] = 0  # in progress: a cycle back here contributes nothing more
-            while stack:
-                file_id, i = stack.pop()
-                if i < len(direct[file_id]):
-                    stack.append((file_id, i + 1))
-                    child = direct[file_id][i]
-                    if reach[child] is None:
-                        reach[child] = 0
-                        stack.append((child, 0))
-                    continue
-                bits = 0
-                for child in direct[file_id]:
-                    bits |= (1 << child) | (reach[child] or 0)
-                reach[file_id] = bits
-        return [bits or 0 for bits in reach]
-
     def count_uses(self) -> None:
         """
         Pass over the edges: how many declarations, and files, name each node.
 
-        A use counts only when the named declaration's file is the user's
-        own or one it imports: a lexical match into a file the user cannot
-        see (a bound ``s`` against a top-level ``s`` in a test file) is not
-        a use.
+        Edges link only into files the user can see (the index's
+        ``visibility``), so a bound ``s`` is not counted as a use of a
+        top-level ``s`` in a file nothing imports.
         """
         index = self.index
-        reach = self.visible()
         last_file = array("q", [-1]) * len(index._name)
         for node in range(len(index._name)):
             file_id = index._file[node]
-            sees = reach[file_id] if file_id < len(reach) else 0
             for code in index._edges_of(node):
                 target = code // 4
-                target_file = index._file[target]
-                if target_file != file_id and not (sees >> target_file) & 1:
-                    continue
                 self.in_degree[target] += 1
                 if last_file[target] != file_id:  # nodes come file by file
                     last_file[target] = file_id
@@ -358,9 +310,12 @@ class _Discovery:
         out = []
         for name, public, same in groups[: self.top]:
             files = sorted({index._file[n] for n in public})
-            reach = self.visible()
+            # -1 means the imports are unknown: not evidence that one meets another.
             meets = any(
-                (reach[f] >> other) & 1 for f in files for other in files if other != f
+                index._sees(f) != -1 and (index._sees(f) >> other) & 1
+                for f in files
+                for other in files
+                if other != f
             )
             out.append(
                 {

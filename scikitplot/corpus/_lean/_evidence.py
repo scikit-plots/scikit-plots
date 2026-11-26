@@ -271,6 +271,19 @@ class LeanIndex:
         ``"unique"`` (default) links ``h.myLemma`` to the one declaration
         whose last component is ``myLemma``, the usual reading of dot
         notation; ``"none"`` links full names only.
+    visibility : {"imports", "all"}, optional
+        Which declarations a name can link to. ``"imports"`` (default):
+        those of the same file and of the files it imports, directly or
+        through others, as Lean sees them; a file with a project import
+        no file provides sees every declaration, so an incomplete index
+        links too much, never too little. ``"all"``: every declaration of
+        the index, as text alone suggests.
+    source_root : str or None, optional
+        The folder, relative to the labels, that module names start from
+        (``"src"``; ``""`` for the index root). Files outside it provide
+        no module. ``None`` (default) finds it from the imports; see
+        :meth:`_module_files`. Set it when a small project's only imports
+        could name either a dependency or a project file.
 
     See Also
     --------
@@ -334,10 +347,26 @@ class LeanIndex:
         max_scope_depth: int = 256,
         max_file_bytes: int = 50 * 1024 * 1024,
         suffix: str = "unique",
+        visibility: str = "imports",
+        source_root: str | None = None,
     ) -> None:
         if dialect not in ("lean4", "lean3"):
             raise ValueError(
                 f"LeanIndex: dialect must be 'lean4' or 'lean3'; got {dialect!r}."
+            )
+        if visibility not in ("imports", "all"):
+            raise ValueError(
+                f"LeanIndex: visibility must be 'imports' or 'all'; got {visibility!r}."
+            )
+        if source_root is not None and (
+            not isinstance(source_root, str)
+            or source_root.startswith("/")
+            or "\\" in source_root
+            or ".." in source_root.split("/")
+        ):
+            raise ValueError(
+                "LeanIndex: source_root must be a relative POSIX folder such as"
+                f" 'src' ('' for the index root); got {source_root!r}."
             )
         if suffix not in ("unique", "none"):
             raise ValueError(
@@ -360,6 +389,9 @@ class LeanIndex:
         self._max_depth = max_scope_depth
         self._max_bytes = max_file_bytes
         self._suffix = suffix
+        self._visibility = visibility
+        self._source_root = None if source_root is None else source_root.strip("/")
+        self._reach: dict[int, int] = {}
         # files
         self._labels: list[str] = []
         self._label_ids: dict[str, int] = {}
@@ -568,6 +600,7 @@ class LeanIndex:
         self._first_node.append(len(self._name))
         self._by_short = None
         self._edges.clear()
+        self._reach.clear()
         self._contexts.clear()
         return file_id
 
@@ -692,20 +725,131 @@ class LeanIndex:
         return None
 
     def _module_files(self) -> dict[str, int]:
-        """Map each module name a file can provide to the first such file."""
+        """
+        Map each module the files provide to its file, at the project's source root.
+
+        Lean names a module by its path from the package's source root:
+        ``Mathlib/Data/Nat.lean`` is ``Mathlib.Data.Nat`` from the
+        repository root, ``src/A/B.lean`` is ``A.B`` under ``src/``. The
+        root is found once for the index, as the number of leading folders
+        to strip (0, 1, ...) under which the most of the project's own
+        imports name a file exactly; ties go to the fewest. A module is
+        never matched by a tail of its path alone, so a core
+        ``import Lean.Elab.Term`` is not taken for ``Mathlib/Lean/Elab/Term.lean``.
+        Of two files giving one module, the first in label order provides it.
+        """
         key = len(self._labels)
         cached = getattr(self, "_module_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1]
-        modules: dict[str, int] = {}
-        for file_id, label in enumerate(self._labels):
-            if not label.endswith(".lean"):
-                continue
-            parts = label[: -len(".lean")].split("/")
-            for i in range(len(parts)):
-                modules.setdefault(".".join(parts[i:]), file_id)
+        paths = [
+            label[: -len(".lean")].split("/") if label.endswith(".lean") else None
+            for label in self._labels
+        ]
+        if self._source_root is not None:
+            prefix = self._source_root.split("/") if self._source_root else []
+            fixed: dict[str, int] = {}
+            for file_id, parts in enumerate(paths):
+                if (
+                    parts
+                    and len(parts) > len(prefix)
+                    and parts[: len(prefix)] == prefix
+                ):
+                    fixed.setdefault(".".join(parts[len(prefix) :]), file_id)
+            self._module_cache = (key, fixed)
+            return fixed
+        imported = Counter(module for imports in self._imports for module in imports)
+        deepest = max((len(parts) - 1 for parts in paths if parts), default=0)
+        best: tuple[int, dict[str, int]] = (-1, {})
+        for depth in range(deepest + 1):
+            modules: dict[str, int] = {}
+            for file_id, parts in enumerate(paths):
+                if parts is not None and len(parts) > depth:
+                    modules.setdefault(".".join(parts[depth:]), file_id)
+            resolved = sum(
+                count for module, count in imported.items() if module in modules
+            )
+            if resolved > best[0]:
+                best = (resolved, modules)
+        modules = best[1]
         self._module_cache = (key, modules)
         return modules
+
+    def _sees(self, file_id: int) -> int:
+        """
+        Return the files *file_id* can see, as a bitset (bit ``g`` for file ``g``).
+
+        Its own file and every project file it imports, directly or through
+        others. ``-1`` (every bit) with ``visibility="all"``, or when the file
+        or one it imports has a project import no file provides: what it
+        sees is then unknown, and nothing is hidden. Computed on first use
+        for the files a query reaches, iteratively (no recursion limit),
+        and kept until a file is added; memory is at most one bit per pair
+        of files.
+        """
+        if self._visibility == "all":
+            return -1
+        reach = self._reach
+        known = reach.get(file_id)
+        if known is not None:
+            return known
+        direct, unknown = self._import_files()
+        stack = [(file_id, 0)]
+        reach[file_id] = (
+            0  # in progress: an import cycle (refused by Lean) adds nothing
+        )
+        while stack:
+            current, i = stack.pop()
+            children = direct[current]
+            if i < len(children):
+                stack.append((current, i + 1))
+                child = children[i]
+                if child not in reach:
+                    reach[child] = 0
+                    stack.append((child, 0))
+                continue
+            bits = 1 << current
+            if current in unknown:
+                bits = -1
+            else:
+                for child in children:
+                    bits |= (1 << child) | reach[child]
+            reach[current] = bits
+        return reach[file_id]
+
+    def _import_files(self) -> tuple[list[list[int]], set[int]]:
+        """
+        Return each file's directly imported project files, and the files whose imports are unknown.
+
+        An import is unknown when no file provides it yet it names the
+        project: its first component is that of a provided module (a
+        missing module), or it is a provided module with leading components
+        added (the index was built from a subfolder: ``Mathlib/`` provides
+        ``Algebra.X``, the files import ``Mathlib.Algebra.X``).
+        """
+        key = len(self._labels)
+        cached = getattr(self, "_import_files_cache", None)
+        if cached is not None and cached[0] == key:
+            return cached[1], cached[2]
+        modules = self._module_files()
+        _, roots = self._modules()
+        direct: list[list[int]] = []
+        unknown: set[int] = set()
+        for file_id, imports in enumerate(self._imports):
+            found = []
+            for module in imports:
+                provider = modules.get(module)
+                if provider is not None:
+                    found.append(provider)
+                    continue
+                parts = module.split(".")
+                if parts[0] in roots or any(
+                    ".".join(parts[i:]) in modules for i in range(1, len(parts))
+                ):
+                    unknown.add(file_id)
+            direct.append(found)
+        self._import_files_cache = (key, direct, unknown)
+        return direct, unknown
 
     def _imported(self, file_id: int) -> dict[int, int]:
         """Return the project files *file_id* imports, transitively: each to the one importing it."""
@@ -907,12 +1051,15 @@ class LeanIndex:
         refs = self._refs[node] or ()
         namespace, opens = self._namespace[node], self._opens[node]
         file_id = self._file[node]
+        sees = self._sees(file_id)
         best: dict[int, int] = {}
         for ref in refs:
             for code in self._resolve(ref, namespace, opens):
                 target, how = divmod(code, 4)
                 if target == node:
                     continue
+                if not (sees >> self._file[target]) & 1:
+                    continue  # in a file this one does not import
                 if target in self._private and self._file[target] != file_id:
                     continue  # a private declaration is seen from its own file only
                 if how < best.get(target, 3):
@@ -1037,6 +1184,7 @@ class LeanIndex:
         return {
             "report": "summary",
             "producer": PRODUCER,
+            "visibility": self._visibility,
             "files": len(self._labels),
             "lines": sum(self._file_lines),
             "declarations": len(self._name),
@@ -1110,6 +1258,7 @@ class LeanIndex:
         report: dict[str, Any] = {
             "report": "dossier",
             "producer": PRODUCER,
+            "visibility": self._visibility,
             "query": target,
             "edge": {
                 "relation": RelationType.REFERENCES.value,
@@ -1179,32 +1328,38 @@ class LeanIndex:
         }
 
         # What could be used without being named: flagged instances, tagged
-        # lemmas and syntax extensions anywhere; and declarations generated
-        # by code that runs in a module the target's module imports.
+        # lemmas and syntax extensions, and declarations generated by code
+        # that runs, in what the target's environment holds: its own file
+        # before it, and the files it can see (``visibility``).
+        home = self._file[node]
+        sees = self._sees(home)
+
+        def in_scope(file_id: int, line: int) -> bool:
+            if file_id == home:
+                return (
+                    line < self._start[node]
+                )  # later in its own file: not yet declared
+            return bool((sees >> file_id) & 1)
+
         implicit = [
             n
             for n in sorted(self._flags)
             if n not in reached
             and (self._kind[n] in _IMPLICIT or n in self._attributes)
+            and in_scope(self._file[n], self._start[n])
         ]
         risks: list[dict[str, Any]] = [
             {"risk": "used_without_name", **self._location(n)} for n in implicit
         ]
-        imported = self._imported(self._file[node])
-        label_ids = {label: i for i, label in enumerate(self._labels)}
+        imported = self._imported(home)
         generated = []
         for generator in self._generators():
             invocation = generator["invocation"]
-            file_id = label_ids[invocation["file"]]
-            if file_id not in imported:
+            file_id = self._label_ids[invocation["file"]]
+            if not in_scope(file_id, invocation["line_start"]):
                 continue
-            if (
-                file_id == self._file[node]
-                and invocation["line_start"] > self._start[node]
-            ):
-                continue  # later in the target's own file: not in its environment
-            chain = []
-            current = file_id
+            chain = []  # empty when the imports that reach it are unknown
+            current = file_id if file_id in imported else -1
             while current != -1:
                 chain.append(self._labels[current])
                 current = imported[current]
@@ -1364,11 +1519,11 @@ class LeanIndex:
         """
         Return the imported project modules no file provides, and external roots.
 
-        A module is provided by a file whose path ends with it
-        (``src/A/B.lean`` provides ``A.B``); an import whose first
-        component is a folder or file of the project but that no file
-        provides is missing; any other is a dependency's, counted by its
-        first component.
+        A module is provided by the file at its path from the project's
+        source root (:meth:`_module_files`); an import whose first
+        component is the first component of a provided module, but that
+        no file provides, is missing; any other is a dependency's, counted
+        by its first component.
         """
         key = len(self._labels)
         cached = getattr(self, "_gaps", None)
@@ -1389,15 +1544,9 @@ class LeanIndex:
         return missing, external
 
     def _modules(self) -> tuple[set[str], set[str]]:
-        """Return the module names the files can provide, and their first components."""
-        provided: set[str] = set()
-        roots: set[str] = set()
-        for label in self._labels:
-            parts = label[: -len(".lean")].split("/") if label.endswith(".lean") else []
-            for i in range(len(parts)):
-                provided.add(".".join(parts[i:]))
-            if parts:
-                roots.update(parts[:-1] or parts)
+        """Return the modules the files provide (see :meth:`_module_files`), and their first components."""
+        provided = set(self._module_files())
+        roots = {module.split(".", 1)[0] for module in provided}
         return provided, roots
 
     # -- discovery ----------------------------------------------------------
@@ -1753,6 +1902,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="also write the helper documents to DIR",
     )
     parser.add_argument("--no-learn-commands", action="store_true")
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        metavar="FOLDER",
+        help="folder module names start from (default: found from the imports)",
+    )
+    parser.add_argument(
+        "--visibility",
+        default="imports",
+        choices=("imports", "all"),
+        help="link names only into imported files (default), or anywhere",
+    )
     args = parser.parse_args(argv)
     unknown = sorted(set(args.fail_on) - AUDIT_FLAGS)
     if unknown:
@@ -1767,6 +1928,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             learn_commands=not args.no_learn_commands,
             dialect=args.dialect,
             commands=args.command,
+            visibility=args.visibility,
+            source_root=args.source_root,
         )
         if args.target:
             reports = [index.dossier(t, max_items=args.max_items) for t in args.target]
