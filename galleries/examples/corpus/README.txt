@@ -52,6 +52,11 @@ Start here
 10. **Build a multi-source WHO corpus** — see the explicit stage-by-stage
     integration path, partial source success, keyword retrieval, adapters, and
     where :class:`CorpusBuilder` fits.
+11. **Read source code** — :class:`CodeReader` from one file to a folder of
+    languages, custom extensions, awkward encodings and a line-coverage check.
+12. **Read Lean proofs** — :class:`LeanReader`: one chunk per command, proofs
+    kept or dropped, audit flags (``sorry``, ``native_decide``, ``axiom``,
+    ``#exit``), references, long proofs in parts, Lean 3 and hostile input.
 
 Which API should I use?
 -----------------------
