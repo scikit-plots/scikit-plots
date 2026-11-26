@@ -366,7 +366,23 @@ class _Unavailable:
 
     def __init__(self, exc: BaseException) -> None:
         first = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
-        self.reason = f"{type(exc).__name__}: {first}" if first else type(exc).__name__
+        self.needs = _missing_package(exc)
+        reason = f"{type(exc).__name__}: {first}" if first else type(exc).__name__
+        self.reason = f"needs {self.needs} ({reason})" if self.needs else reason
+
+
+def _missing_package(exc: BaseException) -> str | None:
+    """
+    Return the top-level package an ``ImportError`` says is missing, unless it is scikitplot.
+
+    A missing third-party package is an optional extra not installed; a
+    missing ``scikitplot`` module is a broken install, reported as it is.
+    """
+    name = getattr(exc, "name", None) if isinstance(exc, ImportError) else None
+    if not name:
+        return None
+    top = name.split(".", 1)[0]
+    return None if top == "scikitplot" else top
 
 
 def _declared(
@@ -438,13 +454,17 @@ def module_listing(module: str = "scikitplot") -> dict[str, Any]:
         ``unavailable``, with the reason as its summary); ``children`` (for a module whose
         ``__all__`` lists no other name: its public subpackages, each with
         ``module``, ``summary`` and ``sphinx``, whether it defines a Sphinx
-        ``setup``).
+        ``setup``; a subpackage whose import needs a third-party package that
+        is not installed is listed with ``needs``, that package, and the
+        reason as its summary).
 
     Raises
     ------
     ApiListingError
         When the name is not a scikit-plots module, the module does not
-        import, or it has no ``__all__``.
+        import, or it has no ``__all__``. A subpackage failing to import for
+        any reason other than a missing third-party package raises its own
+        error: that is a fault, not an extra.
 
     Examples
     --------
@@ -483,10 +503,27 @@ def module_listing(module: str = "scikitplot") -> dict[str, Any]:
                 or info.name in ("tests", "test")
             ):
                 continue
-            child = importlib.import_module(f"{module}.{info.name}")
+            dotted = f"{module}.{info.name}"
+            try:
+                child = importlib.import_module(dotted)
+            except ImportError as exc:
+                # A subpackage needing an extra not installed is listed as
+                # such; any other import failure is a real fault and raises.
+                missing = _Unavailable(exc)
+                if missing.needs is None:
+                    raise
+                children.append(
+                    {
+                        "module": dotted,
+                        "summary": f"unavailable: {missing.reason}",
+                        "sphinx": False,
+                        "needs": missing.needs,
+                    }
+                )
+                continue
             children.append(
                 {
-                    "module": f"{module}.{info.name}",
+                    "module": dotted,
                     "summary": summary(child),
                     "sphinx": callable(getattr(child, "setup", None)),
                 }
