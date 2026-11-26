@@ -1,0 +1,3 @@
+- Gallery examples for :class:`~scikitplot.corpus.CodeReader` and
+  :class:`~scikitplot.corpus.LeanReader`, from one file to a generated
+  project, with edge cases and a line-coverage check.
