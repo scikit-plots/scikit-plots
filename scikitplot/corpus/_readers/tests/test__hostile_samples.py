@@ -335,13 +335,13 @@ def _tgz_member_at_the_text_floor(path: Path) -> Path:
 
 def _lean_unclosed_openers(path: Path) -> Path:
     """40 kB of nested comment openers that never close, on one line."""
-    path.write_text("/-" * 20_000, encoding="utf-8")
+    path.write_bytes(b"/-" * 20_000)
     return path
 
 
 def _lean_deep_scopes(path: Path) -> Path:
     """Five thousand nested namespaces (refused by max_scope_depth)."""
-    path.write_text("namespace N\n" * 5_000, encoding="utf-8")
+    path.write_bytes(b"namespace N\n" * 5_000)  # exact bytes: no CRLF on Windows
     return path
 
 
@@ -351,7 +351,8 @@ def _lean_many_small_commands(path: Path) -> Path:
 
     Measures the cost of many small chunks, so it must be read.
     """
-    path.write_text("".join(f"def d{i} := {i}\n" for i in range(3_600)), encoding="utf-8")
+    body = "".join(f"def d{i} := {i}\n" for i in range(3_600))
+    path.write_bytes(body.encode("ascii"))  # exact bytes: no CRLF on Windows
     return path
 
 
