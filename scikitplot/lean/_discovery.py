@@ -1,4 +1,4 @@
-# scikitplot/corpus/_lean/_discovery.py
+# scikitplot/lean/_discovery.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -10,7 +10,7 @@ A formal development is written to settle one problem. The ideas that carry
 it are rarely written down as such: the statements everything else leans
 on, the shapes that recur from file to file, the hypotheses it states as
 definitions, the irregularities that point at something unstated. This
-module reads them from what :class:`~scikitplot.corpus.LeanIndex` recorded,
+module reads them from what :class:`~scikitplot.lean.LeanIndex` recorded,
 by stated rules, and writes them as documents for people and for language
 models to reason from:
 
@@ -38,16 +38,17 @@ candidates mean.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
+import os
 import re
+import tempfile
 from array import array
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from .._atomic import atomic_write_bytes
-from .._readers._lean import _NAME, _Lexer, _Splitter
-from ._evidence import (
+from ._index import (
     _DEFINITIONS,
     PRODUCER,
     LeanIndex,
@@ -55,11 +56,12 @@ from ._evidence import (
     _listing,
     _positive,
 )
+from ._syntax import _NAME, _Lexer, _Splitter
 
 __all__: list[str] = []
 
 #: Identity of the rules that choose the items, recorded on every record.
-DISCOVERY = "corpus.lean-discovery/1"
+DISCOVERY = "lean.discovery/1"
 
 #: Kinds whose statement is a result.
 _RESULTS = frozenset({"theorem", "lemma"})
@@ -488,7 +490,7 @@ def discover(
 
 _README = """# Helper documents for a Lean project
 
-Generated from the source by `scikitplot.corpus.LeanIndex` ({producer}).
+Generated from the source by `scikitplot.lean.LeanIndex` ({producer}).
 Every item names a file and its lines: check each one against the source.
 
 ## What is here
@@ -777,10 +779,33 @@ def _safe(name: str) -> str:
     return f"{keep}-{hashlib.blake2b(name.encode('utf-8'), digest_size=4).hexdigest()}"
 
 
+def _atomic_write(target: Path, data: bytes) -> None:
+    """
+    Write *data* to *target* atomically: a reader sees the old file or the new one.
+
+    A temporary file in the same folder is written, flushed to disk and
+    renamed over *target* (``os.replace``, atomic on POSIX and Windows); on
+    any error the temporary file is removed and the error raised.
+    """
+    handle, name = tempfile.mkstemp(
+        dir=target.parent, prefix=f".{target.name}.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(handle, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, target)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(name)
+        raise
+
+
 def _write(folder: Path, relative: str, text: str, written: list[str]) -> None:
     target = folder / relative
     target.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_bytes(target, text.encode("utf-8"))
+    _atomic_write(target, text.encode("utf-8"))
     written.append(relative)
 
 
@@ -855,7 +880,56 @@ def export(
         ),
         written,
     )
+    _prune(folder, written)
     return written
+
+
+#: The export's own record of what it wrote, so a later export into the same
+#: folder removes what it no longer writes and nothing else.
+_MANIFEST = ".lean-export.json"
+
+
+def _previous(folder: Path) -> list[str]:
+    """Return the files the last export into *folder* wrote, read defensively."""
+    try:
+        data = json.loads((folder / _MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    files = data.get("files") if isinstance(data, dict) else None
+    return [f for f in files if isinstance(f, str)] if isinstance(files, list) else []
+
+
+def _prune(folder: Path, written: list[str]) -> None:
+    """
+    Remove what the previous export wrote and this one did not, then record this one.
+
+    Only paths the previous manifest lists are candidates; each must be
+    relative, free of ``..``, a regular file (not a link) and inside
+    *folder* once resolved. A file the export never wrote is never touched,
+    and a tampered manifest cannot reach outside the folder.
+    """
+    keep = set(written)
+    base = folder.resolve()
+    for relative in _previous(folder):
+        parts = relative.split("/")
+        if (
+            relative in keep
+            or relative.startswith("/")
+            or "\\" in relative
+            or ".." in parts
+        ):
+            continue
+        path = folder.joinpath(*parts)
+        try:
+            inside = os.path.commonpath([str(base), str(path.resolve())]) == str(base)
+        except (OSError, ValueError):
+            continue
+        if inside and path.is_file() and not path.is_symlink():
+            path.unlink()
+    _atomic_write(
+        folder / _MANIFEST,
+        _json({"producer": DISCOVERY, "files": sorted(written)}).encode("utf-8"),
+    )
 
 
 def render(report: dict[str, Any]) -> str:

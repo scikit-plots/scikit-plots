@@ -92,6 +92,7 @@ citation("build").startswith("@software{scikit-plots_v")
 | `scikitplot.decile` | `scikitplot-decile` |
 | `scikitplot.feature_selection` | `scikitplot-feature-selection` |
 | `scikitplot.impute` | `scikitplot-impute` |
+| `scikitplot.lean` | `scikitplot-lean` |
 | `scikitplot.levenshtein` | `scikitplot-levenshtein` |
 | `scikitplot.logging` | `scikitplot-logging` |
 | `scikitplot.mcp` | `scikitplot-mcp` |

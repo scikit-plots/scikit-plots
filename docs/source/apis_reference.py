@@ -2018,15 +2018,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Lean Evidence",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "LeanIndex",
-                ],
-            },
-            {
                 "title": "Hierarchy Report",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -3247,6 +3238,29 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "MissingIndicator",
                     "SimpleImputer",
+                ],
+            },
+        ],
+    },
+    "scikitplot.lean": {
+        "short_summary": "Evidence on Lean projects: dossiers, project summaries and discovery, read from source text.",
+        "description": _get_guide("lean-index"),
+        "sections": [
+            {
+                "title": "Index and evidence",
+                "autosummary": [
+                    "LeanIndex",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "LeanIndex",
+                ],
+            },
+            {
+                "title": "Audit flags",
+                "autosummary": [
+                    "AUDIT_FLAGS",
+                    "LEAN_FLAGS",
                 ],
             },
         ],

@@ -9,6 +9,7 @@
 | [`skinny/`](skinny/) | `scikit-plots-skinny` | `_cli`, `logging` | pure Python |
 | [`rank-bm25/`](rank-bm25/) | `scikit-plots-rank-bm25` | `rank_bm25` | pure Python |
 | [`corpus/`](corpus/) | `scikit-plots-corpus` | `corpus` | pure Python |
+| [`lean/`](lean/) | `scikit-plots-lean` | `lean` | pure Python |
 | [`annoy/`](annoy/) | `scikit-plots-annoy` | `annoy`, `cexternals._annoy` | compiled (C++) |
 | [`sphinx-ext/`](sphinx-ext/) | `scikit-plots-sphinx-ext` | `_externals._sphinx_ext` | pure Python |
 | [`mcp/`](mcp/) | `scikit-plots-mcp` | `mcp` | pure Python |

@@ -1,4 +1,4 @@
-# corpus/_lean/tests/test__discovery.py
+# lean/tests/test__discovery.py
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -20,7 +20,7 @@ import textwrap
 import pytest
 
 from .._discovery import _safe
-from .._evidence import LeanIndex
+from .._index import LeanIndex
 
 
 def _project(root, files):
@@ -321,3 +321,41 @@ def test_a_use_counts_only_into_files_the_user_imports(tmp_path):
     assert "s" not in _names(rules["central_concepts"])
     keep = next(i for i in rules["load_bearing_theorems"]["items"] if i["declaration"] == "keep")
     assert keep["named_from_files"] == 2  # One and Two; Three only names `one`
+
+
+def test_a_second_export_leaves_what_one_export_would(tmp_path):
+    index = LeanIndex.from_folder(_project(tmp_path / "src", PROJECT))
+    out = tmp_path / "out"
+    first = index.export(out, targets=["use_a", "use_b"])
+    mine = out / "notes.txt"
+    mine.write_text("kept", encoding="utf-8")
+    second = index.export(out, targets=["use_a"])
+    files = sorted(
+        p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file()
+    )
+    assert files == sorted([*second, ".lean-export.json", "notes.txt"])
+    assert set(first) - set(second)  # use_b's dossier was written, then removed
+    assert mine.read_text(encoding="utf-8") == "kept"
+
+
+def test_a_tampered_manifest_cannot_reach_outside(tmp_path):
+    index = LeanIndex.from_folder(_project(tmp_path / "src", PROJECT))
+    out = tmp_path / "out"
+    victim = tmp_path / "victim.txt"
+    victim.write_text("safe", encoding="utf-8")
+    out.mkdir()
+    (out / ".lean-export.json").write_text(
+        json.dumps({"files": ["../victim.txt", str(victim), "a\\\\..\\\\b", 3]}),
+        encoding="utf-8",
+    )
+    index.export(out)
+    assert victim.read_text(encoding="utf-8") == "safe"
+
+
+def test_a_broken_manifest_is_ignored(tmp_path):
+    index = LeanIndex.from_folder(_project(tmp_path / "src", PROJECT))
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / ".lean-export.json").write_text("{not json", encoding="utf-8")
+    written = index.export(out)
+    assert json.loads((out / ".lean-export.json").read_text(encoding="utf-8"))["files"] == sorted(written)

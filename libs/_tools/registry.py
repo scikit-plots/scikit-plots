@@ -335,7 +335,12 @@ PACKAGES: tuple[Package, ...] = (
         # import time), and part of its test suite does not parse.
         requires_python=">=3.9",
         extras=("corpus",),
-        siblings=(("annoy", ("scikit-plots-annoy",)),),
+        # ``lean``: LeanReader is built on scikitplot.lean; without it the
+        # corpus has no reader for ``.lean`` files (scikitplot/corpus/_readers).
+        siblings=(
+            ("annoy", ("scikit-plots-annoy",)),
+            ("lean", ("scikit-plots-lean",)),
+        ),
         # Readers and downloaders whose tests exercise the real libraries.
         test_requires=("pandas", "pillow", "requests"),
         keywords=(
@@ -347,6 +352,27 @@ PACKAGES: tuple[Package, ...] = (
             "retrieval",
         ),
         example="import scikitplot.corpus as corpus\n",
+    ),
+    Package(
+        distribution="scikit-plots-lean",
+        license="BSD-3-Clause",
+        # Standard library only. Measured: its tests pass alone (no
+        # scikitplot.corpus, no build) on Python 3.8 and 3.15; the two
+        # LeanReader tests skip without the corpus.
+        keywords=(
+            "scikit-plots",
+            "lean",
+            "lean4",
+            "formal verification",
+            "theorem proving",
+            "proof review",
+        ),
+        example=(
+            "from scikitplot.lean import LeanIndex\n"
+            "\n"
+            'index = LeanIndex.from_folder(".")\n'
+            "print(LeanIndex.render(index.summary()))\n"
+        ),
     ),
     Package(
         distribution="scikit-plots-annoy",

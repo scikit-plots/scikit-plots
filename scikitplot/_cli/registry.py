@@ -179,6 +179,14 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
             "pip install scikit-plots[env]; the JupyterLite add-on [env-xeus]"
         ),
     ),
+    # Delegated, like `mcp`: `scikitplot lean FOLDER [--target NAME]
+    # [--fail-on FLAG]`. Standard library only, so always runnable.
+    CommandSpec(
+        name="lean",
+        summary="Evidence on a Lean project: summary, dossiers, discovery.",
+        delegate="scikitplot.lean._index:main",
+        install_hint="Needs nothing beyond scikit-plots (standard library only).",
+    ),
     CommandSpec(
         name="cleanprompt",
         summary="Redact sensitive values from a prompt before sending it to an LLM.",

@@ -157,6 +157,7 @@ Plugins**. After an update, run `/reload-plugins` or start a new session.
 | `scikitplot.decile` | [`scikitplot-decile`](skills/scikitplot-decile/SKILL.md) | [`scikitplot-decile`](agents/scikitplot-decile.md) |
 | `scikitplot.feature_selection` | [`scikitplot-feature-selection`](skills/scikitplot-feature-selection/SKILL.md) | [`scikitplot-feature-selection`](agents/scikitplot-feature-selection.md) |
 | `scikitplot.impute` | [`scikitplot-impute`](skills/scikitplot-impute/SKILL.md) | [`scikitplot-impute`](agents/scikitplot-impute.md) |
+| `scikitplot.lean` | [`scikitplot-lean`](skills/scikitplot-lean/SKILL.md) | [`scikitplot-lean`](agents/scikitplot-lean.md) |
 | `scikitplot.levenshtein` | [`scikitplot-levenshtein`](skills/scikitplot-levenshtein/SKILL.md) | [`scikitplot-levenshtein`](agents/scikitplot-levenshtein.md) |
 | `scikitplot.logging` | [`scikitplot-logging`](skills/scikitplot-logging/SKILL.md) | [`scikitplot-logging`](agents/scikitplot-logging.md) |
 | `scikitplot.mcp` | [`scikitplot-mcp`](skills/scikitplot-mcp/SKILL.md) | [`scikitplot-mcp`](agents/scikitplot-mcp.md) |

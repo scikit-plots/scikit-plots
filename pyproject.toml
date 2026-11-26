@@ -1708,6 +1708,7 @@ usage_modules = [
   "scikitplot.decile",
   "scikitplot.feature_selection",
   "scikitplot.impute",
+  "scikitplot.lean",
   "scikitplot.levenshtein",
   "scikitplot.logging",
   "scikitplot.mcp",
@@ -2209,6 +2210,10 @@ words = ["query"]
     path = "scikitplot.impute"
 
   [[tool.towncrier.section]]
+    name = "scikitplot.lean"
+    path = "scikitplot.lean"
+
+  [[tool.towncrier.section]]
     name = "scikitplot.levenshtein"
     path = "scikitplot.levenshtein"
 
@@ -2286,6 +2291,10 @@ words = ["query"]
   [[tool.towncrier.section]]
     name = "libs/corpus"
     path = "libs.corpus"
+
+  [[tool.towncrier.section]]
+    name = "libs/lean"
+    path = "libs.lean"
 
   [[tool.towncrier.section]]
     name = "libs/cython"

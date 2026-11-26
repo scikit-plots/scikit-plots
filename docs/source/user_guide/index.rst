@@ -174,6 +174,17 @@ User Guide
         :columns: 12 12 6 6
         :padding: 2
 
+        **formal proofs (Lean)**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Lean <./lean/index.rst>
+
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
         **logging system**
         ^^^
         .. toctree::

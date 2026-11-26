@@ -231,7 +231,6 @@ from . import _logodds_fusion  # noqa: F401
 from . import _generation  # noqa: F401
 from . import _identity  # noqa: F401
 from . import _graph  # noqa: F401
-from . import _lean  # noqa: F401
 from . import _plan  # noqa: F401
 from . import _hierarchy  # noqa: F401
 from . import _retrieval  # noqa: F401
@@ -253,7 +252,6 @@ from ._logodds_fusion import *  # noqa: F403
 from ._generation import *  # noqa: F403
 from ._identity import *  # noqa: F403
 from ._graph import *  # noqa: F403
-from ._lean import *  # noqa: F403  # evidence over a Lean project
 from ._plan import *  # noqa: F403
 from ._hierarchy import *  # noqa: F403
 from ._retrieval import *  # noqa: F403
@@ -299,7 +297,6 @@ __all__ += _logodds_fusion.__all__
 __all__ += _generation.__all__
 __all__ += _identity.__all__
 __all__ += _graph.__all__
-__all__ += _lean.__all__
 __all__ += _plan.__all__
 __all__ += _hierarchy.__all__
 __all__ += _retrieval.__all__

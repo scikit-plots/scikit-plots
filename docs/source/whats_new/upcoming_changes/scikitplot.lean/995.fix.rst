@@ -1,4 +1,4 @@
-- :class:`~scikitplot.corpus.LeanIndex` links a name only into the files
+- :class:`~scikitplot.lean.LeanIndex` links a name only into the files
   its own file imports, as Lean sees them, with modules named from the
   project's source root found from the imports (``source_root`` sets it);
   a file whose project imports are not all indexed hides nothing, and
