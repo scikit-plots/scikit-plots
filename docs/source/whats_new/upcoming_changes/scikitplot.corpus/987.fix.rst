@@ -1,0 +1,3 @@
+- :class:`~scikitplot.corpus.TarReader` refuses an oversized pax or GNU
+  long-name header with the same header message on every Python version,
+  whether ``tarfile`` reads the header in one call or in bounded chunks.
