@@ -616,5 +616,58 @@ class IsolationTests(unittest.TestCase):
         )
 
 
+def ranged_reader(path: Path):
+    """One chunk per two lines, with line ranges, as the code readers yield."""
+    lines = path.read_text(encoding="utf-8").split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return [
+        {"text": "\n".join(lines[i : i + 2]), "line_start": i + 1, "line_end": min(i + 2, len(lines))}
+        for i in range(0, len(lines), 2)
+    ]
+
+
+class LineCoverageTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.folder = _Folder({"a.lean": "one\ntwo\n\nfour\nfive\n", "b.txt": "x\n"})
+        self.path = self.folder.root / "a.lean"
+
+    def tearDown(self) -> None:
+        self.folder.close()
+
+    def test_chunks_that_partition_the_file_report_nothing(self) -> None:
+        coverage = snap.line_coverage(self.path, ranged_reader(self.path))
+        self.assertEqual(
+            coverage, {"nonblank": 4, "uncovered": 0, "overlaps": 0, "inexact": 0}
+        )
+
+    def test_gaps_overlaps_and_wrong_text_are_counted(self) -> None:
+        chunks = [
+            {"text": "one\ntwo", "line_start": 1, "line_end": 2},
+            {"text": "two", "line_start": 2, "line_end": 2},  # overlaps
+            {"text": "FIVE", "line_start": 5, "line_end": 5},  # wrong text
+            {"text": "past", "line_start": 9, "line_end": 9},  # past the end
+        ]
+        coverage = snap.line_coverage(self.path, chunks)
+        self.assertEqual(
+            coverage, {"nonblank": 4, "uncovered": 1, "overlaps": 1, "inexact": 2}
+        )
+
+    def test_chunks_without_line_ranges_give_none(self) -> None:
+        self.assertIsNone(snap.line_coverage(self.path, [{"text": "one"}]))
+
+    def test_encoding_newlines_and_byte_order_mark_follow_the_reader(self) -> None:
+        path = self.folder.root / "w.lean"
+        path.write_bytes(("\ufeffun\r\ndeux\r\n").encode("utf-16"))
+        chunks = [{"text": "un\ndeux", "line_start": 1, "line_end": 2, "encoding": "utf-16"}]
+        self.assertEqual(snap.line_coverage(path, chunks)["inexact"], 0)
+
+    def test_snapshot_records_coverage_only_when_asked(self) -> None:
+        files = snap.snapshot(self.folder.root, ranged_reader, lines=True)["files"]
+        self.assertEqual(files["a.lean"]["lines"]["uncovered"], 0)
+        plain = snap.snapshot(self.folder.root, ranged_reader)["files"]
+        self.assertIsNone(plain["a.lean"]["lines"])
+
+
 if __name__ == "__main__":
     unittest.main()

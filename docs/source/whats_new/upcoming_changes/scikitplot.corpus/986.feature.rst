@@ -1,0 +1,17 @@
+- :class:`~scikitplot.corpus.LeanReader` reads Lean source files
+  (``.lean``; Lean 4, and Lean 3 with ``dialect="lean3"``) one command at
+  a time: each declaration with its doc comment and attributes is a chunk
+  that names its kind (``lean_kind``), its fully qualified name
+  (``declaration``, namespaces included), its namespace, modifiers and
+  attributes, and the file lines it came from. Every non-blank line lands
+  in exactly one chunk whose text is the file's own lines, so retrieved
+  text points back to its source in a project of any size; 17.4 million
+  lines in 175,187 files split at about 5 MiB/s. Chunks also carry audit
+  ``flags`` found in code, outside comments and strings (``sorry``,
+  ``admit``, axioms, ``native_decide``, ``unsafe``, ``implemented_by``,
+  ``extern``, a disabled kernel check, text after ``#exit``): what the
+  text contains, not a proof check, which is ``#print axioms``'s job.
+  ``proofs="drop"`` keeps theorem statements and names the proof's lines;
+  ``watch`` locates every use of chosen names; ``kinds`` and ``commands``
+  select and extend what is read. ``reader_snapshot.py snapshot --lines``
+  checks that a line-based reader accounts for every line of a folder.
