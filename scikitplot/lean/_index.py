@@ -1377,26 +1377,28 @@ class LeanIndex:
         parts = namespace.split(".") if namespace else []
         prefixes = [".".join(parts[:i]) for i in range(len(parts), 0, -1)]
         codes: tuple[int, ...] = ()
-        found = self._lookup(ref, prefixes, opens)
+        # `.card`, `.inl`: a field or leading-dot name, its head unknown: no
+        # lookup can find it, only its components' short names.
+        found = () if ref[0] == "." else self._lookup(ref, prefixes, opens)
         if found:
             codes = tuple(node * 4 for node in found)
-        else:
+        elif ref[0] != ".":
             head = ref
             while "." in head and not codes:
                 head = head.rsplit(".", 1)[0]
                 found = self._lookup(head, prefixes, opens)
                 codes = tuple(node * 4 + 1 for node in found)
-            if not codes and self._suffix == "unique" and "." in ref:
-                # Dot notation, `h.lemma.trans`: each component after the
-                # first may name a lemma; link those one declaration has.
-                short = self._short()
-                found = [
-                    ids[0]
-                    for component in ref.split(".")[1:]
-                    for ids in (short.get(component, ()),)
-                    if len(ids) == 1
-                ]
-                codes = tuple(node * 4 + 2 for node in dict.fromkeys(found))
+        if not codes and self._suffix == "unique" and "." in ref:
+            # Dot notation, `h.lemma.trans`: each component after the
+            # first may name a lemma; link those one declaration has.
+            short = self._short()
+            found = [
+                ids[0]
+                for component in ref.split(".")[1:]
+                for ids in (short.get(component, ()),)
+                if len(ids) == 1
+            ]
+            codes = tuple(node * 4 + 2 for node in dict.fromkeys(found))
         cache[ref] = codes
         return codes
 

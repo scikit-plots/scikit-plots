@@ -22,7 +22,7 @@ import textwrap
 import pytest
 
 from .._index import _NOT_UTF8, LeanIndex
-from .._syntax import _code_matches, _token_pattern
+from .._syntax import _REFERENCE, _code_matches, _is_name, _token_pattern
 
 
 def _index(tmp_path, source, **options):
@@ -172,3 +172,52 @@ def test_a_dossier_reviews_the_text_its_proof_depends_on(tmp_path):
     ]
     detail = {c["check"]: c["detail"] for c in report["checks"]}["source_text"]
     assert re.search(r"1 place\(s\) Lean refuses to read", detail)
+
+
+# ---------------------------------------------------------------------------
+# Identifier characters, as Lean's lexer has them
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("code", "names"),
+    [
+        ("IsCobounded sᶜ", ["IsCobounded", "s"]),  # ᶜ is postfix notation
+        ("Aᵀ * B", ["A", "B"]),
+        ("x₁ + αβ + ℝ + café", ["x₁", "αβ", "ℝ", "café"]),  # subscripts, letter-like
+        ("f →ₗ[R] g", ["f", "R", "g"]),  # ₗ continues a name, never starts one
+        ("λx => Πi", ["x", "i"]),  # λ and Π are not letters to Lean
+        ("обычный", []),  # Cyrillic is not
+        ("h.1.symm", ["h.1.symm"]),
+        # A field after something that is not part of a name keeps its dot.
+        ("(s⁻¹).encard", ["s", ".encard"]),
+        ("exact .inl h", ["exact", ".inl", "h"]),
+        ("⟨a, b⟩.fst", ["a", "b", ".fst"]),
+        ("a..b", ["a"]),
+    ],
+)
+def test_references_are_names_as_lean_reads_them(code, names):
+    assert [m.group() for m in _REFERENCE.finditer(code)] == names
+
+
+def test_a_name_starts_as_lean_allows():
+    assert _is_name("_x") and _is_name("x₁") and _is_name("«a b»")
+    assert not _is_name("₁x") and not _is_name("ᶜ") and not _is_name("_")
+
+
+def test_a_flagged_definition_under_notation_is_a_dependency(tmp_path):
+    # `badSetᶜ` names badSet (ᶜ is notation); `(s).card` names a `card`.
+    index = _index(
+        tmp_path,
+        """
+        def badSet : Set Nat := sorry
+        def Fin3.card (s : Nat) : Nat := sorry
+        theorem t : badSetᶜ = ∅ := rfl
+        theorem u (s : Nat) : (s).card = 0 := rfl
+        """,
+    )
+    for target, flagged in (("t", "badSet"), ("u", "Fin3.card")):
+        report = index.dossier(target)
+        reds = [r["declaration"] for r in report["dependencies"]["red_flags"]["items"]]
+        assert reds == [flagged], target
+        assert report["verdict"].startswith("lexical red flags"), target

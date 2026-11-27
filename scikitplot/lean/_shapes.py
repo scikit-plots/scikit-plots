@@ -16,16 +16,16 @@ import hashlib
 import re
 from typing import Any
 
-from ._syntax import _NAME, _Lexer
+from ._syntax import _ID_REST, _IDENT, _NAME, _Lexer
 
 #: Kinds whose statement is a result.
 _RESULTS = frozenset({"theorem", "lemma"})
 #: Shape tokens: names, numerals, single symbols.
-_SHAPE_TOKEN = re.compile(rf"{_NAME}|\d+(?:\.\d+)?|[^\s\w]")
-_NUMERAL = re.compile(r"\d+(?:\.\d+)?\Z")
+_SHAPE_TOKEN = re.compile(rf"{_NAME}|[0-9]+(?:\.[0-9]+)?|[^\s{_ID_REST}]")
+_NUMERAL = re.compile(r"[0-9]+(?:\.[0-9]+)?\Z")
 _PROP_DEFINITION = re.compile(r":\s*Prop\s*:=")
 #: Where a result's signature starts: after its keyword.
-_KEYWORD = re.compile(r"(?<![\w'!?.])(?:theorem|lemma)(?![\w'!?])")
+_KEYWORD = re.compile(rf"(?<![{_ID_REST}.])(?:theorem|lemma)(?![{_ID_REST}])")
 _OPEN = "([{⦃⟨"
 _CLOSE = ")]}⦄⟩"
 #: What the signature scan stops at: brackets, and a ``:`` that is not ``:=``.
@@ -83,7 +83,7 @@ def _run(raw: str, start: int) -> str:
 
 
 _BINDER = None  # compiled on first use (keeps import cheap)
-_NAME_ONLY = r"[^\W\d][\w'!?]*"
+_NAME_ONLY = _IDENT
 #: A binder without a type: ``(x y)``, ``{x y}``, ``⦃x y⦄``.
 _TYPELESS = re.compile(rf"[({{⦃]\s*(?:{_NAME_ONLY}\s+)*{_NAME_ONLY}\s*[)}}⦄]")
 _QUANTIFIED = None
@@ -94,7 +94,7 @@ def _binders() -> tuple[Any, Any]:
     if _BINDER is None:
         import re  # noqa: PLC0415
 
-        name = r"[^\W\d][\w'!?]*"
+        name = _IDENT
         _BINDER = re.compile(rf"[(\[{{⦃⟨]\s*((?:{name}\s+)*{name})\s*:")
         _QUANTIFIED = re.compile(rf"(?:∀|∃!?|λ|\bfun\b|Π|Σ)\s*((?:{name}\s*)+)")
     return _BINDER, _QUANTIFIED
