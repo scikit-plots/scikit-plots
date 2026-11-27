@@ -1354,20 +1354,29 @@ class LeanIndex:
         Parameters
         ----------
         chunks : iterable of dict
-            Raw chunks read with ``references=True`` and ``proofs="keep"``,
-            for example from a file inside an archive.
+            Raw chunks read with ``references=True``, ``statements=True``
+            and ``lines_per_chunk=None`` (``proofs="keep"``, the default),
+            for example from a file inside an archive. Chunks without
+            ``statement`` give results without a statement shape, so
+            :meth:`discover` cannot group them.
         label : str
             How reports name the file.
 
         Notes
         -----
         Parts of one long declaration (``part`` 2, 3, ...) join their first
-        part. Without a file on disk, reports give locations but no text.
+        part. The chunks' ``source_problems`` are the file's. Without a file
+        on disk, reports give locations but no text.
         """
         file_id = self._new_file(label, None)
         last_end = 0
         counted: Counter[str] = Counter()
+        problems: list[tuple[int, str]] = []
         for chunk in chunks:
+            problems.extend(
+                (int(item["line"]), str(item["problem"]))
+                for item in chunk.get("source_problems", ())
+            )
             if chunk.get("part", 0) > 1 and self._name and self._file[-1] == file_id:
                 node = len(self._name) - 1
                 refs = set(self._refs_of(node)) | set(chunk.get("references", ()))
@@ -1385,6 +1394,8 @@ class LeanIndex:
             last_end = max(last_end, chunk.get("line_end", 0))
         self._count_kinds(file_id, counted)
         self._file_lines[file_id] = last_end
+        if problems:
+            self._problems[file_id] = tuple(sorted(problems))
 
     def _new_file(self, label: str, path: Path | None, *, layer: int = 0) -> int:
         """
