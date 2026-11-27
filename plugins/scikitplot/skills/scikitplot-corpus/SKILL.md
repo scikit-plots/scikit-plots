@@ -70,10 +70,12 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `extract_archive` | function | Extract an archive to a destination directory. |
 | `is_archive` | function | Check if a file path has a supported archive extension. |
 | `ChunkerBase` | class | Abstract base class for all text chunkers. |
+| `CodeAwareFilter` | class | Keep code that is not blank; filter everything else as prose. |
 | `DefaultFilter` | class | Standard noise filter ported and improved from remarx's ``include_sentence``. |
 | `DocumentReader` | class | Abstract base class for all format-specific document readers. |
 | `DummyReader` | class | A no-op reader that validates source existence and accessibility. |
 | `FilterBase` | class | Abstract base class for corpus document filters. |
+| `NonBlankFilter` | class | Keep every document whose text holds a non-whitespace character. |
 | `PipelineGuard` | class | Wrap any document stream with resilience, deduplication, and checkpointing. |
 | `ReadCoverage` | class | What one read of a source covered: parts read, empty and skipped. |
 | `BackendCandidate` | class | One lazy backend attempt. |
@@ -93,10 +95,8 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `SemanticChunkerBridge` | class | Bridge for ``SemanticChunker`` → ``ChunkerBase`` contract. |
 | `SentenceChunkerBridge` | class | Bridge for ``SentenceChunker`` → ``ChunkerBase`` contract. |
 | `WordChunkerBridge` | class | Bridge for ``WordChunker`` → ``ChunkerBase`` contract. |
-| `bridge_chunker` | function | Wrap *chunker* in a bridge if it is a new-style chunker. |
-| `register_bridge` | function | Register a custom bridge for a user-defined chunker class. |
 
-433 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
+435 more names, and all signatures, from the installed version: `python -m scikitplot api scikitplot.corpus`
 (or `print(m.__all__)` and `help()`, above).
 
 ## Example (from the docstring of `scikitplot.corpus`)

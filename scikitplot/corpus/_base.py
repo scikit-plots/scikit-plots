@@ -116,13 +116,15 @@ _TEXT_RATIO_FLOOR: Final[int] = 1024 * 1024
 
 __all__ = [
     "ChunkerBase",
-    # Concrete built-in filter
+    # Concrete built-in filters (with NonBlankFilter below)
+    "CodeAwareFilter",
     "DefaultFilter",
     # Abstract bases
     "DocumentReader",
     # Utility readers
     "DummyReader",
     "FilterBase",
+    "NonBlankFilter",
     # Pipeline resilience
     "PipelineGuard",
     # What a read covered
@@ -716,6 +718,78 @@ class FilterBase(abc.ABC):
         """
 
 
+class NonBlankFilter(FilterBase):
+    """
+    Keep every document whose text holds a non-whitespace character.
+
+    For documents whose every line is content: a short block of code
+    (``y = 2``, a closing ``}``, ``end Foo``) is not noise, and
+    :class:`DefaultFilter`, built for prose, would drop it.
+    :class:`CodeAwareFilter` applies this rule to code and
+    :class:`DefaultFilter` to the rest.
+
+    Examples
+    --------
+    >>> f = NonBlankFilter()
+    >>> f.include(CorpusDocument.create("f.py", 0, "}"))
+    True
+    >>> f.include(CorpusDocument.create("f.py", 1, "42"))
+    True
+    """
+
+    def include(self, doc: CorpusDocument) -> bool:
+        """Return ``True`` when *doc*'s text is not blank."""
+        return bool(doc.text and doc.text.strip())
+
+    def __repr__(self) -> str:
+        return "NonBlankFilter()"
+
+
+class CodeAwareFilter(FilterBase):
+    """
+    Keep code that is not blank; filter everything else as prose.
+
+    The default filter of every reader. A document whose ``section_type``
+    is :attr:`SectionType.CODE` (a block of source code, a notebook code
+    cell or its output) is kept when it holds a non-whitespace character:
+    in code a short block is content. Any other document is judged by
+    *prose*. The rule follows the document, not the reader, so code read
+    from inside an archive is treated as code.
+
+    Parameters
+    ----------
+    prose : FilterBase or None, optional
+        The filter for documents that are not code. ``None`` (default):
+        :class:`DefaultFilter` with its defaults.
+
+    Examples
+    --------
+    >>> f = CodeAwareFilter()
+    >>> f.include(CorpusDocument.create("f.py", 0, "}", section_type=SectionType.CODE))
+    True
+    >>> f.include(CorpusDocument.create("f.txt", 0, "}"))
+    False
+    """
+
+    def __init__(self, prose: FilterBase | None = None) -> None:
+        if prose is not None and not isinstance(prose, FilterBase):
+            raise TypeError(
+                f"CodeAwareFilter.prose must be a FilterBase or None; got {prose!r}."
+            )
+        self.prose: FilterBase = DefaultFilter() if prose is None else prose
+        self._code = NonBlankFilter()
+
+    def include(self, doc: CorpusDocument) -> bool:
+        """Return ``True`` when *doc* is non-blank code, or prose *prose* keeps."""
+        kind = getattr(doc.section_type, "value", doc.section_type)
+        if kind == SectionType.CODE.value:
+            return self._code.include(doc)
+        return self.prose.include(doc)
+
+    def __repr__(self) -> str:
+        return f"CodeAwareFilter(prose={self.prose!r})"
+
+
 class DefaultFilter(FilterBase):
     r"""
     Standard noise filter ported and improved from remarx's ``include_sentence``.
@@ -969,6 +1043,13 @@ class DocumentReader(abc.ABC):
     # ------------------------------------------------------------------
 
     _registry: ClassVar[dict[str, type[DocumentReader]]] = {}
+
+    default_filter: ClassVar[Callable[[], FilterBase]] = CodeAwareFilter
+    """
+    Class variable: makes the filter used when ``filter_`` is ``None``.
+    :class:`CodeAwareFilter`: code is kept when it is not blank, the rest is
+    filtered as prose. A reader may set another.
+    """
     """
     Internal mapping of ``file_extension → DocumentReader subclass``.
     Populated automatically when a concrete subclass is defined.
@@ -1022,7 +1103,9 @@ class DocumentReader(abc.ABC):
 
     filter_: FilterBase | None = field(default=None)
     """
-    Filter applied after chunking. ``None`` triggers the :class:`DefaultFilter`.
+    Filter applied after chunking. ``None`` uses the reader's
+    :attr:`default_filter` (:class:`DefaultFilter` unless the reader says
+    otherwise).
     """
 
     filename_override: str | None = field(default=None)
@@ -1186,7 +1269,7 @@ class DocumentReader(abc.ABC):
             If ``custom_extractor`` is provided but not callable.
         """
         if self.filter_ is None:
-            object.__setattr__(self, "filter_", DefaultFilter())
+            object.__setattr__(self, "filter_", type(self).default_filter())
         # Coerce input_path to pathlib.Path if a string was passed
         if not isinstance(self.input_path, pathlib.Path):
             object.__setattr__(self, "input_path", pathlib.Path(self.input_path))
