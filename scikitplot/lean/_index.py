@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import concurrent.futures
+import io
 import json
 import os
 import sys
@@ -343,18 +344,49 @@ def _read_file(
     records: list[tuple[Any, ...]] = []
     number = 0
     try:
-        with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
-            for number, read in enumerate(stream, start=1):
-                line = read[:-1] if read.endswith("\n") else read
-                if number == 1 and line.startswith("\ufeff"):
-                    line = line[1:]
-                records.extend(_compact(chunk) for chunk in splitter.feed(number, line))
-        records.extend(_compact(chunk) for chunk in splitter.finish())
+        with open(path, "rb") as stream:
+            data = stream.read()
     except OSError as exc:
         return ("skip", f"unreadable: {exc.strerror or exc}")
+    text, invalid = _decode(data)
+    try:
+        # Universal newlines, as text mode reads them: \r\n, \r and \n.
+        for number, read in enumerate(io.StringIO(text, newline=None), start=1):
+            line = read[:-1] if read.endswith("\n") else read
+            if number == 1 and line.startswith("\ufeff"):
+                line = line[1:]
+            records.extend(_compact(chunk) for chunk in splitter.feed(number, line))
+        records.extend(_compact(chunk) for chunk in splitter.finish())
     except ValueError as exc:  # nesting past max_scope_depth
         return ("skip", str(exc))
-    return ("ok", records, number, tuple(splitter.problems))
+    problems = tuple(splitter.problems)
+    if invalid is not None:
+        problems = tuple(sorted(((invalid, _NOT_UTF8), *problems)))
+    return ("ok", records, number, problems)
+
+
+#: The source problem of a file with bytes that are not UTF-8.
+_NOT_UTF8 = (
+    "not valid UTF-8: the first invalid byte is on this line"
+    " (invalid bytes are read as U+FFFD)"
+)
+
+
+def _decode(data: bytes) -> tuple[str, int | None]:
+    """
+    Return *data* decoded as UTF-8, and the line of its first invalid byte.
+
+    Lean reads UTF-8 only. Invalid bytes are replaced by U+FFFD so the rest
+    of the file is still indexed. The line counts a CR LF pair, a lone CR
+    and a lone LF as one break each, as the reader does; it is ``None``
+    when the file is valid.
+    """
+    try:
+        return data.decode("utf-8"), None
+    except UnicodeDecodeError as exc:
+        head = data[: exc.start]
+        line = head.count(b"\n") + head.count(b"\r") - head.count(b"\r\n") + 1
+        return data.decode("utf-8", errors="replace"), line
 
 
 def _workers(value: Any) -> int:
@@ -2292,26 +2324,70 @@ def _render_dossier(report: dict[str, Any]) -> str:  # noqa: PLR0912
 # ---------------------------------------------------------------------------
 
 
+def _report_unresolved(reports: list[dict[str, Any]], prog: str) -> bool:
+    """
+    Name on standard error each target that is not one declaration.
+
+    Returns ``True`` when there is one: a ``--fail-on`` gate must never
+    pass on a name it could not check.
+    """
+    unresolved = [r for r in reports if r["report"] == "dossier" and "matches" in r]
+    for report in unresolved:
+        names = ", ".join(m["declaration"] for m in report["matches"])
+        print(  # noqa: T201
+            f"{prog}: --target {report['query']}: {report['verdict']}"
+            + (f" (candidates: {names}; give the full name)" if names else ""),
+            file=sys.stderr,
+        )
+    return bool(unresolved)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """
     Index a Lean project and print its summary or a dossier per target.
 
-    Returns 1 when ``--fail-on`` names a flag found (in a target's
-    dependencies or implicit risks; in the whole project without targets),
-    0 otherwise.
+    Returns 2 when a ``--target`` is not found or is ambiguous (with the
+    candidates on standard error), so a gate never passes on a name it
+    could not check; 1 when ``--fail-on`` names a flag found (in a
+    target's dependencies or implicit risks; in the whole project without
+    targets); 0 otherwise. Usage errors also exit 2.
     """
     parser = argparse.ArgumentParser(
         prog="python -m scikitplot.lean",
         description="Evidence on a Lean project: statements, dependencies, audit flags.",
     )
     parser.add_argument("folder", type=Path)
-    parser.add_argument("--target", action="append", default=[], metavar="NAME")
+    parser.add_argument(
+        "--target",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="print the dossier of NAME (repeatable); exit 2 if NAME is not one declaration",
+    )
     parser.add_argument("--json", action="store_true", help="JSON instead of Markdown")
     parser.add_argument("--dialect", default="lean4", choices=("lean4", "lean3"))
-    parser.add_argument("--command", action="append", default=[], metavar="KEYWORD")
-    parser.add_argument("--max-items", type=int, default=50)
-    parser.add_argument("--include-hidden", action="store_true")
-    parser.add_argument("--fail-on", action="append", default=[], metavar="FLAG")
+    parser.add_argument(
+        "--command",
+        action="append",
+        default=[],
+        metavar="KEYWORD",
+        help="a keyword that starts a project command (repeatable)",
+    )
+    parser.add_argument(
+        "--max-items", type=int, default=50, help="most items listed per finding"
+    )
+    parser.add_argument(
+        "--include-hidden",
+        action="store_true",
+        help="also read hidden folders, such as .lake/packages",
+    )
+    parser.add_argument(
+        "--fail-on",
+        action="append",
+        default=[],
+        metavar="FLAG",
+        help="exit 1 if FLAG is found (repeatable); see AUDIT_FLAGS",
+    )
     parser.add_argument(
         "--discover",
         action="store_true",
@@ -2323,7 +2399,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="DIR",
         help="also write the helper documents to DIR",
     )
-    parser.add_argument("--no-learn-commands", action="store_true")
+    parser.add_argument(
+        "--no-learn-commands",
+        action="store_true",
+        help="do not learn the commands the project defines",
+    )
     parser.add_argument(
         "--workers",
         type=int,
@@ -2335,7 +2415,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--graph",
         default="python",
         choices=_GRAPHS,
-        help="whole-graph steps in the standard library, or with NumPy",
+        help="whole-graph steps in the standard library, NumPy or SciPy; the reports are the same",
     )
     parser.add_argument(
         "--source-root",
@@ -2386,6 +2466,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )  # noqa: T201
     else:
         print("\n".join(LeanIndex.render(r) for r in reports))  # noqa: T201
+    if _report_unresolved(reports, parser.prog):
+        return 2
     found: set[str] = set()
     for report in reports:
         if report["report"] == "dossier":

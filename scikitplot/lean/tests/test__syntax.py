@@ -21,7 +21,7 @@ import textwrap
 
 import pytest
 
-from .._index import LeanIndex
+from .._index import _NOT_UTF8, LeanIndex
 from .._syntax import _code_matches, _token_pattern
 
 
@@ -122,6 +122,26 @@ def test_source_problems_are_reported_by_line(tmp_path, source, problems):
     items = index.summary()["source_problems"]["items"]
     assert [(i["line"], i["problem"]) for i in items] == problems
     assert {i["file"] for i in items} <= {"Proj/A.lean"}
+
+
+def test_bytes_that_are_not_utf8_are_a_problem_and_the_rest_is_read(tmp_path):
+    path = tmp_path / "Proj" / "A.lean"
+    path.parent.mkdir(parents=True)
+    # \r\n, a lone \r and \n each end one line, as the reader counts them.
+    path.write_bytes(
+        b"theorem a : True := trivial\r\ntheorem r : True := trivial\rdef s := \"caf\xe9\"\ntheorem b : True := sorry\n"
+    )
+    for workers in (1, 2):
+        index = LeanIndex.from_folder(tmp_path, workers=workers)
+        assert _declarations(index) == {"a": (), "r": (), "s": (), "b": ("sorry",)}
+        assert list(index._start) == [1, 2, 3, 4]
+        [item] = index.summary()["source_problems"]["items"]
+        assert (item["line"], item["problem"]) == (3, _NOT_UTF8)
+
+
+def test_valid_utf8_with_a_replacement_character_is_no_problem(tmp_path):
+    index = _index(tmp_path, 'def s := "\ufffd"\n')
+    assert index.summary()["source_problems"]["count"] == 0
 
 
 def test_problems_are_the_same_for_any_number_of_workers(tmp_path):
