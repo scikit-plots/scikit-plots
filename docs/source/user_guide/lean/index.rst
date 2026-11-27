@@ -125,14 +125,18 @@ Scale
 
 Indexing is linear in the text and keeps a few integers and the used
 names per declaration. On mathlib4 (9,351 files, 288,006 declarations)
-with two workers: indexing about 21 s, a summary about 8 s, discovery
-about 1.5 s, a dossier in milliseconds, peak memory about 400 MB.
+with two workers: indexing about 21 s, a summary about 6.5 s (12.5 s with
+one), discovery about 1.5 s, a dossier in milliseconds, peak memory about
+400 MB.
 
 Two options change how the work is done, never what is reported:
 
 - ``workers=`` (``--workers``) reads files in that many processes;
-  ``None`` (``--workers 0``) uses every CPU. Results are taken in file
-  order, so the index is the same for any number of workers.
+  ``None`` (``--workers 0``) uses every CPU. On Linux the same workers
+  also resolve names when a step needs every edge (a summary, discovery,
+  an export), for projects of 20,000 declarations or more: forked, they
+  share the index without copying it. Results are taken in order, so
+  every report is the same for any number of workers.
 - ``graph=`` (``--graph``) chooses the graph backend: ``"python"`` (the
   default, standard library only), ``"numpy"`` (edges packed into
   arrays, use counts and searches vectorised) or ``"scipy"`` (packed as
