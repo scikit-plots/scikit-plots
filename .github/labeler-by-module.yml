@@ -66,6 +66,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "libs/lean/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.lean/**/*"
     - "scikitplot/lean/**/*"
 
 "libs/mcp":
