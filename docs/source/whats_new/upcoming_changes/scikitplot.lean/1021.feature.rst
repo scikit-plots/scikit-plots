@@ -1,0 +1,9 @@
+- :meth:`~scikitplot.lean.LeanIndex.near_duplicates` lists pairs of
+  results whose statements are nearly the same but not of one shape
+  (``--near-duplicates`` on the command line), by the Jaccard similarity
+  of their statement shapes' adjacent token pairs; ``layer`` and
+  ``against`` find what a project restates from its dependencies. The
+  search is exact, by prefix filtering: every pair at or above the
+  threshold and none below, in 27 s on mathlib4 with PFR (196,029
+  statements). Quoted statements of a lower layer are now split with that
+  layer's commands only.

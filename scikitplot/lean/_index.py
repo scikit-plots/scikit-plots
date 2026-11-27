@@ -2852,6 +2852,79 @@ class LeanIndex:
             self, top=top, min_instances=min_instances, patterns=patterns, layer=layer
         )
 
+    def near_duplicates(  # noqa: PLR0913
+        self,
+        *,
+        threshold: float = 0.8,
+        layer: str | None = None,
+        against: str | None = None,
+        min_pairs: int = 4,
+        top: int = 50,
+    ) -> dict[str, Any]:
+        """
+        Find results whose statements are nearly the same, but not of one shape.
+
+        Parameters
+        ----------
+        threshold : float, optional
+            Least Jaccard similarity of two statements' sets of adjacent
+            token pairs, in (0, 1]. Statements are compared by their shapes
+            (bound names renamed in order, numerals replaced), as
+            :meth:`discover` groups them. Default: 0.8.
+        layer, against : str or None, optional
+            Pairs with one result in layer *layer* and the other in layer
+            *against* (``""`` is the first; ``None``: any). A project
+            restating its dependency: ``layer="project", against=""``.
+            Default: ``None`` for both.
+        min_pairs : int, optional
+            Fewest token pairs a statement needs to be compared: in a tiny
+            statement one token decides. Default: 4.
+        top : int, optional
+            Most pairs listed; ``pairs`` keeps the full count. Default: 50.
+
+        Returns
+        -------
+        dict
+            JSON-ready; ``report`` is ``"near_duplicates"``. ``pairs``,
+            most similar first, each with ``similarity`` (rounded),
+            ``shared_pairs`` and ``pairs_in_either`` (exact), and both
+            results (location and statement); ``statements_compared``;
+            ``files_not_read`` (no known path).
+
+        Raises
+        ------
+        ValueError
+            If *threshold* is not in (0, 1], *min_pairs* or *top* is not a
+            positive integer, or *layer* or *against* names no layer.
+
+        See Also
+        --------
+        discover : Results of one statement shape (``statement_shapes``).
+
+        Notes
+        -----
+        **User.** Every pair at or above *threshold* is found and none
+        below: the search is exact, not sampled. A pair is a candidate,
+        two statements to read side by side: one may generalize the other,
+        restate it, or differ where it matters.
+
+        **Developer.** The statements are read again from the files (with
+        the index's ``workers``), so the index keeps no extra data. Pairs
+        are found by prefix filtering over token pairs ordered rarest
+        first (:func:`._similar.similar_pairs`). On mathlib4 with PFR it
+        compares about 200,000 statements; see the user guide for times.
+        """
+        from ._similar import near_duplicates  # noqa: PLC0415  (imports this module)
+
+        return near_duplicates(
+            self,
+            threshold=threshold,
+            layer=layer,
+            against=against,
+            min_pairs=min_pairs,
+            top=top,
+        )
+
     def export(
         self,
         folder: str | Path,
@@ -3014,7 +3087,7 @@ class LeanIndex:
     @staticmethod
     def render(report: dict[str, Any]) -> str:
         """
-        Render a :meth:`summary`, :meth:`dossier`, :meth:`discover` or :meth:`refresh` report as Markdown.
+        Render a report of :meth:`summary`, :meth:`dossier`, :meth:`discover`, :meth:`refresh` or :meth:`near_duplicates` as Markdown.
 
         Every item keeps its ``file:line``, so the text is as checkable as
         the data.
@@ -3023,6 +3096,10 @@ class LeanIndex:
             return _render_summary(report)
         if report.get("report") == "refresh":
             return _render_refresh(report)
+        if report.get("report") == "near_duplicates":
+            from ._similar import render  # noqa: PLC0415  (imports this module)
+
+            return render(report)
         if report.get("report") == "discovery":
             from ._discovery import render  # noqa: PLC0415  (imports this module)
 
@@ -3304,6 +3381,24 @@ def _index_for(args: argparse.Namespace) -> LeanIndex:
     return index
 
 
+def _reports_for(index: LeanIndex, args: argparse.Namespace) -> list[dict[str, Any]]:
+    """Return the reports the command line asks for."""
+    if args.target:
+        return [index.dossier(t, max_items=args.max_items) for t in args.target]
+    if args.discover:
+        return [index.discover(top=args.max_items, layer=args.layer)]
+    if args.near_duplicates:
+        return [
+            index.near_duplicates(
+                threshold=args.threshold,
+                layer=args.layer,
+                against=args.against,
+                top=args.max_items,
+            )
+        ]
+    return [index.summary(max_items=args.max_items, layer=args.layer)]
+
+
 def _refresh_line(report: dict[str, Any]) -> str:
     """Return one line saying what a :meth:`LeanIndex.refresh` read again."""
     line = (
@@ -3388,6 +3483,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--discover",
         action="store_true",
         help="print rules, patterns, claims and anomalies",
+    )
+    parser.add_argument(
+        "--near-duplicates",
+        action="store_true",
+        help=(
+            "print pairs of results whose statements are nearly the same"
+            " (--threshold; --layer and --against choose the two sides)"
+        ),
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.8,
+        help="least similarity for --near-duplicates, in (0, 1] (default 0.8)",
+    )
+    parser.add_argument(
+        "--against",
+        default=None,
+        metavar="NAME",
+        help="with --near-duplicates: the layer the other result is in",
     )
     parser.add_argument(
         "--export",
@@ -3484,12 +3599,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     try:
         index = _index_for(args)
-        if args.target:
-            reports = [index.dossier(t, max_items=args.max_items) for t in args.target]
-        elif args.discover:
-            reports = [index.discover(top=args.max_items, layer=args.layer)]
-        else:
-            reports = [index.summary(max_items=args.max_items, layer=args.layer)]
+        reports = _reports_for(index, args)
         if args.export is not None:
             index.export(
                 args.export,

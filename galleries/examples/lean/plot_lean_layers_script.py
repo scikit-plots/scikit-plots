@@ -14,7 +14,8 @@ everything. This example:
 2. loads it and adds a project over it;
 3. checks the layered index against one index of both folders;
 4. reports on the project's layer only, while every use still counts;
-5. lists a module two layers both provide;
+5. lists a module two layers both provide, and statements a project
+   restates from its dependency;
 6. puts two projects over one saved dependency;
 7. runs the same from the command line, failing on the project's flags only;
 8. refreshes after an edit, reading again only the files that changed;
@@ -173,6 +174,29 @@ print({i["declaration"]: i["named_from_files"] for i in rules})
 fork = project("fork", {"Lib/Defs.lean": "def Good (n : Nat) : Prop := True\n"})
 index.add_folder(fork, name="fork")
 print(index.summary()["imports"]["module_clashes"]["items"])
+
+# %%
+# :meth:`LeanIndex.near_duplicates` pairs results whose statements are nearly
+# the same, one side in each layer asked for. The search is exact: every
+# pair at or above the threshold, none below.
+
+restating = project(
+    "restating",
+    {
+        "Re/A.lean": """
+            import Lib.Util
+            theorem good_all' (n : Nat) (h : 0 ≤ n) : Good n := good_all n
+        """,
+    },
+)
+index.add_folder(restating, name="re")
+for pair in index.near_duplicates(threshold=0.5, layer="re", against="")["pairs"][
+    "items"
+]:
+    print(
+        f"{pair['similarity']:.0%}: {pair['a']['declaration']} ({pair['a']['file']})"
+        f" ~ {pair['b']['declaration']} ({pair['b']['file']})"
+    )
 
 # %%
 # 6. Two projects over one dependency

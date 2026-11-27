@@ -167,6 +167,25 @@ def _shape(statement: str, written: str | None) -> str | None:
 
 def _shape_of(lines: list[tuple[str, str]], written: str | None) -> str | None:
     """:func:`_shape` of a statement already masked."""
+    tokens = _shape_tokens(lines, written)
+    return None if tokens is None else " ".join(tokens)
+
+
+def shape_tokens(statement: str, kind: str, name: str | None) -> list[str] | None:
+    """
+    Return the tokens of a result's shape (:func:`_shape`), or ``None``.
+
+    The tokens :func:`fingerprint` digests: *name* as for it.
+    """
+    lines = _mask_lines(statement)  # masked once for every step
+    written = (name or "").rsplit(".", 1)[-1] or None
+    return _shape_tokens(lines, _written(lines, kind) or written)
+
+
+def _shape_tokens(
+    lines: list[tuple[str, str]], written: str | None
+) -> list[str] | None:
+    """:func:`shape_tokens` of a statement already masked."""
     tokens = _SHAPE_TOKEN.findall(_masked(lines))
     start = next((i for i, t in enumerate(tokens) if t in _RESULTS), None)
     if start is None:
@@ -186,7 +205,7 @@ def _shape_of(lines: list[tuple[str, str]], written: str | None) -> str | None:
             out.append("#")
         else:
             out.append(token)
-    return " ".join(out)
+    return out
 
 
 def _digest(text: str) -> bytes:
@@ -209,10 +228,8 @@ def fingerprint(statement: str, kind: str, name: str | None) -> bytes | None:
     *statement* is the result's text before its proof; *name* its full name
     (the written name is tried first, then the last component of *name*).
     """
-    lines = _mask_lines(statement)  # masked once for every step
-    written = (name or "").rsplit(".", 1)[-1] or None
-    shape = _shape_of(lines, _written(lines, kind) or written)
-    return None if shape is None else _digest(shape)
+    tokens = shape_tokens(statement, kind, name)
+    return None if tokens is None else _digest(" ".join(tokens))
 
 
 def states_a_claim(text: str) -> bool:
