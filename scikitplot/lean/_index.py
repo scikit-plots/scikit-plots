@@ -1645,9 +1645,7 @@ class LeanIndex:
                     max_items,
                 ),
             },
-            "syntax_extensions": _listing(
-                [self._location(n) for n in extensions], max_items
-            ),
+            "syntax_extensions": self._extension_report(extensions, max_items),
             "learned_commands": {
                 keyword: {"file": label, "line": line}
                 for keyword, (label, line) in sorted(self._learned.items())
@@ -1658,6 +1656,28 @@ class LeanIndex:
                 for label, reason in sorted(self._skipped)
             ],
             "source_problems": _listing(self._problem_items(self._problems), max_items),
+        }
+
+    def _extension_report(self, nodes: list[int], max_items: int) -> dict[str, Any]:
+        """
+        Describe the syntax extensions: every one, how many of each kind, the flagged.
+
+        Lean applies an extension (notation, macro, elaborator) without its
+        name appearing where it is used, so a flagged one can bring ``sorry``
+        into a proof that never names it: those are listed apart, each with
+        its flags. A location is built only for an item that is listed.
+        """
+        flagged = [n for n in nodes if n in self._flags]
+        return {
+            "count": len(nodes),
+            "items": [self._location(n) for n in nodes[:max_items]],
+            "cut": len(nodes) > max_items,
+            "by_kind": dict(sorted(Counter(self._kind[n] for n in nodes).items())),
+            "flagged": {
+                "count": len(flagged),
+                "items": [self._location(n) for n in flagged[:max_items]],
+                "cut": len(flagged) > max_items,
+            },
         }
 
     def _problem_items(self, file_ids: Iterable[int]) -> list[dict[str, Any]]:
@@ -2248,11 +2268,27 @@ def _render_summary(report: dict[str, Any]) -> str:
         "",
         (
             f"Names declared more than once (as Lean counts): {report['duplicate_names']['count']}."
-            f" Syntax extensions: {report['syntax_extensions']['count']}."
             f" Project commands learned: {len(learned)}."
             f" Skipped files: {len(report['skipped_files'])}."
         ),
     ]
+    extensions = report["syntax_extensions"]
+    kinds = ", ".join(f"{kind} {n:,}" for kind, n in extensions["by_kind"].items())
+    out += [
+        "",
+        f"## Syntax extensions: {extensions['count']:,}"
+        + (f" ({kinds})" if kinds else ""),
+    ]
+    risky = extensions["flagged"]
+    out.append(
+        f"Flagged (used without their names, so a dossier lists them as risks): {risky['count']}."
+    )
+    out.extend(
+        f"- {item['kind']} at {_where(item)}: {', '.join(item['flags'])}"
+        for item in risky["items"]
+    )
+    if risky["cut"]:
+        out.append("  - (list cut)")
     problems = report["source_problems"]
     if problems["count"]:
         out += ["", f"## Text Lean refuses to read: {problems['count']}"]

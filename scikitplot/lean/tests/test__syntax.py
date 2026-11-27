@@ -221,3 +221,33 @@ def test_a_flagged_definition_under_notation_is_a_dependency(tmp_path):
         reds = [r["declaration"] for r in report["dependencies"]["red_flags"]["items"]]
         assert reds == [flagged], target
         assert report["verdict"].startswith("lexical red flags"), target
+
+
+# ---------------------------------------------------------------------------
+# Syntax extensions: by kind, and the flagged ones apart
+# ---------------------------------------------------------------------------
+
+
+def test_syntax_extensions_by_kind_and_flagged(tmp_path):
+    index = _index(
+        tmp_path,
+        """
+        macro "trust_me" : tactic => `(tactic| sorry)
+        macro "fine" : tactic => `(tactic| trivial)
+        notation "⟪" x "⟫" => x
+        theorem t : True := by trust_me
+        """,
+    )
+    extensions = index.summary()["syntax_extensions"]
+    assert extensions["count"] == 3
+    assert extensions["by_kind"] == {"macro": 2, "notation": 1}
+    flagged = extensions["flagged"]
+    assert flagged["count"] == 1 and not flagged["cut"]
+    [item] = flagged["items"]
+    assert (item["kind"], item["line_start"], item["flags"]) == ("macro", 1, ["sorry"])
+    text = LeanIndex.render(index.summary())
+    assert "## Syntax extensions: 3 (macro 2, notation 1)" in text
+    assert "- macro at `Proj/A.lean:1`: sorry" in text
+    cut = index.summary(max_items=1)["syntax_extensions"]
+    assert (cut["count"], len(cut["items"]), cut["cut"]) == (3, 1, True)
+    assert cut["by_kind"] == extensions["by_kind"]  # counted whole, whatever is listed
