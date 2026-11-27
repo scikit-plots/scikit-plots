@@ -18,6 +18,9 @@ names each one uses and the audit flags its code raises, and answers:
   patterns, claims and anomalies, written as documents for people and
   models.
 
+:func:`defined_commands` returns the command keywords a file defines, to
+read files one at a time as an index reads a folder.
+
 Every item names its file and lines; nothing here is a proof. Lean's kernel
 decides proofs (``lake build``, ``#print axioms``, a replay).
 
@@ -40,7 +43,7 @@ the reverse).
 
 from __future__ import annotations
 
-from ._index import AUDIT_FLAGS, LeanIndex
+from ._index import AUDIT_FLAGS, LeanIndex, defined_commands
 from ._syntax import LEAN_FLAGS
 
-__all__ = ["AUDIT_FLAGS", "LEAN_FLAGS", "LeanIndex"]
+__all__ = ["AUDIT_FLAGS", "LEAN_FLAGS", "LeanIndex", "defined_commands"]

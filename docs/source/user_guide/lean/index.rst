@@ -244,6 +244,36 @@ that layer's flags only, so a pipeline fails on the project's own
 See :ref:`sphx_glr_auto_examples_lean_plot_lean_layers_script.py` for both,
 run end to end.
 
+Files one at a time
+-------------------
+
+Files read one at a time (the members of an archive, extracted, say) are
+read with :class:`scikitplot.corpus.LeanReader` and added with
+:meth:`~LeanIndex.add_chunks`. To get the index :meth:`~LeanIndex.from_folder`
+gives, learn every file's commands first, then read each file with them;
+both loops take the files in any order::
+
+    from pathlib import Path
+
+    from scikitplot.corpus import LeanReader
+    from scikitplot.lean import LeanIndex, defined_commands
+
+    root = Path("extracted")
+    files = [(p.relative_to(root).as_posix(), p) for p in root.rglob("*.lean")]
+    index = LeanIndex()
+    for label, path in files:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        index.learn_commands(defined_commands(text), label=label)
+    for label, path in files:
+        reader = LeanReader(input_path=path, references=True, statements=True,
+                            lines_per_chunk=None, commands=index.commands())
+        index.add_chunks(reader.get_raw_chunks(), label=label)
+
+On mathlib4, batteries and aesop the summary is then the one
+``LeanIndex.from_folder(root)`` gives, learned commands and generators
+included. (``from_folder`` also leaves out hidden folders such as
+``.lake``.)
+
 Near-duplicate statements
 -------------------------
 

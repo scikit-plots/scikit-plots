@@ -1,6 +1,6 @@
 ---
 name: scikitplot-lean
-description: "Use scikitplot.lean (scikit-plots) in any Python project. Evidence on Lean projects (dossiers, project summaries, discovery), read from source text, from scikit-plots. Use when code imports scikitplot.lean or needs AUDIT_FLAGS, LEAN_FLAGS, LeanIndex."
+description: "Use scikitplot.lean (scikit-plots) in any Python project. Evidence on Lean projects (dossiers, project summaries, discovery), read from source text, from scikit-plots. Use when code imports scikitplot.lean or needs AUDIT_FLAGS, LEAN_FLAGS, LeanIndex, defined_commands."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot.lean"
@@ -58,6 +58,7 @@ Declared in `scikitplot.lean.__all__`, in that order.
 | `AUDIT_FLAGS` | frozenset |  |
 | `LEAN_FLAGS` | mappingproxy |  |
 | `LeanIndex` | class | Declarations of a Lean project, their audit flags and the names they use. |
+| `defined_commands` | function | Return the command keywords a Lean file's text defines, with the line of each. |
 
 All names with their signatures, from the installed version: `python -m scikitplot api scikitplot.lean`
 (or `print(m.__all__)` and `help()`, above).

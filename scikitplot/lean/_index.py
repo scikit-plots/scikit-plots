@@ -47,6 +47,7 @@ import sys
 import zlib
 from array import array
 from collections import Counter, OrderedDict, deque
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
@@ -248,6 +249,54 @@ def _defined_commands(lines: Iterable[str]) -> dict[str, int]:
         if parts and not parts[0].startswith("#") and _is_name(parts[0]):
             found.setdefault(parts[0], number)
     return found
+
+
+def defined_commands(text: str) -> dict[str, int]:
+    """
+    Return the command keywords a Lean file's text defines, with the line of each.
+
+    What :meth:`LeanIndex.from_folder` learns from every file before it
+    reads them (``learn_commands``): a line that, after attributes and
+    modifiers, starts with ``elab``, ``macro`` or ``syntax`` and holds
+    ``: command`` defines the first word of its first string literal.
+
+    Parameters
+    ----------
+    text : str
+        The file's text.
+
+    Returns
+    -------
+    dict of str to int
+        Keyword to the 1-based line of its first definition.
+
+    Raises
+    ------
+    TypeError
+        If *text* is not a str.
+
+    See Also
+    --------
+    LeanIndex.commands : The commands an index reads a layer's files with.
+
+    Notes
+    -----
+    **User.** To read files one at a time as an index reads a folder (the
+    members of an archive with :class:`scikitplot.corpus.LeanReader`, say),
+    give every file's keywords to :meth:`LeanIndex.learn_commands` first,
+    then read each file with ``commands=index.commands()``: an invocation
+    of a project's command is then a chunk of its own.
+
+    Examples
+    --------
+    >>> defined_commands('elab "copy_all" : command => pure ()')
+    {'copy_all': 1}
+    """
+    if not isinstance(text, str):
+        raise TypeError(
+            f"defined_commands: text must be a str; got {type(text).__name__}."
+        )
+    return _defined_commands(io.StringIO(text, newline=None))
 
 
 #: How a name was found, strongest first.
@@ -1299,6 +1348,106 @@ class LeanIndex:
             self._keep_shapes,
         )
 
+    def learn_commands(self, defined: Mapping[str, int], *, label: str) -> None:
+        """
+        Learn the commands one file defines, as :meth:`from_folder` learns them.
+
+        Parameters
+        ----------
+        defined : mapping of str to int
+            Keyword to the line of its definition, as
+            :func:`defined_commands` returns them for the file's text.
+        label : str
+            How reports name the file (the label it is added under).
+
+        Raises
+        ------
+        TypeError
+            If *defined* is not a mapping, or *label* is not a str.
+        ValueError
+            If a keyword is not an identifier, or a line is not an int >= 1.
+
+        See Also
+        --------
+        defined_commands, commands, add_chunks
+
+        Notes
+        -----
+        **User.** To index files one at a time as :meth:`from_folder`
+        indexes a folder (the members of an archive, say): learn every
+        file's commands first, then read each file with
+        ``commands=index.commands()`` and add it. Where a keyword is
+        recorded as defined (``learned_commands`` in the summary, and the
+        code a generator runs) is the file of smallest label that defines
+        it, as :meth:`from_folder` records it: files may be learned in any
+        order, and learning one twice changes nothing. The commands are the
+        first layer's (its definitions win over a higher layer's); files
+        already added were read without them.
+        """
+        if not isinstance(label, str):
+            raise TypeError(
+                f"LeanIndex.learn_commands: label must be a str; got {label!r}."
+            )
+        if not isinstance(defined, Mapping):
+            raise TypeError(
+                "LeanIndex.learn_commands: defined must be a mapping;"
+                f" got {type(defined).__name__}."
+            )
+        for keyword, line in defined.items():
+            if not isinstance(keyword, str) or not _is_name(keyword):
+                raise ValueError(
+                    f"LeanIndex.learn_commands: {keyword!r} is not a command keyword."
+                )
+            if isinstance(line, bool) or not isinstance(line, int) or line < 1:
+                raise ValueError(
+                    f"LeanIndex.learn_commands: the line of {keyword!r} must be an"
+                    f" int >= 1; got {line!r}."
+                )
+        for keyword, line in defined.items():
+            held = self._learned.get(keyword)
+            # The first layer's definition of smallest label wins.
+            if (
+                held is None
+                or self._layer_of_label(held[0]) > 0
+                or (label, line) < held
+            ):
+                self._learned[keyword] = (label, line)
+        self._set_layer_commands(0, self._layer_commands[0] | frozenset(defined))
+
+    def commands(self, layer: str = "") -> frozenset[str]:
+        """
+        Return the command keywords the files of one layer are read with.
+
+        Parameters
+        ----------
+        layer : str, optional
+            The layer (:meth:`add_folder`; ``""``, the default, is the first).
+
+        Returns
+        -------
+        frozenset of str
+            The ``commands`` given to the index and those learned from the
+            files of *layer* and the layers below it (``learn_commands``).
+
+        Raises
+        ------
+        ValueError
+            If *layer* names no layer.
+
+        See Also
+        --------
+        defined_commands : The keywords one file's text defines.
+        add_chunks : Index chunks read with these commands.
+
+        Notes
+        -----
+        **User.** Pass them as ``commands`` to
+        :class:`scikitplot.corpus.LeanReader` to read a file as the index
+        reads it: chunks read so give :meth:`add_chunks` the index
+        :meth:`add_file` gives.
+        """
+        return self._commands_for(self._layer_number(layer))
+
     def _commands_for(self, layer: int) -> frozenset[str]:
         """Return the commands layer *layer* is read with."""
         found = set(self._given_commands)
@@ -1356,7 +1505,9 @@ class LeanIndex:
         chunks : iterable of dict
             Raw chunks read with ``references=True``, ``statements=True``
             and ``lines_per_chunk=None`` (``proofs="keep"``, the default),
-            for example from a file inside an archive. Chunks without
+            for example from a file inside an archive, and with
+            ``commands`` the project's (:meth:`commands`, or
+            :func:`defined_commands` of every file). Chunks without
             ``statement`` give results without a statement shape, so
             :meth:`discover` cannot group them.
         label : str
@@ -1711,13 +1862,17 @@ class LeanIndex:
         """
         if layer is None:
             return None
+        at = self._layer_number(layer)
+        return frozenset(f for f, held in enumerate(self._layer_of) if held == at)
+
+    def _layer_number(self, layer: str) -> int:
+        """Return the number of the layer named *layer*; ``ValueError`` if none is."""
         names = [name for name, _root in self._layers]
         if not isinstance(layer, str) or layer not in names:
             raise ValueError(
                 f"LeanIndex: layer must be None or one of {names!r}; got {layer!r}."
             )
-        at = names.index(layer)
-        return frozenset(f for f, held in enumerate(self._layer_of) if held == at)
+        return names.index(layer)
 
     def _layer_of_label(self, label: str) -> int:
         """Return the layer of a file label, indexed or skipped (by its prefix)."""

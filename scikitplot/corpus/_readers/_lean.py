@@ -150,7 +150,10 @@ class LeanReader(CodeReader):
         ``keyLemma`` of ``keyLemma.symm``). Default: none.
     commands : collection of str, optional
         Further command keywords that start a chunk of their own at column
-        0, for commands a project defines. Default: none.
+        0, for commands a project defines: those an index reads with
+        (:meth:`scikitplot.lean.LeanIndex.commands`), or those every file
+        of the project defines (:func:`scikitplot.lean.defined_commands`).
+        Default: none.
     references : bool, optional
         Also record, per chunk, the identifiers its code uses
         (``references``) and the namespaces open for it (``opens``): what
@@ -266,9 +269,10 @@ class LeanReader(CodeReader):
 
     **Indexing.** :meth:`scikitplot.lean.LeanIndex.add_chunks` indexes a
     file read with ``references=True, statements=True,
-    lines_per_chunk=None``, for example from an archive: the same
-    declarations, references, flags, statement shapes and source problems
-    as :meth:`~scikitplot.lean.LeanIndex.add_file` reads from a UTF-8 file.
+    lines_per_chunk=None`` and the project's ``commands``, for example from
+    an archive: the same declarations, references, flags, statement shapes
+    and source problems as :meth:`~scikitplot.lean.LeanIndex.add_file`
+    reads from a UTF-8 file.
 
     **Developer note.** The file is decoded as
     :class:`~scikitplot.corpus._readers.TextReader` decodes it, then read
