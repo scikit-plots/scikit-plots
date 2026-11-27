@@ -52,24 +52,18 @@ from ._index import (
     _DEFINITIONS,
     PRODUCER,
     LeanIndex,
-    _bound_names,
     _listing,
     _positive,
 )
-from ._syntax import _NAME, _Lexer, _Splitter
+from ._shapes import _RESULTS, _shape
+from ._syntax import _Splitter
 
 __all__: list[str] = []
 
 #: Identity of the rules that choose the items, recorded on every record.
 DISCOVERY = "lean.discovery/1"
 
-#: Kinds whose statement is a result.
-_RESULTS = frozenset({"theorem", "lemma"})
 
-#: Shape tokens: names, numerals, single symbols.
-_SHAPE_TOKEN = re.compile(rf"{_NAME}|\d+(?:\.\d+)?|[^\s\w]")
-_NUMERAL = re.compile(r"\d+(?:\.\d+)?\Z")
-_PROP_DEFINITION = re.compile(r":\s*Prop\s*:=")
 _SERIES = re.compile(r"^(.*?[^\W\d])_?(\d+)\Z")
 
 #: Most members listed per pattern, series or parallel group.
@@ -80,43 +74,6 @@ _MIN_SERIES = 3
 
 #: Declarations of one name that make it declared in parallel.
 _MIN_PARALLEL = 2
-
-
-def _shape(statement: str, written: str | None) -> str | None:
-    """
-    Return a statement's shape: its code tokens, bound names and numerals abstracted.
-
-    The keyword, everything before it (doc comment, attributes, modifiers)
-    and the declaration's own name are dropped; each name the statement
-    binds becomes ``x0``, ``x1``, ... in order of first appearance; each
-    numeral becomes ``#``. Two statements of one shape differ only there.
-    """
-    lexer = _Lexer()
-    masked = " ".join(lexer.mask(line) for line in statement.split("\n"))
-    tokens = _SHAPE_TOKEN.findall(masked)
-    start = next((i for i, t in enumerate(tokens) if t in _RESULTS), None)
-    if start is None:
-        return None
-    tokens = tokens[start + 1 :]
-    if tokens and written is not None and tokens[0] == written:
-        tokens = tokens[1:]
-    if not tokens:
-        return None
-    bound = _bound_names(statement)
-    renamed: dict[str, str] = {}
-    out = []
-    for token in tokens:
-        if token in bound:
-            out.append(renamed.setdefault(token, f"x{len(renamed)}"))
-        elif _NUMERAL.match(token):
-            out.append("#")
-        else:
-            out.append(token)
-    return " ".join(out)
-
-
-def _digest(text: str) -> bytes:
-    return hashlib.blake2b(text.encode("utf-8"), digest_size=16).digest()
 
 
 class _Discovery:
@@ -137,35 +94,16 @@ class _Discovery:
     # -- passes -------------------------------------------------------------
 
     def read_statements(self) -> None:
-        """Pass over the files: the shape of each result, the ``Prop`` definitions."""
+        """
+        Group results by statement shape, and list the ``Prop`` definitions.
+
+        Both were recorded while the files were indexed (one read per file):
+        nothing is read again here.
+        """
         index = self.index
-        skipped = {label for label, _ in index._skipped}
-        for file_id, path in enumerate(index._paths):
-            if path is None or index._labels[file_id] in skipped:
-                continue
-            first = index._first_node[file_id]
-            last = (
-                index._first_node[file_id + 1]
-                if file_id + 1 < len(index._first_node)
-                else len(index._name)
-            )
-            at = {index._start[node]: node for node in range(first, last)}
-            for chunk in _statement_chunks(index, path, file_id):
-                node = at.get(chunk["line_start"])
-                if node is None:
-                    continue
-                kind = index._kind[node]
-                if kind in _RESULTS:
-                    written = (index._name[node] or "").rsplit(".", 1)[-1] or None
-                    shape = _shape(
-                        chunk["text"], _written(chunk["text"], kind) or written
-                    )
-                    if shape is not None:
-                        self.shapes.setdefault(_digest(shape), []).append(node)
-                elif kind in ("def", "abbrev") and _PROP_DEFINITION.search(
-                    " ".join(_Lexer().mask(line) for line in chunk["text"].split("\n"))
-                ):
-                    self.claims.append(node)
+        for node, digest in index._shape_of.items():
+            self.shapes.setdefault(digest, []).append(node)
+        self.claims.extend(sorted(index._claims))
 
     def count_uses(self) -> None:
         """
@@ -198,10 +136,15 @@ class _Discovery:
             if path is None:
                 continue
             starts = {index._start[node]: node for node in group}
-            for chunk in _statement_chunks(index, path, file_id):
-                node = starts.get(chunk["line_start"])
-                if node is not None:
-                    self.statements[node] = chunk["text"]
+            try:
+                for chunk in _statement_chunks(index, path, file_id):
+                    node = starts.get(chunk["line_start"])
+                    if node is not None:
+                        self.statements[node] = chunk["text"]
+            except (OSError, ValueError):
+                # Moved, deleted or changed since indexing: the items stay
+                # listed (with file and lines) without a quoted statement.
+                continue
 
     # -- the report ---------------------------------------------------------
 
@@ -432,17 +375,6 @@ class _Discovery:
             },
             "headline_results": _listing([self.item(n) for n in headline], self.top),
         }
-
-
-def _written(statement: str, kind: str) -> str | None:
-    """Return the name as written after *kind* in a statement, or ``None``."""
-    lexer = _Lexer()
-    masked = " ".join(lexer.mask(line) for line in statement.split("\n"))
-    tokens = _SHAPE_TOKEN.findall(masked)
-    for i, token in enumerate(tokens[:-1]):
-        if token == kind:
-            return tokens[i + 1]
-    return None
 
 
 def _statement_chunks(

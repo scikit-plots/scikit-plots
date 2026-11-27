@@ -672,3 +672,13 @@ def test_a_subfolder_index_says_its_imports_are_missing(tmp_path):
     assert checks["imported_modules_present"] == "fail"
     missing = part.summary()["imports"]["missing_modules"]["items"]
     assert [m["module"] for m in missing] == ["S.Core"]
+
+
+def test_a_dossier_survives_files_removed_after_indexing(tmp_path):
+    root = _project(tmp_path, PROJECT)
+    index = LeanIndex.from_folder(root)
+    for path in root.rglob("*.lean"):
+        path.unlink()
+    report = index.dossier("main2")  # no file to quote: locations only
+    assert report["target"]["statement"] is None
+    assert report["flags_found"] == ["sorry"]

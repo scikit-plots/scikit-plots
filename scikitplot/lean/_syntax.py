@@ -734,6 +734,7 @@ class _Command:
         "refs",
         "size",
         "statement",
+        "statement_text",
         "watch_lines",
         "watch_names",
         "written",
@@ -758,6 +759,7 @@ class _Command:
         self.after_exit = after_exit
         self.ends_in = False
         self.statement: _Statement | None = None
+        self.statement_text: str | None = None
         self.boundary: tuple[int, int] | None = None
         self.parts = 0
         self.depth = 0  # brackets open at the end of the last line
@@ -881,6 +883,7 @@ class _Splitter:
         max_scope_depth: int,
         flag_tokens: Mapping[str, str],
         references: bool = False,
+        statements: bool = False,
     ) -> None:
         self._file_name = file_name
         self._meta = meta
@@ -897,6 +900,9 @@ class _Splitter:
         self._lexer = _Lexer()
         self._scopes: list[tuple[str, str | None]] = []
         self._references = references
+        # Record each result's statement (its text before the proof) while
+        # keeping every line, so an index reads a file once.
+        self._statements = statements and not self._drop
         self._file_opens: list[str] = []  # `open` outside any scope
         self._scope_opens: list[list[str]] = []  # one list per scope
         self._namespace_cache: str | None = ""
@@ -1234,7 +1240,7 @@ class _Splitter:
                 seen.update(dict.fromkeys(opened))
             seen.update(dict.fromkeys(cur.local_opens))
             cur.opens = tuple(seen)
-        if self._drop and head.kind in _DROPPABLE:
+        if (self._drop or self._statements) and head.kind in _DROPPABLE:
             cur.statement = _Statement(
                 number, head.body_col, ":=" if self._lean3 else "=>"
             )
@@ -1313,11 +1319,7 @@ class _Splitter:
         if cur.boundary is not None:
             return  # the proof is left out
         if cur.statement is not None and masked.strip():
-            col = cur.statement.scan(number, masked)
-            if col is not None:
-                cur.boundary = (number, col)
-                cur.statement = None
-                text = text[:col].rstrip()
+            text = self._end_of_statement(cur, number, masked, text)
         cur.lines.append((number, text))
         cur.size += len(text) + 1
         step, cap = self._step, self._cap
@@ -1329,6 +1331,28 @@ class _Splitter:
             self._emit(cur, final=False)
             cur.lines = [newest]
             cur.size = len(newest[1])
+
+    def _end_of_statement(
+        self, cur: _Command, number: int, masked: str, text: str
+    ) -> str:
+        """
+        Find where a result's statement ends on this line; return the line to keep.
+
+        With ``proofs="drop"`` the line is cut there and the rest of the
+        command left out. With *statements* the line is kept whole and the
+        statement's text recorded.
+        """
+        col = cur.statement.scan(number, masked)
+        if col is None:
+            return text
+        cur.statement = None
+        if self._drop:
+            cur.boundary = (number, col)
+            return text[:col].rstrip()
+        cur.statement_text = "\n".join(
+            [t for _n, t in cur.lines] + [text[:col].rstrip()]
+        )
+        return text
 
     def _emit(self, cur: _Command, *, final: bool) -> None:  # noqa: PLR0912
         """Emit *cur*'s kept lines as one chunk (a part, unless *final* and alone)."""
@@ -1388,6 +1412,12 @@ class _Splitter:
             cur.refs = set()
         if cur.parts:
             chunk["part"] = cur.parts
+        if self._statements and final and cur.kind in _DROPPABLE:
+            # No boundary found (a `where` or pattern-matching proof): the
+            # whole command, as proofs="drop" keeps it.
+            chunk["statement"] = (
+                cur.statement_text if cur.statement_text is not None else chunk["text"]
+            )
         if final and cur.boundary is not None:
             chunk["proof_line_start"] = cur.boundary[0]
             chunk["proof_line_end"] = cur.last

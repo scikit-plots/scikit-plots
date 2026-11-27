@@ -359,3 +359,54 @@ def test_a_broken_manifest_is_ignored(tmp_path):
     (out / ".lean-export.json").write_text("{not json", encoding="utf-8")
     written = index.export(out)
     assert json.loads((out / ".lean-export.json").read_text(encoding="utf-8"))["files"] == sorted(written)
+
+
+# ---------------------------------------------------------------------------
+# One read per file: shapes and claims are recorded while indexing
+# ---------------------------------------------------------------------------
+
+
+def test_discovery_reads_no_file_again(tmp_path):
+    root = _project(tmp_path / "src", PROJECT)
+    index = LeanIndex.from_folder(root)
+    before = index.discover()
+    for path in root.rglob("*.lean"):
+        path.unlink()  # discovery must work from what the index recorded
+    after = index.discover()
+    for section in ("statement_shapes", "numbered_series"):
+        assert after["patterns"][section]["count"] == before["patterns"][section]["count"]
+    names = [i["declaration"] for i in after["claims"]["claim_definitions"]["items"]]
+    assert names == [i["declaration"] for i in before["claims"]["claim_definitions"]["items"]]
+
+
+def test_the_recorded_statement_is_the_dropped_proofs_text():
+    from .._syntax import _Splitter
+
+    source = [
+        "/-- doc -/",
+        "theorem a (n : Nat) :",
+        "    n + 0 = n := by",
+        "  simp",
+        "theorem b : True where",
+        "  x := trivial",
+        "def Claim : Prop := True",
+    ]
+
+    def chunks(**options):
+        splitter = _Splitter(
+            file_name="A.lean", meta={}, step=None, cap=None, dialect="lean4",
+            kinds=None, watch=(), commands=frozenset(), max_scope_depth=64,
+            flag_tokens={}, **options,
+        )
+        out = []
+        for number, line in enumerate(source, start=1):
+            out.extend(splitter.feed(number, line))
+        out.extend(splitter.finish())
+        return {c.get("declaration"): c for c in out}
+
+    kept = chunks(proofs="keep", statements=True)
+    dropped = chunks(proofs="drop")
+    for name in ("a", "b"):
+        assert kept[name]["statement"].split() == dropped[name]["text"].split()
+    assert "simp" in kept["a"]["text"]  # the proof is still kept
+    assert "statement" not in kept["Claim"]  # only results carry one
