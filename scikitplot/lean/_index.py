@@ -406,6 +406,24 @@ def _workers(value: Any) -> int:
     return value
 
 
+#: Most files a worker reads before it sends their records back.
+_BATCH_FILES = 64
+
+
+def _batch_size(files: int, workers: int) -> int:
+    """
+    Return how many files a worker reads per batch.
+
+    About sixteen batches per worker, so the work stays spread, and never
+    more than :data:`_BATCH_FILES`: a worker holds a whole batch's records
+    until it sends them, and the parent unpickles a batch at once, so an
+    uncapped batch grew with the project (5,474 files a batch and 420 MB a
+    worker on a project of 175,187 files; 64 files and 140 MB capped, read
+    as fast).
+    """
+    return max(1, min(files // (workers * 16), _BATCH_FILES))
+
+
 def _read_file_star(arguments: tuple[Any, ...]) -> tuple[Any, ...]:
     """:func:`_read_file` for ``Executor.map`` (one picklable argument)."""
     return _read_file(*arguments)
@@ -472,8 +490,8 @@ class LeanIndex:
         Memory grows with the workers: each copies the parts of the index
         it reads (Python's reference counts write to them) and keeps its
         own lookup cache. On a project of a million declarations a summary
-        took 186 s and 3.9 GB in all with two workers, against 305 s and
-        2.1 GB with one; set ``workers`` to what the machine's memory
+        took 173 s and 3.0 GB in all with two workers, against 318 s and
+        1.7 GB with one; set ``workers`` to what the machine's memory
         allows, not only its CPUs.
 
     See Also
@@ -725,7 +743,7 @@ class LeanIndex:
         try:
             # Executor.map returns results in submission order: the same
             # order, and so the same index, as reading one file at a time.
-            chunk = max(1, len(files) // (workers * 16))
+            chunk = _batch_size(len(files), workers)
             paths = [path for path, _ in files]
             learned: dict[str, tuple[str, int]] = {}
             if learn_commands:
