@@ -10,6 +10,25 @@
 | `scikitplot/corpus/_readers/tests/data/alto_tei/` in a source checkout | none | ALTO v4 pages and archives (eScriptorium exports, hyphenation, out-of-order pages) and TEI documents | Third-party, Apache-2.0 (`LICENSE` and `README.md` in the folder name the source and hashes). Copied from https://github.com/Princeton-CDH/remarx/tree/main/tests/test_sentence/test_corpus/fixtures |
 | https://github.com/scikit-plots/scikit-plots-data | web or `git clone` | The CSV files behind `load_dataset` | Clone once on a connected machine, carry the files to an offline one. |
 
+## Lean projects (`scikitplot.lean`, the corpus `LeanReader`)
+
+Clone each repository (`git clone --depth 1`) outside the scikit-plots
+checkout, index it in place, and record counts and timings only. The
+commit is the one the baselines in pull requests #1012 to #1021 were
+measured on; give the commit you use when you report figures.
+
+| Repository | `.lean` files | Good for | License and notes |
+|---|---|---|---|
+| https://github.com/teorth/pfr (`1899ce8`) | 74 | A small project over mathlib: layers (`add_folder`), layer reports, near-duplicates against its dependency | Apache-2.0. Has its own copy of some mathlib files under `PFR/Mathlib/`, which tests a layer's source root. |
+| https://github.com/leanprover-community/aesop (`637fdbb`) | 250 | A tactic library: syntax extensions, learned commands | Apache-2.0. |
+| https://github.com/leanprover-community/batteries (`d7e2885`) | 283 | A library under mathlib: macros, `elab` commands | Apache-2.0. |
+| https://github.com/leanprover/lean4 (`48c14fd`), its `src/` folder | 8,457 | Core Lean: syntax and imports a library never uses | Apache-2.0. Index `src/` alone. |
+| https://github.com/leanprover-community/mathlib4 (`b108da2`) | 9,351 | The main benchmark: indexing, workers' memory, snapshots, refresh, near-duplicates | Apache-2.0. |
+| https://github.com/CocoSgt/riemann-hypothesis-lean (`7cbf7a0c3`) | 175,187 | Scale: compressed visibility bitsets, capped batches, snapshot size and load time | **No license**: the README says the original was published without one. Index it in place for counts and timings only; never copy its files into the repository, a fixture or a report. |
+
+`maintenances/corpus/_maintenance/tools/lean_index_benchmark.py` times and
+measures memory on any of them (`--compare`, `--snapshot`).
+
 ## External sources
 
 Download by hand or through each site's documented interface, into a new
