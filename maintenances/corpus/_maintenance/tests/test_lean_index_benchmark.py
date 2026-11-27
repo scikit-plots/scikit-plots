@@ -11,6 +11,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -171,6 +172,75 @@ class CompareTest(unittest.TestCase):
             with self.assertRaises(SystemExit), redirect_stdout(io.StringIO()):
                 with contextlib.redirect_stderr(io.StringIO()):
                     bench.main([root, "--workers", "-1"], index_class=StandIn)
+
+
+class MemoryTest(unittest.TestCase):
+    def _proc(self, root, entries):
+        for pid, (stat, pss) in entries.items():
+            folder = Path(root, str(pid))
+            folder.mkdir()
+            Path(folder, "stat").write_text(stat)
+            if pss is not None:
+                Path(folder, "smaps_rollup").write_text(f"Rss: 99 kB\nPss: {pss} kB\n")
+
+    def test_the_process_tree_and_its_pss(self):
+        with tempfile.TemporaryDirectory() as proc:
+            self._proc(
+                proc,
+                {
+                    10: ("10 (python3) S 1 10", 1000),
+                    11: ("11 (a (b) c) S 10 10", 300),  # comm with spaces, parens
+                    12: ("12 (worker) S 11 10", 200),
+                    13: ("13 (other) S 1 13", 5000),  # not ours
+                    14: ("14 (gone) S 10 10", None),  # no smaps_rollup: 0
+                },
+            )
+            Path(proc, "self").mkdir()
+            parents = bench._parents(proc)
+            self.assertEqual(parents, {10: 1, 11: 10, 12: 11, 13: 1, 14: 10})
+            tree = bench._tree(parents, 10)
+            self.assertEqual(tree, {10, 11, 12, 14})
+            self.assertEqual(sum(bench._pss_kb(p, proc) for p in tree), 1500)
+            self.assertFalse(bench._pss_available(proc))  # no self/smaps_rollup
+            Path(proc, "15").mkdir()
+            Path(proc, "15", "stat").write_text("15 (dead) Z 10 10")
+            self.assertTrue(bench._alive(10, proc))
+            self.assertFalse(bench._alive(15, proc))  # exited, not reaped
+            self.assertFalse(bench._alive(99, proc))  # no such process
+
+    def test_stage_peaks(self):
+        timeline = [(1.0, 2048), (2.0, 4096), (3.0, 1024), (5.0, 3072)]
+        windows = {"index": (0.5, 2.5), "summary": (2.6, 3.5), "dossier": (3.6, 3.7)}
+        self.assertEqual(
+            bench.stage_peaks(timeline, windows),
+            {"index": 4, "summary": 1, "dossier": None, "all": 4},
+        )
+        self.assertEqual(bench.stage_peaks([], {"index": (0, 1)}), {"index": None, "all": None})
+
+    @unittest.skipUnless(bench._pss_available(), "PSS needs Linux /proc")
+    def test_the_sampler_follows_a_process_until_it_ends(self):
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(1.2)"])
+        with tempfile.TemporaryDirectory() as root:
+            out = Path(root, "timeline.txt")
+            bench.sample_pss(child.pid, out)  # returns once the child is gone
+            child.wait()
+            timeline = bench._read_timeline(out)
+        self.assertGreaterEqual(len(timeline), 1)
+        self.assertTrue(all(kb >= 0 for _at, kb in timeline))
+
+    @unittest.skipUnless(bench._pss_available(), "PSS needs Linux /proc")
+    def test_measure_reports_memory_per_stage(self):
+        with tempfile.TemporaryDirectory() as root:
+            result = bench.measure(StandIn, root, out=root, top=5, pss=True)
+        memory = result["memory_mb"]
+        self.assertEqual(set(memory), {"index", "summary", "discover", "export", "all"})
+        self.assertIsNotNone(memory["all"])
+
+    def test_no_pss_leaves_memory_out(self):
+        with tempfile.TemporaryDirectory() as root:
+            status, text = _run([root, "--no-pss", "--json"])
+        self.assertEqual(status, 0)
+        self.assertIsNone(json.loads(text)["memory_mb"])
 
 
 if __name__ == "__main__":
