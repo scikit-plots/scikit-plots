@@ -269,7 +269,15 @@ without a known path are listed as not read. From the shell,
 ``--near-duplicates`` with ``--threshold``, ``--layer`` and ``--against``.
 
 On mathlib4 with PFR (196,029 statements, two workers): 27 s at 0.8 (29,062
-pairs), 22 s at 0.9, of which reading the statements is about 18 s. The
+pairs), 22 s at 0.9, of which reading the statements is about 18 s.
+
+To search often, or from a saved index without its files, keep the shapes
+when the files are read: ``LeanIndex.from_folder(folder, keep_shapes=True)``
+(``--keep-shapes``). The search then reads no file and gives the same
+report. On mathlib4 that keeps 6.1 million token numbers (29 MB), makes the
+saved index 85 MB instead of 57 MB and reading 5% longer, and the search
+takes 10 s instead of 34 s. Layers added over a kept index keep theirs; a
+saved index keeps the option. The
 number of pairs grows fast below 0.7: at 0.5 the search alone takes about
 4 minutes (515,934 pairs).
 

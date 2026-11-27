@@ -141,7 +141,7 @@ _PER_NODE = {
     "_name", "_kind", "_file", "_start", "_end", "_namespace", "_opens",
     "_ref_ptr", "_ref_data", "_ctx_of",
     "_flags", "_attributes", "_shape_of", "_private", "_claims", "_by_name",
-    "_vacuous",
+    "_vacuous", "_st_ptr", "_st_data",
 }  # fmt: skip
 _PER_FILE = {
     "_labels", "_label_ids", "_paths", "_imports", "_file_lines", "_first_node",
@@ -158,6 +158,7 @@ _ORDER_FREE = {
     "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands", "_workers",
     "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat", "_layers",
     "_layer_roots", "_layer_commands", "_given_commands", "_fk_names", "_fk_ids",
+    "_keep_shapes", "_st_names", "_st_ids",
     "_dialect", "_graph", "_max_bytes", "_max_depth", "_source_root",
     "_suffix", "_visibility",
 }  # fmt: skip

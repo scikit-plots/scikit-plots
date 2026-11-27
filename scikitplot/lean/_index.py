@@ -51,7 +51,8 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 from . import _parallel
-from ._shapes import _bound_names, fingerprint, states_a_claim, vacuity
+from ._shapes import _bound_names, shape_tokens, states_a_claim, vacuity
+from ._shapes import _digest as _shape_digest
 from ._syntax import (
     _MODIFIERS,
     _NOT_REFERENCES,
@@ -271,14 +272,15 @@ def _names_the_project(module: str, modules: Any, roots: Any) -> bool:
     )
 
 
-def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
+def _compact(chunk: dict[str, Any], keep_shapes: bool = False) -> tuple[Any, ...]:
     """
     Return what the index keeps of one command, as a plain tuple.
 
     Imports: ``("import", modules)``; other commands outside the graph:
     ``(kind,)``; a declaration: ``(kind, name, line_start, line_end,
     namespace, opens, references, flags, attributes, private, shape,
-    claim, vacuous)``. The statement-shape digest, whether it is a
+    claim, vacuous, tokens)``. The statement-shape digest (and, with
+    *keep_shapes*, the shape's tokens; otherwise ``None``), whether it is a
     definition of type ``Prop`` and why such a definition says nothing
     (:func:`._shapes.vacuity`) are computed here, so a worker process does
     that work too.
@@ -290,11 +292,15 @@ def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
         return (kind,)
     name = chunk.get("declaration")
     shape = None
+    tokens = None
     claim = False
     vacuous = None
     if kind in ("theorem", "lemma"):
         statement = chunk.get("statement")
-        shape = None if statement is None else fingerprint(statement, kind, name)
+        found = None if statement is None else shape_tokens(statement, kind, name)
+        if found is not None:  # as fingerprint() digests them
+            shape = _shape_digest(" ".join(found))
+            tokens = tuple(found) if keep_shapes else None
     elif kind in ("def", "abbrev"):
         claim = states_a_claim(chunk["text"])
         vacuous = vacuity(chunk["text"]) if claim else None
@@ -312,11 +318,14 @@ def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
         shape,
         claim,
         vacuous,
+        tokens,
     )
 
 
 def _read_file(
-    path: str | Path, label: str, settings: tuple[str, frozenset[str], int, int]
+    path: str | Path,
+    label: str,
+    settings: tuple[str, frozenset[str], int, int, bool],
 ) -> tuple[Any, ...]:
     """
     Read one ``.lean`` file into records; the work a worker process does.
@@ -327,7 +336,7 @@ def _read_file(
     nesting deeper than ``max_scope_depth``. A file is read whole before
     any of it is added, so a skipped file adds nothing.
     """
-    dialect, commands, max_depth, max_bytes = settings
+    dialect, commands, max_depth, max_bytes, keep_shapes = settings
     path = Path(path)
     try:
         size = path.stat().st_size
@@ -364,8 +373,10 @@ def _read_file(
             line = read[:-1] if read.endswith("\n") else read
             if number == 1 and line.startswith("\ufeff"):
                 line = line[1:]
-            records.extend(_compact(chunk) for chunk in splitter.feed(number, line))
-        records.extend(_compact(chunk) for chunk in splitter.finish())
+            records.extend(
+                _compact(chunk, keep_shapes) for chunk in splitter.feed(number, line)
+            )
+        records.extend(_compact(chunk, keep_shapes) for chunk in splitter.finish())
     except ValueError as exc:  # nesting past max_scope_depth
         return ("skip", str(exc))
     problems = tuple(splitter.problems)
@@ -491,6 +502,15 @@ def _learn(
 _BATCH_FILES = 64
 
 
+def _repack(ptr: array, data: array, nodes: list[int]) -> tuple[array, array]:
+    """Return packed per-node lists (offsets *ptr* into *data*) kept for *nodes*, in order."""
+    new_ptr, new_data = array("q", [0]), array(data.typecode)
+    for n in nodes:
+        new_data.extend(data[ptr[n] : ptr[n + 1]])
+        new_ptr.append(len(new_data))
+    return new_ptr, new_data
+
+
 def _batch_size(files: int, workers: int) -> int:
     """
     Return how many files a worker reads per batch.
@@ -589,6 +609,14 @@ class LeanIndex:
         for projects of 20,000 declarations or more; elsewhere names are
         resolved here. Every report is the same for any number of workers.
         :meth:`from_folder` also reads files with its ``workers``.
+    keep_shapes : bool, optional
+        Keep each result's statement shape (its tokens, numbered) besides
+        its digest, so :meth:`near_duplicates` reads no file and works on a
+        snapshot without its files. ``False`` (default) keeps the digest
+        only. On mathlib4 it keeps 6.1 million token numbers (29 MB) and
+        makes a saved index 85 MB instead of 57 MB; reading takes 5% longer
+        and :meth:`near_duplicates` 10 s instead of 34 s, with the same
+        report.
 
         Memory grows with the workers: each copies the parts of the index
         it reads (Python's reference counts write to them) and keeps its
@@ -663,7 +691,12 @@ class LeanIndex:
         source_root: str | None = None,
         graph: str = "python",
         workers: int | None = 1,
+        keep_shapes: bool = False,
     ) -> None:
+        if not isinstance(keep_shapes, bool):
+            raise TypeError(
+                f"LeanIndex: keep_shapes must be True or False; got {keep_shapes!r}."
+            )
         if dialect not in ("lean4", "lean3"):
             raise ValueError(
                 f"LeanIndex: dialect must be 'lean4' or 'lean3'; got {dialect!r}."
@@ -699,6 +732,13 @@ class LeanIndex:
                 f"LeanIndex: commands must be a collection of str; got {commands!r}."
             )
         self._dialect = dialect
+        # Statement shapes kept (keep_shapes): token texts, their numbers,
+        # and per declaration its tokens, packed like the references.
+        self._keep_shapes = keep_shapes
+        self._st_names: list[str] = []
+        self._st_ids: dict[str, int] = {}
+        self._st_ptr: array[int] = array("q", [0])
+        self._st_data: array[int] = array("i")
         # Commands given here, and those each layer's files define (learned):
         # a layer is read with the given ones and its own and lower layers'.
         self._given_commands = frozenset(commands)
@@ -1243,7 +1283,7 @@ class LeanIndex:
 
     def _settings(
         self, layer: int | None = None
-    ) -> tuple[str, frozenset[str], int, int]:
+    ) -> tuple[str, frozenset[str], int, int, bool]:
         """
         Return the options a file is read with, as :func:`_read_file` takes them.
 
@@ -1251,7 +1291,13 @@ class LeanIndex:
         its layer and the layers below define; ``None`` gives every command.
         """
         commands = self._commands if layer is None else self._commands_for(layer)
-        return (self._dialect, commands, self._max_depth, self._max_bytes)
+        return (
+            self._dialect,
+            commands,
+            self._max_depth,
+            self._max_bytes,
+            self._keep_shapes,
+        )
 
     def _commands_for(self, layer: int) -> frozenset[str]:
         """Return the commands layer *layer* is read with."""
@@ -1333,7 +1379,7 @@ class LeanIndex:
                 if flags:
                     self._flags[node] = tuple(sorted(flags))
             else:
-                record = _compact(chunk)
+                record = _compact(chunk, self._keep_shapes)
                 self._add_record(record, file_id)
                 counted[record[0]] += 1
             last_end = max(last_end, chunk.get("line_end", 0))
@@ -1428,11 +1474,9 @@ class LeanIndex:
         self._kind = [self._kind[n] for n in nodes]
         self._namespace = [self._namespace[n] for n in nodes]
         self._opens = [self._opens[n] for n in nodes]
-        ptr, data = self._ref_ptr, self._ref_data
-        self._ref_ptr, self._ref_data = array("q", [0]), array("i")
-        for n in nodes:
-            self._ref_data.extend(data[ptr[n] : ptr[n + 1]])
-            self._ref_ptr.append(len(self._ref_data))
+        self._ref_ptr, self._ref_data = _repack(self._ref_ptr, self._ref_data, nodes)
+        if self._keep_shapes:
+            self._st_ptr, self._st_data = _repack(self._st_ptr, self._st_data, nodes)
         for field in ("_start", "_end"):
             column = getattr(self, field)
             setattr(self, field, array(column.typecode, (column[n] for n in nodes)))
@@ -1521,6 +1565,27 @@ class LeanIndex:
         start, stop = self._ref_ptr[node], self._ref_ptr[node + 1]
         return tuple(self._ref_name(i) for i in self._ref_data[start:stop])
 
+    def _keep_tokens(self, tokens: Iterable[str] | None) -> None:
+        """Record the next declaration's statement-shape tokens (with ``keep_shapes``)."""
+        if not self._keep_shapes:
+            return
+        ids = self._st_ids
+        for token in tokens or ():
+            found = ids.get(token)
+            if found is None:
+                found = ids[token] = len(self._st_names)
+                self._st_names.append(token)
+            self._st_data.append(found)
+        self._st_ptr.append(len(self._st_data))
+
+    def _shape_tokens_of(self, node: int) -> list[str] | None:
+        """Return *node*'s kept statement-shape tokens, or ``None`` (not kept, or none)."""
+        if not self._keep_shapes or node not in self._shape_of:
+            return None
+        start, stop = self._st_ptr[node], self._st_ptr[node + 1]
+        names = self._st_names
+        return [names[i] for i in self._st_data[start:stop]] or None
+
     def _interned(self, value: Any) -> Any:
         return self._intern.setdefault(value, value)
 
@@ -1548,8 +1613,10 @@ class LeanIndex:
             shape,
             claim,
             vacuous,
+            tokens,
         ) = record
         node = len(self._name)
+        self._keep_tokens(tokens)
         self._name.append(name)
         self._kind.append(sys.intern(kind))
         self._file.append(file_id)
@@ -2908,8 +2975,11 @@ class LeanIndex:
         two statements to read side by side: one may generalize the other,
         restate it, or differ where it matters.
 
-        **Developer.** The statements are read again from the files (with
-        the index's ``workers``), so the index keeps no extra data. Pairs
+        **Developer.** With ``keep_shapes=True`` the shapes kept when the
+        files were read are used, and no file is read (a snapshot without
+        its files is enough). Otherwise the statements are read again, as
+        the index reads them, with the index's ``workers``. Either way the
+        report is the same. Pairs
         are found by prefix filtering over token pairs ordered rarest
         first (:func:`._similar.similar_pairs`). On mathlib4 with PFR it
         compares about 200,000 statements; see the user guide for times.
@@ -3375,6 +3445,7 @@ def _index_for(args: argparse.Namespace) -> LeanIndex:
         source_root=args.source_root,
         workers=workers,
         graph=args.graph,
+        keep_shapes=args.keep_shapes,
     )
     if args.save is not None:
         index.save(args.save)
@@ -3483,6 +3554,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--discover",
         action="store_true",
         help="print rules, patterns, claims and anomalies",
+    )
+    parser.add_argument(
+        "--keep-shapes",
+        action="store_true",
+        help="keep statement shapes, so --near-duplicates reads no file (see keep_shapes)",
     )
     parser.add_argument(
         "--near-duplicates",

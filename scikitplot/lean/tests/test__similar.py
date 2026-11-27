@@ -152,3 +152,91 @@ def test_the_command_line_lists_near_duplicates(tmp_path):
     assert (report["report"], report["threshold"], report["pairs"]["count"]) == (
         "near_duplicates", 0.5, 2,
     )  # fmt: skip
+
+
+# -- shapes kept when read ------------------------------------------------------
+
+
+def _many(root):
+    for k in range(4):
+        _write(root, {f"P/More{k}.lean": SOURCE["P/A.lean"].replace("le_sum", f"le_sum{k}")})
+    return root
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+def test_kept_shapes_give_the_report_reading_gives(tmp_path, workers):
+    root = _many(_write(tmp_path / "p", SOURCE))
+    read = LeanIndex.from_folder(root).near_duplicates(threshold=0.5)
+    kept = LeanIndex.from_folder(root, keep_shapes=True, workers=workers)
+    assert kept.near_duplicates(threshold=0.5) == read
+    assert read["pairs"]["count"] > 2
+
+
+def test_kept_shapes_need_no_file(tmp_path):
+    root = _many(_write(tmp_path / "p", SOURCE))
+    saved = LeanIndex.from_folder(root, keep_shapes=True).save(tmp_path / "k.leanidx")
+    blind = LeanIndex.load(saved).near_duplicates(threshold=0.5)
+    assert blind["files_not_read"]["count"] == 0
+    seeing = LeanIndex.load(saved, root=root).near_duplicates(threshold=0.5)
+    assert [p["similarity"] for p in blind["pairs"]["items"]] == [
+        p["similarity"] for p in seeing["pairs"]["items"]
+    ]
+    assert blind["pairs"]["items"][0]["a"]["statement"] is None  # not quoted
+    assert seeing["pairs"]["items"][0]["a"]["statement"].startswith("theorem")
+
+
+def test_kept_shapes_survive_saving_refreshing_and_adding_in_any_order(tmp_path):
+    root = _many(_write(tmp_path / "p", SOURCE))
+    index = LeanIndex.from_folder(root, keep_shapes=True)
+    _write(root, {"P/More0.lean": "theorem changed (n : Nat) : n + 0 = n := rfl\n"})
+    (root / "P" / "More1.lean").unlink()
+    index.refresh()
+    fresh = LeanIndex.from_folder(root, keep_shapes=True)
+    assert index.save(tmp_path / "a").read_bytes() == fresh.save(tmp_path / "b").read_bytes()
+    shuffled = LeanIndex(keep_shapes=True)
+    for path in sorted(root.rglob("*.lean"), reverse=True):
+        shuffled.add_file(path, label=path.relative_to(root).as_posix())
+    assert shuffled.save(tmp_path / "c").read_bytes() == fresh.save(tmp_path / "d").read_bytes()
+    loaded = LeanIndex.load(tmp_path / "b")
+    assert loaded._keep_shapes and loaded._shape_tokens_of(0) == fresh._shape_tokens_of(0)
+
+
+def test_keeping_shapes_changes_nothing_else(tmp_path):
+    root = _many(_write(tmp_path / "p", SOURCE))
+    plain, kept = LeanIndex.from_folder(root), LeanIndex.from_folder(root, keep_shapes=True)
+    assert plain.summary() == kept.summary()
+    assert plain.discover() == kept.discover()
+    assert plain._shape_of == kept._shape_of
+
+
+def test_keep_shapes_is_checked(tmp_path):
+    with pytest.raises(TypeError, match="keep_shapes must be True or False"):
+        LeanIndex(keep_shapes=1)
+
+
+def test_kept_shapes_in_a_snapshot_are_checked(tmp_path):
+    from .test__snapshot import _resign, _section
+
+    root = _many(_write(tmp_path / "p", SOURCE))
+    saved = LeanIndex.from_folder(root, keep_shapes=True).save(tmp_path / "k.leanidx")
+    blob = saved.read_bytes()
+    tokens = bytearray(_section(blob, "shape_tokens"))
+    tokens[0:4], tokens[4:8] = tokens[4:8], tokens[0:4]  # two tokens swapped
+    bad = {
+        "do not match its shape": _resign(blob, "shape_tokens", bytes(tokens)),
+        "sections are missing": _resign(
+            blob, header_change=lambda h: h["sections"].pop("shape_ptr")
+        ),
+    }
+    for message, changed in bad.items():
+        saved.write_bytes(changed)
+        with pytest.raises(ValueError, match=message):
+            LeanIndex.load(saved)
+
+
+def test_the_command_line_keeps_shapes(tmp_path):
+    root = _many(_write(tmp_path / "p", SOURCE))
+    saved = tmp_path / "k.leanidx"
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert main([str(root), "--keep-shapes", "--save", str(saved)]) == 0
+    assert LeanIndex.load(saved)._keep_shapes

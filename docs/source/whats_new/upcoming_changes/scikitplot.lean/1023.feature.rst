@@ -1,0 +1,8 @@
+- :class:`~scikitplot.lean.LeanIndex` takes ``keep_shapes=True``
+  (``--keep-shapes``) to keep each result's statement shape when the
+  files are read, and save it, so
+  :meth:`~scikitplot.lean.LeanIndex.near_duplicates` reads no file, works
+  on a saved index without its files, and gives the same report: on
+  mathlib4 10 s instead of 34 s, for 29 MB more in memory and a saved
+  index of 85 MB instead of 57 MB. Without it, statements are now read
+  again exactly as the index read them, so the two always agree.

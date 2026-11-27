@@ -47,6 +47,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
+from ._shapes import _digest as _shape_digest
+
 __all__: list[str] = []
 
 #: What a snapshot does with each attribute of a LeanIndex. A new attribute
@@ -59,7 +61,8 @@ SAVED = frozenset(
         "_vacuous", "_ref_names", "_ctx_keys", "_labels", "_imports",
         "_file_lines", "_problems", "_kinds", "_learned", "_skipped",
         "_layers", "_layer_of", "_digests", "_fk_names", "_fk_ptr", "_fk_data",
-        "_given_commands", "_layer_commands",
+        "_given_commands", "_layer_commands", "_keep_shapes", "_st_names", "_st_ptr",
+        "_st_data",
         "_dialect", "_commands", "_max_depth", "_max_bytes", "_suffix",
         "_visibility", "_source_root",
     }
@@ -68,7 +71,7 @@ REBUILT = frozenset(
     {
         "_namespace", "_opens", "_by_name", "_ref_ids", "_ctx_ids",
         "_label_ids", "_first_node", "_paths", "_intern", "_generation",
-        "_in_order", "_fk_ids",
+        "_in_order", "_fk_ids", "_st_ids",
     }
 )  # fmt: skip
 CHOSEN_WHEN_LOADING = frozenset({"_graph", "_workers", "_flat", "_layer_roots"})
@@ -154,6 +157,7 @@ def dumps(index: Any) -> bytes:
             "suffix": index._suffix,
             "visibility": index._visibility,
             "source_root": index._source_root,
+            "keep_shapes": index._keep_shapes,
         },
         "labels": list(index._labels),
         "layers": [list(layer) for layer in index._layers],
@@ -214,6 +218,8 @@ def dumps(index: Any) -> bytes:
             "bytes",
         ),
     }
+    if index._keep_shapes:
+        sections.update(_shape_sections(index))
     body = bytearray()
     table = {}
     digest = hashlib.sha256()
@@ -232,6 +238,32 @@ def dumps(index: Any) -> bytes:
     encoded = json.dumps(header, sort_keys=True, separators=(",", ":")).encode("utf-8")
     encoded += b" " * (-len(encoded) % _ALIGN)
     return _MAGIC + len(encoded).to_bytes(8, "little") + encoded + bytes(body)
+
+
+def _shape_sections(index: Any) -> dict[str, tuple[bytes, str]]:
+    """
+    Return the sections of kept statement shapes (``keep_shapes``).
+
+    Tokens numbered by sorted text, only those some declaration uses: the
+    same files give the same bytes, whatever was read and dropped before.
+    """
+    used = sorted({index._st_names[i] for i in index._st_data})
+    number = {name: i for i, name in enumerate(used)}
+    new = [number.get(name, -1) for name in index._st_names]
+    data = [new[i] for i in index._st_data]
+    text, at = _texts(used)
+    return {
+        "shape_tok_text": (text, "utf8"),
+        "shape_tok_at": (at, "q"),
+        "shape_ptr": (_ints(index._st_ptr, "q"), "q"),
+        "shape_tokens": (_ints(data, "i"), "i"),
+    }
+
+
+#: The sections a snapshot of an index that keeps shapes also has.
+_SHAPE_SECTIONS = frozenset(
+    {"shape_tok_text", "shape_tok_at", "shape_ptr", "shape_tokens"}
+)
 
 
 def save(index: Any, path: str | Path) -> Path:
@@ -362,8 +394,13 @@ def _build(
         raise _fail("the metadata is not valid.") from exc
     cols = _columns(parts, n)
     _check(cols, meta, n, files)
+    keep = saved.get("keep_shapes", False)
+    if not isinstance(keep, bool):
+        raise _fail("keep_shapes is not true or false.")
+    shapes = _shape_columns(parts, n, cols) if keep else None
     base = _roots(root)
     index = index_class(
+        keep_shapes=keep,
         dialect=saved["dialect"],
         commands=saved["given_commands"],
         max_scope_depth=saved["max_scope_depth"],
@@ -375,8 +412,51 @@ def _build(
     )
     _fill_files(index, cols, meta, n, base)
     _fill_declarations(index, cols, meta, n)
+    if shapes is not None:
+        index._st_names, index._st_ptr, index._st_data = shapes
+        index._st_ids = {name: i for i, name in enumerate(index._st_names)}
     index._generation += 1
     return index
+
+
+def _shape_columns(
+    parts: dict[str, bytes], n: int, cols: dict[str, Any]
+) -> tuple[list[str], array, array]:
+    """Decode and check the kept statement shapes: every result with a shape has tokens."""
+    if _SHAPE_SECTIONS - set(parts):
+        raise _fail(
+            "it keeps shapes, but sections are missing:"
+            f" {', '.join(sorted(_SHAPE_SECTIONS - set(parts)))}."
+        )
+    names = _read_texts(
+        parts["shape_tok_text"],
+        _read_ints(parts["shape_tok_at"], "q"),
+        None,
+        "shape token",
+    )
+    if names != sorted(set(names)):
+        raise _fail("the shape tokens are not sorted and unique.")
+    ptr, data = (
+        _read_ints(parts["shape_ptr"], "q"),
+        _read_ints(parts["shape_tokens"], "i"),
+    )
+    if len(ptr) != n + 1 or ptr[0] != 0 or ptr[-1] != len(data):
+        raise _fail("the shape offsets do not match the declarations.")
+    if any(a > b for a, b in zip(ptr, ptr[1:])):
+        raise _fail("the shape offsets are out of order.")
+    _in_range(data, len(names), "shape token")
+    shaped = {node: i for i, node in enumerate(cols["shape_of"])}
+    digests = cols["shapes"]
+    for node in range(n):
+        start, stop = ptr[node], ptr[node + 1]
+        i = shaped.get(node)
+        if (stop > start) != (i is not None):
+            raise _fail("a declaration's shape tokens do not match its shape.")
+        if i is not None:
+            text = " ".join(names[t] for t in data[start:stop])
+            if _shape_digest(text) != digests[_DIGEST * i : _DIGEST * (i + 1)]:
+                raise _fail("a declaration's shape tokens do not match its shape.")
+    return names, ptr, data
 
 
 def _columns(parts: dict[str, bytes], n: int) -> dict[str, Any]:
