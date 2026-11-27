@@ -114,7 +114,7 @@ class _Discovery:
         top-level ``s`` in a file nothing imports.
         """
         index = self.index
-        if index._graph == "numpy":
+        if index._graph != "python":  # numpy or scipy: packed edges
             import numpy as np  # noqa: PLC0415
 
             from ._graph_numpy import use_counts  # noqa: PLC0415

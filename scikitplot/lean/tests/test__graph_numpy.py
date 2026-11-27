@@ -159,7 +159,7 @@ def test_an_empty_project(tmp_path):
 
 def test_graph_is_validated():
     with pytest.raises(ValueError, match="graph"):
-        LeanIndex(graph="scipy")
+        LeanIndex(graph="networkx")
 
 
 def test_without_numpy_the_option_says_what_to_install():

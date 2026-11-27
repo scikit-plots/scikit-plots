@@ -139,6 +139,9 @@ _ADDS = frozenset({"add_decl", "axiom"})
 #: ``axiom`` on an ``axiom`` declaration and ``after_exit`` past ``#exit``.
 AUDIT_FLAGS = frozenset(LEAN_FLAGS.values()) | {"axiom", "after_exit"}
 
+#: Graph backends: the standard library, NumPy, and NumPy with SciPy's searches.
+_GRAPHS = ("python", "numpy", "scipy")
+
 #: Past this many files, import bitsets are kept zlib-compressed (see
 #: ``LeanIndex._sees``): below it they take little memory either way.
 _COMPRESS_FILES = 20_000
@@ -406,14 +409,18 @@ class LeanIndex:
         no module. ``None`` (default) finds it from the imports; see
         :meth:`_module_files`. Set it when a small project's only imports
         could name either a dependency or a project file.
-    graph : {"python", "numpy"}, optional
+    graph : {"python", "numpy", "scipy"}, optional
         How the whole-graph steps run. ``"python"`` (default): the standard
         library. ``"numpy"``: once a step needs every edge (``summary``,
         ``discover``, ``export``), the edges are packed into two NumPy
         arrays (about six times less memory than one array per
         declaration) and use counts and breadth-first searches run
-        vectorised. Reports are identical. Needs NumPy; name resolution,
-        most of the time on real projects, is the same in both.
+        vectorised. ``"scipy"``: packed as for ``"numpy"``, the
+        breadth-first searches in :mod:`scipy.sparse.csgraph` (a fixed cost
+        of milliseconds per search: for benchmarking, and for closures of
+        hundreds of thousands of declarations). Reports are identical for
+        all three; name resolution, most of the time on real projects, is
+        the same in all of them.
 
     See Also
     --------
@@ -522,17 +529,24 @@ class LeanIndex:
         self._suffix = suffix
         self._visibility = visibility
         self._source_root = None if source_root is None else source_root.strip("/")
-        if graph not in ("python", "numpy"):
+        if graph not in _GRAPHS:
             raise ValueError(
-                f"LeanIndex: graph must be 'python' or 'numpy'; got {graph!r}."
+                f"LeanIndex: graph must be one of {', '.join(map(repr, _GRAPHS))}; got {graph!r}."
             )
-        if graph == "numpy":
-            try:  # import it: a broken install fails here, not mid-report
+        if graph != "python":
+            try:  # import them: a broken install fails here, not mid-report
                 import numpy as np  # noqa: F401, PLC0415
+
+                if graph == "scipy":
+                    import scipy.sparse.csgraph  # noqa: F401, PLC0415
             except ImportError as exc:
+                needs = (
+                    "NumPy and SciPy: pip install numpy scipy"
+                    if graph == "scipy"
+                    else "NumPy: pip install numpy"
+                )
                 raise ImportError(
-                    "LeanIndex(graph='numpy') needs NumPy: pip install numpy;"
-                    " graph='python' needs nothing."
+                    f"LeanIndex(graph={graph!r}) needs {needs}; graph='python' needs nothing."
                 ) from exc
         self._graph = graph
         self._packed: tuple[Any, Any] | None = None
@@ -1086,12 +1100,14 @@ class LeanIndex:
         (compressed rows of 4-byte node numbers), then dropped: time and
         memory linear in the edges.
         """
-        if self._graph == "numpy":
-            from ._graph_numpy import breadth_first, reverse  # noqa: PLC0415
+        if self._graph != "python":
+            from ._graph_numpy import reverse  # noqa: PLC0415
 
             indptr, codes = self._pack()
             rev_indptr, rev_codes = reverse(indptr, codes, len(self._name))
-            return breadth_first(rev_indptr, rev_codes, targets, len(self._name))
+            return self._backend().breadth_first(
+                rev_indptr, rev_codes, targets, len(self._name)
+            )
         n = len(self._name)
         offsets = array("q", bytes(8 * (n + 1)))
         for node in range(n):
@@ -1314,6 +1330,16 @@ class LeanIndex:
             self._edges = {}
         return self._packed
 
+    def _backend(self) -> Any:
+        """Return the module of the packed backend (``numpy`` or ``scipy``)."""
+        if self._graph == "scipy":
+            from . import _graph_scipy  # noqa: PLC0415
+
+            return _graph_scipy
+        from . import _graph_numpy  # noqa: PLC0415
+
+        return _graph_numpy
+
     def _closure(
         self, roots: Sequence[int], *, expand: frozenset[str] | None = None
     ) -> dict[int, tuple[int, int]]:
@@ -1324,8 +1350,7 @@ class LeanIndex:
             # edge of the project, far more than one closure needs.)
             import numpy as np  # noqa: PLC0415
 
-            from ._graph_numpy import breadth_first  # noqa: PLC0415
-
+            breadth_first = self._backend().breadth_first
             follow = None
             if expand is not None:
                 follow = np.fromiter(
@@ -2178,7 +2203,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--graph",
         default="python",
-        choices=("python", "numpy"),
+        choices=_GRAPHS,
         help="whole-graph steps in the standard library, or with NumPy",
     )
     parser.add_argument(

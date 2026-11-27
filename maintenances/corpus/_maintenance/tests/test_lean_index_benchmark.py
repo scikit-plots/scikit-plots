@@ -37,9 +37,12 @@ class StandIn:
         self._name, self._labels, self._skipped = [0, 1, 2], ["A.lean"], []
         self.headline = headline
 
+    options: dict = {}
+
     @classmethod
-    def from_folder(cls, folder):
+    def from_folder(cls, folder, **options):
         cls.calls = ["index"]
+        cls.options = options
         return cls(headline=Path(folder, "headline").exists())
 
     def summary(self, max_items):
@@ -98,6 +101,41 @@ class LeanIndexBenchmarkTest(unittest.TestCase):
 
                     with contextlib.redirect_stderr(io.StringIO()):
                         bench.main(argv, index_class=StandIn)
+
+
+class CompareTest(unittest.TestCase):
+    def test_options_reach_from_folder_and_the_result(self):
+        with tempfile.TemporaryDirectory() as root:
+            status, text = _run([root, "--graph", "numpy", "--workers", "2", "--json"])
+        result = json.loads(text)
+        self.assertEqual(status, 0)
+        self.assertEqual(StandIn.options, {"graph": "numpy", "workers": 2})
+        self.assertEqual(result["options"], {"graph": "numpy", "workers": 2})
+        self.assertEqual(len(result["report_sha"]), 16)
+
+    def test_identical_reports_pass_and_unavailable_backends_are_listed(self):
+        runs = {
+            "python": {"report_sha": "a", "seconds": {}, "peak_mb": 1},
+            "numpy": {"report_sha": "a", "seconds": {}, "peak_mb": 1},
+            "scipy": {"unavailable": "No module named 'scipy'"},
+        }
+        status, results = bench.compare(runs.__getitem__)
+        self.assertEqual(status, 0)
+        self.assertEqual([r["graph"] for r in results], ["python", "numpy", "scipy"])
+        self.assertIn("unavailable", bench._compare_text(status, results))
+
+    def test_differing_reports_fail(self):
+        runs = {"python": {"report_sha": "a"}, "numpy": {"report_sha": "b"}}
+        status, _ = bench.compare(runs.__getitem__, graphs=("python", "numpy"))
+        self.assertEqual(status, 1)
+
+    def test_negative_workers_are_refused(self):
+        with tempfile.TemporaryDirectory() as root:
+            with self.assertRaises(SystemExit), redirect_stdout(io.StringIO()):
+                import contextlib  # noqa: PLC0415
+
+                with contextlib.redirect_stderr(io.StringIO()):
+                    bench.main([root, "--workers", "-1"], index_class=StandIn)
 
 
 if __name__ == "__main__":

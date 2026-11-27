@@ -1,0 +1,6 @@
+- :class:`~scikitplot.lean.LeanIndex` reads files in parallel with
+  ``workers=`` (``--workers``) and takes an optional graph backend with
+  ``graph="numpy"`` or ``graph="scipy"`` (``--graph``); every choice gives
+  the same reports. Discovery reads each file once, and past 20,000 files
+  the import sets are stored compressed, so peak memory stays linear in
+  the files.
