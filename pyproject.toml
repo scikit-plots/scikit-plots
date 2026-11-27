@@ -2293,12 +2293,12 @@ words = ["query"]
     path = "libs.corpus"
 
   [[tool.towncrier.section]]
-    name = "libs/lean"
-    path = "libs.lean"
-
-  [[tool.towncrier.section]]
     name = "libs/cython"
     path = "libs.cython"
+
+  [[tool.towncrier.section]]
+    name = "libs/lean"
+    path = "libs.lean"
 
   [[tool.towncrier.section]]
     name = "libs/mcp"
