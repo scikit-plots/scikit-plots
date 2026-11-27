@@ -639,7 +639,15 @@ class LeanIndex:
         self._vacuous: dict[int, str] = {}
         self._flags: dict[int, tuple[str, ...]] = {}
         self._attributes: dict[int, tuple[str, ...]] = {}
-        self._refs: list[tuple[str, ...] | None] = []
+        # The names each declaration's code uses, packed: each distinct
+        # reference once (_ref_names, _ref_ids), and per declaration its
+        # reference numbers, data[ptr[n]:ptr[n + 1]]. Arrays rather than a
+        # tuple per declaration: smaller, and a forked worker reading them
+        # writes no reference count, so it copies no page of them.
+        self._ref_names: list[str] = []
+        self._ref_ids: dict[str, int] = {}
+        self._ref_ptr: array[int] = array("q", [0])
+        self._ref_data: array[int] = array("i")
         self._edges: dict[int, array[int]] = {}
         self._by_name: dict[str, Any] = {}
         self._by_short: dict[str, Any] | None = None
@@ -811,8 +819,10 @@ class LeanIndex:
         for chunk in chunks:
             if chunk.get("part", 0) > 1 and self._name and self._file[-1] == file_id:
                 node = len(self._name) - 1
-                refs = set(self._refs[node] or ()) | set(chunk.get("references", ()))
-                self._refs[node] = tuple(sys.intern(ref) for ref in sorted(refs))
+                refs = set(self._refs_of(node)) | set(chunk.get("references", ()))
+                del self._ref_data[self._ref_ptr[node] :]  # the last node's
+                self._ref_data.extend(self._ref_id(ref) for ref in sorted(refs))
+                self._ref_ptr[node + 1] = len(self._ref_data)
                 self._end[node] = chunk["line_end"]
                 flags = set(self._flags.get(node, ())) | set(chunk.get("flags", ()))
                 if flags:
@@ -885,7 +895,11 @@ class LeanIndex:
         self._kind = [self._kind[n] for n in nodes]
         self._namespace = [self._namespace[n] for n in nodes]
         self._opens = [self._opens[n] for n in nodes]
-        self._refs = [self._refs[n] for n in nodes]
+        ptr, data = self._ref_ptr, self._ref_data
+        self._ref_ptr, self._ref_data = array("q", [0]), array("i")
+        for n in nodes:
+            self._ref_data.extend(data[ptr[n] : ptr[n + 1]])
+            self._ref_ptr.append(len(self._ref_data))
         for field in ("_start", "_end"):
             column = getattr(self, field)
             setattr(self, field, array(column.typecode, (column[n] for n in nodes)))
@@ -932,6 +946,20 @@ class LeanIndex:
         self._lines_cache.clear()
         self._in_order = True
 
+    def _ref_id(self, ref: str) -> int:
+        """Return *ref*'s number, giving it the next one the first time."""
+        found = self._ref_ids.get(ref)
+        if found is None:
+            found = self._ref_ids[ref] = len(self._ref_names)
+            self._ref_names.append(ref)
+        return found
+
+    def _refs_of(self, node: int) -> tuple[str, ...]:
+        """Return the names *node*'s code uses, in the order they were recorded."""
+        names = self._ref_names
+        start, stop = self._ref_ptr[node], self._ref_ptr[node + 1]
+        return tuple(names[i] for i in self._ref_data[start:stop])
+
     def _interned(self, value: Any) -> Any:
         return self._intern.setdefault(value, value)
 
@@ -972,7 +1000,8 @@ class LeanIndex:
         self._end.append(end)
         self._namespace.append(sys.intern(namespace))
         self._opens.append(self._interned(opens))
-        self._refs.append(tuple(sys.intern(ref) for ref in refs))
+        self._ref_data.extend(self._ref_id(ref) for ref in refs)
+        self._ref_ptr.append(len(self._ref_data))
         if flags:
             self._flags[node] = flags
         if attrs:
@@ -993,34 +1022,6 @@ class LeanIndex:
                 self._by_name[name] = [held, node]
             else:
                 held.append(node)
-
-    def _drop_nodes(self, keep: int) -> None:
-        """Forget the nodes from *keep* on (a file that could not be read whole)."""
-        for node in range(keep, len(self._name)):
-            name = self._name[node]
-            held = self._by_name.get(name) if name is not None else None
-            if isinstance(held, int):
-                del self._by_name[name]
-            elif held is not None:
-                held.remove(node)
-                if len(held) == 1:
-                    self._by_name[name] = held[0]
-            self._flags.pop(node, None)
-            self._attributes.pop(node, None)
-            self._private.discard(node)
-            self._shape_of.pop(node, None)
-            self._claims.discard(node)
-            self._vacuous.pop(node, None)
-        for column in (
-            self._name,
-            self._kind,
-            self._namespace,
-            self._opens,
-            self._refs,
-        ):
-            del column[keep:]
-        for column in (self._file, self._start, self._end):
-            del column[keep:]
 
     # -- resolving names ----------------------------------------------------
 
@@ -1394,6 +1395,15 @@ class LeanIndex:
         self, ref: str, namespace: str, opens: tuple[str, ...]
     ) -> tuple[int, ...]:
         """Return ``node * 4 + how`` codes for the declarations *ref* may name."""
+        ref_id = self._ref_ids.get(ref)
+        if ref_id is not None:
+            return self._resolve_id(ref_id, namespace, opens)
+        return self._resolve_name(ref, namespace, opens)  # a name no code used
+
+    def _resolve_id(
+        self, ref_id: int, namespace: str, opens: tuple[str, ...]
+    ) -> tuple[int, ...]:
+        """:meth:`_resolve` of a reference number, cached per context."""
         key = (namespace, opens)
         cache = self._contexts.get(key)
         if cache is None:
@@ -1402,9 +1412,17 @@ class LeanIndex:
                 self._contexts.popitem(last=False)
         else:
             self._contexts.move_to_end(key)
-        hit = cache.get(ref)
-        if hit is not None:
-            return hit
+        hit = cache.get(ref_id)  # an int key: a hit reads no string
+        if hit is None:
+            hit = cache[ref_id] = self._resolve_name(
+                self._ref_names[ref_id], namespace, opens
+            )
+        return hit
+
+    def _resolve_name(
+        self, ref: str, namespace: str, opens: tuple[str, ...]
+    ) -> tuple[int, ...]:
+        """Resolve *ref* in a context, uncached: the lookups :meth:`_resolve` names."""
         parts = namespace.split(".") if namespace else []
         prefixes = [".".join(parts[:i]) for i in range(len(parts), 0, -1)]
         codes: tuple[int, ...] = ()
@@ -1430,7 +1448,6 @@ class LeanIndex:
                 if len(ids) == 1
             ]
             codes = tuple(node * 4 + 2 for node in dict.fromkeys(found))
-        cache[ref] = codes
         return codes
 
     def _edges_of(self, node: int) -> array[int]:
@@ -1447,13 +1464,13 @@ class LeanIndex:
 
     def _compute_edges(self, node: int) -> array[int]:
         """Resolve *node*'s edges as ``target * 4 + how``, sorted; nothing is cached."""
-        refs = self._refs[node] or ()
+        ids = self._ref_data[self._ref_ptr[node] : self._ref_ptr[node + 1]]
         namespace, opens = self._namespace[node], self._opens[node]
         file_id = self._file[node]
         sees = self._sees(file_id)
         best: dict[int, int] = {}
-        for ref in refs:
-            for code in self._resolve(ref, namespace, opens):
+        for ref_id in ids:
+            for code in self._resolve_id(ref_id, namespace, opens):
                 target, how = divmod(code, 4)
                 if target == node:
                     continue
@@ -1984,7 +2001,7 @@ class LeanIndex:
         """Return the target's statement (proof left out) and the names it uses."""
         path = self._paths[self._file[node]]
         if path is None:
-            return None, set(self._refs[node] or ())
+            return None, set(self._refs_of(node))
         splitter = _Splitter(
             file_name=self._labels[self._file[node]],
             meta={},
@@ -2019,7 +2036,7 @@ class LeanIndex:
         if text is None:
             # The file is gone or changed since it was indexed: no quoted
             # statement; the names its code used, as for chunks without a file.
-            return None, set(self._refs[node] or ())
+            return None, set(self._refs_of(node))
         lexer = _Lexer()
         refs: set[str] = set()
         for line in text.split("\n"):

@@ -776,3 +776,55 @@ def test_workers_on_the_command_line(tmp_path):
     root = str(_project(tmp_path, PROJECT))
     assert _run([root, "--target", "main2", "--workers", "2", "--fail-on", "sorry"])[0] == 1
     assert _run([root, "--workers", "0", "--json"])[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# Packed references
+# ---------------------------------------------------------------------------
+
+
+def _chunk(name, start, refs, part=0, flags=()):
+    return {
+        "lean_kind": "theorem",
+        "declaration": name,
+        "line_start": start,
+        "line_end": start,
+        "references": list(refs),
+        "flags": list(flags),
+        "part": part,
+    }
+
+
+def test_packed_references_read_back_and_parts_join():
+    index = LeanIndex()
+    index.add_chunks(
+        [
+            _chunk("t", 1, ["b", "a"], part=1),
+            _chunk("t", 2, ["c", "a"], part=2, flags=["sorry"]),  # joins t
+            _chunk("u", 3, ["a", "z"]),
+        ],
+        label="A.lean",
+    )
+    index.add_chunks([_chunk("v", 1, [])], label="B.lean")
+    assert [index._refs_of(n) for n in range(3)] == [("a", "b", "c"), ("a", "z"), ()]
+    assert index._flags[0] == ("sorry",)
+    # Each distinct name is kept once, and the offsets close every node.
+    assert sorted(index._ref_names) == ["a", "b", "c", "z"]
+    assert list(index._ref_ptr) == [0, 3, 5, 5]
+
+
+def test_packed_references_follow_renumbering(tmp_path):
+    root = _project(
+        tmp_path,
+        {
+            "Proj/A.lean": "theorem a1 : True := zz\ntheorem a2 : True := a1\n",
+            "Proj/B.lean": "theorem b1 : True := yy\n",
+        },
+    )
+    want = LeanIndex.from_folder(root)
+    index = LeanIndex()
+    for name in ("Proj/B.lean", "Proj/A.lean"):  # out of order: renumbered
+        index.add_file(root / name, label=name)
+    index.summary()
+    assert [index._refs_of(n) for n in range(3)] == [want._refs_of(n) for n in range(3)]
+    assert index._name == want._name
