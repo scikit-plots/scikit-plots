@@ -166,6 +166,27 @@ def test_top_cuts_lists_and_keeps_counts(tmp_path):
     assert isolated["cut"] == (isolated["count"] > 1)
 
 
+def _sections(report):
+    """Every listing of a discovery report, by its path."""
+    out = {"headline_results": report["headline_results"]}
+    for group in ("rules", "patterns", "claims", "anomalies"):
+        out.update({f"{group}.{k}": v for k, v in report[group].items()})
+    return out
+
+
+def test_every_section_counts_all_its_items_whatever_top_lists(tmp_path):
+    # A list cut to `top` must say how many there are in all: the count at
+    # top=1 is the count at a top that lists everything.
+    index = LeanIndex.from_folder(_project(tmp_path, PROJECT))
+    whole = _sections(index.discover(top=1000))
+    cut = _sections(index.discover(top=1))
+    assert whole["rules.load_bearing_theorems"]["count"] > 1  # the case at issue
+    for path, listing in cut.items():
+        assert listing["count"] == whole[path]["count"], path
+        assert len(listing["items"]) == min(1, listing["count"]), path
+        assert listing["cut"] == (listing["count"] > 1), path
+
+
 @pytest.mark.parametrize("option", ["top", "min_instances"])
 @pytest.mark.parametrize("value", [0, -1, 1.5, True])
 def test_invalid_options_are_refused(tmp_path, option, value):

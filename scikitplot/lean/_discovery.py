@@ -171,7 +171,18 @@ class _Discovery:
             entry["statement"] = self.statements[node]
         return entry
 
+    def listing(self, nodes: list[int]) -> dict[str, Any]:
+        """
+        Return ``{"count", "items", "cut"}`` for *nodes*, items for the top only.
+
+        ``count`` is every node, so a list cut to ``top`` says so; an item
+        (location, uses, statement) is built only for a node that is listed.
+        """
+        listed = [self.item(n) for n in nodes[: self.top]]
+        return {"count": len(nodes), "items": listed, "cut": len(nodes) > self.top}
+
     def ranked(self, kinds: frozenset[str]) -> list[int]:
+        """Return the declarations of *kinds* that are named, most named first."""
         index = self.index
         nodes = [
             n
@@ -183,7 +194,7 @@ class _Discovery:
         nodes.sort(
             key=lambda n: (-self.in_files[n], -self.in_degree[n], index._name[n])
         )
-        return nodes[: self.top]
+        return nodes
 
     def patterns(self) -> tuple[list[dict[str, Any]], int]:
         index = self.index
@@ -333,8 +344,8 @@ class _Discovery:
             key=lambda n: (-(index._end[n] - index._start[n]), index._name[n] or "")
         )
         listed = (
-            rules
-            + concepts
+            rules[: self.top]
+            + concepts[: self.top]
             + headline[: self.top]
             + claims[: self.top]
             + axioms[: self.top]
@@ -345,21 +356,13 @@ class _Discovery:
         patterns, pattern_count = self.patterns()
         series, series_count = self.series()
         parallel, parallel_count = self.parallel()
-        isolated_listing = _listing(
-            [self.item(n) for n in isolated[: self.top]], self.top
-        )
-        isolated_listing.update(count=len(isolated), cut=len(isolated) > self.top)
         return {
             "report": "discovery",
             "producer": DISCOVERY,
             "index": PRODUCER,
             "rules": {
-                "load_bearing_theorems": _listing(
-                    [self.item(n) for n in rules], self.top
-                ),
-                "central_concepts": _listing(
-                    [self.item(n) for n in concepts], self.top
-                ),
+                "load_bearing_theorems": self.listing(rules),
+                "central_concepts": self.listing(concepts),
             },
             "patterns": {
                 "statement_shapes": {
@@ -374,10 +377,10 @@ class _Discovery:
                 },
             },
             "claims": {
-                "claim_definitions": _listing([self.item(n) for n in claims], self.top),
-                "axioms": _listing([self.item(n) for n in axioms], self.top),
-                "proof_wanted": _listing([self.item(n) for n in wanted], self.top),
-                "unproven": _listing([self.item(n) for n in unproven], self.top),
+                "claim_definitions": self.listing(claims),
+                "axioms": self.listing(axioms),
+                "proof_wanted": self.listing(wanted),
+                "unproven": self.listing(unproven),
             },
             "anomalies": {
                 "parallel_declarations": {
@@ -386,9 +389,9 @@ class _Discovery:
                     "cut": parallel_count > len(parallel),
                 },
                 "generators": _listing(index._generators(), self.top),
-                "isolated_results": isolated_listing,
+                "isolated_results": self.listing(isolated),
             },
-            "headline_results": _listing([self.item(n) for n in headline], self.top),
+            "headline_results": self.listing(headline),
         }
 
 
