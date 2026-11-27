@@ -271,7 +271,10 @@ class LeanReader(CodeReader):
     def __post_init__(self) -> None:
         """Validate the options."""
         if _LEAN_MISSING is not None:
-            raise ImportError(_LEAN_MISSING)
+            # ModuleNotFoundError (an ImportError) naming the module: what
+            # is missing is a part of scikitplot, and tooling that tells an
+            # intended absence from a fault reads that name.
+            raise ModuleNotFoundError(_LEAN_MISSING, name="scikitplot.lean")
         super().__post_init__()
         if self.proofs not in ("keep", "drop"):
             raise ValueError(
