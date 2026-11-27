@@ -125,7 +125,7 @@ Scale
 
 Indexing is linear in the text and keeps a few integers and the used
 names per declaration. On mathlib4 (9,351 files, 288,006 declarations)
-with two workers: indexing about 21 s, a summary about 6.5 s (12.5 s with
+with two workers: indexing about 21 s, a summary about 6.8 s (12.5 s with
 one), discovery about 1.5 s, a dossier in milliseconds, peak memory about
 400 MB.
 
@@ -135,8 +135,11 @@ Two options change how the work is done, never what is reported:
   ``None`` (``--workers 0``) uses every CPU. On Linux the same workers
   also resolve names when a step needs every edge (a summary, discovery,
   an export), for projects of 20,000 declarations or more: forked, they
-  share the index without copying it. Results are taken in order, so
-  every report is the same for any number of workers.
+  start from the index in memory. Results are taken in order, so every
+  report is the same for any number of workers. Memory grows with them:
+  each worker copies the parts of the index it reads and keeps its own
+  lookup cache (see the table below), so choose ``workers`` by the
+  machine's memory as well as its CPUs.
 - ``graph=`` (``--graph``) chooses the graph backend: ``"python"`` (the
   default, standard library only), ``"numpy"`` (edges packed into
   arrays, use counts and searches vectorised) or ``"scipy"`` (packed as
@@ -149,9 +152,28 @@ are stored compressed and expanded on use: on a 175,187-file project the
 sets took 18 times less memory, and peak memory fell from 5.5 GB to
 2.1 GB.
 
-To compare the backends on a project of your own, run the benchmark
-helper from a source checkout; it runs each backend in its own process,
-times every stage, and exits 1 if two backends' reports differ::
+On that project (175,187 files, 1,068,089 declarations; two CPUs), the
+same report either way:
+
+================  ===========  ===========
+\                 one worker   two workers
+================  ===========  ===========
+indexing          405 s        226 s
+summary           305 s        186 s
+peak memory       2.1 GB       3.9 GB
+================  ===========  ===========
+
+Peak memory is the proportional set size (PSS) summed over every process,
+so a page the workers share is counted once. Reading the files with two
+workers ends at 2.2 GB, within 0.1 GB of one process's whole run; the
+difference is name resolution, where each worker copies what it reads. Freezing the garbage collector before the workers start
+(``gc.freeze``) saves under 100 MB: the copies come from reference
+counts, not from collection.
+
+To compare the backends, or numbers of workers, on a project of your own,
+run the benchmark helper from a source checkout; it runs each backend in
+its own process, times every stage, gives each stage's peak memory (PSS,
+on Linux), and exits 1 if two backends' reports differ::
 
     python maintenances/corpus/_maintenance/tools/lean_index_benchmark.py \
         FOLDER --compare --workers 2
