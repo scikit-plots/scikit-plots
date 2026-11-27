@@ -828,3 +828,12 @@ def test_packed_references_follow_renumbering(tmp_path):
     index.summary()
     assert [index._refs_of(n) for n in range(3)] == [want._refs_of(n) for n in range(3)]
     assert index._name == want._name
+
+
+def test_a_reading_batch_is_spread_and_capped():
+    from .._index import _BATCH_FILES, _batch_size  # noqa: PLC0415
+
+    assert _batch_size(0, 2) == 1 and _batch_size(10, 2) == 1  # tiny projects
+    assert _batch_size(320, 2) == 10  # about sixteen batches a worker
+    assert _batch_size(9_351, 2) == _BATCH_FILES  # capped: memory per batch
+    assert _batch_size(175_187, 2) == _BATCH_FILES  # does not grow with files

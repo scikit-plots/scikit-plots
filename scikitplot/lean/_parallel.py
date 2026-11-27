@@ -21,10 +21,13 @@ forking would not be safe (other threads running, inside a daemonic
 process), names are resolved here, with the same result.
 
 **Developer.** Memory: a worker copies the pages it reads, since Python's
-reference counts write to the objects (the reference strings and tuples
-of its declarations), and builds its own lookup cache. On a project of a
-million declarations two workers added 1.7 GB to 2.2 GB; ``gc.freeze()``
-before forking saved under 100 MB, so it is not used.
+reference counts write to the objects, and builds its own lookup cache.
+The names each declaration uses are packed in arrays, which reading does
+not copy; what a worker still copies comes from the name tables
+(dictionaries of Python objects) its lookups read. On a project of a
+million declarations a summary peaks at 3.0 GB with two workers, against
+1.7 GB with one. ``gc.freeze()`` before forking saved under 100 MB, so it
+is not used.
 
 ``fork`` is requested explicitly: Python 3.14 no longer
 uses it by default on Linux, and other start methods would have to pickle

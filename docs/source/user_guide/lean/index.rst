@@ -153,22 +153,25 @@ sets took 18 times less memory, and peak memory fell from 5.5 GB to
 2.1 GB.
 
 On that project (175,187 files, 1,068,089 declarations; two CPUs), the
-same report either way:
+same report either way; memory is the peak proportional set size (PSS)
+summed over every process, so a page the workers share is counted once:
 
-================  ===========  ===========
-\                 one worker   two workers
-================  ===========  ===========
-indexing          405 s        226 s
-summary           305 s        186 s
-peak memory       2.1 GB       3.9 GB
-================  ===========  ===========
+==========================  ===========  ===========
+\                           one worker   two workers
+==========================  ===========  ===========
+indexing                    434 s        210 s
+summary                     318 s        173 s
+peak memory while reading   1.2 GB       1.5 GB
+peak memory, summary        1.7 GB       3.0 GB
+==========================  ===========  ===========
 
-Peak memory is the proportional set size (PSS) summed over every process,
-so a page the workers share is counted once. Reading the files with two
-workers ends at 2.2 GB, within 0.1 GB of one process's whole run; the
-difference is name resolution, where each worker copies what it reads. Freezing the garbage collector before the workers start
-(``gc.freeze``) saves under 100 MB: the copies come from reference
-counts, not from collection.
+Reading costs each worker a small, fixed amount: it holds at most 64
+files' records before sending them back. Name resolution costs more,
+since each worker copies what it reads of the index (Python's reference
+counts write to it); the names each declaration uses are kept in flat
+arrays, which reading does not copy. Freezing the garbage collector before
+the workers start (``gc.freeze``) saves under 100 MB: the copies come from
+reference counts, not from collection.
 
 To compare the backends, or numbers of workers, on a project of your own,
 run the benchmark helper from a source checkout; it runs each backend in
