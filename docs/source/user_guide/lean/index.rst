@@ -47,7 +47,8 @@ The reports
 ``summary()``
     Files, lines and declarations; every audit flag with where it is;
     names declared more than once; imported project modules no file
-    provides; syntax extensions; commands the project defines; code that
+    provides; syntax extensions by kind, with the flagged ones apart
+    (Lean applies them without their names); commands the project defines; code that
     adds declarations no source line spells; files that were skipped, with
     the reason; text Lean refuses to read (an ``end`` that names another
     scope or closes none, a file ending inside a comment or string), by
