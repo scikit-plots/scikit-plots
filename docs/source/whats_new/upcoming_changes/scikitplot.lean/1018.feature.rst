@@ -1,0 +1,7 @@
+- :meth:`~scikitplot.lean.LeanIndex.add_folder` adds a project over the
+  index of its dependencies as a named layer (also ``--base`` on the
+  command line): mathlib4 loaded from a snapshot with PFR added takes
+  1.4 s instead of 24 s, with the same dossiers. Each layer finds its own
+  source root, labels its files ``name:path`` and learns its own
+  commands; modules two layers provide are listed under
+  ``module_clashes``, and snapshots keep the layers.

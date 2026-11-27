@@ -37,15 +37,17 @@ from __future__ import annotations
 import argparse
 import bisect
 import concurrent.futures
+import contextlib
 import io
 import json
 import os
+import re
 import sys
 import zlib
 from array import array
 from collections import Counter, OrderedDict, deque
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 from . import _parallel
 from ._shapes import _bound_names, fingerprint, states_a_claim, vacuity
@@ -406,6 +408,75 @@ def _workers(value: Any) -> int:
     return value
 
 
+def _layer_modules(
+    files: list[tuple[int, str]], source_root: str | None, imported: Counter[str]
+) -> dict[str, int]:
+    """
+    Map the modules one layer's files provide to their file numbers.
+
+    *files* are (file number, label within the layer). With *source_root*,
+    module names start below it; otherwise at the depth under which the
+    most *imported* modules name a file exactly (ties: the fewest folders).
+    """
+    paths = [
+        (file_id, label[: -len(".lean")].split("/"))
+        for file_id, label in files
+        if label.endswith(".lean")
+    ]
+    if source_root is not None:
+        prefix = source_root.split("/") if source_root else []
+        fixed: dict[str, int] = {}
+        for file_id, parts in paths:
+            if len(parts) > len(prefix) and parts[: len(prefix)] == prefix:
+                fixed.setdefault(".".join(parts[len(prefix) :]), file_id)
+        return fixed
+    deepest = max((len(parts) - 1 for _f, parts in paths), default=0)
+    best: tuple[int, dict[str, int]] = (-1, {})
+    for depth in range(deepest + 1):
+        modules: dict[str, int] = {}
+        for file_id, parts in paths:
+            if len(parts) > depth:
+                modules.setdefault(".".join(parts[depth:]), file_id)
+        resolved = sum(count for module, count in imported.items() if module in modules)
+        if resolved > best[0]:
+            best = (resolved, modules)
+    return best[1]
+
+
+#: A layer's name: what may precede the ``:`` of its files' labels.
+_LAYER_NAME = re.compile(r"[A-Za-z0-9_.\-]+")
+
+
+@contextlib.contextmanager
+def _reading_pool(workers: int, files: int) -> Iterator[Any]:
+    """Yield a process pool to read *files* with, or ``None`` for one process."""
+    pool = None
+    if workers > 1 and files > 1:
+        pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+    try:
+        yield pool
+    finally:
+        if pool is not None:
+            pool.shutdown()  # Python 3.8: no cancel_futures
+
+
+def _learn(
+    files: list[tuple[Path, str]], pool: Any, workers: int
+) -> dict[str, tuple[str, int]]:
+    """Return the commands *files* define: keyword to (label, line), first wins."""
+    paths = [path for path, _label in files]
+    defined = (
+        pool.map(_commands_of, paths, chunksize=_batch_size(len(files), workers))
+        if pool is not None
+        else map(_commands_of, paths)
+    )
+    learned: dict[str, tuple[str, int]] = {}
+    for (_path, label), found in zip(files, defined):
+        for keyword, number in found.items():
+            learned.setdefault(keyword, (label, number))
+    return learned
+
+
 #: Most files a worker reads before it sends their records back.
 _BATCH_FILES = 64
 
@@ -602,6 +673,10 @@ class LeanIndex:
         self._suffix = suffix
         self._visibility = visibility
         self._source_root = None if source_root is None else source_root.strip("/")
+        # Layers (add_folder): name and source root; layer 0 is the unnamed
+        # root of from_folder, add_file and add_chunks. One layer per file.
+        self._layers: list[tuple[str, str | None]] = [("", self._source_root)]
+        self._layer_of: list[int] = []
         if graph not in _GRAPHS:
             raise ValueError(
                 f"LeanIndex: graph must be one of {', '.join(map(repr, _GRAPHS))}; got {graph!r}."
@@ -745,24 +820,8 @@ class LeanIndex:
             raise ValueError(f"LeanIndex: {folder!s} is not a folder.")
         workers = _workers(workers)
         files, refused = _lean_files(root, include_hidden=include_hidden)
-        pool = None
-        if workers > 1 and len(files) > 1:
-            pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
-        try:
-            # Executor.map returns results in submission order: the same
-            # order, and so the same index, as reading one file at a time.
-            chunk = _batch_size(len(files), workers)
-            paths = [path for path, _ in files]
-            learned: dict[str, tuple[str, int]] = {}
-            if learn_commands:
-                defined = (
-                    pool.map(_commands_of, paths, chunksize=chunk)
-                    if pool is not None
-                    else map(_commands_of, paths)
-                )
-                for (_, label), found in zip(files, defined):
-                    for keyword, number in found.items():
-                        learned.setdefault(keyword, (label, number))
+        with _reading_pool(workers, len(files)) as pool:
+            learned = _learn(files, pool, workers) if learn_commands else {}
             if learned:
                 options["commands"] = sorted(
                     set(options.get("commands", ())) | set(learned)
@@ -770,19 +829,105 @@ class LeanIndex:
             index = cls(workers=workers, **options)
             index._learned = learned
             index._skipped.extend(refused)
-            settings = index._settings()
-            jobs = [(path, label, settings) for path, label in files]
-            outcomes = (
-                pool.map(_read_file_star, jobs, chunksize=chunk)
-                if pool is not None
-                else map(_read_file_star, jobs)
-            )
-            for (path, label), outcome in zip(files, outcomes):
-                index._apply(index._new_file(label, path), label, outcome)
-        finally:
-            if pool is not None:
-                pool.shutdown()  # Python 3.8: no cancel_futures
+            index._read_files(files, pool, workers, layer=0)
         return index
+
+    def add_folder(
+        self,
+        folder: str | Path,
+        *,
+        name: str,
+        include_hidden: bool = False,
+        learn_commands: bool = True,
+        source_root: str | None = None,
+    ) -> None:
+        """
+        Add a project's files as a layer over what the index holds.
+
+        Load a dependency's saved index once (mathlib, say), then add each
+        project that imports it: the project's names resolve into the
+        dependency as into its own files, and its theorems' dossiers follow
+        their proofs through both, without reading the dependency again.
+
+        Parameters
+        ----------
+        folder : str or pathlib.Path
+            The project's root, as for :meth:`from_folder`.
+        name : str
+            The layer's name: letters, digits, ``_``, ``-`` and ``.``. Its
+            files are labelled ``name:path`` (``pfr:PFR/Main.lean``), so two
+            projects' files never share a label.
+        include_hidden : bool, optional
+            As for :meth:`from_folder`. Default: ``False``.
+        learn_commands : bool, optional
+            Learn the commands the project's own files define (they apply to
+            the project's files, never to the layers below, which cannot
+            import it). Default: ``True``.
+        source_root : str or None, optional
+            The folder, under *folder*, that the project's module names start
+            from; ``None`` (default) finds it from the imports, per layer.
+
+        Raises
+        ------
+        ValueError
+            If *folder* is not a folder, *name* is not a valid layer name or
+            is taken, or reading a file fails as in :meth:`from_folder`.
+
+        See Also
+        --------
+        load : Read a saved index, to add layers over.
+
+        Notes
+        -----
+        **User.** Lean gives every module one name across all packages: a
+        module two layers provide is resolved to the lower layer's file and
+        listed in the summary (``imports.module_clashes``), since Lean would
+        refuse to build them together. Files are read with the index's
+        ``workers``.
+        """
+        if not isinstance(name, str) or not _LAYER_NAME.fullmatch(name):
+            raise ValueError(
+                f"LeanIndex.add_folder: name must be letters, digits, '_', '-' or '.';"
+                f" got {name!r}."
+            )
+        if name in (layer for layer, _root in self._layers):
+            raise ValueError(
+                f"LeanIndex.add_folder: a layer is already named {name!r}."
+            )
+        root = Path(folder)
+        if not root.is_dir():
+            raise ValueError(f"LeanIndex.add_folder: {folder!s} is not a folder.")
+        found, refused = _lean_files(root, include_hidden=include_hidden)
+        files = [(path, f"{name}:{label}") for path, label in found]
+        taken = [label for _path, label in files if label in self._label_ids]
+        if taken:
+            raise ValueError(f"LeanIndex.add_folder: {taken[0]!r} is already indexed.")
+        clean = None if source_root is None else source_root.strip("/")
+        self._layers.append((name, clean))
+        with _reading_pool(self._workers, len(files)) as pool:
+            if learn_commands:
+                learned = _learn(files, pool, self._workers)
+                for keyword, where in learned.items():
+                    self._learned.setdefault(keyword, where)
+                self._commands = self._commands | frozenset(learned)
+            self._skipped.extend(
+                (f"{name}:{label}", reason) for label, reason in refused
+            )
+            self._read_files(files, pool, self._workers, layer=len(self._layers) - 1)
+
+    def _read_files(
+        self, files: list[tuple[Path, str]], pool: Any, workers: int, *, layer: int
+    ) -> None:
+        """Read *files* (path, label) into the index, in order, as layer *layer*."""
+        settings = self._settings()
+        jobs = [(path, label, settings) for path, label in files]
+        outcomes = (
+            pool.map(_read_file_star, jobs, chunksize=_batch_size(len(files), workers))
+            if pool is not None
+            else map(_read_file_star, jobs)
+        )
+        for (path, label), outcome in zip(files, outcomes):
+            self._apply(self._new_file(label, path, layer=layer), label, outcome)
 
     def add_file(self, path: str | Path, *, label: str | None = None) -> None:
         """
@@ -858,7 +1003,7 @@ class LeanIndex:
             last_end = max(last_end, chunk.get("line_end", 0))
         self._file_lines[file_id] = last_end
 
-    def _new_file(self, label: str, path: Path | None) -> int:
+    def _new_file(self, label: str, path: Path | None, *, layer: int = 0) -> int:
         """
         Register a file and drop every cache that a new declaration can change.
 
@@ -881,6 +1026,7 @@ class LeanIndex:
         self._paths.append(path)
         self._imports.append(())
         self._file_lines.append(0)
+        self._layer_of.append(layer)
         self._first_node.append(len(self._name))
         self._by_short = None
         self._edges.clear()
@@ -957,6 +1103,7 @@ class LeanIndex:
         self._paths = [self._paths[f] for f in order]
         self._imports = [self._imports[f] for f in order]
         self._file_lines = [self._file_lines[f] for f in order]
+        self._layer_of = [self._layer_of[f] for f in order]
         self._label_ids = {label: i for i, label in enumerate(self._labels)}
         self._problems = {
             file_of[f]: self._problems[f] for f in order if f in self._problems
@@ -1114,54 +1261,56 @@ class LeanIndex:
 
     def _module_files(self) -> dict[str, int]:
         """
-        Map each module the files provide to its file, at the project's source root.
+        Map each module the files provide to its file, at each layer's source root.
 
         Lean names a module by its path from the package's source root:
         ``Mathlib/Data/Nat.lean`` is ``Mathlib.Data.Nat`` from the
         repository root, ``src/A/B.lean`` is ``A.B`` under ``src/``. The
-        root is found once for the index, as the number of leading folders
-        to strip (0, 1, ...) under which the most of the project's own
-        imports name a file exactly; ties go to the fewest. A module is
-        never matched by a tail of its path alone, so a core
-        ``import Lean.Elab.Term`` is not taken for ``Mathlib/Lean/Elab/Term.lean``.
-        Of two files giving one module, the first in label order provides it.
+        root is found once per layer (:meth:`add_folder`), as the number of
+        leading folders to strip (0, 1, ...) under which the most imports
+        name a file exactly; ties go to the fewest. Only imports from the
+        layer itself and the layers above it count, and none a lower layer
+        provides: a project's copy of ``Mathlib/...`` under ``PFR/`` is not
+        taken for its source root because Mathlib imports Mathlib. A module is never
+        matched by a tail of its path alone, so a core ``import
+        Lean.Elab.Term`` is not taken for ``Mathlib/Lean/Elab/Term.lean``.
+        Of two files giving one module, the first in label order provides
+        it within a layer, and the lower layer across layers (the others
+        are listed by :meth:`_module_clashes`).
         """
         key = self._generation
         cached = getattr(self, "_module_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1]
-        paths = [
-            label[: -len(".lean")].split("/") if label.endswith(".lean") else None
-            for label in self._labels
-        ]
-        if self._source_root is not None:
-            prefix = self._source_root.split("/") if self._source_root else []
-            fixed: dict[str, int] = {}
-            for file_id, parts in enumerate(paths):
-                if (
-                    parts
-                    and len(parts) > len(prefix)
-                    and parts[: len(prefix)] == prefix
-                ):
-                    fixed.setdefault(".".join(parts[len(prefix) :]), file_id)
-            self._module_cache = (key, fixed)
-            return fixed
-        imported = Counter(module for imports in self._imports for module in imports)
-        deepest = max((len(parts) - 1 for parts in paths if parts), default=0)
-        best: tuple[int, dict[str, int]] = (-1, {})
-        for depth in range(deepest + 1):
-            modules: dict[str, int] = {}
-            for file_id, parts in enumerate(paths):
-                if parts is not None and len(parts) > depth:
-                    modules.setdefault(".".join(parts[depth:]), file_id)
-            resolved = sum(
-                count for module, count in imported.items() if module in modules
+        modules: dict[str, int] = {}
+        clashes: list[tuple[str, int, int]] = []
+        for layer, (name, source_root) in enumerate(self._layers):
+            strip = len(name) + 1 if name else 0
+            files = [f for f, at in enumerate(self._layer_of) if at == layer]
+            # A layer is imported by itself and the layers above it, never by
+            # one below; imports a lower layer already provides do not count.
+            imported = Counter(
+                module
+                for f, at in enumerate(self._layer_of)
+                if at >= layer
+                for module in self._imports[f]
+                if module not in modules
             )
-            if resolved > best[0]:
-                best = (resolved, modules)
-        modules = best[1]
+            found = _layer_modules(
+                [(f, self._labels[f][strip:]) for f in files], source_root, imported
+            )
+            for module, file_id in found.items():
+                first = modules.setdefault(module, file_id)
+                if first != file_id:
+                    clashes.append((module, first, file_id))
         self._module_cache = (key, modules)
+        self._clash_modules = (key, clashes)
         return modules
+
+    def _module_clashes(self) -> list[tuple[str, int, int]]:
+        """Return ``(module, file used, file also giving it)`` across layers."""
+        self._module_files()
+        return self._clash_modules[1]
 
     def _sees(self, file_id: int) -> int:
         """
@@ -1750,6 +1899,17 @@ class LeanIndex:
                     ],
                     max_items,
                 ),
+                "module_clashes": _listing(
+                    [
+                        {
+                            "module": module,
+                            "used": self._labels[used],
+                            "also_in": self._labels[other],
+                        }
+                        for module, used, other in self._module_clashes()
+                    ],
+                    max_items,
+                ),
             },
             "syntax_extensions": self._extension_report(extensions, max_items),
             "learned_commands": {
@@ -2333,7 +2493,7 @@ class LeanIndex:
         cls,
         path: str | Path,
         *,
-        root: str | Path | None = None,
+        root: str | Path | dict[str, str | Path] | None = None,
         graph: str = "python",
         workers: int | None = 1,
     ) -> LeanIndex:
@@ -2344,12 +2504,13 @@ class LeanIndex:
         ----------
         path : str or pathlib.Path
             The snapshot.
-        root : str, pathlib.Path or None, optional
+        root : str, pathlib.Path, dict or None, optional
             The project folder the snapshot was made from. With it, reports
             quote statements and definitions from the files inside it; a
-            label that would lead outside it is not read. ``None``
-            (default): no file is read, and reports give each item's file
-            and lines without its text.
+            label that would lead outside it is not read. With layers
+            (:meth:`add_folder`), a dict from layer name to folder (``""``
+            for the first). ``None`` (default): no file is read, and reports
+            give each item's file and lines without its text.
         graph : {"python", "numpy", "scipy"}, optional
             As for :class:`LeanIndex`. Default: ``"python"``.
         workers : int or None, optional
@@ -2456,6 +2617,15 @@ def _render_summary(report: dict[str, Any]) -> str:
         f"- `{m['module']}` (imported by {', '.join(m['imported_by'][:3])})"
         for m in missing["items"]
     )
+    clashes = report["imports"].get("module_clashes", {"count": 0, "items": []})
+    if clashes["count"]:
+        out.append(
+            f"Modules two layers provide (Lean refuses them together): {clashes['count']}."
+        )
+        out.extend(
+            f"- `{c['module']}`: {c['used']}, also {c['also_in']}"
+            for c in clashes["items"]
+        )
     out += ["", "## Code that adds declarations at build time"]
     generators = report["generators"]
     if not generators["count"]:
@@ -2599,6 +2769,20 @@ def _index_for(args: argparse.Namespace) -> LeanIndex:
         return LeanIndex.load(
             args.load, root=args.folder, graph=args.graph, workers=workers
         )
+    if args.base is not None:
+        index = LeanIndex.load(
+            args.base, root=args.base_root, graph=args.graph, workers=workers
+        )
+        index.add_folder(
+            args.folder,
+            name=args.name or args.folder.resolve().name,
+            include_hidden=args.include_hidden,
+            learn_commands=not args.no_learn_commands,
+            source_root=args.source_root,
+        )
+        if args.save is not None:
+            index.save(args.save)
+        return index
     index = LeanIndex.from_folder(
         args.folder,
         include_hidden=args.include_hidden,
@@ -2734,6 +2918,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         metavar="FILE",
         help="read the index from FILE instead of indexing; FOLDER is where its files are",
+    )
+    parser.add_argument(
+        "--base",
+        type=Path,
+        metavar="FILE",
+        help="read a saved index (a dependency, such as mathlib) and add FOLDER over it",
+    )
+    parser.add_argument(
+        "--base-root",
+        type=Path,
+        default=None,
+        metavar="FOLDER",
+        help="where the --base index's files are, to quote them (default: not read)",
+    )
+    parser.add_argument(
+        "--name",
+        default=None,
+        help="FOLDER's layer name over --base (default: the folder's name)",
     )
     args = parser.parse_args(argv)
     unknown = sorted(set(args.fail_on) - AUDIT_FLAGS)

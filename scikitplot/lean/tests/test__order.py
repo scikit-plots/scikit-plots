@@ -145,16 +145,18 @@ _PER_NODE = {
 }  # fmt: skip
 _PER_FILE = {
     "_labels", "_label_ids", "_paths", "_imports", "_file_lines", "_first_node",
+    "_layer_of",
     "_problems",
 }  # fmt: skip
 _CACHES = {
     "_by_short", "_edges", "_reach", "_expanded", "_packed", "_follow",
     "_contexts", "_lines_cache", "_clash_cache", "_module_cache",
     "_import_files_cache", "_generator_cache", "_gaps", "_generation",
+    "_clash_modules",
 }  # fmt: skip
 _ORDER_FREE = {
     "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands", "_workers",
-    "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat",
+    "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat", "_layers",
     "_dialect", "_graph", "_max_bytes", "_max_depth", "_source_root",
     "_suffix", "_visibility",
 }  # fmt: skip
