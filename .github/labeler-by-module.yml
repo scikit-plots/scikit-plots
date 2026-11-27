@@ -62,6 +62,13 @@
     - "docs/source/whats_new/upcoming_changes/libs.cython/**/*"
     - "scikitplot/cython/**/*"
 
+"libs/lean":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/lean/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.lean/**/*"
+    - "scikitplot/lean/**/*"
+
 "libs/mcp":
 - changed-files:
   - any-glob-to-any-file:
@@ -588,6 +595,16 @@
     - "docs/source/user_guide/impute/**/*"
     - "galleries/examples/impute/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.impute/**/*"
+
+"scikitplot/lean":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/lean/**/*"
+    - "plugins/scikitplot/skills/scikitplot-lean/**/*"
+    - "plugins/scikitplot/agents/scikitplot-lean.md"
+    - "docs/source/user_guide/lean/**/*"
+    - "galleries/examples/lean/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.lean/**/*"
 
 "scikitplot/levenshtein":
 - changed-files:

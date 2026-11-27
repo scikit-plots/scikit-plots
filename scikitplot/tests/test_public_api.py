@@ -73,6 +73,7 @@ PUBLIC_MODULES = [
         "externals.array_api_extra.testing",
         "feature_selection",
         "impute",
+        "lean",
         "levenshtein",
         "logging",
         "mcp",
