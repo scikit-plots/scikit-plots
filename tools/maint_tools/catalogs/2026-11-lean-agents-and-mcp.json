@@ -1,0 +1,165 @@
+{
+ "schema": 1,
+ "discovered": {
+  "@review": "Design review of agent and MCP access to scikitplot.lean, gap probed on main {ref} ({date})"
+ },
+ "notes": [
+  {
+   "path": "scikitplot/lean/agent-and-mcp-tool-surface.md",
+   "title": "lean: no tool surface for agents and MCP clients",
+   "kind": "other",
+   "area": "scikitplot/lean",
+   "discovered": "@review",
+   "summary": "`LeanIndex` answers what a reviewer of a formal proof asks (summary, dossier, discovery, near-duplicates, refresh), but only as a Python API and a command line. An agent built on `scikitplot.agent` or a client of the Model Context Protocol (Claude Code, Cursor, VS Code and others) cannot call it as tools, and the MCP server in the package serves documentation search only.",
+   "why": "Proof review is a long, branching investigation: load the index, read the summary, open dossiers, follow red flags, compare near-duplicates, cite file and line. That is the work an agent does well and a person does slowly. Without tools, every client re-implements calls, size limits and safety rules, or shells out to the command line and parses Markdown.",
+   "evidence": [
+    "The public surface is the class and the command line: `scikitplot.lean.__all__` is `AUDIT_FLAGS`, `LEAN_FLAGS`, `LeanIndex` (and `defined_commands` with PR 1025); `python -m scikitplot.lean` prints Markdown or `--json`.",
+    "Every report is already JSON-ready, bounded by `max_items`/`top`, and names `file:line` for each item; a saved index loads in seconds (mathlib4: 1.4 s, 57 MB; 85 MB with `keep_shapes=True`, which lets near-duplicate search run without the files).",
+    "`scikitplot.agent` provides `Tool` (a JSON Schema for its arguments, an effect and scopes) and `Toolset`, and gates every call through validation, permissions, scope, budget and approval, with a hash-chained audit trail.",
+    "`scikitplot.mcp` is built on the official MCP SDK v2 and exposes one read-only tool, `search_docs`, and one resource; its README lists an agent loop among its non-goals.",
+    "The plugins hold a generated `scikitplot-lean` agent (`plugins/scikitplot/agents/scikitplot-lean.md`) that helps write code using the module, not review a proof; `plugins/scikitplot-mcp/.mcp.json` configures only the `scikitplot-docs` server."
+   ],
+   "cause": "Not implemented: the index was built as a library and a command line first.",
+   "expected": "One tool catalog, defined once and free of any SDK, that describes each Lean operation (name, JSON Schema of its arguments, effect, output bounds) and runs it against a loaded index; thin adapters that expose that catalog to `scikitplot.agent` and to MCP clients; and a skill that tells an agent how to run a review with them.",
+   "affected": [
+    "`scikitplot/lean/` (catalog, adapters)",
+    "`scikitplot/agent/` (consumer, unchanged API)",
+    "`scikitplot/mcp/` (route B only)",
+    "`plugins/scikitplot-mcp/`, `plugins/_shared/skills/` (configuration, review skill)",
+    "Maintenance owner: `maintenances/corpus/` (lean is maintained with the corpus reader)"
+   ],
+   "constraints": "Optional extras imported lazily, no new base dependency; Python 3.8 floor for everything SDK-free (the MCP SDK v2 needs Python >= 3.10); read-only by default; deterministic output for the same index and arguments; bounded responses; no network access. The index never reads outside the roots it was loaded with (as `LeanIndex.load(root=)` does now); tool output quotes source text, which is untrusted content (a comment can say anything) and must be marked as data, never instructions. Do not widen the docs server's declared scope by accident (route B is an explicit decision).",
+   "edges": [
+    "No index loaded, or a snapshot from an earlier development version: a tool error that says what to load, never a traceback",
+    "Index loaded without `root`: statements are not quoted; tools say so per item instead of failing",
+    "Target names no declaration, or several: the dossier's `matches` list, returned as a result, not an error",
+    "A huge project (175,187 files): every response capped in items and bytes, with `count` and `cut` kept",
+    "Near-duplicates at a low threshold: a time budget, refused or capped before it runs for minutes (0.5 takes about 4 minutes on mathlib4)",
+    "Concurrent calls on one index: reports are read-only, but `refresh` mutates; it needs a lock or a separate effect class",
+    "Layered indexes: every tool takes `layer` where the method does; an unknown layer is a validation error",
+    "Source text containing instructions or control characters: delivered as data, sanitized of terminal escapes"
+   ],
+   "direction": "**Phase 1, a tool catalog** (`scikitplot/lean/_tools.py`, standard library only). One entry per operation, each with a closed JSON Schema for its arguments, an effect, a response byte cap and a handler that calls the existing method:\n\n| tool | method | effect |\n|---|---|---|\n| `lean_summary(layer, max_items)` | `summary` | read |\n| `lean_dossier(target, max_items)` | `dossier` | read |\n| `lean_find(name)` | `find` | read |\n| `lean_discover(layer, top, min_instances)` | `discover` | read |\n| `lean_near_duplicates(threshold, layer, against, min_pairs, top)` | `near_duplicates` | read, with a time budget |\n| `lean_refresh(layer)` | `refresh` | refresh (off unless enabled) |\n\nOne function validates arguments against the schema. Responses keep each report's `count` and `cut`, and source text is wrapped as untrusted data.\n\n**Phase 2, the agent adapter.** `lean_toolset(index, *, allow_refresh=False) -> scikitplot.agent.Toolset`, with scopes `lean:read` and `lean:refresh`, so the agent's five gates and audit trail apply unchanged.\n\n**Phase 3, MCP.** Three routes:\n\n- Route A (recommended): a separate server, `python -m scikitplot.lean.mcp --index FILE [--root DIR ...] [--allow-refresh]`, serving the catalog's tools, resources `lean://summary`, `lean://dossier/{name}` and `lean://layer/{name}/summary`, and an optional `lean-review` prompt. The docs server stays as it is. Its hardening (argument validation, result envelope, health endpoint) is reused, not copied.\n- Route B: register the catalog in `scikitplot.mcp` behind an opt-in flag. One server to configure, but its declared scope widens and its README must change.\n- Route C: no server. Agents call `python -m scikitplot.lean ... --json`. The least code, but every client parses output and sets its own limits.\n\n**Phase 4, the plugin.** A `scikitplot-lean` entry in `plugins/scikitplot-mcp/.mcp.json` (route A), and a proof-review skill in `plugins/_shared/skills/` with its agent, kept apart from the generated `scikitplot-lean` coding agent (which `check_records.py --write-index` owns). The skill's process:\n\n1. load the snapshot once (`root` for quotes);\n2. `lean_summary`: flags, missing modules, generators;\n3. `lean_discover`: headline results and unproven claims;\n4. `lean_dossier` for each headline and each flagged result, following the red-flag paths;\n5. `lean_near_duplicates(layer=<project>, against='')`: what the project restates;\n6. a report in which every claim cites `file:line` and names the kernel check that settles it (`lake build`, `#print axioms`).",
+   "accept": [
+    "The catalog's schemas validate the arguments each method accepts and refuse the rest; one test per tool calls it on a small project and checks the result equals the method's",
+    "Responses stay under the byte cap on mathlib4 with `count` and `cut` correct",
+    "`lean_toolset` runs a scripted planner through `scikitplot.agent` with the audit trail verifying",
+    "Route A: the server lists its tools and resources over stdio with the SDK's client, answers a dossier, and refuses a path outside its roots",
+    "Python 3.8: the catalog and the agent adapter import and pass their tests without the MCP SDK"
+   ],
+   "docs": "Lean user guide (a section on agents and MCP), API reference, the lean usage skill, the MCP README (route B) or a new server README (route A), a gallery example driving the agent adapter with a rule-based planner.",
+   "release": "required",
+   "ttype": "feature",
+   "probes": [
+    {
+     "kind": "absent",
+     "pattern": "lean_toolset|lean_dossier|lean_summary",
+     "path": "scikitplot"
+    },
+    {
+     "kind": "present",
+     "pattern": "class Toolset",
+     "path": "scikitplot/agent"
+    },
+    {
+     "kind": "present",
+     "pattern": "def search_docs",
+     "path": "scikitplot/mcp"
+    }
+   ]
+  },
+  {
+   "path": "scikitplot/lean/index-an-archive.md",
+   "title": "lean: an archive of Lean files cannot be indexed in one call",
+   "kind": "other",
+   "area": "scikitplot/lean",
+   "discovered": "@review",
+   "summary": "`LeanIndex.from_folder` reads a folder; a project shipped as a `.zip` or `.tar.*` must be extracted, or read member by member with `LeanReader`, learned commands first (`learn_commands`, PR 1025), then added with `add_chunks`. No call does this, and the result has no digests, so `refresh` treats every member as changed.",
+   "why": "Projects arrive as release archives, CI artifacts and dataset bundles. Extracting them costs disk and time, and opens the extraction risks the corpus archive readers already guard against (path traversal, size and expansion bombs).",
+   "evidence": [
+    "`grep -rEn 'zipfile|tarfile|from_archive' scikitplot/lean` finds nothing.",
+    "The corpus `ZipReader` forwards per-extension reader options (`reader_kwargs={'.lean': {...}}`) and enforces member count, size and expansion limits; it yields documents, not the per-member raw chunks with labels that `add_chunks` takes.",
+    "`add_chunks` records no digest (`_digests` stays `None`), so a later `refresh` re-reads every such file."
+   ],
+   "cause": "Not implemented: the index reads folders; archives were left to the caller.",
+   "expected": "`LeanIndex.from_archive(path, *, include_hidden=False, learn_commands=True, workers=1, **options)` that reads every `.lean` member under the corpus archive limits, labels members by their path in the archive, learns commands first, and gives the index `from_folder` gives on the extracted folder, digests included (of the member bytes).",
+   "affected": [
+    "`scikitplot/lean/_index.py`",
+    "`scikitplot/corpus/_readers/_zip.py`, `_tar.py` (limits reused, not changed)"
+   ],
+   "constraints": "Optional extras imported lazily, no new base dependency; Python 3.8 floor for everything SDK-free (the MCP SDK v2 needs Python >= 3.10); read-only by default; deterministic output for the same index and arguments; bounded responses; no network access. Members are never written to disk; a member whose path leaves the archive root, a link, or a member over the limits is listed as skipped with its reason, as `from_folder` lists files.",
+   "edges": [
+    "Nested archives (refused or skipped, not recursed without a limit)",
+    "Members with absolute paths or `..` components",
+    "Two members with the same normalized path",
+    "Non-UTF-8 members (a source problem, as for files)",
+    "Archive with a top-level folder (labels keep it, as `from_folder` on the parent would)"
+   ],
+   "direction": "Share one member iterator with the corpus archive readers (their limits and path checks), feed member bytes to the same `_read_file` logic through an in-memory path, compute digests from member bytes, and keep `from_folder`'s learning pass. `add_folder` gains the same for a layer (`add_archive`).",
+   "accept": [
+    "`from_archive(zip)` and `from_folder(extracted)` save to the same bytes apart from paths, on pfr and batteries",
+    "A hostile archive (traversal, bomb, nested) is refused or skipped with reasons, under the corpus limits"
+   ],
+   "docs": "Lean user guide (saving and layers sections), API reference, lean usage skill.",
+   "release": "required",
+   "ttype": "feature",
+   "probes": [
+    {
+     "kind": "absent",
+     "pattern": "zipfile|tarfile|from_archive",
+     "path": "scikitplot/lean"
+    },
+    {
+     "kind": "present",
+     "pattern": "reader_kwargs",
+     "path": "scikitplot/corpus/_readers"
+    }
+   ]
+  },
+  {
+   "path": "scikitplot/lean/approximate-near-duplicates.md",
+   "title": "lean: near-duplicate search below a similarity of 0.7 takes minutes",
+   "kind": "other",
+   "area": "scikitplot/lean",
+   "discovered": "@review",
+   "summary": "`LeanIndex.near_duplicates` is exact (prefix filtering). At 0.8 and 0.9 it takes 6 to 11 s on mathlib4 with PFR (shapes kept), but the number of pairs, and the time, grow fast below 0.7: at 0.5 the search alone takes about 4 minutes for 515,934 pairs.",
+   "why": "Low thresholds are how one finds loose restatements (a lemma generalized, hypotheses reordered). Exact search there is too slow to use interactively, and an agent calling it through a tool would time out.",
+   "evidence": [
+    "Measured on mathlib4 with PFR, 196,029 statements, two workers: 0.8 in 11 s (29,062 pairs), 0.9 in 6 s (3,491 pairs) with `keep_shapes=True`; at 0.5 the search alone takes about 4 minutes (515,934 pairs).",
+    "The search is `similar_pairs` in `scikitplot/lean/_similar.py`: exact, integer arithmetic, no sampling."
+   ],
+   "cause": "Prefix filtering prunes less as the threshold falls: prefixes grow, and so do candidate lists.",
+   "expected": "An opt-in approximate mode for low thresholds that reports what it may miss: `near_duplicates(..., method='exact'|'minhash'|'annoy')`, exact by default; the approximate modes verify every reported pair exactly (no false positives) and state their recall and parameters in the report.",
+   "affected": [
+    "`scikitplot/lean/_similar.py`",
+    "`scikitplot/annoy` (route 2)"
+   ],
+   "constraints": "Optional extras imported lazily, no new base dependency; Python 3.8 floor for everything SDK-free (the MCP SDK v2 needs Python >= 3.10); read-only by default; deterministic output for the same index and arguments; bounded responses; no network access. Exact stays the default and the reference: approximate results are a subset of exact ones, verified pair by pair, with seed and parameters in the report so a run can be repeated.",
+   "edges": [
+    "Threshold 1.0 and very small statements (approximate mode must not be used where exact is fast)",
+    "Recall measured against exact on a sample, reported",
+    "Layer and against sides as in exact mode"
+   ],
+   "direction": "Route 1: MinHash signatures (seeded, standard library hashing) with LSH banding chosen from the threshold, candidates verified exactly. Route 2: an Annoy index over the same signatures or over hashed pair vectors, through `scikitplot.annoy`, candidates verified exactly. Either way, measure recall against exact at 0.5 to 0.7 on mathlib4 before choosing a default for the mode.",
+   "accept": [
+    "At 0.5 on mathlib4 with PFR, the approximate mode runs in under 30 s and finds at least 95% of the exact pairs, every reported pair verified",
+    "The same seed gives the same report"
+   ],
+   "docs": "Lean user guide (near-duplicate section and its timing table), API reference.",
+   "release": "required",
+   "ttype": "feature",
+   "probes": [
+    {
+     "kind": "present",
+     "pattern": "def similar_pairs",
+     "path": "scikitplot/lean"
+    },
+    {
+     "kind": "absent",
+     "pattern": "minhash|annoy",
+     "path": "scikitplot/lean"
+    }
+   ]
+  }
+ ]
+}
