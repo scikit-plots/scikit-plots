@@ -43,6 +43,7 @@ import json
 import os
 import sys
 from array import array
+from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -57,7 +58,7 @@ SAVED = frozenset(
         "_ctx_of", "_flags", "_attributes", "_shape_of", "_private", "_claims",
         "_vacuous", "_ref_names", "_ctx_keys", "_labels", "_imports",
         "_file_lines", "_problems", "_kinds", "_learned", "_skipped",
-        "_layers", "_layer_of",
+        "_layers", "_layer_of", "_layer_kinds",
         "_dialect", "_commands", "_max_depth", "_max_bytes", "_suffix",
         "_visibility", "_source_root",
     }
@@ -144,6 +145,7 @@ def dumps(index: Any) -> bytes:
             for file_id in sorted(index._problems)
         ],
         "kinds_counted": sorted(index._kinds.items()),
+        "kinds_by_layer": [sorted(kinds.items()) for kinds in index._layer_kinds],
         "learned": sorted([k, list(v)] for k, v in index._learned.items()),
         "skipped": sorted(list(item) for item in index._skipped),
         "flags": [[n, list(index._flags[n])] for n in sorted(index._flags)],
@@ -369,17 +371,8 @@ def _columns(parts: dict[str, bytes], n: int) -> dict[str, Any]:
     }
 
 
-def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> None:
-    """Check every count and every number before the index uses any of them."""
-    per_node = ("named", "kind_of", "file_of", "start", "end", "ctx_of")
-    if any(len(cols[name]) != n for name in per_node):
-        raise _fail("the declaration sections do not have one entry each.")
-    labels = meta.get("labels", [])
-    per_file = (labels, meta.get("imports", []), meta.get("file_lines", []))
-    if any(len(values) != files for values in per_file):
-        raise _fail("the file sections do not have one entry each.")
-    if len(set(labels)) != files:
-        raise _fail("two files have the same label.")
+def _check_layers(meta: dict[str, Any], labels: list[str], files: int) -> None:
+    """Check the layers: names, each file's layer, the counts by layer."""
     layers = meta.get("layers", [["", None]])
     names = [layer[0] for layer in layers]
     if not layers or names[0] != "" or len(set(names)) != len(names):
@@ -391,6 +384,28 @@ def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> No
     for label, layer in zip(labels, layer_of):
         if layer and not label.startswith(f"{names[layer]}:"):
             raise _fail("a file's label does not name its layer.")
+        if not layer and any(label.startswith(f"{name}:") for name in names[1:]):
+            raise _fail("a file's label names a layer it is not in.")
+    by_layer = _kinds_by_layer(meta, len(layers))
+    total: Counter[str] = Counter()
+    for kinds in by_layer:
+        total.update(kinds)
+    if total != Counter(dict(meta.get("kinds_counted", []))):
+        raise _fail("the counts by layer do not add up to the counts.")
+
+
+def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> None:
+    """Check every count and every number before the index uses any of them."""
+    per_node = ("named", "kind_of", "file_of", "start", "end", "ctx_of")
+    if any(len(cols[name]) != n for name in per_node):
+        raise _fail("the declaration sections do not have one entry each.")
+    labels = meta.get("labels", [])
+    per_file = (labels, meta.get("imports", []), meta.get("file_lines", []))
+    if any(len(values) != files for values in per_file):
+        raise _fail("the file sections do not have one entry each.")
+    if len(set(labels)) != files:
+        raise _fail("two files have the same label.")
+    _check_layers(meta, labels, files)
     ptr, data = cols["ref_ptr"], cols["ref_data"]
     if len(ptr) != n + 1 or ptr[0] != 0 or ptr[-1] != len(data):
         raise _fail("the reference offsets do not match the declarations.")
@@ -410,6 +425,38 @@ def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> No
     _in_range(meta.get("private", []), n, "declaration")
     _in_range(meta.get("claims", []), n, "declaration")
     _in_range((pair[0] for pair in meta.get("problems", [])), files, "file")
+
+
+def _positive_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _kinds_by_layer(meta: dict[str, Any], layers: int) -> list[Counter[str]]:
+    """
+    Return the commands counted by kind in each layer.
+
+    A snapshot of one layer written before they were saved has its counts
+    as the layer's; one of several layers cannot be split, and is refused.
+    """
+    if "kinds_by_layer" not in meta:
+        if layers != 1:
+            raise _fail("it has layers but no counts by layer; save it again.")
+        return [Counter(dict(meta.get("kinds_counted", [])))]
+    by_layer = meta["kinds_by_layer"]
+    if not isinstance(by_layer, list) or len(by_layer) != layers:
+        raise _fail("the counts by layer do not match the layers.")
+    out = []
+    for kinds in by_layer:
+        counted: Counter[str] = Counter()
+        for pair in kinds if isinstance(kinds, list) else [None]:
+            if not (isinstance(pair, list) and len(pair) == 2):  # noqa: PLR2004
+                raise _fail("a count by layer is not valid.")
+            kind, count = pair
+            if not isinstance(kind, str) or not _positive_int(count):
+                raise _fail("a count by layer is not valid.")
+            counted[kind] = count
+        out.append(counted)
+    return out
 
 
 def _fill_files(
@@ -439,6 +486,7 @@ def _fill_files(
     index._learned = {k: (str(v[0]), int(v[1])) for k, v in meta["learned"]}
     index._skipped = [(str(a), str(b)) for a, b in meta["skipped"]]
     index._kinds.update(dict(meta["kinds_counted"]))
+    index._layer_kinds = _kinds_by_layer(meta, len(layers))
     if index._layers[0][1] is None and index._source_root is not None:
         index._layers[0] = ("", index._source_root)
 

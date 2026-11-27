@@ -173,3 +173,114 @@ def test_a_copy_of_the_base_is_not_needed(tmp_path):
     index = _layered(tmp_path)
     shutil.rmtree(tmp_path / "base")
     assert index.dossier("main_shaky")["flags_found"] == ["sorry"]
+
+
+# -- reports on one layer -----------------------------------------------------
+
+
+def test_a_layer_summary_counts_its_own_files_and_the_layers_add_up(tmp_path):
+    index = _layered(tmp_path)
+    whole = index.summary()
+    base, project = index.summary(layer=""), index.summary(layer="p")
+    assert (whole["layer"], base["layer"], project["layer"]) == (None, "", "p")
+    assert (project["files"], project["declarations"]) == (1, 2)
+    for key in ("files", "lines", "declarations"):
+        assert base[key] + project[key] == whole[key]
+    kinds = {k: base["kinds"].get(k, 0) + project["kinds"].get(k, 0) for k in whole["kinds"]}
+    assert kinds == whole["kinds"]
+    assert project["kinds"]["import"] == 1
+    assert "sorry" in base["flags"] and project["flags"] == {}
+    assert "in layer `p`" in LeanIndex.render(project)
+
+
+def test_a_layer_discovery_lists_its_files_and_counts_every_use(tmp_path):
+    index = _layered(tmp_path)
+    project, base = index.discover(layer="p"), index.discover(layer="")
+    assert project["layer"] == "p"
+    assert project["claims"]["unproven"]["count"] == 0
+    assert [i["declaration"] for i in base["claims"]["unproven"]["items"]] == ["shaky"]
+    heads = sorted(i["declaration"] for i in project["headline_results"]["items"])
+    assert heads == ["main", "main_shaky"]
+    assert base["headline_results"]["count"] == 0  # the project names them all
+    rules = {i["declaration"]: i for i in base["rules"]["load_bearing_theorems"]["items"]}
+    assert rules["good_all"]["named_from_files"] == 1  # from the project's file
+    assert project["rules"]["load_bearing_theorems"]["count"] == 0
+    assert LeanIndex.render(project).startswith("Layer: `p`")
+
+
+@pytest.mark.parametrize("layer", ["q", 0, "p:"])
+def test_an_unknown_layer_is_refused(tmp_path, layer):
+    index = _layered(tmp_path)
+    for report in (index.summary, index.discover):
+        with pytest.raises(ValueError, match="layer must be None or one of"):
+            report(layer=layer)
+
+
+def test_a_layer_export_writes_its_own_documents(tmp_path):
+    index = _layered(tmp_path)
+    index.export(tmp_path / "out", layer="p")
+    summary = json.loads((tmp_path / "out" / "summary.json").read_text("utf-8"))
+    assert (summary["layer"], summary["files"]) == ("p", 1)
+    dossiers = sorted(p.name for p in (tmp_path / "out" / "dossiers").iterdir())
+    assert len(dossiers) == 4  # main and main_shaky, .json and .md
+    assert [d.split("-")[0] for d in dossiers[::2]] == ["main", "main_shaky"]
+
+
+def test_a_snapshot_keeps_the_counts_of_each_layer(tmp_path):
+    index = _layered(tmp_path)
+    saved = index.save(tmp_path / "both.leanidx")
+    loaded = LeanIndex.load(saved)
+    for layer in ("", "p"):
+        assert loaded.summary(layer=layer)["kinds"] == index.summary(layer=layer)["kinds"]
+
+
+def _meta_changed(blob, change):
+    from .test__snapshot import _resign, _section
+
+    meta = json.loads(_section(blob, "meta"))
+    change(meta)
+    return _resign(blob, "meta", json.dumps(meta).encode())
+
+
+def test_counts_by_layer_are_checked(tmp_path):
+    saved = _layered(tmp_path).save(tmp_path / "both.leanidx")
+    blob = saved.read_bytes()
+    bad = {
+        "no counts by layer": lambda m: m.pop("kinds_by_layer"),
+        "do not add up": lambda m: m["kinds_by_layer"][1].append(["axiom", 1]),
+        "not valid": lambda m: m["kinds_by_layer"][1].append(["axiom", 0]),
+        "do not match the layers": lambda m: m["kinds_by_layer"].pop(),
+        "names a layer it is not in": lambda m: m["labels"].__setitem__(0, "p:X.lean"),
+    }
+    for message, change in bad.items():
+        saved.write_bytes(_meta_changed(blob, change))
+        with pytest.raises(ValueError, match=message):
+            LeanIndex.load(saved)
+
+
+def test_a_one_layer_snapshot_without_counts_by_layer_loads(tmp_path):
+    saved = LeanIndex.from_folder(_write(tmp_path / "base", BASE)).save(tmp_path / "b.leanidx")
+    saved.write_bytes(_meta_changed(saved.read_bytes(), lambda m: m.pop("kinds_by_layer")))
+    index = LeanIndex.load(saved)
+    assert index.summary(layer="")["kinds"] == index.summary()["kinds"]
+
+
+def test_a_layer_name_a_base_label_starts_with_is_refused(tmp_path):
+    base = _write(tmp_path / "base", {"q:/A.lean": "theorem a : 1 = 1 := rfl\n"})
+    index = LeanIndex.from_folder(base)
+    with pytest.raises(ValueError, match="already starts with 'q:'"):
+        index.add_folder(_write(tmp_path / "proj", PROJECT), name="q")
+
+
+def test_the_command_line_reports_and_fails_on_one_layer(tmp_path):
+    base = _write(tmp_path / "base", BASE)
+    saved = LeanIndex.from_folder(base).save(tmp_path / "base.leanidx")
+    project = _write(tmp_path / "proj", PROJECT)
+    common = [str(project), "--base", str(saved), "--fail-on", "sorry", "--json"]
+    for layer, status in (("proj", 0), ("", 1)):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            assert main([*common, "--layer", layer]) == status
+        assert json.loads(out.getvalue())["layer"] == layer
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert main([*common, "--discover", "--layer", "proj"]) == 0

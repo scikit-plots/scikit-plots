@@ -1,0 +1,8 @@
+- :meth:`~scikitplot.lean.LeanIndex.summary`,
+  :meth:`~scikitplot.lean.LeanIndex.discover` and
+  :meth:`~scikitplot.lean.LeanIndex.export` take ``layer=`` (``--layer``
+  on the command line) to report on one layer's files, with uses still
+  counted across layers; with ``--layer``, ``--fail-on`` checks that
+  layer's flags only. On PFR over mathlib4 the layer's summary equals PFR
+  indexed alone. Snapshots now keep the counts of each layer, and a new
+  gallery example shows saving, layers and layer reports end to end.
