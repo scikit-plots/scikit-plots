@@ -17,7 +17,8 @@ everything. This example:
 5. lists a module two layers both provide;
 6. puts two projects over one saved dependency;
 7. runs the same from the command line, failing on the project's flags only;
-8. times reading everything against loading and adding, on a generated
+8. refreshes after an edit, reading again only the files that changed;
+9. times reading everything against loading and adding, on a generated
    dependency.
 
 Everything runs on files the example writes: no Lean toolchain, no download.
@@ -205,7 +206,35 @@ for layer in ("app", ""):
     print(f"--layer {layer!r}: exit {status}")
 
 # %%
-# 8. Read everything, or load and add
+# 8. Refresh after an edit
+# ------------------------
+# :meth:`LeanIndex.refresh` reads every file of one layer once, for its
+# digest and the commands it defines, and parses only the new and changed
+# ones. The refreshed index saves to the same bytes as a new read.
+
+index = LeanIndex.load(saved, root=library)
+index.add_folder(app, name="app")
+(app / "App" / "Main.lean").write_text(
+    "import Lib.Util\ntheorem main : ∀ n, Good n := sorry\n", encoding="utf-8"
+)
+(app / "App" / "Extra.lean").write_text(
+    "import App.Main\ntheorem extra : Good 3 := main 3\n", encoding="utf-8"
+)
+report = index.refresh("app")
+print(
+    "changed", report["changed"]["items"], "added", report["added"]["items"],
+    "removed", report["removed"]["items"], "- files read:", report["files_read"],
+)  # fmt: skip
+print("extra:", index.dossier("extra")["flags_found"])
+again = LeanIndex.load(saved, root=library)
+again.add_folder(app, name="app")
+same = index.save(work / "r1.leanidx").read_bytes() == again.save(
+    work / "r2.leanidx"
+).read_bytes()
+print("same bytes as a new read:", same)
+
+# %%
+# 9. Read everything, or load and add
 # -----------------------------------
 # A generated dependency of 400 modules and a project of 5. Reading both
 # grows with the dependency; loading it and adding the project grows with

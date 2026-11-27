@@ -1,0 +1,9 @@
+- :meth:`~scikitplot.lean.LeanIndex.refresh` reads again only the new and
+  changed files of one layer and drops those gone (``--refresh`` with
+  ``--load`` on the command line); the index then saves to the same
+  bytes as a new read. On mathlib4 a refresh after 20 edits takes 1.4 s
+  instead of 27 s, and 13 s instead of 222 s on 175,187 unchanged files.
+  When the commands a layer defines change, it and the layers above are
+  read again. Snapshots now keep each file's digest and command counts
+  and each layer's commands; snapshots written by earlier development
+  versions are refused with a request to save again.

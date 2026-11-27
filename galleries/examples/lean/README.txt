@@ -16,7 +16,8 @@ Lean toolchain, no download.
    .lean files
         ↓
    LeanIndex.from_folder      (declarations, names used, audit flags)
-        ↓                     save / load: one file, read in seconds
+        ↓                     save / load: one file, read in seconds;
+        ↓                     refresh: read again only what changed
    add_folder                 (a project over its saved dependencies)
         ↓
    summary   dossier   discover / export     (layer=: one project's files)
