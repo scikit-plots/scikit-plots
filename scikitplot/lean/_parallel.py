@@ -22,12 +22,14 @@ process), names are resolved here, with the same result.
 
 **Developer.** Memory: a worker copies the pages it reads, since Python's
 reference counts write to the objects, and builds its own lookup cache.
-The names each declaration uses are packed in arrays, which reading does
-not copy; what a worker still copies comes from the name tables
-(dictionaries of Python objects) its lookups read. On a project of a
-million declarations a summary peaks at 3.0 GB with two workers, against
-1.7 GB with one. ``gc.freeze()`` before forking saved under 100 MB, so it
-is not used.
+What a worker reads most is kept flat so that it copies none of it: each
+declaration's reference numbers in arrays, and (:class:`FlatNames`, built
+just before forking) each reference and context as text in one buffer,
+decoded privately. On mathlib4 a worker resolving every name makes 62 MB
+its own, against 160 MB with Python objects; what remains comes from the
+name tables' values (dictionaries of Python objects), which a flat table
+would remove at about twice the lookup time. ``gc.freeze()`` before
+forking saved under 100 MB, so it is not used.
 
 ``fork`` is requested explicitly: Python 3.14 no longer
 uses it by default on Linux, and other start methods would have to pickle
@@ -64,6 +66,55 @@ def usable(workers: int, nodes: int) -> bool:
     )
 
 
+class FlatNames:
+    """
+    References and contexts as UTF-8 text in two buffers, for forked workers.
+
+    Built in the parent just before forking, read in the workers: a buffer
+    is one object, so decoding a name from it writes no reference count on
+    the shared string objects, and the worker copies no page of them. Each
+    decoded name or context is the worker's own.
+    """
+
+    def __init__(
+        self, names: list[str], contexts: list[tuple[str, tuple[str, ...]]]
+    ) -> None:
+        self._names, self._name_at = _pack(names)
+        self._contexts, self._context_at = _pack(
+            "\x00".join((namespace, *opens)) for namespace, opens in contexts
+        )
+        self._decoded: dict[int, tuple[str, tuple[str, ...]]] = {}
+
+    def name(self, ref_id: int) -> str:
+        """Return reference *ref_id*, decoded."""
+        start, stop = self._name_at[ref_id], self._name_at[ref_id + 1]
+        return self._names[start:stop].decode("utf-8")
+
+    def context(self, ctx_id: int) -> tuple[str, tuple[str, ...]]:
+        """Return context *ctx_id* as ``(namespace, opens)``, decoded once."""
+        found = self._decoded.get(ctx_id)
+        if found is None:
+            start, stop = self._context_at[ctx_id], self._context_at[ctx_id + 1]
+            namespace, *opens = self._contexts[start:stop].decode("utf-8").split("\x00")
+            found = self._decoded[ctx_id] = (namespace, tuple(opens))
+        return found
+
+
+def _pack(texts: Any) -> tuple[bytes, array]:
+    """Return *texts* as one UTF-8 buffer and the offset of each (and the end)."""
+    buffer = bytearray()
+    offsets = array("q", [0])
+    for text in texts:
+        buffer += text.encode("utf-8")
+        offsets.append(len(buffer))
+    return bytes(buffer), offsets
+
+
+def _enter(flat: FlatNames) -> None:
+    """Pool initializer (in each worker): read names from the shared text."""
+    _INDEX._flat = flat
+
+
 def _resolve(bounds: tuple[int, int]) -> tuple[int, bytes, bytes]:
     """Resolve declarations ``start .. stop - 1`` (in a worker): lengths and edges."""
     start, stop = bounds
@@ -76,13 +127,16 @@ def _resolve(bounds: tuple[int, int]) -> tuple[int, bytes, bytes]:
     return start, lengths.tobytes(), edges.tobytes()
 
 
-def resolve(index: Any, nodes: list[int], workers: int) -> dict[int, array]:
+def resolve(
+    index: Any, nodes: list[int], workers: int, flat: FlatNames | None = None
+) -> dict[int, array]:
     """
     Return the edges of *nodes* (ascending), resolved in *workers* processes.
 
     The caller has checked :func:`usable` and warmed what every worker
     reads (each file's visibility, the short names), so that work is done
-    once, before forking, instead of once per worker.
+    once, before forking, instead of once per worker. With *flat*, each
+    worker reads reference names and contexts from it (:class:`FlatNames`).
     """
     global _INDEX  # noqa: PLW0603
     runs = _runs(nodes, max(1, len(nodes) // (workers * 32)))
@@ -90,7 +144,8 @@ def resolve(index: Any, nodes: list[int], workers: int) -> dict[int, array]:
     _INDEX = index
     try:
         context = multiprocessing.get_context("fork")
-        with context.Pool(workers) as pool:
+        initializer = (_enter, (flat,)) if flat is not None else (None, ())
+        with context.Pool(workers, initializer[0], initializer[1]) as pool:
             for start, raw_lengths, raw_edges in pool.imap(_resolve, runs):
                 lengths = array("q")
                 lengths.frombytes(raw_lengths)
