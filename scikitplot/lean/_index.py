@@ -47,7 +47,7 @@ from collections import Counter, OrderedDict, deque
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-from ._shapes import _bound_names, fingerprint, states_a_claim
+from ._shapes import _bound_names, fingerprint, states_a_claim, vacuity
 from ._syntax import (
     _MODIFIERS,
     _NOT_REFERENCES,
@@ -274,8 +274,10 @@ def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
     Imports: ``("import", modules)``; other commands outside the graph:
     ``(kind,)``; a declaration: ``(kind, name, line_start, line_end,
     namespace, opens, references, flags, attributes, private, shape,
-    claim)``, its statement-shape digest and whether it is a definition of
-    type ``Prop`` computed here, so a worker process does that work too.
+    claim, vacuous)``. The statement-shape digest, whether it is a
+    definition of type ``Prop`` and why such a definition says nothing
+    (:func:`._shapes.vacuity`) are computed here, so a worker process does
+    that work too.
     """
     kind = chunk["lean_kind"]
     if kind == "import":
@@ -285,11 +287,13 @@ def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
     name = chunk.get("declaration")
     shape = None
     claim = False
+    vacuous = None
     if kind in ("theorem", "lemma"):
         statement = chunk.get("statement")
         shape = None if statement is None else fingerprint(statement, kind, name)
     elif kind in ("def", "abbrev"):
         claim = states_a_claim(chunk["text"])
+        vacuous = vacuity(chunk["text"]) if claim else None
     return (
         kind,
         name,
@@ -303,6 +307,7 @@ def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
         "private" in chunk.get("modifiers", ()),
         shape,
         claim,
+        vacuous,
     )
 
 
@@ -612,6 +617,8 @@ class LeanIndex:
         # (16 bytes) and the definitions of type Prop; discovery groups them.
         self._shape_of: dict[int, bytes] = {}
         self._claims: set[int] = set()
+        # Prop definitions that say nothing about their subject: the reason.
+        self._vacuous: dict[int, str] = {}
         self._flags: dict[int, tuple[str, ...]] = {}
         self._attributes: dict[int, tuple[str, ...]] = {}
         self._refs: list[tuple[str, ...] | None] = []
@@ -870,6 +877,7 @@ class LeanIndex:
         self._shape_of = remap(self._shape_of)
         self._private = {node_of[n] for n in self._private}
         self._claims = {node_of[n] for n in self._claims}
+        self._vacuous = remap(self._vacuous)
         by_name: dict[str, Any] = {}
         for node, name in enumerate(self._name):  # rebuilt as reading builds it
             if name is None:
@@ -936,6 +944,7 @@ class LeanIndex:
             private,
             shape,
             claim,
+            vacuous,
         ) = record
         node = len(self._name)
         self._name.append(name)
@@ -956,6 +965,8 @@ class LeanIndex:
             self._shape_of[node] = shape
         if claim:
             self._claims.add(node)
+        if vacuous is not None:
+            self._vacuous[node] = vacuous
         if name is not None:
             held = self._by_name.get(name)
             if held is None:
@@ -981,6 +992,7 @@ class LeanIndex:
             self._private.discard(node)
             self._shape_of.pop(node, None)
             self._claims.discard(node)
+            self._vacuous.pop(node, None)
         for column in (
             self._name,
             self._kind,
@@ -1731,6 +1743,8 @@ class LeanIndex:
                 _HOW[local[item]] if item in local else _HOW[meaning[item][1]]
             )
             entry["text"], entry["text_cut"] = self._excerpt(item)
+            if item in self._vacuous:
+                entry["vacuous"] = self._vacuous[item]
             definitions.append(entry)
         report["statement"] = {
             "local_definitions": _listing(definitions, max_items),
@@ -1818,6 +1832,15 @@ class LeanIndex:
             )
         else:
             on_definitions = "the statement uses no project definition"
+        vacuous = [d for d in definitions if "vacuous" in d]
+        if vacuous:
+            on_vacuous = (
+                f"{len(vacuous)} definition(s) the statement unfolds to say nothing"
+                f" about their subject ({', '.join(d['declaration'] for d in vacuous)}):"
+                " the statement may hold whatever it is about"
+            )
+        else:
+            on_vacuous = "no definition the statement unfolds to is vacuous"
         if red_flags:
             on_named = (
                 f"{len(red_flags)} flagged declaration(s) among those the proof names"
@@ -1861,6 +1884,7 @@ class LeanIndex:
                 "review" if definitions else "pass",
                 on_definitions,
             ),
+            _check("vacuous_definitions", "review" if vacuous else "pass", on_vacuous),
             _check("named_dependencies", "fail" if red_flags else "pass", on_named),
             _check("implicit_dependencies", "review" if risks else "pass", on_implicit),
             _check(
@@ -2039,7 +2063,9 @@ class LeanIndex:
               trailing number);
             - ``claims``: ``claim_definitions`` (definitions of type
               ``Prop``), ``axioms``, ``proof_wanted``, ``unproven``
-              (``sorry`` or ``admit``);
+              (``sorry`` or ``admit``), ``vacuous_predicates`` (``Prop``
+              definitions whose body is ``True``, ``False`` and connectives
+              only, or uses none of their parameters; each with its reason);
             - ``anomalies``: ``parallel_declarations`` (public names declared
               in several files), ``generators`` (code adding declarations
               at build time), ``isolated_results`` (theorems no declaration
@@ -2260,8 +2286,9 @@ def _render_dossier(report: dict[str, Any]) -> str:  # noqa: PLR0912
     if not definitions["count"]:
         out.append("It uses no project definition.")
     for item in definitions["items"]:
+        why = f" **vacuous**: {item['vacuous']}" if "vacuous" in item else ""
         out += [
-            f"- `{item['declaration']}` ({item['kind']}, {_where(item)})",
+            f"- `{item['declaration']}` ({item['kind']}, {_where(item)}){why}",
             "",
             "```lean",
             item["text"] or "",

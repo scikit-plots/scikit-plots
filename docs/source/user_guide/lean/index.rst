@@ -55,7 +55,9 @@ The reports
 
 ``dossier(name)``
     The theorem's statement and the project definitions it unfolds to
-    (quoted); every declaration its proof names, directly or through
+    (quoted, each vacuous one marked: a ``Prop`` whose body is ``True``,
+    ``False`` and connectives only, or uses none of its parameters); every
+    declaration its proof names, directly or through
     others, with the path to each flagged one; what it could use without
     naming it (flagged instances, tagged lemmas, syntax extensions, and
     generated declarations, in its environment only); text Lean refuses to
@@ -65,8 +67,8 @@ The reports
 ``discover()`` and ``export(folder)``
     Candidates, each chosen by a stated rule: theorems and definitions
     named from the most files; theorems of one statement shape and
-    numbered series of names; ``Prop`` definitions, axioms,
-    ``proof_wanted`` and ``sorry``; names declared in parallel; results
+    numbered series of names; ``Prop`` definitions, vacuous predicates,
+    axioms, ``proof_wanted`` and ``sorry``; names declared in parallel; results
     nothing names. ``export`` writes them as Markdown, JSON and one JSON
     record per item (``records.jsonl``) for a corpus or an MCP server, with
     a dossier per headline result.

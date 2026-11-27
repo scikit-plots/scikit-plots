@@ -169,6 +169,8 @@ class _Discovery:
         entry["named_from_files"] = self.in_files[node]
         if node in self.statements:
             entry["statement"] = self.statements[node]
+        if node in self.index._vacuous:
+            entry["vacuous"] = self.index._vacuous[node]
         return entry
 
     def listing(self, nodes: list[int]) -> dict[str, Any]:
@@ -332,6 +334,8 @@ class _Discovery:
         claims = sorted(
             self.claims, key=lambda n: (-self.in_degree[n], index._name[n] or "")
         )
+        # Most named first: a vacuous predicate many results use matters most.
+        vacuous = sorted(index._vacuous, key=lambda n: -self.in_degree[n])
         headline_set = set(headline)
         isolated = [
             n
@@ -348,6 +352,7 @@ class _Discovery:
             + concepts[: self.top]
             + headline[: self.top]
             + claims[: self.top]
+            + vacuous[: self.top]
             + axioms[: self.top]
             + wanted[: self.top]
             + unproven[: self.top]
@@ -381,6 +386,7 @@ class _Discovery:
                 "axioms": self.listing(axioms),
                 "proof_wanted": self.listing(wanted),
                 "unproven": self.listing(unproven),
+                "vacuous_predicates": self.listing(vacuous),
             },
             "anomalies": {
                 "parallel_declarations": {
@@ -564,12 +570,15 @@ def _claims_md(report: dict[str, Any]) -> str:
         ("Axioms", "axioms"),
         ("`proof_wanted`", "proof_wanted"),
         ("Unproven (`sorry`, `admit`)", "unproven"),
+        ("Vacuous predicates (say nothing about their subject)", "vacuous_predicates"),
     ):
         listing = report["claims"][key]
         out += [f"## {title}: {listing['count']}", ""]
         for item in listing["items"]:
+            why = f": {item['vacuous']}" if "vacuous" in item else ""
             out.append(
-                f"- `{item['declaration']}` ({_where(item)}), named by {item['named_by']:,}"
+                f"- `{item['declaration']}` ({_where(item)}), named by"
+                f" {item['named_by']:,}{why}"
             )
             out += _statement_block(item.get("statement"))
     return "\n".join(out) + "\n"
@@ -686,14 +695,17 @@ def _records(report: dict[str, Any]) -> list[dict[str, Any]]:
         ("axioms", "assumption"),
         ("proof_wanted", "open"),
         ("unproven", "open"),
+        ("vacuous_predicates", "vacuous"),
     ):
         for item in report["claims"][key]["items"]:
+            extra = {"vacuous": item["vacuous"]} if "vacuous" in item else {}
             add(
                 section,
                 f"{section}: {item['declaration']}",
                 item,
                 item.get("statement"),
                 named_by=item["named_by"],
+                **extra,
             )
     for group in report["anomalies"]["parallel_declarations"]["items"]:
         add(
