@@ -464,10 +464,17 @@ class LeanIndex:
         Processes that resolve names when a step needs every edge
         (``summary``, ``discover``, ``export``): ``1`` (default) resolves
         them here, ``None`` uses every CPU. Used on Linux, where forked
-        workers share the index without copying it, for projects of 20,000
-        declarations or more; elsewhere names are resolved here. Every
-        report is the same for any number of workers.
+        workers start from the index in memory (nothing is sent to them),
+        for projects of 20,000 declarations or more; elsewhere names are
+        resolved here. Every report is the same for any number of workers.
         :meth:`from_folder` also reads files with its ``workers``.
+
+        Memory grows with the workers: each copies the parts of the index
+        it reads (Python's reference counts write to them) and keeps its
+        own lookup cache. On a project of a million declarations a summary
+        took 186 s and 3.9 GB in all with two workers, against 305 s and
+        2.1 GB with one; set ``workers`` to what the machine's memory
+        allows, not only its CPUs.
 
     See Also
     --------
