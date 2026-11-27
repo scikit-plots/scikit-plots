@@ -1,7 +1,7 @@
 - ``python -m scikitplot.lean`` (and ``scikitplot lean``) exits 2 when a
   ``--target`` is not found or is ambiguous, naming the candidates on
-  standard error: a ``--fail-on`` gate no longer passes on a misspelled,
-  renamed or ambiguous theorem. Every option has help text.
-- A ``.lean`` file with bytes that are not UTF-8 (Lean reads UTF-8 only)
-  is reported in ``source_problems`` at the line of the first invalid
-  byte; the rest of the file is still indexed.
+  standard error, so a ``--fail-on`` gate no longer passes on a
+  misspelled, renamed or ambiguous theorem; every option has help text. A
+  ``.lean`` file with bytes that are not UTF-8 (Lean reads UTF-8 only) is
+  reported in ``source_problems`` at the line of the first invalid byte,
+  and the rest of the file is still indexed.
