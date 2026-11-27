@@ -1300,9 +1300,9 @@ class _CompositeHookFilter:
         base_filter: Any | None,
         hook: Callable[[Any], bool],
     ) -> None:
-        from ._base import DefaultFilter  # noqa: PLC0415
+        from ._base import CodeAwareFilter  # noqa: PLC0415
 
-        self._base = base_filter if base_filter is not None else DefaultFilter()
+        self._base = base_filter if base_filter is not None else CodeAwareFilter()
         self._hook = hook
 
     def include(self, doc: Any) -> bool:

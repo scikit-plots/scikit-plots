@@ -266,3 +266,55 @@ def test_lean_end_of_namespace_is_kept(tmp_path):
     )
     texts = [d.text for d in LeanReader(input_path=path).get_documents()]
     assert "end Foo" in texts
+
+
+# ---------------------------------------------------------------------------
+# Every path that builds documents keeps short code
+# ---------------------------------------------------------------------------
+
+
+def test_a_pipeline_keeps_short_blocks_of_code(tmp_path):
+    from ..._pipeline import CorpusPipeline  # noqa: PLC0415
+
+    path = tmp_path / "short.py"
+    path.write_text(SHORT, encoding="utf-8")
+    result = CorpusPipeline(reader_kwargs={"lines_per_chunk": 1}).run(path)
+    assert [d.text for d in result.documents] == ["x = 1", "# comment", "y = 2", "}", "42"]
+
+
+def test_the_builders_filter_keeps_code_and_judges_prose_by_its_kwargs():
+    from ..._base import CodeAwareFilter, DefaultFilter  # noqa: PLC0415
+    from ..._corpus_builder import BuilderConfig, CorpusBuilder  # noqa: PLC0415
+
+    built = CorpusBuilder(BuilderConfig(filter_kwargs={"min_words": 7}))._get_filter()
+    assert isinstance(built, CodeAwareFilter)
+    assert isinstance(built.prose, DefaultFilter) and built.prose.min_words == 7
+
+
+def test_the_registry_names_every_built_in_filter():
+    from ..._base import CodeAwareFilter, DefaultFilter, NonBlankFilter  # noqa: PLC0415
+    from ..._registry._registry import ComponentRegistry  # noqa: PLC0415
+
+    registry = ComponentRegistry()
+    registry.register_builtins()
+    assert isinstance(registry.build_filter("default", min_words=5), DefaultFilter)
+    assert isinstance(registry.build_filter("code_aware"), CodeAwareFilter)
+    assert isinstance(registry.build_filter("non_blank"), NonBlankFilter)
+
+
+def test_a_hook_filter_without_a_base_keeps_code():
+    from ..._base import CodeAwareFilter  # noqa: PLC0415
+    from ..._custom_hooks import _CompositeHookFilter  # noqa: PLC0415
+
+    assert isinstance(_CompositeHookFilter(None, lambda doc: True)._base, CodeAwareFilter)
+
+
+def test_chunked_code_stays_code(tmp_path):
+    # A chunker that splits a block keeps its section type, so the pieces
+    # are still judged as code.
+    from ..._chunkers._paragraph import ParagraphChunker  # noqa: PLC0415
+
+    path = tmp_path / "a.py"
+    path.write_text("def f():\n    return 1\n\n}\n\n42\n", encoding="utf-8")
+    docs = list(CodeReader(input_path=path, chunker=ParagraphChunker()).get_documents())
+    assert [d.text for d in docs] == ["def f():\n    return 1", "}", "42"]

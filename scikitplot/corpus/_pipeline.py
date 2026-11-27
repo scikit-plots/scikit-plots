@@ -57,7 +57,7 @@ from . import (  # noqa: F401
 )
 from ._base import (
     ChunkerBase,
-    DefaultFilter,
+    CodeAwareFilter,
     DocumentReader,
     FilterBase,
     _is_url,
@@ -217,8 +217,9 @@ class CorpusPipeline:
         Default: ``None``.
     filter_ : FilterBase or None, optional
         Filter applied after chunking. ``None`` uses
-        :class:`~scikitplot.corpus._base.DefaultFilter`.
-        Default: ``None``.
+        :class:`~scikitplot.corpus._base.CodeAwareFilter`: code is kept when
+        it is not blank, prose goes through
+        :class:`~scikitplot.corpus._base.DefaultFilter`. Default: ``None``.
     embedding_engine : EmbeddingEngine or None, optional
         When provided, documents are embedded in batches after
         chunking/filtering. Embeddings are stored in
@@ -409,7 +410,8 @@ class CorpusPipeline:
         # MEDIUM-04 fix: store filter in private attribute so the public
         # interface is `pipeline.filter` (no trailing underscore leaking out).
         # `filter_` is kept as a backward-compat property below.
-        self._filter: FilterBase = filter_ if filter_ is not None else DefaultFilter()
+        # The readers' own default: code kept when not blank, prose filtered.
+        self._filter: FilterBase = filter_ if filter_ is not None else CodeAwareFilter()
         self.embedding_engine = embedding_engine
         self.output_path = (
             pathlib.Path(output_path) if output_path is not None else None
@@ -463,7 +465,7 @@ class CorpusPipeline:
         -------
         FilterBase
             The current filter instance (never ``None`` — defaults to
-            :class:`~scikitplot.corpus._base.DefaultFilter`).
+            :class:`~scikitplot.corpus._base.CodeAwareFilter`).
 
         Notes
         -----
@@ -1247,7 +1249,7 @@ def create_corpus(
     chunker : ChunkerBase or None, optional
         Text chunker.  Default: ``None`` (one doc per raw chunk).
     filter_ : FilterBase or None, optional
-        Document filter.  Default: ``None`` (:class:`DefaultFilter`).
+        Document filter.  Default: ``None`` (:class:`CodeAwareFilter`).
     normalizer : TextNormalizer or None, optional
         When provided, ``normalized_text`` is populated on every document
         after chunking/filtering.  Cleans OCR noise, ligatures, and

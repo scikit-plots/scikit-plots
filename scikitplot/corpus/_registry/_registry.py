@@ -208,9 +208,20 @@ class ComponentRegistry:
 
             # --- Filters ---
             try:
-                from .._base import DefaultFilter  # noqa: PLC0415
+                from .._base import (  # noqa: PLC0415
+                    CodeAwareFilter,
+                    DefaultFilter,
+                    NonBlankFilter,
+                )
 
+                # "default" names the DefaultFilter class (plans pass its
+                # keyword arguments); readers and pipelines default to
+                # CodeAwareFilter, registered as "code_aware".
                 self._add_builtin("filter", self._filters, "default", DefaultFilter)
+                self._add_builtin(
+                    "filter", self._filters, "code_aware", CodeAwareFilter
+                )
+                self._add_builtin("filter", self._filters, "non_blank", NonBlankFilter)
             except ImportError as exc:
                 logger.warning("ComponentRegistry: could not import filters: %s.", exc)
 

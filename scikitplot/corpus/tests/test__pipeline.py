@@ -159,10 +159,14 @@ class TestCorpusPipelineConstruction:
         assert p.chunker is None
 
     def test_default_filter_is_default_filter(self) -> None:
-        # MEDIUM-04 (Phase 1): filter_ is never None; defaults to DefaultFilter().
-        # The old assertion `p.filter_ is None` was stale — updated in Phase 2.
+        # MEDIUM-04 (Phase 1): filter_ is never None. Its default is the
+        # readers' own, CodeAwareFilter: code kept when not blank, prose
+        # through DefaultFilter (a pipeline dropped short blocks of code).
+        from .._base import CodeAwareFilter  # noqa: PLC0415
+
         p = CorpusPipeline()
-        assert isinstance(p.filter_, DefaultFilter)
+        assert isinstance(p.filter_, CodeAwareFilter)
+        assert isinstance(p.filter_.prose, DefaultFilter)
 
     def test_default_embedding_engine_is_none(self) -> None:
         p = CorpusPipeline()

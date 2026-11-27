@@ -1,0 +1,10 @@
+- Documents keep short blocks of code. Every reader, ``CorpusPipeline``,
+  ``CorpusBuilder`` and a plan without a filter now default to
+  :class:`~scikitplot.corpus.CodeAwareFilter`: a document whose
+  ``section_type`` is code is kept when it is not blank (``y = 2``, ``}``,
+  ``42``, Lean's ``end Foo``, inside an archive too), and any other document
+  goes through :class:`~scikitplot.corpus.DefaultFilter` as before
+  (``CorpusBuilder``'s ``filter_kwargs`` configure it).
+  :class:`~scikitplot.corpus.NonBlankFilter` keeps every non-blank
+  document; the registry names ``"code_aware"`` and ``"non_blank"``; a
+  reader sets its default with ``default_filter``.

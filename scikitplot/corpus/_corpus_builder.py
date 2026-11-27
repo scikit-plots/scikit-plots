@@ -217,7 +217,8 @@ class BuilderConfig:
     default_language : str or None
         ISO 639-1 language code.
     filter_kwargs : dict[str, Any]
-        Kwargs for ``DefaultFilter``.
+        Kwargs for the ``DefaultFilter`` that judges prose; code is kept when
+        it is not blank (``CodeAwareFilter``).
     max_workers : int
         Parallelism for multi-file ingestion.
     probe_url_content_type : bool
@@ -1946,9 +1947,13 @@ class CorpusBuilder:
             if factory is not None:
                 self._filter = factory()
             else:
-                from ._base import DefaultFilter  # noqa: PLC0415
+                from ._base import CodeAwareFilter, DefaultFilter  # noqa: PLC0415
 
-                self._filter = DefaultFilter(**dict(self.config.filter_kwargs))
+                # filter_kwargs configure the prose rules; code is kept when
+                # it is not blank, as every reader does by default.
+                self._filter = CodeAwareFilter(
+                    prose=DefaultFilter(**dict(self.config.filter_kwargs))
+                )
         return self._filter
 
     def _make_reader(
