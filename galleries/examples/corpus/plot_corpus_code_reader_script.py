@@ -14,7 +14,14 @@ from the simplest case to a project-sized one:
 4. a language the reader does not know, added by subclassing;
 5. awkward input: an empty file, a file without a final newline, Windows
    line endings, a non-UTF-8 file and a binary file;
-6. a check that every line of every file lands in exactly one chunk.
+6. extensions on purpose left out or shared, and ``language=``;
+7. the encoding policy: exact, a list of candidates, a function;
+8. limits: file size and text size, refused or truncated;
+9. from chunks to documents: metadata, short blocks kept, ``filter_``;
+10. one call for a mixed folder with :meth:`DocumentReader.create`;
+11. a small code search that cites ``file:line``;
+12. a generated project: every line accounted for, the same result twice,
+    timed.
 
 Everything runs on files the example writes into a temporary folder: no
 download, no optional package.
@@ -33,11 +40,13 @@ download, no optional package.
 from __future__ import annotations
 
 import tempfile
+import re
+import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from scikitplot.corpus import CodeReader
+from scikitplot.corpus import CodeReader, DefaultFilter, DocumentReader
 
 work = Path(tempfile.mkdtemp(prefix="code_reader_"))
 
@@ -148,22 +157,181 @@ for name, data in cases.items():
     print(f"{name:20} {len(got)} chunk(s) {texts!r} encoding={got[0]['encoding'] if got else None}")
 
 # %%
-# 6. Every line accounted for
-# ---------------------------
-# For a large file the chunks must partition the lines: no line lost, none
-# repeated. This check is cheap and worth running on your own data.
+# 6. Extensions left out, shared, or yours to name
+# ------------------------------------------------
+# ``.env`` is left out on purpose (it holds secrets). Extensions two common
+# languages share are left out rather than guessed (``.m`` is MATLAB or
+# Objective-C); ``.h`` is too common to leave out, so it is named
+# ``"c/c++"``. ``language=`` records the name you know.
 
-big = work / "big.py"
-big.write_text("".join(f"value_{i} = {i}\n" for i in range(10_000)), encoding="utf-8")
-got = chunks(big, lines_per_chunk=333)
-covered = [n for c in got for n in range(c["line_start"], c["line_end"] + 1)]
-assert covered == list(range(1, 10_001)), "lines lost or repeated"
-print(f"{len(got)} chunks cover all 10,000 lines exactly once")
+print({ext: CodeReader.languages.get(ext, "(not read)") for ext in (".env", ".m", ".pl", ".h")})
+
+
+@dataclass
+class MatlabReader(CodeReader):
+    """Read ``.m`` files, known here to be MATLAB."""
+
+    file_types = [".m"]
+    languages = {".m": "matlab"}
+
+
+matlab = work / "solve.m"
+matlab.write_text("x = A \\ b;\ndisp(x)\n", encoding="utf-8")
+print([c["language"] for c in MatlabReader(input_path=matlab).get_raw_chunks()])
+print([c["language"] for c in chunks(script, language="python3")][:1])
+
+# %%
+# 7. The encoding policy
+# ----------------------
+# By default the encoding is detected by fixed rules, the same on every
+# machine (byte-order mark, binary check, UTF-8, cp1252, latin-1). A codec
+# name is strict; a list takes the first codec that decodes the whole file;
+# a function chooses from the bytes. The codec used is in every chunk.
+
+legacy = work / "legacy.py"
+legacy.write_bytes("msg = 'Grüße aus Köln'\n".encode("cp1252"))
+print("detected:", chunks(legacy)[0]["encoding"])
+try:
+    chunks(legacy, encoding="utf-8")
+except UnicodeDecodeError as exc:
+    print("strict utf-8:", type(exc).__name__)
+print("candidates:", chunks(legacy, encoding=["utf-8", "cp1252"])[0]["encoding"])
+print("function:", chunks(legacy, encoding=lambda raw: "cp1252")[0]["text"])
+
+# %%
+# 8. Limits
+# ---------
+# ``max_file_bytes`` refuses a file larger than you meant to read (default
+# 50 MB) before anything is read. ``max_text_chars`` bounds the text one
+# file may yield as documents: refused by default, or cut with
+# ``on_text_limit="truncate"``, which marks the document it cuts.
+
+try:
+    chunks(script, max_file_bytes=100)
+except ValueError as exc:
+    print("refused:", str(exc)[:70])
+try:
+    list(CodeReader(input_path=script, max_text_chars=50).get_documents())
+except ValueError as exc:
+    print("refused:", str(exc)[:70])
+cut = list(
+    CodeReader(input_path=script, max_text_chars=50, on_text_limit="truncate").get_documents()
+)
+print("truncated:", sum(len(d.text) for d in cut), "characters,",
+      [d.metadata.get("text_truncated", False) for d in cut])
+
+# %%
+# 9. From chunks to documents
+# ---------------------------
+# :meth:`DocumentReader.get_documents` turns chunks into validated
+# documents; the language and the lines move into ``metadata``. Short
+# blocks of code (``}``, ``42``) are kept: the default filter,
+# :class:`CodeAwareFilter`, keeps any code that is not blank and judges
+# other text as prose. Pass ``filter_`` to choose another.
+
+braces = work / "braces.c"
+braces.write_text("int main(void) {\n  return 42;\n}\n", encoding="utf-8")
+docs = list(CodeReader(input_path=braces, lines_per_chunk=1).get_documents())
+for doc in docs:
+    print(repr(doc.text), doc.metadata["language"], doc.metadata["line_start"])
+prose_rules = DefaultFilter(min_words=2, min_chars=1)
+kept = [d.text for d in CodeReader(input_path=braces, lines_per_chunk=1, filter_=prose_rules).get_documents()]
+print("with a prose filter:", kept)
+
+# %%
+# 10. A mixed folder in one call
+# ------------------------------
+# :meth:`DocumentReader.create` picks the reader for each file by its
+# extension: code goes to this reader, other files to theirs.
+
+mixed = sorted(project.iterdir())
+reader = DocumentReader.create(*mixed)
+by_reader = Counter()
+for doc in reader.get_documents():
+    by_reader[(doc.input_path, doc.metadata.get("language", "-"))] += 1
+print(dict(sorted(by_reader.items())))
+
+# %%
+# 11. A small code search that cites its sources
+# ----------------------------------------------
+# Because every document keeps its file and lines, any answer can point at
+# them. Here a plain word-overlap ranking over a few files; a corpus
+# pipeline with an embedder does the same at scale.
+
+library = work / "library"
+library.mkdir()
+(library / "io.py").write_text(
+    "def read_csv(path):\n    return open(path).read().split(',')\n\n"
+    "def write_csv(path, rows):\n    open(path, 'w').write(','.join(rows))\n",
+    encoding="utf-8",
+)
+(library / "math.rs").write_text(
+    "fn mean(xs: &[f64]) -> f64 {\n    xs.iter().sum::<f64>() / xs.len() as f64\n}\n",
+    encoding="utf-8",
+)
+documents = [
+    doc
+    for path in sorted(library.iterdir())
+    for doc in CodeReader(input_path=path, lines_per_chunk=3).get_documents()
+]
+
+
+def words(text):
+    """Lower-case words, with identifiers split (``write_csv`` -> write, csv)."""
+    return set(re.findall(r"[a-z]+", text.lower()))
+
+
+def search(query, k=2):
+    wanted = words(query)
+    scored = [(len(wanted & words(doc.text)), doc) for doc in documents]
+    for score, doc in sorted(scored, key=lambda item: -item[0])[:k]:
+        print(f"  {score}  {doc.input_path}:{doc.metadata['line_start']}-{doc.metadata['line_end']}"
+              f"  {doc.text.splitlines()[0]}")
+
+
+search("write csv rows")
+search("mean of xs")
+
+# %%
+# 12. A generated project
+# -----------------------
+# A few hundred files of mixed languages. The chunks of each file partition
+# its lines (no line lost, none repeated), reading twice gives the same
+# result, and the time is in proportion to the text.
+
+generated = work / "generated"
+generated.mkdir()
+templates = {
+    ".py": "value_{i} = {i}\n",
+    ".js": "const v{i} = {i};\n",
+    ".sql": "SELECT {i};\n",
+}
+for n in range(300):
+    ext = list(templates)[n % len(templates)]
+    body = "".join(templates[ext].format(i=i) for i in range(200 + n))
+    (generated / f"f{n:03d}{ext}").write_text(body, encoding="utf-8")
+
+start = time.perf_counter()
+lines = 0
+signature = []
+for path in sorted(generated.iterdir()):
+    got = chunks(path, lines_per_chunk=97)
+    covered = [n for c in got for n in range(c["line_start"], c["line_end"] + 1)]
+    expected = path.read_text(encoding="utf-8").count("\n")
+    assert covered == list(range(1, expected + 1)), f"{path.name}: lines lost or repeated"
+    lines += expected
+    signature.append(tuple((c["line_start"], c["text"]) for c in got))
+elapsed = time.perf_counter() - start
+again = [tuple((c["line_start"], c["text"]) for c in chunks(p, lines_per_chunk=97))
+         for p in sorted(generated.iterdir())]
+assert again == signature, "a second read differs"
+print(f"300 files, {lines:,} lines, each line in exactly one chunk; "
+      f"read twice, identical; {elapsed:.2f} s")
 
 # %%
 # .. tags::
 #
 #    model-workflow: corpus
 #    plot-type: text
-#    level: beginner
+#    level: intermediate
 #    purpose: showcase
