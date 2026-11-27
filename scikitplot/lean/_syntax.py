@@ -903,6 +903,12 @@ class _Splitter:
         # Record each result's statement (its text before the proof) while
         # keeping every line, so an index reads a file once.
         self._statements = statements and not self._drop
+        if self._statements and step is not None:
+            # A part holds only some of a command's lines: a statement
+            # recorded from one part could be cut short.
+            raise ValueError(
+                "_Splitter: statements=True needs step=None (whole commands)."
+            )
         self._file_opens: list[str] = []  # `open` outside any scope
         self._scope_opens: list[list[str]] = []  # one list per scope
         self._namespace_cache: str | None = ""

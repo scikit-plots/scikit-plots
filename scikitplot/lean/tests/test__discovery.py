@@ -410,3 +410,14 @@ def test_the_recorded_statement_is_the_dropped_proofs_text():
         assert kept[name]["statement"].split() == dropped[name]["text"].split()
     assert "simp" in kept["a"]["text"]  # the proof is still kept
     assert "statement" not in kept["Claim"]  # only results carry one
+
+
+def test_statements_refuse_commands_read_in_parts():
+    from .._syntax import _Splitter
+
+    with pytest.raises(ValueError, match="step=None"):
+        _Splitter(
+            file_name="A.lean", meta={}, step=10, cap=None, proofs="keep", dialect="lean4",
+            kinds=None, watch=(), commands=frozenset(), max_scope_depth=64,
+            flag_tokens={}, statements=True,
+        )
