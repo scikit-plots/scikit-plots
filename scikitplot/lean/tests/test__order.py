@@ -156,7 +156,7 @@ _CACHES = {
 }  # fmt: skip
 _ORDER_FREE = {
     "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands", "_workers",
-    "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat", "_layers",
+    "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat", "_layers", "_layer_kinds",
     "_dialect", "_graph", "_max_bytes", "_max_depth", "_source_root",
     "_suffix", "_visibility",
 }  # fmt: skip

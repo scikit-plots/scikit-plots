@@ -676,6 +676,8 @@ class LeanIndex:
         # Layers (add_folder): name and source root; layer 0 is the unnamed
         # root of from_folder, add_file and add_chunks. One layer per file.
         self._layers: list[tuple[str, str | None]] = [("", self._source_root)]
+        # Commands counted by kind in each layer (``_kinds`` is their sum).
+        self._layer_kinds: list[Counter[str]] = [Counter()]
         self._layer_of: list[int] = []
         if graph not in _GRAPHS:
             raise ValueError(
@@ -894,6 +896,16 @@ class LeanIndex:
             raise ValueError(
                 f"LeanIndex.add_folder: a layer is already named {name!r}."
             )
+        # A label tells its layer by its prefix: no file already indexed or
+        # skipped may start with this one (a base path "p:x.lean", say).
+        prefix = f"{name}:"
+        held = [label for label in self._labels if label.startswith(prefix)]
+        held += [label for label, _ in self._skipped if label.startswith(prefix)]
+        if held:
+            raise ValueError(
+                f"LeanIndex.add_folder: {held[0]!r} already starts with {prefix!r};"
+                " choose another name."
+            )
         root = Path(folder)
         if not root.is_dir():
             raise ValueError(f"LeanIndex.add_folder: {folder!s} is not a folder.")
@@ -904,6 +916,7 @@ class LeanIndex:
             raise ValueError(f"LeanIndex.add_folder: {taken[0]!r} is already indexed.")
         clean = None if source_root is None else source_root.strip("/")
         self._layers.append((name, clean))
+        self._layer_kinds.append(Counter())
         with _reading_pool(self._workers, len(files)) as pool:
             if learn_commands:
                 learned = _learn(files, pool, self._workers)
@@ -1164,6 +1177,7 @@ class LeanIndex:
         """Add one command, as :func:`_compact` recorded it."""
         kind = record[0]
         self._kinds[kind] += 1
+        self._layer_kinds[self._layer_of[file_id]][kind] += 1
         if kind == "import":
             self._imports[file_id] = tuple(
                 dict.fromkeys(self._imports[file_id] + record[1])
@@ -1258,6 +1272,32 @@ class LeanIndex:
         if i >= 0 and self._start[first + i] <= line <= self._end[first + i]:
             return first + i
         return None
+
+    def _scope(self, layer: str | None) -> frozenset[int] | None:
+        """
+        Return the files of the layer named *layer*, or ``None`` for every file.
+
+        Raises
+        ------
+        ValueError
+            If *layer* is not ``None`` and names no layer (``""`` is the first).
+        """
+        if layer is None:
+            return None
+        names = [name for name, _root in self._layers]
+        if not isinstance(layer, str) or layer not in names:
+            raise ValueError(
+                f"LeanIndex: layer must be None or one of {names!r}; got {layer!r}."
+            )
+        at = names.index(layer)
+        return frozenset(f for f, held in enumerate(self._layer_of) if held == at)
+
+    def _layer_of_label(self, label: str) -> int:
+        """Return the layer of a file label, indexed or skipped (by its prefix)."""
+        for at in range(len(self._layers) - 1, 0, -1):
+            if label.startswith(f"{self._layers[at][0]}:"):
+                return at
+        return 0
 
     def _module_files(self) -> dict[str, int]:
         """
@@ -1843,7 +1883,9 @@ class LeanIndex:
         self._canonical()
         return [self._location(node) for node in self._nodes(name)]
 
-    def summary(self, *, max_items: int = 50) -> dict[str, Any]:  # noqa: PLR0912
+    def summary(  # noqa: PLR0912
+        self, *, max_items: int = 50, layer: str | None = None
+    ) -> dict[str, Any]:
         """
         Describe the project: sizes, kinds, flags, duplicates, imports, extensions, problems.
 
@@ -1852,33 +1894,74 @@ class LeanIndex:
         max_items : int, optional
             Most examples listed per finding; every list says how many there
             are in all, and whether it was cut. Default: 50.
+        layer : str or None, optional
+            Describe only the files of this layer (:meth:`add_folder`; ``""``
+            is the first): a project without the dependencies below it.
+            ``None`` (default) describes every file.
 
         Returns
         -------
         dict
-            JSON-ready; ``report`` is ``"summary"``.
+            JSON-ready; ``report`` is ``"summary"``, ``layer`` the layer
+            described (``None``: all).
+
+        Raises
+        ------
+        ValueError
+            If *max_items* is not a positive integer or *layer* names no
+            layer.
+
+        Notes
+        -----
+        **User.** A layer's summary counts and lists what its own files
+        hold. Names still resolve through every layer, so a duplicate
+        name or a module clash is listed when one of its files is in the
+        layer, with all of its places, and a missing module when a file of
+        the layer imports it.
         """
         self._canonical()
         _positive(max_items, "max_items")
+        scope = self._scope(layer)
+
+        def inside(file_id: int) -> bool:
+            return scope is None or file_id in scope
+
         flagged: dict[str, list[int]] = {}
         for node in sorted(self._flags):
-            for flag in self._flags[node]:
-                flagged.setdefault(flag, []).append(node)
-        duplicates = self._clashes()
+            if inside(self._file[node]):
+                for flag in self._flags[node]:
+                    flagged.setdefault(flag, []).append(node)
+        duplicates = [
+            (name, held)
+            for name, held in self._clashes()
+            if any(inside(self._file[n]) for n in held)
+        ]
         extensions = [
             node
             for node, kind in enumerate(self._kind)
-            if kind in _IMPLICIT and kind != "instance"
+            if kind in _IMPLICIT and kind != "instance" and inside(self._file[node])
         ]
-        missing, external = self._import_gaps()
+        missing, external = self._import_gaps(scope)
+        if scope is None:
+            files = range(len(self._labels))
+            kinds = self._kinds
+            declarations = len(self._name)
+            at = None
+        else:
+            files = sorted(scope)
+            at = [name for name, _root in self._layers].index(layer)
+            kinds = self._layer_kinds[at]
+            declarations = sum(1 for f in self._file if f in scope)
+        labels = {self._labels[f] for f in files}
         return {
             "report": "summary",
             "producer": PRODUCER,
             "visibility": self._visibility,
-            "files": len(self._labels),
-            "lines": sum(self._file_lines),
-            "declarations": len(self._name),
-            "kinds": dict(sorted(self._kinds.items())),
+            "layer": layer,
+            "files": len(files),
+            "lines": sum(self._file_lines[f] for f in files),
+            "declarations": declarations,
+            "kinds": dict(sorted(kinds.items())),
             "flags": {
                 flag: _listing([self._location(n) for n in nodes], max_items)
                 for flag, nodes in sorted(flagged.items())
@@ -1907,6 +1990,7 @@ class LeanIndex:
                             "also_in": self._labels[other],
                         }
                         for module, used, other in self._module_clashes()
+                        if inside(used) or inside(other)
                     ],
                     max_items,
                 ),
@@ -1915,13 +1999,24 @@ class LeanIndex:
             "learned_commands": {
                 keyword: {"file": label, "line": line}
                 for keyword, (label, line) in sorted(self._learned.items())
+                if at is None or self._layer_of_label(label) == at
             },
-            "generators": _listing(self._generators(), max_items),
+            "generators": _listing(
+                [
+                    item
+                    for item in self._generators()
+                    if item["invocation"]["file"] in labels
+                ],
+                max_items,
+            ),
             "skipped_files": [
                 {"file": label, "reason": reason}
                 for label, reason in sorted(self._skipped)
+                if at is None or self._layer_of_label(label) == at
             ],
-            "source_problems": _listing(self._problem_items(self._problems), max_items),
+            "source_problems": _listing(
+                self._problem_items(f for f in self._problems if inside(f)), max_items
+            ),
         }
 
     def _extension_report(self, nodes: list[int], max_items: int) -> dict[str, Any]:
@@ -2276,9 +2371,13 @@ class LeanIndex:
             node = parent
         return hops[::-1]
 
-    def _import_gaps(self) -> tuple[dict[str, list[str]], Counter[str]]:
+    def _import_gaps(
+        self, scope: frozenset[int] | None = None
+    ) -> tuple[dict[str, list[str]], Counter[str]]:
         """
         Return the imported project modules no file provides, and external roots.
+
+        Of the imports of the files in *scope* (``None``: every file).
 
         A module is provided by the file at its path from the project's
         source root (:meth:`_module_files`). An import no file provides
@@ -2289,13 +2388,15 @@ class LeanIndex:
         """
         key = self._generation
         cached = getattr(self, "_gaps", None)
-        if cached is not None and cached[0] == key:
+        if scope is None and cached is not None and cached[0] == key:
             return cached[1], cached[2]
         provided, roots = self._modules()
         modules = self._module_files()
         missing: dict[str, list[str]] = {}
         external: Counter[str] = Counter()
         for file_id, imports in enumerate(self._imports):
+            if scope is not None and file_id not in scope:
+                continue
             for module in imports:
                 if module in provided:
                     continue
@@ -2303,7 +2404,8 @@ class LeanIndex:
                     missing.setdefault(module, []).append(self._labels[file_id])
                 else:
                     external[module.split(".", 1)[0]] += 1
-        self._gaps = (key, missing, external)
+        if scope is None:
+            self._gaps = (key, missing, external)
         return missing, external
 
     def _modules(self) -> tuple[set[str], set[str]]:
@@ -2315,7 +2417,12 @@ class LeanIndex:
     # -- discovery ----------------------------------------------------------
 
     def discover(
-        self, *, top: int = 50, min_instances: int = 2, patterns: bool = True
+        self,
+        *,
+        top: int = 50,
+        min_instances: int = 2,
+        patterns: bool = True,
+        layer: str | None = None,
     ) -> dict[str, Any]:
         """
         Return the candidates a development implies: rules, patterns, claims, anomalies.
@@ -2334,11 +2441,18 @@ class LeanIndex:
             file is read again). ``False`` leaves them out: no statement
             shapes, no claim definitions, no ``same_statement`` on parallel
             declarations. Default: ``True``.
+        layer : str or None, optional
+            List only the declarations of this layer's files
+            (:meth:`add_folder`; ``""`` is the first). Uses are still counted
+            from every layer: a dependency's theorem the project names is
+            load-bearing for it, but listed only in the dependency's layer.
+            ``None`` (default) lists every file's.
 
         Returns
         -------
         dict
-            JSON-ready; ``report`` is ``"discovery"``. Sections:
+            JSON-ready; ``report`` is ``"discovery"``, ``layer`` the layer
+            listed (``None``: all). Sections:
 
             - ``rules``: ``load_bearing_theorems`` and ``central_concepts``,
               ranked by the files whose declarations name them, then by
@@ -2362,7 +2476,8 @@ class LeanIndex:
         Raises
         ------
         ValueError
-            If *top* or *min_instances* is not a positive integer.
+            If *top* or *min_instances* is not a positive integer, or
+            *layer* names no layer.
 
         See Also
         --------
@@ -2384,7 +2499,9 @@ class LeanIndex:
         self._canonical()
         from ._discovery import discover  # noqa: PLC0415  (imports this module)
 
-        return discover(self, top=top, min_instances=min_instances, patterns=patterns)
+        return discover(
+            self, top=top, min_instances=min_instances, patterns=patterns, layer=layer
+        )
 
     def export(
         self,
@@ -2393,6 +2510,7 @@ class LeanIndex:
         targets: Sequence[str] = (),
         top: int = 50,
         patterns: bool = True,
+        layer: str | None = None,
     ) -> list[str]:
         """
         Write helper documents on the project, for people, models and corpora.
@@ -2413,6 +2531,9 @@ class LeanIndex:
             As for :meth:`discover`. Default: 50.
         patterns : bool, optional
             As for :meth:`discover`. Default: ``True``.
+        layer : str or None, optional
+            As for :meth:`discover` and :meth:`summary`: documents on one
+            layer's files. Default: ``None`` (every file).
 
         Returns
         -------
@@ -2437,7 +2558,9 @@ class LeanIndex:
         self._canonical()
         from ._discovery import export  # noqa: PLC0415  (imports this module)
 
-        return export(self, folder, targets=targets, top=top, patterns=patterns)
+        return export(
+            self, folder, targets=targets, top=top, patterns=patterns, layer=layer
+        )
 
     # -- output -------------------------------------------------------------
 
@@ -2583,13 +2706,21 @@ def _where(item: dict[str, Any]) -> str:
     return f"`{item['file']}:{item['line_start']}`"
 
 
+def _of_layer(report: dict[str, Any]) -> str:
+    """Return ``" in layer ..."`` for a report on one layer, else ``""``."""
+    layer = report.get("layer")
+    if layer is None:
+        return ""
+    return f" in layer `{layer}`" if layer else " in the first layer"
+
+
 def _render_summary(report: dict[str, Any]) -> str:
     out = [
         "# Lean project summary",
         "",
         (
             f"{report['files']:,} files, {report['lines']:,} lines,"
-            f" {report['declarations']:,} declarations."
+            f" {report['declarations']:,} declarations" + _of_layer(report) + "."
         ),
         "",
         "## Audit flags",
@@ -2937,6 +3068,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="FOLDER's layer name over --base (default: the folder's name)",
     )
+    parser.add_argument(
+        "--layer",
+        default=None,
+        metavar="NAME",
+        help=(
+            "summarize, discover and export one layer's files only"
+            " ('' for the first; with --base, FOLDER's layer is its --name)"
+        ),
+    )
     args = parser.parse_args(argv)
     unknown = sorted(set(args.fail_on) - AUDIT_FLAGS)
     if unknown:
@@ -2949,11 +3089,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.target:
             reports = [index.dossier(t, max_items=args.max_items) for t in args.target]
         elif args.discover:
-            reports = [index.discover(top=args.max_items)]
+            reports = [index.discover(top=args.max_items, layer=args.layer)]
         else:
-            reports = [index.summary(max_items=args.max_items)]
+            reports = [index.summary(max_items=args.max_items, layer=args.layer)]
         if args.export is not None:
-            index.export(args.export, targets=args.target, top=args.max_items)
+            index.export(
+                args.export,
+                targets=args.target,
+                top=args.max_items,
+                layer=args.layer,
+            )
     except (TypeError, ValueError, OSError) as exc:
         parser.error(str(exc))
     if args.json:
@@ -2970,8 +3115,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     for report in reports:
         if report["report"] == "dossier":
             found.update(report["flags_found"])
-        else:
-            found.update(flag for flags in index._flags.values() for flag in flags)
+        else:  # the flags of the files reported on (--layer)
+            scope = index._scope(args.layer)
+            found.update(
+                flag
+                for node, flags in index._flags.items()
+                if scope is None or index._file[node] in scope
+                for flag in flags
+            )
     return 1 if found & set(args.fail_on) else 0
 
 

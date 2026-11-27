@@ -16,8 +16,10 @@ Lean toolchain, no download.
    .lean files
         ↓
    LeanIndex.from_folder      (declarations, names used, audit flags)
+        ↓                     save / load: one file, read in seconds
+   add_folder                 (a project over its saved dependencies)
         ↓
-   summary   dossier   discover / export
+   summary   dossier   discover / export     (layer=: one project's files)
         ↓
    lake build, #print axioms  (the kernel decides)
 

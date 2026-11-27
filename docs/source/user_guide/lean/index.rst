@@ -186,6 +186,31 @@ On mathlib4 with the PFR project over it, loading mathlib4 and adding PFR
 takes 1.4 s against 24 s to read both folders, and the dossiers of PFR's
 theorems are the same, labels aside.
 
+Reports on one layer
+~~~~~~~~~~~~~~~~~~~~
+
+``layer=`` in :meth:`~LeanIndex.summary`, :meth:`~LeanIndex.discover` and
+:meth:`~LeanIndex.export` (``--layer NAME`` on the command line) describes
+one layer's files: the project without its dependencies, or ``""`` for the
+first layer::
+
+    index.summary(layer="project")    # its files, lines, kinds, flags
+    index.discover(layer="project")   # its rules, patterns, claims, headlines
+
+Names still resolve through every layer and uses are counted from every
+layer: a dependency's theorem the project names is load-bearing in the
+dependency's layer, and a project theorem only a later layer names is not
+isolated. A duplicate name, a module clash or a generator is listed when
+one of its files is in the layer. With ``--layer``, ``--fail-on`` looks at
+that layer's flags only, so a pipeline fails on the project's own
+``sorry`` and not on a dependency's::
+
+    python -m scikitplot.lean path/to/project --base mathlib.leanidx \
+        --layer project --fail-on sorry
+
+See :ref:`sphx_glr_auto_examples_lean_plot_lean_layers_script.py` for both,
+run end to end.
+
 Scale
 -----
 

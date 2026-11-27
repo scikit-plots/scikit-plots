@@ -79,10 +79,21 @@ _MIN_PARALLEL = 2
 class _Discovery:
     """One discovery run over an index: passes, then the report."""
 
-    def __init__(self, index: LeanIndex, *, top: int, min_instances: int) -> None:
+    def __init__(
+        self,
+        index: LeanIndex,
+        *,
+        top: int,
+        min_instances: int,
+        layer: str | None = None,
+    ) -> None:
         self.index = index
         self.top = top
         self.min_instances = min_instances
+        # The files whose declarations are listed (None: all). Uses are
+        # counted over every file, so a base theorem a project names counts.
+        self.layer = layer
+        self.scope = index._scope(layer)
         n = len(index._name)
         # "q" is 8 bytes on every platform ("l" is 4 on Windows).
         self.in_degree = array("q", bytes(8 * n))
@@ -90,6 +101,10 @@ class _Discovery:
         self.shapes: dict[bytes, list[int]] = {}
         self.claims: list[int] = []
         self.statements: dict[int, str] = {}
+
+    def inside(self, node: int) -> bool:
+        """Whether *node* is in a file of the scope."""
+        return self.scope is None or self.index._file[node] in self.scope
 
     # -- passes -------------------------------------------------------------
 
@@ -102,8 +117,9 @@ class _Discovery:
         """
         index = self.index
         for node, digest in index._shape_of.items():
-            self.shapes.setdefault(digest, []).append(node)
-        self.claims.extend(sorted(index._claims))
+            if self.inside(node):
+                self.shapes.setdefault(digest, []).append(node)
+        self.claims.extend(sorted(n for n in index._claims if self.inside(n)))
 
     def count_uses(self) -> None:
         """
@@ -193,6 +209,7 @@ class _Discovery:
             if index._kind[n] in kinds
             and index._name[n] is not None
             and self.in_degree[n]
+            and self.inside(n)
         ]
         nodes.sort(
             key=lambda n: (-self.in_files[n], -self.in_degree[n], index._name[n])
@@ -243,6 +260,8 @@ class _Discovery:
         for node, name in enumerate(index._name):
             if name is None or index._kind[node] not in _RESULTS | _DEFINITIONS:
                 continue
+            if not self.inside(node):
+                continue
             head, _, last = name.rpartition(".")
             found = _SERIES.match(last)
             if found is not None:
@@ -275,7 +294,7 @@ class _Discovery:
         groups = []
         for name, held in index._clashes():
             public = [n for n in held if n not in index._private]
-            if len(public) < _MIN_PARALLEL:
+            if len(public) < _MIN_PARALLEL or not any(map(self.inside, public)):
                 continue
             keys = {shape_of.get(n) for n in public}
             same = None not in keys and len(keys) == 1
@@ -318,6 +337,7 @@ class _Discovery:
             and index._name[n] is not None
             and index._file[n] not in imported
             and not self.in_degree[n]
+            and self.inside(n)
         ]
 
     def report(self) -> dict[str, Any]:  # noqa: PLR0914
@@ -325,22 +345,26 @@ class _Discovery:
         rules = self.ranked(_RESULTS)
         concepts = self.ranked(_DEFINITIONS)
         headline = self.headlines()
+        everywhere = [n for n in range(len(index._name)) if self.inside(n)]
         unproven = [
-            n for n in sorted(index._flags) if {"sorry", "admit"} & set(index._flags[n])
+            n
+            for n in sorted(index._flags)
+            if {"sorry", "admit"} & set(index._flags[n]) and self.inside(n)
         ]
-        axioms = [n for n in range(len(index._name)) if index._kind[n] == "axiom"]
-        wanted = [
-            n for n in range(len(index._name)) if index._kind[n] == "proof_wanted"
-        ]
+        axioms = [n for n in everywhere if index._kind[n] == "axiom"]
+        wanted = [n for n in everywhere if index._kind[n] == "proof_wanted"]
         claims = sorted(
             self.claims, key=lambda n: (-self.in_degree[n], index._name[n] or "")
         )
         # Most named first: a vacuous predicate many results use matters most.
-        vacuous = sorted(index._vacuous, key=lambda n: -self.in_degree[n])
+        vacuous = sorted(
+            (n for n in index._vacuous if self.inside(n)),
+            key=lambda n: -self.in_degree[n],
+        )
         headline_set = set(headline)
         isolated = [
             n
-            for n in range(len(index._name))
+            for n in everywhere
             if index._kind[n] in _RESULTS
             and not self.in_degree[n]
             and n not in headline_set
@@ -366,6 +390,7 @@ class _Discovery:
             "report": "discovery",
             "producer": DISCOVERY,
             "index": PRODUCER,
+            "layer": self.layer,
             "rules": {
                 "load_bearing_theorems": self.listing(rules),
                 "central_concepts": self.listing(concepts),
@@ -395,7 +420,15 @@ class _Discovery:
                     "items": parallel,
                     "cut": parallel_count > len(parallel),
                 },
-                "generators": _listing(index._generators(), self.top),
+                "generators": _listing(
+                    [
+                        item
+                        for item in index._generators()
+                        if self.scope is None
+                        or index._label_ids[item["invocation"]["file"]] in self.scope
+                    ],
+                    self.top,
+                ),
                 "isolated_results": self.listing(isolated),
             },
             "headline_results": self.listing(headline),
@@ -429,12 +462,17 @@ def _statement_chunks(
 
 
 def discover(
-    index: LeanIndex, *, top: int = 50, min_instances: int = 2, patterns: bool = True
+    index: LeanIndex,
+    *,
+    top: int = 50,
+    min_instances: int = 2,
+    patterns: bool = True,
+    layer: str | None = None,
 ) -> dict[str, Any]:
     """Run discovery; see :meth:`LeanIndex.discover`."""
     _positive(top, "top")
     _positive(min_instances, "min_instances")
-    run = _Discovery(index, top=top, min_instances=min_instances)
+    run = _Discovery(index, top=top, min_instances=min_instances, layer=layer)
     if patterns:
         run.read_statements()
     run.count_uses()
@@ -783,13 +821,14 @@ def export(
     targets: Sequence[str] = (),
     top: int = 50,
     patterns: bool = True,
+    layer: str | None = None,
 ) -> list[str]:
     """Write the helper documents; see :meth:`LeanIndex.export`."""
     folder = Path(folder)
     if folder.exists() and not folder.is_dir():
         raise ValueError(f"LeanIndex: {folder} exists and is not a folder.")
-    report = discover(index, top=top, patterns=patterns)
-    summary = index.summary(max_items=top)
+    report = discover(index, top=top, patterns=patterns, layer=layer)
+    summary = index.summary(max_items=top, layer=layer)
     written: list[str] = []
     _write(
         folder,
@@ -897,8 +936,11 @@ def _prune(folder: Path, written: list[str]) -> None:
 
 def render(report: dict[str, Any]) -> str:
     """Render a discovery report as one Markdown document."""
+    layer = report.get("layer")
+    head = [] if layer is None else [f"Layer: `{layer}` (its files only).\n"]
     return "\n".join(
         [
+            *head,
             _rules_md(report),
             _patterns_md(report),
             _claims_md(report),
