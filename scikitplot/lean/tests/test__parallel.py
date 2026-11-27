@@ -85,3 +85,12 @@ def test_workers_is_validated():
         with pytest.raises(ValueError, match="workers"):
             LeanIndex(workers=bad)
     assert LeanIndex(workers=None)._workers >= 1
+
+
+def test_flat_names_give_back_every_name_and_context():
+    names = ["Nat.succ", "x₁", ".encard", "«a b»", "ℝ"]
+    contexts = [("", ()), ("A.B", ("Nat", "Set")), ("C", ("D",))]
+    flat = _parallel.FlatNames(names, contexts)
+    assert [flat.name(i) for i in range(len(names))] == names
+    assert [flat.context(i) for i in range(len(contexts))] == contexts
+    assert flat.context(1) is flat.context(1)  # decoded once

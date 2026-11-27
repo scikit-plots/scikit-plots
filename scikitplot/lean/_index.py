@@ -490,7 +490,7 @@ class LeanIndex:
         Memory grows with the workers: each copies the parts of the index
         it reads (Python's reference counts write to them) and keeps its
         own lookup cache. On a project of a million declarations a summary
-        took 173 s and 3.0 GB in all with two workers, against 318 s and
+        took 187 s and 2.6 GB in all with two workers, against 318 s and
         1.7 GB with one; set ``workers`` to what the machine's memory
         allows, not only its CPUs.
 
@@ -658,12 +658,21 @@ class LeanIndex:
         self._flags: dict[int, tuple[str, ...]] = {}
         self._attributes: dict[int, tuple[str, ...]] = {}
         # The names each declaration's code uses, packed: each distinct
-        # reference once (_ref_names, _ref_ids), and per declaration its
-        # reference numbers, data[ptr[n]:ptr[n + 1]]. Arrays rather than a
-        # tuple per declaration: smaller, and a forked worker reading them
-        # writes no reference count, so it copies no page of them.
+        # reference once, numbered (_ref_names, _ref_ids), and per declaration
+        # its reference numbers, data[ptr[n]:ptr[n + 1]]. Arrays rather than
+        # a tuple per declaration: smaller, and a forked worker reads them
+        # without writing a reference count, so it copies no page of them.
         self._ref_names: list[str] = []
         self._ref_ids: dict[str, int] = {}
+        # Each declaration's context (namespace and opens), numbered: the
+        # resolution cache is keyed by context number.
+        self._ctx_keys: list[tuple[str, tuple[str, ...]]] = []
+        self._ctx_ids: dict[tuple[str, tuple[str, ...]], int] = {}
+        self._ctx_of: array[int] = array("i")
+        # In a forked worker only (_parallel): the references and contexts
+        # as UTF-8 text in shared buffers, decoded privately, so the worker
+        # never reads, and so never copies, the shared string objects.
+        self._flat: _parallel.FlatNames | None = None
         self._ref_ptr: array[int] = array("q", [0])
         self._ref_data: array[int] = array("i")
         self._edges: dict[int, array[int]] = {}
@@ -671,9 +680,8 @@ class LeanIndex:
         self._by_short: dict[str, Any] | None = None
         self._kinds: Counter[str] = Counter()
         self._intern: dict[Any, Any] = {}
-        self._contexts: OrderedDict[
-            tuple[str, tuple[str, ...]], dict[str, tuple[int, ...]]
-        ] = OrderedDict()
+        # Resolutions cached per context number: reference number -> codes.
+        self._contexts: OrderedDict[int, dict[int, tuple[int, ...]]] = OrderedDict()
         self._lines_cache: OrderedDict[int, list[str]] = OrderedDict()
         # Bumped by every new file: the key of the whole-project caches.
         self._generation = 0
@@ -922,6 +930,7 @@ class LeanIndex:
             column = getattr(self, field)
             setattr(self, field, array(column.typecode, (column[n] for n in nodes)))
         self._file = array(self._file.typecode, (file_of[self._file[n]] for n in nodes))
+        self._ctx_of = array(self._ctx_of.typecode, (self._ctx_of[n] for n in nodes))
         self._flags = remap(self._flags)
         self._attributes = remap(self._attributes)
         self._shape_of = remap(self._shape_of)
@@ -972,11 +981,31 @@ class LeanIndex:
             self._ref_names.append(ref)
         return found
 
+    def _context_id(self, namespace: str, opens: tuple[str, ...]) -> int:
+        """Return the number of the context *namespace* and *opens*, new the first time."""
+        key = (namespace, opens)
+        found = self._ctx_ids.get(key)
+        if found is None:
+            found = self._ctx_ids[key] = len(self._ctx_keys)
+            self._ctx_keys.append(key)
+        return found
+
+    def _context(self, ctx_id: int) -> tuple[str, tuple[str, ...]]:
+        """Return context *ctx_id* as ``(namespace, opens)``."""
+        if self._flat is not None:  # a forked worker: from the shared text
+            return self._flat.context(ctx_id)
+        return self._ctx_keys[ctx_id]
+
+    def _ref_name(self, ref_id: int) -> str:
+        """Return reference *ref_id* as text."""
+        if self._flat is not None:  # a forked worker: from the shared text
+            return self._flat.name(ref_id)
+        return self._ref_names[ref_id]
+
     def _refs_of(self, node: int) -> tuple[str, ...]:
         """Return the names *node*'s code uses, in the order they were recorded."""
-        names = self._ref_names
         start, stop = self._ref_ptr[node], self._ref_ptr[node + 1]
-        return tuple(names[i] for i in self._ref_data[start:stop])
+        return tuple(self._ref_name(i) for i in self._ref_data[start:stop])
 
     def _interned(self, value: Any) -> Any:
         return self._intern.setdefault(value, value)
@@ -1018,6 +1047,7 @@ class LeanIndex:
         self._end.append(end)
         self._namespace.append(sys.intern(namespace))
         self._opens.append(self._interned(opens))
+        self._ctx_of.append(self._context_id(self._namespace[-1], self._opens[-1]))
         self._ref_data.extend(self._ref_id(ref) for ref in refs)
         self._ref_ptr.append(len(self._ref_data))
         if flags:
@@ -1414,15 +1444,16 @@ class LeanIndex:
     ) -> tuple[int, ...]:
         """Return ``node * 4 + how`` codes for the declarations *ref* may name."""
         ref_id = self._ref_ids.get(ref)
-        if ref_id is not None:
-            return self._resolve_id(ref_id, namespace, opens)
-        return self._resolve_name(ref, namespace, opens)  # a name no code used
+        ctx_id = self._ctx_ids.get((namespace, opens))
+        if ref_id is not None and ctx_id is not None:
+            return self._resolve_id(ref_id, ctx_id)
+        return self._resolve_name(
+            ref, namespace, opens
+        )  # a name or context no code used
 
-    def _resolve_id(
-        self, ref_id: int, namespace: str, opens: tuple[str, ...]
-    ) -> tuple[int, ...]:
-        """:meth:`_resolve` of a reference number, cached per context."""
-        key = (namespace, opens)
+    def _resolve_id(self, ref_id: int, ctx_id: int) -> tuple[int, ...]:
+        """:meth:`_resolve` of a reference number in a context number, cached."""
+        key = ctx_id
         cache = self._contexts.get(key)
         if cache is None:
             cache = self._contexts[key] = {}
@@ -1432,8 +1463,9 @@ class LeanIndex:
             self._contexts.move_to_end(key)
         hit = cache.get(ref_id)  # an int key: a hit reads no string
         if hit is None:
+            namespace, opens = self._context(ctx_id)
             hit = cache[ref_id] = self._resolve_name(
-                self._ref_names[ref_id], namespace, opens
+                self._ref_name(ref_id), namespace, opens
             )
         return hit
 
@@ -1483,12 +1515,12 @@ class LeanIndex:
     def _compute_edges(self, node: int) -> array[int]:
         """Resolve *node*'s edges as ``target * 4 + how``, sorted; nothing is cached."""
         ids = self._ref_data[self._ref_ptr[node] : self._ref_ptr[node + 1]]
-        namespace, opens = self._namespace[node], self._opens[node]
+        ctx_id = self._ctx_of[node]
         file_id = self._file[node]
         sees = self._sees(file_id)
         best: dict[int, int] = {}
         for ref_id in ids:
-            for code in self._resolve_id(ref_id, namespace, opens):
+            for code in self._resolve_id(ref_id, ctx_id):
                 target, how = divmod(code, 4)
                 if target == node:
                     continue
@@ -1516,7 +1548,8 @@ class LeanIndex:
         for file_id in range(len(self._labels)):  # what every worker reads,
             self._sees(file_id)  # built once here, not once per worker
         self._short()
-        self._edges.update(_parallel.resolve(self, missing, self._workers))
+        flat = _parallel.FlatNames(self._ref_names, self._ctx_keys)
+        self._edges.update(_parallel.resolve(self, missing, self._workers, flat))
 
     def _pack(self) -> tuple[Any, Any]:
         """

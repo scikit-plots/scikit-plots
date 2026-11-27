@@ -1,7 +1,7 @@
 - The user guide and :class:`~scikitplot.lean.LeanIndex` give what
   ``workers`` costs as well as what it saves, measured per stage on a
   project of a million declarations (see the user guide's table): with
-  two workers a summary takes 173 s instead of 318 s, and its peak memory
-  is 3.0 GB instead of 1.7 GB, since each worker copies the parts of the
+  two workers a summary takes about 180 s instead of 318 s, and its peak
+  memory is 2.6 GB instead of 1.7 GB, since each worker copies the parts of the
   index it reads. The corpus maintenance benchmark reports each stage's
   peak memory (PSS) on Linux.

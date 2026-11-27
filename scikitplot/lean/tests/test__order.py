@@ -139,7 +139,7 @@ def test_a_file_without_declarations_refreshes_the_project_caches(tmp_path):
 # renumbers it (per node, per file) or drops it (cache).
 _PER_NODE = {
     "_name", "_kind", "_file", "_start", "_end", "_namespace", "_opens",
-    "_ref_ptr", "_ref_data",
+    "_ref_ptr", "_ref_data", "_ctx_of",
     "_flags", "_attributes", "_shape_of", "_private", "_claims", "_by_name",
     "_vacuous",
 }  # fmt: skip
@@ -154,7 +154,7 @@ _CACHES = {
 }  # fmt: skip
 _ORDER_FREE = {
     "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands", "_workers",
-    "_ref_names", "_ref_ids",
+    "_ref_names", "_ref_ids", "_ctx_keys", "_ctx_ids", "_flat",
     "_dialect", "_graph", "_max_bytes", "_max_depth", "_source_root",
     "_suffix", "_visibility",
 }  # fmt: skip

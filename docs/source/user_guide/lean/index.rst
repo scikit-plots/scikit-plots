@@ -159,17 +159,19 @@ summed over every process, so a page the workers share is counted once:
 ==========================  ===========  ===========
 \                           one worker   two workers
 ==========================  ===========  ===========
-indexing                    434 s        210 s
-summary                     318 s        173 s
+indexing                    434 s        227 s
+summary                     318 s        187 s
 peak memory while reading   1.2 GB       1.5 GB
-peak memory, summary        1.7 GB       3.0 GB
+peak memory, summary        1.7 GB       2.6 GB
 ==========================  ===========  ===========
 
 Reading costs each worker a small, fixed amount: it holds at most 64
 files' records before sending them back. Name resolution costs more,
 since each worker copies what it reads of the index (Python's reference
-counts write to it); the names each declaration uses are kept in flat
-arrays, which reading does not copy. Freezing the garbage collector before
+counts write to it). What the workers read most is kept flat so they do
+not copy it: the names each declaration uses, as numbers in arrays, and
+in the workers each name and context as text in one shared buffer,
+decoded privately. Freezing the garbage collector before
 the workers start (``gc.freeze``) saves under 100 MB: the copies come from
 reference counts, not from collection.
 
