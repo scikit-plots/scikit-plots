@@ -244,6 +244,35 @@ that layer's flags only, so a pipeline fails on the project's own
 See :ref:`sphx_glr_auto_examples_lean_plot_lean_layers_script.py` for both,
 run end to end.
 
+Near-duplicate statements
+-------------------------
+
+Discovery groups theorems of one statement shape. :meth:`~LeanIndex.near_duplicates`
+finds the pairs that are nearly the same: a hypothesis more, a relation
+changed, a lemma restated under another name::
+
+    index.near_duplicates(threshold=0.8)
+    index.near_duplicates(layer="project", against="")   # restated from below
+
+Two statements are compared by their shapes (bound names renamed in order,
+numerals replaced), as the Jaccard similarity of their sets of adjacent
+token pairs. Pairs of one shape are left to discovery; statements of fewer
+than ``min_pairs`` token pairs (default 4) are not compared, since one token
+decides a tiny statement. Two different shapes can still reach 1.0 when
+they hold the same pairs in another order.
+
+The search is exact: every pair at or above ``threshold`` is found and none
+below, by prefix filtering (pairs ordered rarest first, so only statements
+sharing a rare pair are compared). It reads the statements again from the
+files, with the index's ``workers``, and keeps nothing in the index; files
+without a known path are listed as not read. From the shell,
+``--near-duplicates`` with ``--threshold``, ``--layer`` and ``--against``.
+
+On mathlib4 with PFR (196,029 statements, two workers): 27 s at 0.8 (29,062
+pairs), 22 s at 0.9, of which reading the statements is about 18 s. The
+number of pairs grows fast below 0.7: at 0.5 the search alone takes about
+4 minutes (515,934 pairs).
+
 Scale
 -----
 

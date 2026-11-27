@@ -448,7 +448,7 @@ def _statement_chunks(
         dialect=index._dialect,
         kinds=None,
         watch=(),
-        commands=index._commands,
+        commands=index._commands_for(index._layer_of[file_id]),
         max_scope_depth=index._max_depth,
         flag_tokens={},
     )
