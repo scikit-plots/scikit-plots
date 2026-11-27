@@ -12,20 +12,30 @@
 
 ## Lean projects (`scikitplot.lean`, the corpus `LeanReader`)
 
-Clone each repository (`git clone --depth 1`) outside the scikit-plots
-checkout, index it in place, and record counts and timings only. The
-commit is the one the baselines in pull requests #1012 to #1021 were
-measured on; give the commit you use when you report figures.
+Fetch each repository outside the scikit-plots checkout, at the commit
+below, index it in place, and record counts and timings only. A commit is
+fetched by its full hash (a `git clone --depth 1` gets whatever is newest):
 
-| Repository | `.lean` files | Good for | License and notes |
+```bash
+git init mathlib4 && cd mathlib4
+git fetch --depth 1 https://github.com/leanprover-community/mathlib4 b108da25f50641d5449257791381d6d9fa8b67c2
+git checkout FETCH_HEAD
+```
+
+These are the commits the baselines of pull requests #1012 to #1022 were
+measured on. Give the commit you use when you report figures.
+
+| Repository and commit | `.lean` files | Good for | License and notes |
 |---|---|---|---|
-| https://github.com/teorth/pfr (`1899ce8`) | 74 | A small project over mathlib: layers (`add_folder`), layer reports, near-duplicates against its dependency | Apache-2.0. Has its own copy of some mathlib files under `PFR/Mathlib/`, which tests a layer's source root. |
-| https://github.com/leanprover-community/aesop (`637fdbb`) | 250 | A tactic library: syntax extensions, learned commands | Apache-2.0. |
-| https://github.com/leanprover-community/batteries (`d7e2885`) | 283 | A library under mathlib: macros, `elab` commands | Apache-2.0. |
-| https://github.com/leanprover/lean4 (`48c14fd`), its `src/` folder | 8,457 | Core Lean: syntax and imports a library never uses | Apache-2.0. Index `src/` alone. |
-| https://github.com/leanprover-community/mathlib4 (`b108da2`) | 9,351 | The main benchmark: indexing, workers' memory, snapshots, refresh, near-duplicates | Apache-2.0. |
-| https://github.com/CocoSgt/riemann-hypothesis-lean (`7cbf7a0c3`) | 175,187 | Scale: compressed visibility bitsets, capped batches, snapshot size and load time | **No license**: the README says the original was published without one. Index it in place for counts and timings only; never copy its files into the repository, a fixture or a report. |
+| https://github.com/teorth/pfr `1899ce8ed95fc310cce53d4c7ecfa2beb20ebec4` | 74 | A small project over mathlib: layers (`add_folder`), layer reports, near-duplicates against its dependency | Apache-2.0. Has its own copy of some mathlib files under `PFR/Mathlib/`, which tests a layer's source root. Its `lake-manifest.json` pins mathlib `c47f9ad906c5ec32a953f99911b446cd26dcc123`; the baselines put it over the mathlib4 commit below instead (both index; the pinned one is what Lean builds). |
+| https://github.com/leanprover-community/aesop `637fdbb8689a3387a82568b07355231f892144d7` | 250 | A tactic library: syntax extensions, learned commands | Apache-2.0. The commit pfr pins. |
+| https://github.com/leanprover-community/batteries `d7e28851f146ea178ce7ed224a58be255df7b9a6` | 283 | A library under mathlib: macros, `elab` commands | Apache-2.0. |
+| https://github.com/leanprover/lean4 `48c14fd8cc0795bc288b59968394f061bbf6e1fa`, its `src/` folder | 2,861 in `src/` (8,457 in the repository) | Core Lean: syntax and imports a library never uses | Apache-2.0. Index `src/` alone; the rest is mostly tests. |
+| https://github.com/leanprover-community/mathlib4 `b108da25f50641d5449257791381d6d9fa8b67c2` | 9,351 | The main benchmark: indexing, workers' memory, snapshots, refresh, near-duplicates | Apache-2.0. |
+| https://github.com/CocoSgt/riemann-hypothesis-lean `7cbf7a0c32fca1badf05931879a37c3f8a2b03b4` | 175,187 | Scale: compressed visibility bitsets, capped batches, snapshot size, refresh and load time | **No license**: the README says the original was published without one. Index it in place for counts and timings only; never copy its files into the repository, a fixture or a report, and never edit them in place (measure changes on a copy of a licensed project). |
 
+File counts are `git ls-files '*.lean'` at the commit, which is what
+`LeanIndex.from_folder` reads (hidden folders such as `.lake` left out).
 `maintenances/corpus/_maintenance/tools/lean_index_benchmark.py` times and
 measures memory on any of them (`--compare`, `--snapshot`).
 
