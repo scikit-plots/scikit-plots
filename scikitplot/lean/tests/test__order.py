@@ -140,6 +140,7 @@ def test_a_file_without_declarations_refreshes_the_project_caches(tmp_path):
 _PER_NODE = {
     "_name", "_kind", "_file", "_start", "_end", "_namespace", "_opens", "_refs",
     "_flags", "_attributes", "_shape_of", "_private", "_claims", "_by_name",
+    "_vacuous",
 }  # fmt: skip
 _PER_FILE = {
     "_labels", "_label_ids", "_paths", "_imports", "_file_lines", "_first_node",

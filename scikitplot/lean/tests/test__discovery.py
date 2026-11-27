@@ -442,3 +442,29 @@ def test_statements_refuse_commands_read_in_parts():
             kinds=None, watch=(), commands=frozenset(), max_scope_depth=64,
             flag_tokens={}, statements=True,
         )
+
+
+def test_vacuous_predicates_in_discovery_and_dossiers(tmp_path):
+    root = _project(
+        tmp_path,
+        {
+            "Proj/A.lean": """
+                def Good (n : Nat) : Prop := True
+                def Real (n : Nat) : Prop := n = n
+                theorem everything_good : ∀ n, Good n := fun _ => trivial
+                theorem everything_real : ∀ n, Real n := fun _ => rfl
+            """
+        },
+    )
+    index = LeanIndex.from_folder(root)
+    found = index.discover()["claims"]["vacuous_predicates"]
+    assert [i["declaration"] for i in found["items"]] == ["Good"]
+    assert "constant proposition `True`" in found["items"][0]["vacuous"]
+    good = index.dossier("everything_good")
+    status = {c["check"]: c["status"] for c in good["checks"]}
+    assert status["vacuous_definitions"] == "review"
+    [definition] = good["statement"]["local_definitions"]["items"]
+    assert definition["declaration"] == "Good" and "vacuous" in definition
+    assert "**vacuous**" in LeanIndex.render(good)
+    real = index.dossier("everything_real")
+    assert {c["check"]: c["status"] for c in real["checks"]}["vacuous_definitions"] == "pass"

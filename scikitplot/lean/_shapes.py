@@ -125,21 +125,21 @@ def _bound_in(masked: str) -> set[str]:
     return names
 
 
-def _signature_groups(masked: str) -> list[str]:
+def _signature_groups(masked: str, keyword: re.Pattern[str] = _KEYWORD) -> list[str]:
     """
     Return the top-level bracket groups of a result's signature, brackets kept.
 
     The signature runs from the keyword to the ``:`` of the result's type;
     a group nested in a binder's type (``(h : (f x) = y)``) is not listed.
     """
-    keyword = _KEYWORD.search(masked)
-    if keyword is None:
+    found = keyword.search(masked)
+    if found is None:
         return []
     groups: list[str] = []
     depth = 0
     start = 0
-    for found in _STRUCTURE.finditer(masked, keyword.end()):
-        i, char = found.start(), found.group()
+    for token in _STRUCTURE.finditer(masked, found.end()):
+        i, char = token.start(), token.group()
         if char in _OPEN:
             if not depth:
                 start = i
@@ -222,3 +222,95 @@ def states_a_claim(text: str) -> bool:
         _PROP_DEFINITION.search(" ".join(lexer.mask(line) for line in text.split("\n")))
         is not None
     )
+
+
+#: Where a definition's signature starts: after its keyword.
+_DEF_KEYWORD = re.compile(rf"(?<![{_ID_REST}.])(?:def|abbrev)(?![{_ID_REST}])")
+#: What a constant proposition is made of.
+_CONSTANT = frozenset(
+    # not, and, or, implies, iff: the logical-or sign reads like a letter
+    {"True", "False", "Not", "And", "Or", "Iff", "(", ")"}
+    | {"\u00ac", "\u2227", "\u2228", "\u2192", "\u2194"}
+)
+
+
+def _split_definition(masked: str) -> tuple[str, str, str] | None:
+    """
+    Return a definition's ``(signature, type, body)``, or ``None``.
+
+    The signature runs from the keyword to the type's top-level ``:``, the
+    type to the top-level ``:=``, the body to the end. A definition by
+    pattern matching or ``where`` has no top-level ``:=``: ``None``.
+    """
+    keyword = _DEF_KEYWORD.search(masked)
+    if keyword is None:
+        return None
+    depth = 0
+    colon = None
+    for found in re.finditer(r"[(\[{⦃⟨)\]}⦄⟩]|:=|:", masked[keyword.end() :]):
+        mark, at = found.group(), keyword.end() + found.start()
+        if mark in _OPEN:
+            depth += 1
+        elif mark in _CLOSE:
+            depth = max(0, depth - 1)
+        elif depth:
+            continue
+        elif mark == ":" and colon is None:
+            colon = at
+        elif mark == ":=" and colon is not None:
+            return (
+                masked[keyword.end() : colon],
+                masked[colon + 1 : at],
+                masked[at + 2 :],
+            )
+    return None
+
+
+def _parameters(signature: str) -> list[str]:
+    """Return the names a signature's binders introduce; instance binders excluded."""
+    names: list[str] = []
+    for group in _signature_groups("def " + signature, _DEF_KEYWORD):
+        if group[0] == "[":
+            continue
+        inner = group[1:-1].split(":", 1)[0]
+        names += [n for n in inner.split() if _FULL_NAME_ONLY.fullmatch(n) and n != "_"]
+    return list(dict.fromkeys(names))
+
+
+_FULL_NAME_ONLY = re.compile(_NAME_ONLY)
+
+
+def vacuity(text: str) -> str | None:
+    """
+    Return why a ``Prop`` definition says nothing about its subject, or ``None``.
+
+    Two lexical rules, on the code of *text* (comments and strings left
+    out): the body is a constant proposition (``True``, ``False`` and
+    connectives only), or the definition has parameters and its body uses
+    none of them (``def Good (n : Nat) : Prop := 0 < 1``). A theorem whose
+    statement unfolds to such a definition can be proved without saying
+    anything about it. ``None`` for anything else, including definitions
+    whose type is not literally ``Prop`` and those by pattern matching.
+
+    Notes
+    -----
+    **User.** A finding is a reason to read the definition, not a verdict:
+    the text cannot show what notation, coercions or instances mean.
+    """
+    masked = " ".join(masked for _raw, masked in _mask_lines(text))
+    parts = _split_definition(masked)
+    if parts is None:
+        return None
+    signature, kind, body = parts
+    if kind.split() != ["Prop"]:
+        return None
+    tokens = _SHAPE_TOKEN.findall(body)
+    if not tokens:
+        return None
+    if set(tokens) <= _CONSTANT:
+        return f"its body is the constant proposition `{' '.join(tokens)}`"
+    parameters = _parameters(signature)
+    used = {token.split(".", 1)[0] for token in tokens}
+    if parameters and not used & set(parameters):
+        return f"its body uses none of its parameters ({', '.join(parameters)})"
+    return None

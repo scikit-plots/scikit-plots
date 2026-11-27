@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from .._shapes import _shape, fingerprint
+from .._shapes import _shape, fingerprint, vacuity
 
 
 def _print(statement):
@@ -75,3 +75,43 @@ def test_statements_that_differ_otherwise_do_not(first, second):
 def test_a_comment_leaves_nothing_and_a_literal_one_token():
     assert _shape('theorem a : f "a b" = 1 -- "note"', "a") == ': f " = #'
     assert _shape("theorem a : f = 1 /- x -/", "a") == ": f = #"
+
+
+# ---------------------------------------------------------------------------
+# Vacuous predicates: Prop definitions that say nothing about their subject
+# ---------------------------------------------------------------------------
+
+CONSTANT = "constant proposition"
+UNUSED = "uses none of its parameters"
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        ("def Good (n : Nat) : Prop := True", CONSTANT),
+        ("def Good : Prop := True", CONSTANT),
+        ("abbrev Bad (n : Nat) : Prop := ¬ False", CONSTANT),
+        ("def P (x : α) [inst : Decidable x] : Prop := True ∧ True", CONSTANT),
+        ("def Good (n : Nat) : Prop := 0 < 1", UNUSED),
+        ("def P (n : Nat) : Prop := -- n\n  1 = 1", UNUSED),  # a comment is not use
+        ('def P (n : Nat) : Prop := "n" = "m"', UNUSED),  # nor is a string
+        # Not vacuous: a parameter is used, or nothing to judge.
+        ("@[simp] def Good {α : Type} (s : Set α) : Prop := s.Nonempty", None),
+        ("def IsBounded [Bornology α] (s : Set α) : Prop := IsCobounded sᶜ", None),
+        ("def P (α : Type) : Prop := Nonempty α", None),
+        ("def P (n : Nat) : Prop := P2 (n := n)", None),
+        ("def P (n : Nat) (m : Nat) : Prop := m = m", None),
+        ("def P [Group G] : Prop := ∀ g : G, g = g", None),
+        ("def P : Prop := 1 = 1", None),  # no parameters, not a constant
+        ("def P (_ : Nat) : Prop := 1 = 1", None),  # `_` names nothing
+        ("def P (n : Nat) : Nat := 1", None),  # not a Prop
+        ("def P : Nat → Prop := fun _ => True", None),  # type not literally Prop
+        ("def P (n : Nat) : Prop\n  | _ => True", None),  # by pattern matching
+    ],
+)
+def test_vacuity(text, reason):
+    found = vacuity(text)
+    if reason is None:
+        assert found is None, found
+    else:
+        assert found is not None and reason in found, found
