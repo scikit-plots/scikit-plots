@@ -25,11 +25,16 @@ from __future__ import annotations
 from array import array
 from collections import Counter
 from fractions import Fraction
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any
 
-from ._index import PRODUCER, _batch_size, _listing, _positive, _reading_pool
-from ._shapes import _RESULTS, shape_tokens
-from ._syntax import _Splitter
+from ._index import (
+    PRODUCER,
+    _batch_size,
+    _listing,
+    _positive,
+    _read_file,
+    _reading_pool,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from ._index import LeanIndex
@@ -42,6 +47,9 @@ MEASURE = "jaccard of adjacent token pairs of statement shapes"
 #: Marks the start and end of a shape, so its first and last tokens count.
 _EDGE = "\x02"
 
+#: Where a declaration record (:func:`._index._compact`) holds its shape tokens.
+_TOKENS = 13
+
 
 def _pairs_of(tokens: list[str]) -> frozenset[str]:
     """Return the adjacent token pairs of a shape, its two ends marked."""
@@ -53,47 +61,20 @@ def _file_shapes(arguments: tuple[Any, ...]) -> list[tuple[int, frozenset[str]]]
     """
     Return ``(line_start, token pairs)`` of the results a file states.
 
-    The work a worker process does: the file is split as the index read
-    it, proofs left out, and the results starting on the *wanted* lines
-    (line to declaration name) are shaped. A file that cannot be read
-    gives nothing.
+    The work a worker process does: the file is read as the index reads it
+    (:func:`._index._read_file`, shapes kept), so each shape is the one the
+    index digested, and the results starting on the *wanted* lines are
+    kept. A file that cannot be read, or is skipped, gives nothing.
     """
-    path, label, dialect, commands, max_depth, wanted = arguments
-    splitter = _Splitter(
-        file_name=label,
-        meta={},
-        step=None,
-        cap=None,
-        proofs="drop",
-        dialect=dialect,
-        kinds=None,
-        watch=(),
-        commands=commands,
-        max_scope_depth=max_depth,
-        flag_tokens={},
-    )
-    found = []
-
-    def take(chunks: Iterable[dict[str, Any]]) -> None:
-        for chunk in chunks:
-            start = chunk["line_start"]
-            if start in wanted and chunk.get("lean_kind") in _RESULTS:
-                tokens = shape_tokens(chunk["text"], chunk["lean_kind"], wanted[start])
-                if tokens:
-                    found.append((start, _pairs_of(tokens)))
-
-    try:
-        with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
-            for number, read in enumerate(stream, start=1):
-                line = read[:-1] if read.endswith("\n") else read
-                if number == 1 and line.startswith("﻿"):
-                    line = line[1:]
-                take(splitter.feed(number, line))
-        take(splitter.finish())
-    except (OSError, ValueError):
-        # Moved, changed past max_scope_depth, or gone since indexing.
+    path, label, settings, wanted = arguments
+    outcome = _read_file(path, label, settings)
+    if outcome[0] != "ok":
         return []
-    return found
+    return [
+        (record[2], _pairs_of(list(record[_TOKENS])))
+        for record in outcome[1]
+        if len(record) > _TOKENS and record[_TOKENS] and record[2] in wanted
+    ]
 
 
 def similar_pairs(
@@ -295,11 +276,21 @@ def _read_shapes(
     with the index's ``workers``; each pair's text is kept once, and each
     set as an array of the pairs' numbers.
     """
-    wanted: dict[int, dict[int, str | None]] = {}
+    shapes: list[tuple[int, array]] = []
+    numbers: dict[str, int] = {}
+
+    def keep(node: int, pairs: frozenset[str]) -> None:
+        if len(pairs) >= min_pairs:
+            ids = [numbers.setdefault(p, len(numbers)) for p in sorted(pairs)]
+            shapes.append((node, array("i", ids)))
+
+    if index._keep_shapes:  # kept when read: no file is read again
+        return (*_kept_shapes(index, files, min_pairs), [])
+    wanted: dict[int, set[int]] = {}
     for node in sorted(index._shape_of):
         f = index._file[node]
         if files is None or f in files:
-            wanted.setdefault(f, {})[index._start[node]] = index._name[node]
+            wanted.setdefault(f, set()).add(index._start[node])
     jobs = []
     unread = []
     for f in sorted(wanted):
@@ -307,22 +298,8 @@ def _read_shapes(
         if path is None:
             unread.append(index._labels[f])
             continue
-        commands = index._commands_for(index._layer_of[f])
-        jobs.append(
-            (
-                f,
-                (
-                    path,
-                    index._labels[f],
-                    index._dialect,
-                    commands,
-                    index._max_depth,
-                    wanted[f],
-                ),
-            )
-        )
-    shapes: list[tuple[int, array]] = []
-    numbers: dict[str, int] = {}
+        settings = (*index._settings(index._layer_of[f])[:4], True)
+        jobs.append((f, (path, index._labels[f], settings, wanted[f])))
     workers = index._workers
     with _reading_pool(workers, len(jobs)) as pool:
         arguments = [job for _f, job in jobs]
@@ -335,18 +312,49 @@ def _read_shapes(
             starts = {index._start[n]: n for n in _nodes_of(index, f)}
             for start, pairs in found:
                 node = starts.get(start)
-                if (
-                    node is None
-                    or node not in index._shape_of
-                    or len(pairs) < min_pairs
-                ):
-                    continue
-                ids = array(
-                    "i", [numbers.setdefault(p, len(numbers)) for p in sorted(pairs)]
-                )
-                shapes.append((node, ids))
+                if node is not None and node in index._shape_of:
+                    keep(node, pairs)
     shapes.sort(key=lambda item: item[0])
     return shapes, list(numbers), unread
+
+
+def _kept_shapes(
+    index: LeanIndex, files: frozenset[int] | None, min_pairs: int
+) -> tuple[list[tuple[int, array]], list[str]]:
+    """
+    :func:`_read_shapes` from the shapes the index kept (``keep_shapes``).
+
+    Pairs are numbered from the kept token numbers, and a pair's text (what
+    breaks ties in the global order) is built once per distinct pair: the
+    same sets and texts as reading the files gives.
+    """
+    names = index._st_names
+    edge = len(names)  # the number of the start and end mark
+    width = edge + 1
+    ptr, data = index._st_ptr, index._st_data
+    numbers: dict[int, int] = {}
+    texts: list[str] = []
+    shapes: list[tuple[int, array]] = []
+    for node in sorted(index._shape_of):
+        if files is not None and index._file[node] not in files:
+            continue
+        marked = [edge, *data[ptr[node] : ptr[node + 1]], edge]
+        keys = {a * width + b for a, b in zip(marked, marked[1:])}
+        if len(keys) < min_pairs:
+            continue
+        ids = []
+        for key in keys:
+            found = numbers.get(key)
+            if found is None:
+                found = numbers[key] = len(texts)
+                a, b = divmod(key, width)
+                texts.append(
+                    f"{_EDGE if a == edge else names[a]}\x00{_EDGE if b == edge else names[b]}"
+                )
+            ids.append(found)
+        ids.sort()
+        shapes.append((node, array("i", ids)))
+    return shapes, texts
 
 
 def _nodes_of(index: LeanIndex, file_id: int) -> range:

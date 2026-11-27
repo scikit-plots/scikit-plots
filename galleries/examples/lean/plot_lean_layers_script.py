@@ -199,6 +199,17 @@ for pair in index.near_duplicates(threshold=0.5, layer="re", against="")["pairs"
     )
 
 # %%
+# With ``keep_shapes=True`` the statement shapes are kept when the files are
+# read, and saved: the search then reads no file, so a saved dependency is
+# enough, without its folder.
+
+kept = LeanIndex.from_folder(library, keep_shapes=True).save(work / "kept.leanidx")
+blind = LeanIndex.load(kept)  # no root: the library's files are not read
+blind.add_folder(restating, name="re")
+found = blind.near_duplicates(threshold=0.5, layer="re", against="")
+print(found["pairs"]["count"], "pair(s); files not read:", found["files_not_read"]["count"])
+
+# %%
 # 6. Two projects over one dependency
 # -----------------------------------
 # Each review loads the same saved file: one index per project, one read of
