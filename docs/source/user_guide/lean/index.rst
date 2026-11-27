@@ -153,6 +153,39 @@ mathlib4        30 s           1.4 s      1.4 s      54 MB
                 workers)
 ==============  =============  =========  =========  ==========
 
+Refreshing an index
+~~~~~~~~~~~~~~~~~~~
+
+After an edit, :meth:`~LeanIndex.refresh` reads again only what changed in
+one layer's folder: new files and files whose bytes changed are read, files
+gone are dropped::
+
+    index = LeanIndex.load("project.leanidx", root="path/to/project")
+    report = index.refresh()          # or refresh("project") for a layer
+    report["changed"], report["added"], report["removed"]
+    index.save("project.leanidx")
+
+From the shell, ``--refresh`` with ``--load``::
+
+    python -m scikitplot.lean path/to/project --load project.leanidx \
+        --refresh --save project.leanidx
+
+Every file of the layer is read once for its digest (BLAKE2b, 128 bits)
+and the commands it defines; only the new and changed ones are parsed. The
+index is then the one a new read gives, down to the bytes it saves. When
+the commands the layer defines change, its files and those of the layers
+above are read again, since a command changes how the files that use it
+are split. Give ``include_hidden`` and ``learn_commands`` as the layer was
+read with.
+
+==============  ============  ==================  ==================
+\                read again    refresh: none       refresh: 20 files
+                                changed             changed
+==============  ============  ==================  ==================
+mathlib4 + PFR  27 s          0.8 s               1.4 s
+175,187 files   222 s         13 s                —
+==============  ============  ==================  ==================
+
 A project over its dependencies
 -------------------------------
 

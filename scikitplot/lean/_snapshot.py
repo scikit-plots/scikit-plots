@@ -58,7 +58,8 @@ SAVED = frozenset(
         "_ctx_of", "_flags", "_attributes", "_shape_of", "_private", "_claims",
         "_vacuous", "_ref_names", "_ctx_keys", "_labels", "_imports",
         "_file_lines", "_problems", "_kinds", "_learned", "_skipped",
-        "_layers", "_layer_of", "_layer_kinds",
+        "_layers", "_layer_of", "_digests", "_fk_names", "_fk_ptr", "_fk_data",
+        "_given_commands", "_layer_commands",
         "_dialect", "_commands", "_max_depth", "_max_bytes", "_suffix",
         "_visibility", "_source_root",
     }
@@ -67,10 +68,10 @@ REBUILT = frozenset(
     {
         "_namespace", "_opens", "_by_name", "_ref_ids", "_ctx_ids",
         "_label_ids", "_first_node", "_paths", "_intern", "_generation",
-        "_in_order",
+        "_in_order", "_fk_ids",
     }
 )  # fmt: skip
-CHOSEN_WHEN_LOADING = frozenset({"_graph", "_workers", "_flat"})
+CHOSEN_WHEN_LOADING = frozenset({"_graph", "_workers", "_flat", "_layer_roots"})
 
 #: The format this module writes and reads.
 FORMAT = "lean.index.snapshot/1"
@@ -80,6 +81,8 @@ _ALIGN = 8
 _FRAME = 16
 #: Bytes of one statement-shape digest.
 _DIGEST = 16
+#: Bytes of one file's digest (:func:`scikitplot.lean._index._digest`).
+_FILE_DIGEST = 16
 
 
 # ---------------------------------------------------------------------------
@@ -124,11 +127,28 @@ def dumps(index: Any) -> bytes:
         contexts[new] = "\x00".join((namespace, *opens))
     kinds = sorted(set(index._kind))
     kind_id = {kind: i for i, kind in enumerate(kinds)}
+    # Each file's commands by kind, numbered by sorted kind name.
+    # Only the kinds some file counts: a kind of dropped files is not saved.
+    used = sorted({index._fk_names[k] for k in index._fk_data[0::2]})
+    fk_names = used
+    number = {name: i for i, name in enumerate(used)}
+    fk_new = [number.get(name, -1) for name in index._fk_names]
+    fk_at, fk_data = [0], []
+    ptr, packed = index._fk_ptr, index._fk_data
+    for f in range(len(index._labels)):
+        pairs = sorted(
+            (fk_new[packed[i]], packed[i + 1]) for i in range(ptr[f], ptr[f + 1], 2)
+        )
+        for pair in pairs:
+            fk_data.extend(pair)
+        fk_at.append(len(fk_data))
+    undigested = [f for f, d in enumerate(index._digests) if d is None]
     shaped = sorted(index._shape_of)
     meta = {
         "options": {
             "dialect": index._dialect,
             "commands": sorted(index._commands),
+            "given_commands": sorted(index._given_commands),
             "max_scope_depth": index._max_depth,
             "max_file_bytes": index._max_bytes,
             "suffix": index._suffix,
@@ -138,6 +158,9 @@ def dumps(index: Any) -> bytes:
         "labels": list(index._labels),
         "layers": [list(layer) for layer in index._layers],
         "layer_of": list(index._layer_of),
+        "layer_commands": [sorted(found) for found in index._layer_commands],
+        "file_kind_names": fk_names,
+        "undigested": undigested,
         "imports": [list(found) for found in index._imports],
         "file_lines": list(index._file_lines),
         "problems": [
@@ -145,7 +168,6 @@ def dumps(index: Any) -> bytes:
             for file_id in sorted(index._problems)
         ],
         "kinds_counted": sorted(index._kinds.items()),
-        "kinds_by_layer": [sorted(kinds.items()) for kinds in index._layer_kinds],
         "learned": sorted([k, list(v)] for k, v in index._learned.items()),
         "skipped": sorted(list(item) for item in index._skipped),
         "flags": [[n, list(index._flags[n])] for n in sorted(index._flags)],
@@ -183,6 +205,14 @@ def dumps(index: Any) -> bytes:
         "ctx_of": (_ints(ctx_of, "i"), "i"),
         "shape_of": (_ints(shaped, "i"), "i"),
         "shapes": (b"".join(index._shape_of[n] for n in shaped), "bytes"),
+        "file_kinds_at": (_ints(fk_at, "q"), "q"),
+        "file_kinds": (_ints(fk_data, "i"), "i"),
+        "digests": (
+            b"".join(
+                d if d is not None else bytes(_FILE_DIGEST) for d in index._digests
+            ),
+            "bytes",
+        ),
     }
     body = bytearray()
     table = {}
@@ -306,6 +336,7 @@ _SECTIONS = frozenset(
         "meta", "name_text", "name_at", "named", "kind_text", "kind_at", "kind_of",
         "file_of", "start", "end", "ref_text", "ref_at", "ref_ptr", "ref_data",
         "ctx_text", "ctx_at", "ctx_of", "shape_of", "shapes",
+        "file_kinds_at", "file_kinds", "digests",
     }
 )  # fmt: skip
 
@@ -319,7 +350,10 @@ def _build(
 ) -> Any:
     """Decode a snapshot's sections, check every one, and build its index."""
     if _SECTIONS - set(parts):
-        raise _fail(f"sections missing: {', '.join(sorted(_SECTIONS - set(parts)))}.")
+        raise _fail(
+            f"sections missing: {', '.join(sorted(_SECTIONS - set(parts)))}"
+            " (an earlier development version wrote it: build and save it again)."
+        )
     try:
         meta = json.loads(parts["meta"].decode("utf-8"))
         saved = dict(meta["options"])
@@ -331,7 +365,7 @@ def _build(
     base = _roots(root)
     index = index_class(
         dialect=saved["dialect"],
-        commands=saved["commands"],
+        commands=saved["given_commands"],
         max_scope_depth=saved["max_scope_depth"],
         max_file_bytes=saved["max_file_bytes"],
         suffix=saved["suffix"],
@@ -368,6 +402,9 @@ def _columns(parts: dict[str, bytes], n: int) -> dict[str, Any]:
         "ctx_of": _read_ints(parts["ctx_of"], "i"),
         "shape_of": _read_ints(parts["shape_of"], "i"),
         "shapes": parts["shapes"],
+        "file_kinds_at": _read_ints(parts["file_kinds_at"], "q"),
+        "file_kinds": _read_ints(parts["file_kinds"], "i"),
+        "digests": parts["digests"],
     }
 
 
@@ -386,12 +423,13 @@ def _check_layers(meta: dict[str, Any], labels: list[str], files: int) -> None:
             raise _fail("a file's label does not name its layer.")
         if not layer and any(label.startswith(f"{name}:") for name in names[1:]):
             raise _fail("a file's label names a layer it is not in.")
-    by_layer = _kinds_by_layer(meta, len(layers))
-    total: Counter[str] = Counter()
-    for kinds in by_layer:
-        total.update(kinds)
-    if total != Counter(dict(meta.get("kinds_counted", []))):
-        raise _fail("the counts by layer do not add up to the counts.")
+    found = meta["layer_commands"]
+    if not isinstance(found, list) or len(found) != len(layers):
+        raise _fail("the commands by layer do not match the layers.")
+    given = meta["options"]["given_commands"]
+    union = set(given).union(*map(set, found))
+    if union != set(meta["options"]["commands"]):
+        raise _fail("the commands are not the given and learned ones.")
 
 
 def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> None:
@@ -406,6 +444,7 @@ def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> No
     if len(set(labels)) != files:
         raise _fail("two files have the same label.")
     _check_layers(meta, labels, files)
+    _check_files(cols, meta, files)
     ptr, data = cols["ref_ptr"], cols["ref_data"]
     if len(ptr) != n + 1 or ptr[0] != 0 or ptr[-1] != len(data):
         raise _fail("the reference offsets do not match the declarations.")
@@ -427,36 +466,30 @@ def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> No
     _in_range((pair[0] for pair in meta.get("problems", [])), files, "file")
 
 
-def _positive_int(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value > 0
-
-
-def _kinds_by_layer(meta: dict[str, Any], layers: int) -> list[Counter[str]]:
-    """
-    Return the commands counted by kind in each layer.
-
-    A snapshot of one layer written before they were saved has its counts
-    as the layer's; one of several layers cannot be split, and is refused.
-    """
-    if "kinds_by_layer" not in meta:
-        if layers != 1:
-            raise _fail("it has layers but no counts by layer; save it again.")
-        return [Counter(dict(meta.get("kinds_counted", [])))]
-    by_layer = meta["kinds_by_layer"]
-    if not isinstance(by_layer, list) or len(by_layer) != layers:
-        raise _fail("the counts by layer do not match the layers.")
-    out = []
-    for kinds in by_layer:
-        counted: Counter[str] = Counter()
-        for pair in kinds if isinstance(kinds, list) else [None]:
-            if not (isinstance(pair, list) and len(pair) == 2):  # noqa: PLR2004
-                raise _fail("a count by layer is not valid.")
-            kind, count = pair
-            if not isinstance(kind, str) or not _positive_int(count):
-                raise _fail("a count by layer is not valid.")
-            counted[kind] = count
-        out.append(counted)
-    return out
+def _check_files(cols: dict[str, Any], meta: dict[str, Any], files: int) -> None:
+    """Check each file's digest and its commands counted by kind."""
+    at, data = cols["file_kinds_at"], cols["file_kinds"]
+    if len(at) != files + 1 or at[0] != 0 or at[-1] != len(data) or len(data) % 2:
+        raise _fail("the counts by file do not match the files.")
+    if any(a > b or (b - a) % 2 for a, b in zip(at, at[1:])):
+        raise _fail("the counts by file are out of order.")
+    names = meta["file_kind_names"]
+    if names != sorted(set(names)):
+        raise _fail("the kinds counted by file are not sorted and unique.")
+    _in_range(data[0::2], len(names), "kind")
+    if any(count < 1 for count in data[1::2]):
+        raise _fail("a count by file is not positive.")
+    total: Counter[str] = Counter()
+    for i in range(0, len(data), 2):
+        total[names[data[i]]] += data[i + 1]
+    if total != Counter(dict(meta["kinds_counted"])):
+        raise _fail("the counts by file do not add up to the counts.")
+    if len(cols["digests"]) != _FILE_DIGEST * files:
+        raise _fail("the file digests do not match the files.")
+    undigested = meta["undigested"]
+    if undigested != sorted(set(undigested)):
+        raise _fail("the files without a digest are not sorted and unique.")
+    _in_range(undigested, files, "file")
 
 
 def _fill_files(
@@ -486,7 +519,17 @@ def _fill_files(
     index._learned = {k: (str(v[0]), int(v[1])) for k, v in meta["learned"]}
     index._skipped = [(str(a), str(b)) for a, b in meta["skipped"]]
     index._kinds.update(dict(meta["kinds_counted"]))
-    index._layer_kinds = _kinds_by_layer(meta, len(layers))
+    index._fk_names = list(meta["file_kind_names"])
+    index._fk_ids = {name: i for i, name in enumerate(index._fk_names)}
+    index._fk_ptr, index._fk_data = cols["file_kinds_at"], cols["file_kinds"]
+    blob, none = cols["digests"], set(meta["undigested"])
+    index._digests = [
+        None if f in none else blob[f * _FILE_DIGEST : (f + 1) * _FILE_DIGEST]
+        for f in range(len(index._labels))
+    ]
+    index._layer_roots = [base.get(name) if base else None for name, _ in layers]
+    index._layer_commands = [frozenset(found) for found in meta["layer_commands"]]
+    index._commands = index._given_commands.union(*index._layer_commands)
     if index._layers[0][1] is None and index._source_root is not None:
         index._layers[0] = ("", index._source_root)
 

@@ -242,14 +242,15 @@ def _meta_changed(blob, change):
     return _resign(blob, "meta", json.dumps(meta).encode())
 
 
-def test_counts_by_layer_are_checked(tmp_path):
+def test_counts_by_file_and_commands_by_layer_are_checked(tmp_path):
     saved = _layered(tmp_path).save(tmp_path / "both.leanidx")
     blob = saved.read_bytes()
     bad = {
-        "no counts by layer": lambda m: m.pop("kinds_by_layer"),
-        "do not add up": lambda m: m["kinds_by_layer"][1].append(["axiom", 1]),
-        "not valid": lambda m: m["kinds_by_layer"][1].append(["axiom", 0]),
-        "do not match the layers": lambda m: m["kinds_by_layer"].pop(),
+        "do not add up": lambda m: m["kinds_counted"].append(["axiom", 1]),
+        "not sorted and unique": lambda m: m["file_kind_names"].reverse(),
+        "commands by layer do not match": lambda m: m["layer_commands"].pop(),
+        "not the given and learned": lambda m: m["layer_commands"][1].append("zz"),
+        "without a digest are not sorted": lambda m: m["undigested"].extend([0, 0]),
         "names a layer it is not in": lambda m: m["labels"].__setitem__(0, "p:X.lean"),
     }
     for message, change in bad.items():
@@ -258,11 +259,16 @@ def test_counts_by_layer_are_checked(tmp_path):
             LeanIndex.load(saved)
 
 
-def test_a_one_layer_snapshot_without_counts_by_layer_loads(tmp_path):
+def test_a_snapshot_of_an_earlier_development_version_is_refused(tmp_path):
+    from .test__snapshot import _resign
+
     saved = LeanIndex.from_folder(_write(tmp_path / "base", BASE)).save(tmp_path / "b.leanidx")
-    saved.write_bytes(_meta_changed(saved.read_bytes(), lambda m: m.pop("kinds_by_layer")))
-    index = LeanIndex.load(saved)
-    assert index.summary(layer="")["kinds"] == index.summary()["kinds"]
+    blob = saved.read_bytes()
+    saved.write_bytes(
+        _resign(blob, header_change=lambda h: h["sections"].pop("digests"))
+    )
+    with pytest.raises(ValueError, match="sections missing: digests .*save it again"):
+        LeanIndex.load(saved)
 
 
 def test_a_layer_name_a_base_label_starts_with_is_refused(tmp_path):
