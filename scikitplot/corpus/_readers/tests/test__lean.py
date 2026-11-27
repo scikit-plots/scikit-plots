@@ -830,6 +830,9 @@ def _python(code):
 def test_corpus_without_scikitplot_lean_says_what_to_install(tmp_path):
     # The partial scikit-plots-corpus without its ``lean`` extra: the corpus
     # imports, ``.lean`` still has its reader, and using it names the fix.
+    # The error is a ModuleNotFoundError naming scikitplot.lean: the partial
+    # distributions' test plugin (libs/_tools/pytest_partial.py) reads that
+    # name to report a test needing the absent part as skipped, not failed.
     path = _write(tmp_path, "theorem t : True := trivial\n")
     done = _python(
         "import sys; sys.modules['scikitplot.lean'] = None\n"
@@ -841,6 +844,8 @@ def test_corpus_without_scikitplot_lean_says_what_to_install(tmp_path):
         f"    corpus.LeanReader(input_path={str(path)!r})\n"
         "except ImportError as exc:\n"
         "    assert 'scikitplot.lean' in str(exc) and 'pip install' in str(exc), exc\n"
+        "    assert isinstance(exc, ModuleNotFoundError), type(exc)\n"
+        "    assert exc.name == 'scikitplot.lean', exc.name\n"
         "    print('ok')\n"
     )
     assert done.returncode == 0, done.stderr[-2000:]
