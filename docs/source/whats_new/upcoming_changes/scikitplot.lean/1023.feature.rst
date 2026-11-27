@@ -5,4 +5,5 @@
   on a saved index without its files, and gives the same report: on
   mathlib4 10 s instead of 34 s, for 29 MB more in memory and a saved
   index of 85 MB instead of 57 MB. Without it, statements are now read
-  again exactly as the index read them, so the two always agree.
+  again exactly as the index read them (33 s instead of 27 s on mathlib4
+  with PFR), so the two always agree.
