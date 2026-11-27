@@ -311,7 +311,7 @@ def test_each_layer_is_read_with_its_own_and_lower_commands(tmp_path):
     ("defined", "label", "error", "message"),
     [
         ({"go": 1}, 3, TypeError, "label must be a str"),
-        ([("go", 1)], "A.lean", TypeError, "defined must be a dict"),
+        ([("go", 1)], "A.lean", TypeError, "defined must be a mapping"),
         ({"#go": 1}, "A.lean", ValueError, "is not a command keyword"),
         ({"go": 0}, "A.lean", ValueError, "must be an int >= 1"),
     ],
@@ -321,9 +321,32 @@ def test_learned_commands_are_checked(defined, label, error, message):
         LeanIndex().learn_commands(defined, label=label)
 
 
-def test_the_first_definition_learned_is_kept(tmp_path):
+def test_learning_is_order_free_and_idempotent(tmp_path):
+    from types import MappingProxyType
+
+    calls = [({"go": 3}, "B.lean"), ({"go": 7, "stop": 2}, "A.lean"), ({"go": 1}, "C.lean")]
+    found = []
+    for order in (calls, calls[::-1], calls + calls):
+        index = LeanIndex()
+        for defined, label in order:
+            index.learn_commands(MappingProxyType(defined), label=label)
+        found.append((index._learned, index.commands()))
+    assert found[0] == found[1] == found[2]
+    assert found[0][0] == {"go": ("A.lean", 7), "stop": ("A.lean", 2)}  # smallest label
+
+
+def test_the_first_layer_definition_wins_over_a_higher_layer(tmp_path):
+    index = _layered(tmp_path)
+    tool = _write(tmp_path / "tool", {"Tool/Cmd.lean": 'elab "audit_now" : command => pure ()\n'})
+    index.add_folder(tool, name="tool")
+    assert index._learned["audit_now"][0] == "tool:Tool/Cmd.lean"
+    index.learn_commands({"audit_now": 4}, label="Z.lean")
+    assert index._learned["audit_now"] == ("Z.lean", 4)
+    assert "audit_now" in index.commands("")
+
+
+def test_learned_commands_are_saved(tmp_path):
     index = LeanIndex()
-    index.learn_commands({"go": 3}, label="A.lean")
-    index.learn_commands({"go": 1, "stop": 2}, label="B.lean")
-    assert index._learned == {"go": ("A.lean", 3), "stop": ("B.lean", 2)}
-    assert index.commands() == frozenset({"go", "stop"})
+    index.learn_commands({"go": 2}, label="A.lean")
+    loaded = LeanIndex.load(index.save(tmp_path / "a.leanidx"))
+    assert (loaded._learned, loaded.commands()) == (index._learned, index.commands())

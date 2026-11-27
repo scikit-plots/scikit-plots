@@ -47,6 +47,7 @@ import sys
 import zlib
 from array import array
 from collections import Counter, OrderedDict, deque
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
@@ -1347,13 +1348,13 @@ class LeanIndex:
             self._keep_shapes,
         )
 
-    def learn_commands(self, defined: dict[str, int], *, label: str) -> None:
+    def learn_commands(self, defined: Mapping[str, int], *, label: str) -> None:
         """
         Learn the commands one file defines, as :meth:`from_folder` learns them.
 
         Parameters
         ----------
-        defined : dict of str to int
+        defined : mapping of str to int
             Keyword to the line of its definition, as
             :func:`defined_commands` returns them for the file's text.
         label : str
@@ -1362,7 +1363,7 @@ class LeanIndex:
         Raises
         ------
         TypeError
-            If *defined* is not a dict, or *label* is not a str.
+            If *defined* is not a mapping, or *label* is not a str.
         ValueError
             If a keyword is not an identifier, or a line is not an int >= 1.
 
@@ -1374,19 +1375,22 @@ class LeanIndex:
         -----
         **User.** To index files one at a time as :meth:`from_folder`
         indexes a folder (the members of an archive, say): learn every
-        file's commands first, in label order, then read each file with
-        ``commands=index.commands()`` and add it. The first definition of a
-        keyword is the one recorded (``learned_commands`` in the summary,
-        and the code a generator runs). The commands are the first layer's;
-        files already added were read without them.
+        file's commands first, then read each file with
+        ``commands=index.commands()`` and add it. Where a keyword is
+        recorded as defined (``learned_commands`` in the summary, and the
+        code a generator runs) is the file of smallest label that defines
+        it, as :meth:`from_folder` records it: files may be learned in any
+        order, and learning one twice changes nothing. The commands are the
+        first layer's (its definitions win over a higher layer's); files
+        already added were read without them.
         """
         if not isinstance(label, str):
             raise TypeError(
                 f"LeanIndex.learn_commands: label must be a str; got {label!r}."
             )
-        if not isinstance(defined, dict):
+        if not isinstance(defined, Mapping):
             raise TypeError(
-                "LeanIndex.learn_commands: defined must be a dict;"
+                "LeanIndex.learn_commands: defined must be a mapping;"
                 f" got {type(defined).__name__}."
             )
         for keyword, line in defined.items():
@@ -1400,7 +1404,14 @@ class LeanIndex:
                     f" int >= 1; got {line!r}."
                 )
         for keyword, line in defined.items():
-            self._learned.setdefault(keyword, (label, line))
+            held = self._learned.get(keyword)
+            # The first layer's definition of smallest label wins.
+            if (
+                held is None
+                or self._layer_of_label(held[0]) > 0
+                or (label, line) < held
+            ):
+                self._learned[keyword] = (label, line)
         self._set_layer_commands(0, self._layer_commands[0] | frozenset(defined))
 
     def commands(self, layer: str = "") -> frozenset[str]:
@@ -1435,8 +1446,7 @@ class LeanIndex:
         reads it: chunks read so give :meth:`add_chunks` the index
         :meth:`add_file` gives.
         """
-        self._scope(layer)  # checks it
-        return self._commands_for([name for name, _ in self._layers].index(layer))
+        return self._commands_for(self._layer_number(layer))
 
     def _commands_for(self, layer: int) -> frozenset[str]:
         """Return the commands layer *layer* is read with."""
@@ -1852,13 +1862,17 @@ class LeanIndex:
         """
         if layer is None:
             return None
+        at = self._layer_number(layer)
+        return frozenset(f for f, held in enumerate(self._layer_of) if held == at)
+
+    def _layer_number(self, layer: str) -> int:
+        """Return the number of the layer named *layer*; ``ValueError`` if none is."""
         names = [name for name, _root in self._layers]
         if not isinstance(layer, str) or layer not in names:
             raise ValueError(
                 f"LeanIndex: layer must be None or one of {names!r}; got {layer!r}."
             )
-        at = names.index(layer)
-        return frozenset(f for f, held in enumerate(self._layer_of) if held == at)
+        return names.index(layer)
 
     def _layer_of_label(self, label: str) -> int:
         """Return the layer of a file label, indexed or skipped (by its prefix)."""
