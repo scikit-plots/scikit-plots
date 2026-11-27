@@ -291,6 +291,14 @@ class LeanIndex:
         no module. ``None`` (default) finds it from the imports; see
         :meth:`_module_files`. Set it when a small project's only imports
         could name either a dependency or a project file.
+    graph : {"python", "numpy"}, optional
+        How the whole-graph steps run. ``"python"`` (default): the standard
+        library. ``"numpy"``: once a step needs every edge (``summary``,
+        ``discover``, ``export``), the edges are packed into two NumPy
+        arrays (about six times less memory than one array per
+        declaration) and use counts and breadth-first searches run
+        vectorised. Reports are identical. Needs NumPy; name resolution,
+        most of the time on real projects, is the same in both.
 
     See Also
     --------
@@ -356,6 +364,7 @@ class LeanIndex:
         suffix: str = "unique",
         visibility: str = "imports",
         source_root: str | None = None,
+        graph: str = "python",
     ) -> None:
         if dialect not in ("lean4", "lean3"):
             raise ValueError(
@@ -398,6 +407,20 @@ class LeanIndex:
         self._suffix = suffix
         self._visibility = visibility
         self._source_root = None if source_root is None else source_root.strip("/")
+        if graph not in ("python", "numpy"):
+            raise ValueError(
+                f"LeanIndex: graph must be 'python' or 'numpy'; got {graph!r}."
+            )
+        if graph == "numpy":
+            try:  # import it: a broken install fails here, not mid-report
+                import numpy as np  # noqa: F401, PLC0415
+            except ImportError as exc:
+                raise ImportError(
+                    "LeanIndex(graph='numpy') needs NumPy: pip install numpy;"
+                    " graph='python' needs nothing."
+                ) from exc
+        self._graph = graph
+        self._packed: tuple[Any, Any] | None = None
         self._reach: dict[int, int] = {}
         # files
         self._labels: list[str] = []
@@ -612,6 +635,7 @@ class LeanIndex:
         self._by_short = None
         self._edges.clear()
         self._reach.clear()
+        self._packed = None
         self._contexts.clear()
         return file_id
 
@@ -900,6 +924,12 @@ class LeanIndex:
         (compressed rows of 4-byte node numbers), then dropped: time and
         memory linear in the edges.
         """
+        if self._graph == "numpy":
+            from ._graph_numpy import breadth_first, reverse  # noqa: PLC0415
+
+            indptr, codes = self._pack()
+            rev_indptr, rev_codes = reverse(indptr, codes, len(self._name))
+            return breadth_first(rev_indptr, rev_codes, targets, len(self._name))
         n = len(self._name)
         offsets = array("q", bytes(8 * (n + 1)))
         for node in range(n):
@@ -1069,9 +1099,18 @@ class LeanIndex:
 
     def _edges_of(self, node: int) -> array[int]:
         """Return *node*'s edges as ``target * 4 + how``, resolving them once."""
+        if self._packed is not None:
+            indptr, codes = self._packed
+            return codes[indptr[node] : indptr[node + 1]].tolist()
         edges = self._edges.get(node)
         if edges is not None:
             return edges
+        edges = self._compute_edges(node)
+        self._edges[node] = edges
+        return edges
+
+    def _compute_edges(self, node: int) -> array[int]:
+        """Resolve *node*'s edges as ``target * 4 + how``, sorted; nothing is cached."""
         refs = self._refs[node] or ()
         namespace, opens = self._namespace[node], self._opens[node]
         file_id = self._file[node]
@@ -1088,14 +1127,52 @@ class LeanIndex:
                     continue  # a private declaration is seen from its own file only
                 if how < best.get(target, 3):
                     best[target] = how
-        edges = array("l", sorted(target * 4 + how for target, how in best.items()))
-        self._edges[node] = edges
-        return edges
+        return array("l", sorted(target * 4 + how for target, how in best.items()))
+
+    def _pack(self) -> tuple[Any, Any]:
+        """
+        Resolve every edge and pack them into CSR arrays (``graph="numpy"``).
+
+        The per-declaration arrays are dropped once packed; a file added
+        later drops the packing, as it drops every edge.
+        """
+        if self._packed is None:
+            from ._graph_numpy import pack  # noqa: PLC0415
+
+            # Edges already resolved are reused; the rest go straight into
+            # the packed arrays without being kept one array per node, so
+            # the peak holds the packed edges, not both copies.
+            cached = self._edges
+
+            def edges_of(node: int) -> Any:
+                found = cached.pop(node, None)
+                return found if found is not None else self._compute_edges(node)
+
+            self._packed = pack(edges_of, len(self._name))
+            self._edges = {}
+        return self._packed
 
     def _closure(
         self, roots: Sequence[int], *, expand: frozenset[str] | None = None
     ) -> dict[int, tuple[int, int]]:
         """Breadth-first: each reached node to ``(parent, how)``; roots to ``(-1, -1)``."""
+        if self._packed is not None:
+            # Edges already packed by a whole-graph step: search vectorised.
+            # (A dossier alone keeps the lazy search: packing resolves every
+            # edge of the project, far more than one closure needs.)
+            import numpy as np  # noqa: PLC0415
+
+            from ._graph_numpy import breadth_first  # noqa: PLC0415
+
+            follow = None
+            if expand is not None:
+                follow = np.fromiter(
+                    (kind in expand for kind in self._kind),
+                    dtype=bool,
+                    count=len(self._kind),
+                )
+            indptr, codes = self._packed
+            return breadth_first(indptr, codes, roots, len(self._name), follow=follow)
         reached: dict[int, tuple[int, int]] = dict.fromkeys(roots, (-1, -1))
         queue = deque(roots)
         while queue:
