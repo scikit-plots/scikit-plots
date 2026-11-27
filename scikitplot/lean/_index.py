@@ -2281,6 +2281,103 @@ class LeanIndex:
 
     # -- output -------------------------------------------------------------
 
+    def save(self, path: str | Path) -> Path:
+        """
+        Write the index to one file, to load back with :meth:`load`.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The file to write (replaced atomically if it exists); its folder
+            is made if needed.
+
+        Returns
+        -------
+        pathlib.Path
+            *path*.
+
+        Raises
+        ------
+        ValueError
+            If *path* is a folder.
+
+        See Also
+        --------
+        load : Read a saved index.
+
+        Notes
+        -----
+        **User.** A snapshot holds the index, not its caches, in the format
+        ``lean.index.snapshot/1``: numbers and text only, nothing that runs
+        when loaded, with a checksum. The same files give the same bytes,
+        whatever order they were added in. Files are named by label, not
+        by path, so a snapshot can be moved and shared.
+
+        Examples
+        --------
+        >>> import tempfile, pathlib
+        >>> from scikitplot.lean import LeanIndex
+        >>> root = pathlib.Path(tempfile.mkdtemp())
+        >>> _ = (root / "A.lean").write_text("theorem t : True := trivial")
+        >>> index = LeanIndex.from_folder(root)
+        >>> saved = index.save(root / "index.leanidx")
+        >>> LeanIndex.load(saved).find("t")[0]["declaration"]
+        't'
+        """
+        from ._snapshot import save  # noqa: PLC0415
+
+        return save(self, path)
+
+    @classmethod
+    def load(
+        cls,
+        path: str | Path,
+        *,
+        root: str | Path | None = None,
+        graph: str = "python",
+        workers: int | None = 1,
+    ) -> LeanIndex:
+        """
+        Read an index written by :meth:`save`.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The snapshot.
+        root : str, pathlib.Path or None, optional
+            The project folder the snapshot was made from. With it, reports
+            quote statements and definitions from the files inside it; a
+            label that would lead outside it is not read. ``None``
+            (default): no file is read, and reports give each item's file
+            and lines without its text.
+        graph : {"python", "numpy", "scipy"}, optional
+            As for :class:`LeanIndex`. Default: ``"python"``.
+        workers : int or None, optional
+            As for :class:`LeanIndex`. Default: ``1``.
+
+        Returns
+        -------
+        LeanIndex
+            The index saved, with the options it was built with; every
+            report is the one the saved index gives.
+
+        Raises
+        ------
+        ValueError
+            If the file is not a snapshot of this format, or is damaged or
+            altered: a wrong checksum, a section missing or out of place,
+            a number out of range.
+        OSError
+            If the file cannot be read.
+
+        See Also
+        --------
+        save : Write a snapshot.
+        """
+        from ._snapshot import load  # noqa: PLC0415
+
+        return load(path, cls, root=root, graph=graph, workers=workers)
+
     @staticmethod
     def render(report: dict[str, Any]) -> str:
         """
@@ -2495,6 +2592,29 @@ def _render_dossier(report: dict[str, Any]) -> str:  # noqa: PLR0912
 # ---------------------------------------------------------------------------
 
 
+def _index_for(args: argparse.Namespace) -> LeanIndex:
+    """Return the index the command line asks for: read from a snapshot, or built (and saved)."""
+    workers = None if args.workers == 0 else args.workers
+    if args.load is not None:
+        return LeanIndex.load(
+            args.load, root=args.folder, graph=args.graph, workers=workers
+        )
+    index = LeanIndex.from_folder(
+        args.folder,
+        include_hidden=args.include_hidden,
+        learn_commands=not args.no_learn_commands,
+        dialect=args.dialect,
+        commands=args.command,
+        visibility=args.visibility,
+        source_root=args.source_root,
+        workers=workers,
+        graph=args.graph,
+    )
+    if args.save is not None:
+        index.save(args.save)
+    return index
+
+
 def _report_unresolved(reports: list[dict[str, Any]], prog: str) -> bool:
     """
     Name on standard error each target that is not one declaration.
@@ -2603,6 +2723,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=("imports", "all"),
         help="link names only into imported files (default), or anywhere",
     )
+    parser.add_argument(
+        "--save",
+        type=Path,
+        metavar="FILE",
+        help="also write the index to FILE (see LeanIndex.save)",
+    )
+    parser.add_argument(
+        "--load",
+        type=Path,
+        metavar="FILE",
+        help="read the index from FILE instead of indexing; FOLDER is where its files are",
+    )
     args = parser.parse_args(argv)
     unknown = sorted(set(args.fail_on) - AUDIT_FLAGS)
     if unknown:
@@ -2611,17 +2743,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             f" choose from {', '.join(sorted(AUDIT_FLAGS))}"
         )
     try:
-        index = LeanIndex.from_folder(
-            args.folder,
-            include_hidden=args.include_hidden,
-            learn_commands=not args.no_learn_commands,
-            dialect=args.dialect,
-            commands=args.command,
-            visibility=args.visibility,
-            source_root=args.source_root,
-            workers=None if args.workers == 0 else args.workers,
-            graph=args.graph,
-        )
+        index = _index_for(args)
         if args.target:
             reports = [index.dossier(t, max_items=args.max_items) for t in args.target]
         elif args.discover:

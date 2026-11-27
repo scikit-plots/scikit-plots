@@ -68,6 +68,16 @@ class StandIn:
         self.calls.append("export")
         return ["README.md", "records.jsonl"]
 
+    def save(self, path):
+        self.calls.append("save")
+        Path(path).write_bytes(b"x" * 2048)
+        return path
+
+    @classmethod
+    def load(cls, path, root, **options):
+        cls.calls.append("load")
+        return cls(headline=Path(root, "headline").exists())
+
 
 def _run(argv):
     out = io.StringIO()
@@ -241,6 +251,23 @@ class MemoryTest(unittest.TestCase):
             status, text = _run([root, "--no-pss", "--json"])
         self.assertEqual(status, 0)
         self.assertIsNone(json.loads(text)["memory_mb"])
+
+
+class SnapshotTest(unittest.TestCase):
+    def test_save_and_load_are_timed_and_checked(self):
+        with tempfile.TemporaryDirectory() as root:
+            status, text = _run([root, "--snapshot", "--no-pss", "--json"])
+        result = json.loads(text)
+        self.assertEqual(status, 0)
+        self.assertIn("save", result["seconds"])
+        self.assertIn("load", result["seconds"])
+        self.assertEqual(result["snapshot"], {"mb": 0.0, "identical": True})
+
+    def test_without_snapshot_nothing_is_saved(self):
+        with tempfile.TemporaryDirectory() as root:
+            _status, text = _run([root, "--no-pss", "--json"])
+        self.assertIsNone(json.loads(text)["snapshot"])
+        self.assertNotIn("save", StandIn.calls)
 
 
 if __name__ == "__main__":

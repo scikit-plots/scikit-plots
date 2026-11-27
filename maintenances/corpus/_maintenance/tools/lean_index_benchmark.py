@@ -196,6 +196,7 @@ def measure(
     top: int,
     options: dict[str, Any] | None = None,
     pss: bool = False,
+    snapshot: bool = False,
 ) -> dict[str, Any]:
     """
     Run every stage on *folder* and return the timings and counts.
@@ -216,6 +217,10 @@ def measure(
     pss : bool, optional
         Sample the PSS of this process and its workers (Linux; ignored
         elsewhere). Default: ``False``.
+    snapshot : bool, optional
+        Also time ``save`` and ``load`` (stages ``save`` and ``load``),
+        and check that the loaded index gives the same report. Default:
+        ``False``.
 
     Returns
     -------
@@ -223,8 +228,9 @@ def measure(
         ``seconds`` per stage, ``peak_mb`` (this process), ``workers_peak_mb``
         (the largest worker process, when ``workers`` > 1), ``nodes``, ``files``,
         ``skipped``, ``sections`` (count per discovery section),
-        ``files_written``, ``options``, ``report_sha`` and ``memory_mb``
-        (peak PSS per stage and ``"all"``, or ``None``).
+        ``files_written``, ``options``, ``report_sha``, ``memory_mb``
+        (peak PSS per stage and ``"all"``, or ``None``) and ``snapshot``
+        (``{"mb", "identical"}`` with ``snapshot``, else ``None``).
     """
     seconds: dict[str, float] = {}
     windows: dict[str, tuple[float, float]] = {}
@@ -258,6 +264,18 @@ def measure(
         )
     digest = _digest(summary, report, dossier)
     written = timed("export", lambda: index.export(out, top=top))
+    saved = None
+    if snapshot:
+        with tempfile.TemporaryDirectory() as scratch:
+            file = Path(scratch, "index.leanidx")
+            timed("save", lambda: index.save(file))
+            runtime = {k: v for k, v in options.items() if k in ("graph", "workers")}
+            loaded = timed("load", lambda: index_class.load(file, root=folder, **runtime))
+            again = loaded.dossier(headline[0]["declaration"], max_items=top) if headline else None
+            identical = _digest(
+                loaded.summary(max_items=top), loaded.discover(top=top), again
+            ) == digest
+            saved = {"mb": round(file.stat().st_size / 2**20, 1), "identical": identical}
     memory = None
     if sampler is not None:
         time.sleep(PSS_INTERVAL)  # one sample after the last stage
@@ -283,6 +301,7 @@ def measure(
         "options": options,
         "report_sha": digest,
         "memory_mb": memory,
+        "snapshot": saved,
     }
 
 
@@ -357,6 +376,9 @@ def _text(result: dict[str, Any]) -> str:
         f" {result['skipped']} skipped; peak {result['peak_mb']} MB",
         "seconds: " + ", ".join(f"{k} {v}" for k, v in result["seconds"].items()),
     ]
+    saved = result.get("snapshot")
+    if saved:
+        lines.append(f"snapshot: {saved['mb']} MB, loaded report identical: {saved['identical']}")
     memory = result.get("memory_mb")
     if memory:
         lines.append("PSS MB: " + ", ".join(f"{k} {v}" for k, v in memory.items()))
@@ -379,6 +401,11 @@ def main(argv: Sequence[str] | None = None, *, index_class: Any = None) -> int:
     parser.add_argument("--workers", type=int, default=1, help="0: every CPU")
     parser.add_argument(
         "--no-pss", action="store_true", help="do not sample memory (PSS, Linux)"
+    )
+    parser.add_argument(
+        "--snapshot",
+        action="store_true",
+        help="also time LeanIndex.save and load, and check the loaded report",
     )
     parser.add_argument(
         "--compare",
@@ -412,6 +439,7 @@ def main(argv: Sequence[str] | None = None, *, index_class: Any = None) -> int:
                 top=args.top,
                 options=options,
                 pss=not args.no_pss,
+                snapshot=args.snapshot,
             )
         except ImportError as exc:  # the backend's optional dependency
             print(f"unavailable: {exc}", file=sys.stderr)  # noqa: T201
