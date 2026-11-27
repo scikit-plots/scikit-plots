@@ -36,9 +36,11 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import concurrent.futures
 import json
 import os
 import sys
+import zlib
 from array import array
 from collections import Counter, OrderedDict, deque
 from pathlib import Path
@@ -136,6 +138,13 @@ _ADDS = frozenset({"add_decl", "axiom"})
 #: Every audit flag a chunk can carry: the token flags of ``LEAN_FLAGS``,
 #: ``axiom`` on an ``axiom`` declaration and ``after_exit`` past ``#exit``.
 AUDIT_FLAGS = frozenset(LEAN_FLAGS.values()) | {"axiom", "after_exit"}
+
+#: Past this many files, import bitsets are kept zlib-compressed (see
+#: ``LeanIndex._sees``): below it they take little memory either way.
+_COMPRESS_FILES = 20_000
+
+#: Import bitsets kept expanded at once (declarations come file by file).
+_EXPANDED = 64
 
 #: Name-resolution contexts (namespace and opens) kept resolved at once.
 _CONTEXT_CACHE = 256
@@ -252,6 +261,112 @@ def _names_the_project(module: str, modules: Any, roots: Any) -> bool:
     return parts[0] in roots or any(
         ".".join(parts[i:]) in modules for i in range(1, len(parts))
     )
+
+
+def _compact(chunk: dict[str, Any]) -> tuple[Any, ...]:
+    """
+    Return what the index keeps of one command, as a plain tuple.
+
+    Imports: ``("import", modules)``; other commands outside the graph:
+    ``(kind,)``; a declaration: ``(kind, name, line_start, line_end,
+    namespace, opens, references, flags, attributes, private, shape,
+    claim)``, its statement-shape digest and whether it is a definition of
+    type ``Prop`` computed here, so a worker process does that work too.
+    """
+    kind = chunk["lean_kind"]
+    if kind == "import":
+        return (kind, tuple(chunk.get("imports", ())))
+    if kind in _NOT_NODES:
+        return (kind,)
+    name = chunk.get("declaration")
+    shape = None
+    claim = False
+    if kind in ("theorem", "lemma"):
+        statement = chunk.get("statement")
+        shape = None if statement is None else fingerprint(statement, kind, name)
+    elif kind in ("def", "abbrev"):
+        claim = states_a_claim(chunk["text"])
+    return (
+        kind,
+        name,
+        chunk["line_start"],
+        chunk["line_end"],
+        chunk.get("namespace", ""),
+        tuple(chunk.get("opens", ())),
+        tuple(chunk.get("references", ())),
+        tuple(chunk.get("flags", ())),
+        tuple(chunk.get("attributes", ())),
+        "private" in chunk.get("modifiers", ()),
+        shape,
+        claim,
+    )
+
+
+def _read_file(
+    path: str | Path, label: str, settings: tuple[str, frozenset[str], int, int]
+) -> tuple[Any, ...]:
+    """
+    Read one ``.lean`` file into records; the work a worker process does.
+
+    Returns ``("ok", records, lines)`` (records from :func:`_compact`) or
+    ``("skip", reason)``: larger than ``max_file_bytes``, unreadable, or
+    nesting deeper than ``max_scope_depth``. A file is read whole before
+    any of it is added, so a skipped file adds nothing.
+    """
+    dialect, commands, max_depth, max_bytes = settings
+    path = Path(path)
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        return ("skip", f"unreadable: {exc.strerror or exc}")
+    if size > max_bytes:
+        return ("skip", f"larger than max_file_bytes={max_bytes:,}")
+    splitter = _Splitter(
+        file_name=label,
+        meta={},
+        step=None,
+        cap=None,
+        proofs="keep",
+        dialect=dialect,
+        kinds=None,
+        watch=(),
+        commands=commands,
+        max_scope_depth=max_depth,
+        flag_tokens=LEAN_FLAGS,
+        references=True,
+        statements=True,
+    )
+    records: list[tuple[Any, ...]] = []
+    number = 0
+    try:
+        with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
+            for number, read in enumerate(stream, start=1):
+                line = read[:-1] if read.endswith("\n") else read
+                if number == 1 and line.startswith("\ufeff"):
+                    line = line[1:]
+                records.extend(_compact(chunk) for chunk in splitter.feed(number, line))
+        records.extend(_compact(chunk) for chunk in splitter.finish())
+    except OSError as exc:
+        return ("skip", f"unreadable: {exc.strerror or exc}")
+    except ValueError as exc:  # nesting past max_scope_depth
+        return ("skip", str(exc))
+    return ("ok", records, number)
+
+
+def _workers(value: Any) -> int:
+    """Validate ``workers``: an int >= 1, or ``None`` for every CPU."""
+    if value is None:
+        return max(1, os.cpu_count() or 1)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(
+            f"LeanIndex: workers must be an int >= 1 or None; got {value!r}."
+        )
+    return value
+
+
+def _read_file_star(arguments: tuple[Any, ...]) -> tuple[Any, ...]:
+    """:func:`_read_file` for ``Executor.map`` (one picklable argument)."""
+    return _read_file(*arguments)
 
 
 class LeanIndex:
@@ -421,7 +536,8 @@ class LeanIndex:
                 ) from exc
         self._graph = graph
         self._packed: tuple[Any, Any] | None = None
-        self._reach: dict[int, int] = {}
+        self._reach: dict[int, int | bytes] = {}
+        self._expanded: OrderedDict[int, int] = OrderedDict()
         # files
         self._labels: list[str] = []
         self._label_ids: dict[str, int] = {}
@@ -466,6 +582,7 @@ class LeanIndex:
         *,
         include_hidden: bool = False,
         learn_commands: bool = True,
+        workers: int | None = 1,
         **options: Any,
     ) -> LeanIndex:
         """
@@ -482,6 +599,13 @@ class LeanIndex:
             Symbolic links to folders are never followed; a link to a file
             is read only when it resolves inside *folder*, and is otherwise
             listed as skipped. The same files are read on every Python.
+        workers : int or None, optional
+            Processes that read the files (``concurrent.futures``, standard
+            library). ``1`` (default) reads them here, one at a time;
+            ``None`` uses every CPU. Files are read independently and added
+            in sorted order, so the index, and every report, is the same for
+            any number of workers. Worth it for large projects: starting
+            the processes and sending the records back cost a little.
         learn_commands : bool, optional
             Before indexing, read every file for the commands the project
             defines (``elab``, ``macro`` or ``syntax "kw" ... : command``)
@@ -503,21 +627,45 @@ class LeanIndex:
         root = Path(folder)
         if not root.is_dir():
             raise ValueError(f"LeanIndex: {folder!s} is not a folder.")
+        workers = _workers(workers)
         files, refused = _lean_files(root, include_hidden=include_hidden)
-        learned: dict[str, tuple[str, int]] = {}
-        if learn_commands:
-            for path, label in files:
-                for keyword, number in _commands_of(path).items():
-                    learned.setdefault(keyword, (label, number))
-        if learned:
-            options["commands"] = sorted(
-                set(options.get("commands", ())) | set(learned)
+        pool = None
+        if workers > 1 and len(files) > 1:
+            pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+        try:
+            # Executor.map returns results in submission order: the same
+            # order, and so the same index, as reading one file at a time.
+            chunk = max(1, len(files) // (workers * 16))
+            paths = [path for path, _ in files]
+            learned: dict[str, tuple[str, int]] = {}
+            if learn_commands:
+                defined = (
+                    pool.map(_commands_of, paths, chunksize=chunk)
+                    if pool is not None
+                    else map(_commands_of, paths)
+                )
+                for (_, label), found in zip(files, defined):
+                    for keyword, number in found.items():
+                        learned.setdefault(keyword, (label, number))
+            if learned:
+                options["commands"] = sorted(
+                    set(options.get("commands", ())) | set(learned)
+                )
+            index = cls(**options)
+            index._learned = learned
+            index._skipped.extend(refused)
+            settings = index._settings()
+            jobs = [(path, label, settings) for path, label in files]
+            outcomes = (
+                pool.map(_read_file_star, jobs, chunksize=chunk)
+                if pool is not None
+                else map(_read_file_star, jobs)
             )
-        index = cls(**options)
-        index._learned = learned
-        index._skipped.extend(refused)
-        for path, label in files:
-            index.add_file(path, label=label)
+            for (path, label), outcome in zip(files, outcomes):
+                index._apply(index._new_file(label, path), label, outcome)
+        finally:
+            if pool is not None:
+                pool.shutdown()  # Python 3.8: no cancel_futures
         return index
 
     def add_file(self, path: str | Path, *, label: str | None = None) -> None:
@@ -541,42 +689,21 @@ class LeanIndex:
         path = Path(path)
         label = str(path) if label is None else label
         file_id = self._new_file(label, path)
-        try:
-            size = path.stat().st_size
-        except OSError as exc:
-            self._skipped.append((label, f"unreadable: {exc.strerror or exc}"))
+        self._apply(file_id, label, _read_file(path, label, self._settings()))
+
+    def _settings(self) -> tuple[str, frozenset[str], int, int]:
+        """Return the options a file is read with, as :func:`_read_file` takes them."""
+        return (self._dialect, self._commands, self._max_depth, self._max_bytes)
+
+    def _apply(self, file_id: int, label: str, outcome: tuple[Any, ...]) -> None:
+        """Add what :func:`_read_file` read of one file, or list it as skipped."""
+        if outcome[0] == "skip":
+            self._skipped.append((label, outcome[1]))
             return
-        if size > self._max_bytes:
-            self._skipped.append(
-                (label, f"larger than max_file_bytes={self._max_bytes:,}")
-            )
-            return
-        splitter = self._splitter(label)
-        nodes_before = len(self._name)
-        kinds_before = self._kinds.copy()
-        number = 0
-        try:
-            with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
-                for number, read in enumerate(stream, start=1):
-                    line = read[:-1] if read.endswith("\n") else read
-                    if number == 1 and line.startswith("﻿"):
-                        line = line[1:]
-                    for chunk in splitter.feed(number, line):
-                        self._add_chunk(chunk, file_id)
-            for chunk in splitter.finish():
-                self._add_chunk(chunk, file_id)
-        except (ValueError, OSError) as exc:  # nesting past max_scope_depth; I/O
-            self._drop_nodes(nodes_before)
-            self._kinds = kinds_before
-            self._imports[file_id] = ()
-            reason = (
-                f"unreadable: {exc.strerror or exc}"
-                if isinstance(exc, OSError)
-                else str(exc)
-            )
-            self._skipped.append((label, reason))
-            return
-        self._file_lines[file_id] = number
+        _, records, lines = outcome
+        for record in records:
+            self._add_record(record, file_id)
+        self._file_lines[file_id] = lines
 
     def add_chunks(self, chunks: Iterable[dict[str, Any]], *, label: str) -> None:
         """
@@ -635,57 +762,61 @@ class LeanIndex:
         self._by_short = None
         self._edges.clear()
         self._reach.clear()
+        self._expanded.clear()
         self._packed = None
         self._contexts.clear()
         return file_id
-
-    def _splitter(self, label: str) -> _Splitter:
-        return _Splitter(
-            file_name=label,
-            meta={},
-            step=None,
-            cap=None,
-            proofs="keep",
-            dialect=self._dialect,
-            kinds=None,
-            watch=(),
-            commands=self._commands,
-            max_scope_depth=self._max_depth,
-            flag_tokens=LEAN_FLAGS,
-            references=True,
-            statements=True,
-        )
 
     def _interned(self, value: Any) -> Any:
         return self._intern.setdefault(value, value)
 
     def _add_chunk(self, chunk: dict[str, Any], file_id: int) -> None:
-        kind = chunk["lean_kind"]
+        self._add_record(_compact(chunk), file_id)
+
+    def _add_record(self, record: tuple[Any, ...], file_id: int) -> None:
+        """Add one command, as :func:`_compact` recorded it."""
+        kind = record[0]
         self._kinds[kind] += 1
         if kind == "import":
             self._imports[file_id] = tuple(
-                dict.fromkeys(self._imports[file_id] + tuple(chunk.get("imports", ())))
+                dict.fromkeys(self._imports[file_id] + record[1])
             )
             return
         if kind in _NOT_NODES:
             return
+        (
+            _,
+            name,
+            start,
+            end,
+            namespace,
+            opens,
+            refs,
+            flags,
+            attrs,
+            private,
+            shape,
+            claim,
+        ) = record
         node = len(self._name)
-        name = chunk.get("declaration")
         self._name.append(name)
         self._kind.append(sys.intern(kind))
         self._file.append(file_id)
-        self._start.append(chunk["line_start"])
-        self._end.append(chunk["line_end"])
-        self._namespace.append(sys.intern(chunk.get("namespace", "")))
-        self._opens.append(self._interned(tuple(chunk.get("opens", ()))))
-        self._refs.append(tuple(sys.intern(ref) for ref in chunk.get("references", ())))
-        if chunk.get("flags"):
-            self._flags[node] = tuple(chunk["flags"])
-        if chunk.get("attributes"):
-            self._attributes[node] = tuple(chunk["attributes"])
-        if "private" in chunk.get("modifiers", ()):
+        self._start.append(start)
+        self._end.append(end)
+        self._namespace.append(sys.intern(namespace))
+        self._opens.append(self._interned(opens))
+        self._refs.append(tuple(sys.intern(ref) for ref in refs))
+        if flags:
+            self._flags[node] = flags
+        if attrs:
+            self._attributes[node] = attrs
+        if private:
             self._private.add(node)
-        self._record_statement(node, kind, name, chunk)
+        if shape is not None:
+            self._shape_of[node] = shape
+        if claim:
+            self._claims.add(node)
         if name is not None:
             held = self._by_name.get(name)
             if held is None:
@@ -694,18 +825,6 @@ class LeanIndex:
                 self._by_name[name] = [held, node]
             else:
                 held.append(node)
-
-    def _record_statement(
-        self, node: int, kind: str, name: str | None, chunk: dict[str, Any]
-    ) -> None:
-        """Keep a result's shape digest, or mark a definition of type ``Prop``."""
-        if kind in ("theorem", "lemma"):
-            statement = chunk.get("statement")
-            digest = None if statement is None else fingerprint(statement, kind, name)
-            if digest is not None:
-                self._shape_of[node] = digest
-        elif kind in ("def", "abbrev") and states_a_claim(chunk["text"]):
-            self._claims.add(node)
 
     def _drop_nodes(self, keep: int) -> None:
         """Forget the nodes from *keep* on (a file that could not be read whole)."""
@@ -835,15 +954,56 @@ class LeanIndex:
         or one it imports has a project import no file provides: what it
         sees is then unknown, and nothing is hidden. Computed on first use
         for the files a query reaches, iteratively (no recursion limit),
-        and kept until a file is added; memory is at most one bit per pair
-        of files.
+        and kept until a file is added.
+
+        Each bitset is one bit per project file, so all of them together
+        grow with the square of the file count (3.85 GB for 175,187 files).
+        Past :data:`_COMPRESS_FILES` files they are kept zlib-compressed
+        (18 times smaller on that project; sparse bitsets compress well)
+        and expanded on use, the last :data:`_EXPANDED` of them kept
+        expanded: declarations are resolved file by file.
         """
         if self._visibility == "all":
             return -1
+        expanded = self._expanded
+        bits = expanded.get(file_id)
+        if bits is not None:
+            expanded.move_to_end(file_id)
+            return bits
         reach = self._reach
-        known = reach.get(file_id)
-        if known is not None:
-            return known
+        if file_id not in reach:
+            self._close_imports(file_id)
+        return self._expand(file_id)
+
+    def _expand(self, file_id: int) -> int:
+        """Return the stored bitset of *file_id* as an int, through the small cache."""
+        expanded = self._expanded
+        bits = expanded.get(file_id)
+        if bits is not None:
+            expanded.move_to_end(file_id)
+            return bits
+        stored = self._reach[file_id]
+        bits = (
+            int.from_bytes(zlib.decompress(stored), "little")
+            if isinstance(stored, bytes)
+            else stored
+        )
+        expanded[file_id] = bits
+        if len(expanded) > _EXPANDED:
+            expanded.popitem(last=False)
+        return bits
+
+    def _store(self, file_id: int, bits: int) -> None:
+        """Keep a finished bitset, compressed for a large project."""
+        if len(self._labels) > _COMPRESS_FILES and bits > 0:
+            raw = bits.to_bytes((bits.bit_length() + 7) // 8, "little")
+            self._reach[file_id] = zlib.compress(raw, 1)
+        else:
+            self._reach[file_id] = bits
+
+    def _close_imports(self, file_id: int) -> None:
+        """Compute and store the bitsets of *file_id* and every file it imports."""
+        reach = self._reach
         direct, unknown = self._import_files()
         stack = [(file_id, 0)]
         reach[file_id] = (
@@ -864,9 +1024,11 @@ class LeanIndex:
                 bits = -1
             else:
                 for child in children:
-                    bits |= (1 << child) | reach[child]
-            reach[current] = bits
-        return reach[file_id]
+                    if reach[child] == 0:  # in progress (a cycle)
+                        bits |= 1 << child
+                        continue
+                    bits |= (1 << child) | self._expand(child)
+            self._store(current, bits)
 
     def _import_files(self) -> tuple[list[list[int]], set[int]]:
         """
@@ -2007,6 +2169,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--no-learn-commands", action="store_true")
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        metavar="N",
+        help="processes reading the files (0: every CPU); the reports are the same",
+    )
+    parser.add_argument(
+        "--graph",
+        default="python",
+        choices=("python", "numpy"),
+        help="whole-graph steps in the standard library, or with NumPy",
+    )
+    parser.add_argument(
         "--source-root",
         default=None,
         metavar="FOLDER",
@@ -2034,6 +2209,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             commands=args.command,
             visibility=args.visibility,
             source_root=args.source_root,
+            workers=None if args.workers == 0 else args.workers,
+            graph=args.graph,
         )
         if args.target:
             reports = [index.dossier(t, max_items=args.max_items) for t in args.target]

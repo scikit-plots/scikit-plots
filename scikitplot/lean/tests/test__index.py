@@ -682,3 +682,63 @@ def test_a_dossier_survives_files_removed_after_indexing(tmp_path):
     report = index.dossier("main2")  # no file to quote: locations only
     assert report["target"]["statement"] is None
     assert report["flags_found"] == ["sorry"]
+
+
+@pytest.mark.parametrize("files", [PROJECT, VISIBLE], ids=["project", "visibility"])
+def test_compressed_import_bitsets_give_identical_reports(tmp_path, monkeypatch, files):
+    # Large projects keep import bitsets compressed; forced here on a small one.
+    from .. import _index
+
+    root = _project(tmp_path, files)
+
+    def reports():
+        index = LeanIndex.from_folder(root)
+        out = [index.summary(max_items=500), index.discover(top=500)]
+        out += [index.dossier(name, max_items=500) for name in ("main", "main2", "mid") if index.find(name)]
+        return json.dumps(out, sort_keys=True), index
+
+    plain, _ = reports()
+    monkeypatch.setattr(_index, "_COMPRESS_FILES", 0)
+    monkeypatch.setattr(_index, "_EXPANDED", 1)  # every other use expands again
+    packed, index = reports()
+    assert packed == plain
+    assert any(isinstance(v, bytes) for v in index._reach.values())
+
+
+# ---------------------------------------------------------------------------
+# Parallel reading: the same index for any number of workers
+# ---------------------------------------------------------------------------
+
+
+def _all_reports(index, names):
+    out = [index.summary(max_items=500), index.discover(top=500)]
+    out += [index.dossier(name, max_items=500) for name in names]
+    return json.dumps(out, sort_keys=True)
+
+
+def test_workers_give_the_same_index(tmp_path):
+    files = dict(PROJECT)
+    files["Deep.lean"] = "namespace N\n" * 5 + "def d := 1\n"  # skipped either way
+    for i in range(30):  # enough files for every worker to get some
+        files[f"Gen/F{i}.lean"] = (
+            (f"import Gen.F{i - 1}\n" if i else "")
+            + f"theorem g{i} : True := {'sorry' if i == 7 else 'trivial'}\n"
+        )
+    root = _project(tmp_path, files)
+    names = ["main", "main2", "g29"]
+    serial = LeanIndex.from_folder(root, max_scope_depth=3)
+    parallel = LeanIndex.from_folder(root, max_scope_depth=3, workers=2)
+    assert _all_reports(parallel, names) == _all_reports(serial, names)
+    assert parallel._labels == serial._labels and parallel._skipped == serial._skipped
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, True, "2"])
+def test_workers_is_validated(tmp_path, bad):
+    with pytest.raises(ValueError, match="workers"):
+        LeanIndex.from_folder(tmp_path, workers=bad)
+
+
+def test_workers_on_the_command_line(tmp_path):
+    root = str(_project(tmp_path, PROJECT))
+    assert _run([root, "--target", "main2", "--workers", "2", "--fail-on", "sorry"])[0] == 1
+    assert _run([root, "--workers", "0", "--json"])[0] == 0
