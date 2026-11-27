@@ -24,9 +24,68 @@ _RESULTS = frozenset({"theorem", "lemma"})
 _SHAPE_TOKEN = re.compile(rf"{_NAME}|\d+(?:\.\d+)?|[^\s\w]")
 _NUMERAL = re.compile(r"\d+(?:\.\d+)?\Z")
 _PROP_DEFINITION = re.compile(r":\s*Prop\s*:=")
+#: Where a result's signature starts: after its keyword.
+_KEYWORD = re.compile(r"(?<![\w'!?.])(?:theorem|lemma)(?![\w'!?])")
+_OPEN = "([{⦃⟨"
+_CLOSE = ")]}⦄⟩"
+#: What the signature scan stops at: brackets, and a ``:`` that is not ``:=``.
+_STRUCTURE = re.compile(r"[(\[{⦃⟨)\]}⦄⟩]|:(?!=)")
+#: What a string or char literal becomes in a shape, as a numeral becomes ``#``.
+_LITERAL = '"'
+
+
+def _mask_lines(statement: str) -> list[tuple[str, str]]:
+    """Return each line of *statement* with its masked form, masked once."""
+    lexer = _Lexer()
+    return [(raw, lexer.mask(raw)) for raw in statement.split("\n")]
+
+
+def _masked(lines: list[tuple[str, str]]) -> str:
+    """
+    Return masked *lines* as code: comments dropped, each literal one ``"`` token.
+
+    The lexer blanks comments, strings and char literals alike. A blanked
+    run whose text opens a string (``"``, ``r#"``) or a char literal (``'``)
+    keeps one placeholder, so ``f "a" = 1`` and ``f = 1`` differ in shape
+    and ``s = "a"`` and ``s = "b"`` do not.
+    """
+    out = []
+    for raw, masked in lines:
+        if masked == raw:  # no comment or literal on the line: most lines
+            out.append(masked)
+            continue
+        chars = []
+        hidden_from = None  # where the current blanked run began in raw
+        for i, (code, text) in enumerate(zip(masked, raw)):
+            if code == " " and text != " ":  # blanked
+                if hidden_from is None:
+                    hidden_from = i
+                continue
+            if hidden_from is not None and code == " ":  # blank between blanked
+                continue
+            if hidden_from is not None:
+                chars.append(_run(raw, hidden_from))
+                hidden_from = None
+            chars.append(code)
+        if hidden_from is not None:
+            chars.append(_run(raw, hidden_from))
+        chars.append(masked[len(raw) :])
+        out.append("".join(chars))
+    return " ".join(out)
+
+
+def _run(raw: str, start: int) -> str:
+    """Return the stand-in for a blanked run of *raw* from *start*: a literal or nothing."""
+    opens = raw[start]
+    if opens in "\"'" or (opens == "r" and raw[start + 1 : start + 2] in ('"', "#")):
+        return f" {_LITERAL} "
+    return " "
 
 
 _BINDER = None  # compiled on first use (keeps import cheap)
+_NAME_ONLY = r"[^\W\d][\w'!?]*"
+#: A binder without a type: ``(x y)``, ``{x y}``, ``⦃x y⦄``.
+_TYPELESS = re.compile(rf"[({{⦃]\s*(?:{_NAME_ONLY}\s+)*{_NAME_ONLY}\s*[)}}⦄]")
 _QUANTIFIED = None
 
 
@@ -42,16 +101,56 @@ def _binders() -> tuple[Any, Any]:
 
 
 def _bound_names(statement: str) -> set[str]:
-    """Return the names a statement binds: ``(s : Real)``, ``{x y}``, ``∀ n``, ``fun x``."""
+    """
+    Return the names a statement binds: ``(s : Real)``, ``{x y}``, ``∀ n``, ``fun x``.
+
+    A binder without a type, ``{x y}`` or ``(x)``, binds only in the
+    signature (before the result's type): after it, ``{x}`` is a set and
+    ``(f x)`` an application. ``[Group G]`` binds no name.
+    """
+    return _bound_in("\n".join(masked for _raw, masked in _mask_lines(statement)))
+
+
+def _bound_in(masked: str) -> set[str]:
+    """:func:`_bound_names` of a statement already masked."""
     binder, quantified = _binders()
-    lexer = _Lexer()
-    masked = "\n".join(lexer.mask(line) for line in statement.split("\n"))
     names: set[str] = set()
     for found in binder.finditer(masked):
         names.update(found.group(1).split())
     for found in quantified.finditer(masked):
         names.update(found.group(1).split())
+    for group in _signature_groups(masked):
+        if _TYPELESS.fullmatch(group):
+            names.update(group[1:-1].split())
     return names
+
+
+def _signature_groups(masked: str) -> list[str]:
+    """
+    Return the top-level bracket groups of a result's signature, brackets kept.
+
+    The signature runs from the keyword to the ``:`` of the result's type;
+    a group nested in a binder's type (``(h : (f x) = y)``) is not listed.
+    """
+    keyword = _KEYWORD.search(masked)
+    if keyword is None:
+        return []
+    groups: list[str] = []
+    depth = 0
+    start = 0
+    for found in _STRUCTURE.finditer(masked, keyword.end()):
+        i, char = found.start(), found.group()
+        if char in _OPEN:
+            if not depth:
+                start = i
+            depth += 1
+        elif char in _CLOSE:
+            if depth == 1:
+                groups.append(masked[start : i + 1])
+            depth = max(0, depth - 1)
+        elif not depth:  # the type's `:` (`:=` is not matched)
+            break
+    return groups
 
 
 def _shape(statement: str, written: str | None) -> str | None:
@@ -63,9 +162,12 @@ def _shape(statement: str, written: str | None) -> str | None:
     binds becomes ``x0``, ``x1``, ... in order of first appearance; each
     numeral becomes ``#``. Two statements of one shape differ only there.
     """
-    lexer = _Lexer()
-    masked = " ".join(lexer.mask(line) for line in statement.split("\n"))
-    tokens = _SHAPE_TOKEN.findall(masked)
+    return _shape_of(_mask_lines(statement), written)
+
+
+def _shape_of(lines: list[tuple[str, str]], written: str | None) -> str | None:
+    """:func:`_shape` of a statement already masked."""
+    tokens = _SHAPE_TOKEN.findall(_masked(lines))
     start = next((i for i, t in enumerate(tokens) if t in _RESULTS), None)
     if start is None:
         return None
@@ -74,7 +176,7 @@ def _shape(statement: str, written: str | None) -> str | None:
         tokens = tokens[1:]
     if not tokens:
         return None
-    bound = _bound_names(statement)
+    bound = _bound_in("\n".join(masked for _raw, masked in lines))
     renamed: dict[str, str] = {}
     out = []
     for token in tokens:
@@ -91,11 +193,9 @@ def _digest(text: str) -> bytes:
     return hashlib.blake2b(text.encode("utf-8"), digest_size=16).digest()
 
 
-def _written(statement: str, kind: str) -> str | None:
-    """Return the name as written after *kind* in a statement, or ``None``."""
-    lexer = _Lexer()
-    masked = " ".join(lexer.mask(line) for line in statement.split("\n"))
-    tokens = _SHAPE_TOKEN.findall(masked)
+def _written(lines: list[tuple[str, str]], kind: str) -> str | None:
+    """Return the name as written after *kind* in a masked statement, or ``None``."""
+    tokens = _SHAPE_TOKEN.findall(" ".join(masked for _raw, masked in lines))
     for i, token in enumerate(tokens[:-1]):
         if token == kind:
             return tokens[i + 1]
@@ -109,8 +209,9 @@ def fingerprint(statement: str, kind: str, name: str | None) -> bytes | None:
     *statement* is the result's text before its proof; *name* its full name
     (the written name is tried first, then the last component of *name*).
     """
+    lines = _mask_lines(statement)  # masked once for every step
     written = (name or "").rsplit(".", 1)[-1] or None
-    shape = _shape(statement, _written(statement, kind) or written)
+    shape = _shape_of(lines, _written(lines, kind) or written)
     return None if shape is None else _digest(shape)
 
 
