@@ -473,6 +473,38 @@ def test_links_never_lead_outside_the_folder(tmp_path):
     assert index.find("secret") == [] and index.find("d") == []
 
 
+def test_a_target_that_is_not_one_declaration_never_passes(tmp_path):
+    root = _project(
+        tmp_path,
+        {
+            "Proj/A.lean": """
+                namespace A
+                theorem t : True := sorry
+                end A
+                namespace B
+                theorem t : True := trivial
+                end B
+            """
+        },
+    )
+    for argv, message in (
+        (["--target", "nope", "--fail-on", "sorry"], "--target nope: target not found"),
+        (["--target", "nope"], "--target nope: target not found"),
+        (
+            ["--target", "t", "--fail-on", "sorry"],
+            "--target t: target ambiguous (candidates: A.t, B.t; give the full name)",
+        ),
+        (["--target", "B.t", "--target", "nope"], "--target nope: target not found"),
+    ):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            status, _ = _run([str(root), *argv])
+        assert status == 2, argv
+        assert message in err.getvalue()
+    assert _run([str(root), "--target", "A.t", "--fail-on", "sorry"])[0] == 1
+    assert _run([str(root), "--target", "B.t", "--fail-on", "sorry"])[0] == 0
+
+
 def test_fail_on_refuses_an_unknown_flag(tmp_path):
     root = str(_project(tmp_path, PROJECT))
     with pytest.raises(SystemExit) as exit_info, contextlib.redirect_stderr(io.StringIO()):

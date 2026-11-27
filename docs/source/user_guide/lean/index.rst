@@ -34,7 +34,9 @@ Quick start
     found = index.discover()           # rules, patterns, claims, anomalies
     index.export("helpers/")           # all of it as documents and JSONL
 
-From the shell, and in a pipeline (exit status 1 when a flag is found)::
+From the shell, and in a pipeline (exit status 1 when a flag is found, 2
+when a target is not found or ambiguous, so a renamed theorem never passes
+a gate)::
 
     python -m scikitplot.lean path/to/project
     python -m scikitplot.lean path/to/project --target main_theorem --fail-on sorry
