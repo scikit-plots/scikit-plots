@@ -44,6 +44,7 @@ from collections import Counter, OrderedDict, deque
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from ._shapes import _bound_names, fingerprint, states_a_claim
 from ._syntax import (
     _MODIFIERS,
     _NOT_REFERENCES,
@@ -236,22 +237,8 @@ _HOW = ("exact", "prefix", "suffix")
 
 _ROOT = "_root_."
 
+
 #: Binder names a statement introduces: `(x y : T)`, `{x}`, `[i : C]` ...
-_BINDER = None  # compiled on first use (keeps import cheap)
-_QUANTIFIED = None
-
-
-def _binders() -> tuple[Any, Any]:
-    global _BINDER, _QUANTIFIED  # noqa: PLW0603
-    if _BINDER is None:
-        import re  # noqa: PLC0415
-
-        name = r"[^\W\d][\w'!?]*"
-        _BINDER = re.compile(rf"[(\[{{⦃⟨]\s*((?:{name}\s+)*{name})\s*:")
-        _QUANTIFIED = re.compile(rf"(?:∀|∃!?|λ|\bfun\b|Π|Σ)\s*((?:{name}\s*)+)")
-    return _BINDER, _QUANTIFIED
-
-
 def _names_the_project(module: str, modules: Any, roots: Any) -> bool:
     """
     Return whether an import no file provides still names the project.
@@ -430,6 +417,10 @@ class LeanIndex:
         self._namespace: list[str] = []
         self._opens: list[tuple[str, ...]] = []
         self._private: set[int] = set()
+        # Read once, while indexing: each result's statement-shape digest
+        # (16 bytes) and the definitions of type Prop; discovery groups them.
+        self._shape_of: dict[int, bytes] = {}
+        self._claims: set[int] = set()
         self._flags: dict[int, tuple[str, ...]] = {}
         self._attributes: dict[int, tuple[str, ...]] = {}
         self._refs: list[tuple[str, ...] | None] = []
@@ -638,6 +629,7 @@ class LeanIndex:
             max_scope_depth=self._max_depth,
             flag_tokens=LEAN_FLAGS,
             references=True,
+            statements=True,
         )
 
     def _interned(self, value: Any) -> Any:
@@ -669,6 +661,7 @@ class LeanIndex:
             self._attributes[node] = tuple(chunk["attributes"])
         if "private" in chunk.get("modifiers", ()):
             self._private.add(node)
+        self._record_statement(node, kind, name, chunk)
         if name is not None:
             held = self._by_name.get(name)
             if held is None:
@@ -677,6 +670,18 @@ class LeanIndex:
                 self._by_name[name] = [held, node]
             else:
                 held.append(node)
+
+    def _record_statement(
+        self, node: int, kind: str, name: str | None, chunk: dict[str, Any]
+    ) -> None:
+        """Keep a result's shape digest, or mark a definition of type ``Prop``."""
+        if kind in ("theorem", "lemma"):
+            statement = chunk.get("statement")
+            digest = None if statement is None else fingerprint(statement, kind, name)
+            if digest is not None:
+                self._shape_of[node] = digest
+        elif kind in ("def", "abbrev") and states_a_claim(chunk["text"]):
+            self._claims.add(node)
 
     def _drop_nodes(self, keep: int) -> None:
         """Forget the nodes from *keep* on (a file that could not be read whole)."""
@@ -692,6 +697,8 @@ class LeanIndex:
             self._flags.pop(node, None)
             self._attributes.pop(node, None)
             self._private.discard(node)
+            self._shape_of.pop(node, None)
+            self._claims.discard(node)
         for column in (
             self._name,
             self._kind,
@@ -1112,8 +1119,11 @@ class LeanIndex:
         path = self._paths[file_id]
         if path is None:
             return None
-        with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
-            lines = [line[:-1] if line.endswith("\n") else line for line in stream]
+        try:
+            with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
+                lines = [line[:-1] if line.endswith("\n") else line for line in stream]
+        except OSError:
+            return None  # gone since indexing: locations without quoted text
         if lines and lines[0].startswith("﻿"):
             lines[0] = lines[0][1:]
         self._lines_cache[file_id] = lines
@@ -1488,22 +1498,27 @@ class LeanIndex:
             flag_tokens={},
         )
         text = None
-        with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
-            for number, read in enumerate(stream, start=1):
-                line = read[:-1] if read.endswith("\n") else read
-                if number == 1 and line.startswith("﻿"):
-                    line = line[1:]
-                for chunk in splitter.feed(number, line):
-                    if chunk["line_start"] == self._start[node]:
-                        text = chunk["text"]
-                if text is not None:
-                    break
-            else:
-                for chunk in splitter.finish():
-                    if chunk["line_start"] == self._start[node]:
-                        text = chunk["text"]
-        if text is None:  # pragma: no cover - the index read the same file
-            return None, set()
+        try:
+            with open(path, encoding="utf-8", errors="replace", newline=None) as stream:
+                for number, read in enumerate(stream, start=1):
+                    line = read[:-1] if read.endswith("\n") else read
+                    if number == 1 and line.startswith("﻿"):
+                        line = line[1:]
+                    for chunk in splitter.feed(number, line):
+                        if chunk["line_start"] == self._start[node]:
+                            text = chunk["text"]
+                    if text is not None:
+                        break
+                else:
+                    for chunk in splitter.finish():
+                        if chunk["line_start"] == self._start[node]:
+                            text = chunk["text"]
+        except (OSError, ValueError):
+            text = None  # gone or changed since indexing
+        if text is None:
+            # The file is gone or changed since it was indexed: no quoted
+            # statement; the names its code used, as for chunks without a file.
+            return None, set(self._refs[node] or ())
         lexer = _Lexer()
         refs: set[str] = set()
         for line in text.split("\n"):
@@ -1585,10 +1600,11 @@ class LeanIndex:
             Fewest theorems of one statement shape that make a pattern.
             Default: 2.
         patterns : bool, optional
-            Read every file again for statement shapes and ``Prop``
-            definitions (linear in the project's size). ``False`` skips
-            that pass: no statement shapes, no claim definitions, no
-            ``same_statement`` on parallel declarations. Default: ``True``.
+            Group results by statement shape and list the ``Prop``
+            definitions, both recorded while the files were indexed (no
+            file is read again). ``False`` leaves them out: no statement
+            shapes, no claim definitions, no ``same_statement`` on parallel
+            declarations. Default: ``True``.
 
         Returns
         -------
@@ -1629,9 +1645,10 @@ class LeanIndex:
         decides proofs.
 
         **Developer.** Lexical and deterministic: the same files give the
-        same report. One pass over the edges counts uses; with
-        *patterns*, one more pass reads each file's statements with
-        proofs left out.
+        same report. One pass over the edges counts uses. Shapes are
+        16-byte digests taken while indexing, so discovery reads no file
+        except to quote the statements of the items it lists; a file gone
+        since indexing leaves its items listed without a quote.
         """
         from ._discovery import discover  # noqa: PLC0415  (imports this module)
 
@@ -1729,19 +1746,6 @@ def _listing(items: list[Any], max_items: int) -> dict[str, Any]:
 
 def _check(name: str, status: str, detail: str) -> dict[str, str]:
     return {"check": name, "status": status, "detail": detail}
-
-
-def _bound_names(statement: str) -> set[str]:
-    """Return the names a statement binds: ``(s : Real)``, ``{x y}``, ``∀ n``, ``fun x``."""
-    binder, quantified = _binders()
-    lexer = _Lexer()
-    masked = "\n".join(lexer.mask(line) for line in statement.split("\n"))
-    names: set[str] = set()
-    for found in binder.finditer(masked):
-        names.update(found.group(1).split())
-    for found in quantified.finditer(masked):
-        names.update(found.group(1).split())
-    return names
 
 
 def _where(item: dict[str, Any]) -> str:
