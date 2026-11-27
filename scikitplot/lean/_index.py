@@ -592,6 +592,11 @@ class LeanIndex:
             tuple[str, tuple[str, ...]], dict[str, tuple[int, ...]]
         ] = OrderedDict()
         self._lines_cache: OrderedDict[int, list[str]] = OrderedDict()
+        # Bumped by every new file: the key of the whole-project caches.
+        self._generation = 0
+        # False once a file is added out of label order; the next query
+        # renumbers files and declarations (see _canonical).
+        self._in_order = True
 
     # -- building ---------------------------------------------------------------
 
@@ -775,6 +780,9 @@ class LeanIndex:
                 f"LeanIndex: {label!r} is already indexed; give each file one label."
             )
         file_id = len(self._labels)
+        if self._labels and label < self._labels[-1]:
+            self._in_order = False
+        self._generation += 1
         self._label_ids[label] = file_id
         self._labels.append(label)
         self._paths.append(path)
@@ -789,6 +797,82 @@ class LeanIndex:
         self._follow.clear()
         self._contexts.clear()
         return file_id
+
+    def _canonical(self) -> None:
+        """
+        Renumber files by label and declarations by file, once, before a query.
+
+        Reports list declarations, break ties and choose among equally short
+        paths by their numbers, which follow the order files were added.
+        Files added out of label order are renumbered here, so every report
+        equals the one :meth:`from_folder` gives: the same files give the
+        same reports in any order of adding them. Files added in order (as
+        :meth:`from_folder` adds them) are never renumbered.
+        """
+        if self._in_order:
+            return
+        order = sorted(range(len(self._labels)), key=self._labels.__getitem__)
+        file_of = [0] * len(order)
+        for new, old in enumerate(order):
+            file_of[old] = new
+        bounds = [*self._first_node, len(self._name)]
+        nodes = [n for f in order for n in range(bounds[f], bounds[f + 1])]
+        node_of = array("q", bytes(8 * len(nodes)))
+        for new, old in enumerate(nodes):
+            node_of[old] = new
+
+        def remap(table: dict[int, Any]) -> dict[int, Any]:
+            return {node_of[n]: table[n] for n in nodes if n in table}
+
+        self._name = [self._name[n] for n in nodes]
+        self._kind = [self._kind[n] for n in nodes]
+        self._namespace = [self._namespace[n] for n in nodes]
+        self._opens = [self._opens[n] for n in nodes]
+        self._refs = [self._refs[n] for n in nodes]
+        for field in ("_start", "_end"):
+            column = getattr(self, field)
+            setattr(self, field, array(column.typecode, (column[n] for n in nodes)))
+        self._file = array(self._file.typecode, (file_of[self._file[n]] for n in nodes))
+        self._flags = remap(self._flags)
+        self._attributes = remap(self._attributes)
+        self._shape_of = remap(self._shape_of)
+        self._private = {node_of[n] for n in self._private}
+        self._claims = {node_of[n] for n in self._claims}
+        by_name: dict[str, Any] = {}
+        for node, name in enumerate(self._name):  # rebuilt as reading builds it
+            if name is None:
+                continue
+            held = by_name.get(name)
+            if held is None:
+                by_name[name] = node
+            elif isinstance(held, int):
+                by_name[name] = [held, node]
+            else:
+                held.append(node)
+        self._by_name = by_name
+        first, self._first_node = 0, []
+        for f in order:
+            self._first_node.append(first)
+            first += bounds[f + 1] - bounds[f]
+        self._labels = [self._labels[f] for f in order]
+        self._paths = [self._paths[f] for f in order]
+        self._imports = [self._imports[f] for f in order]
+        self._file_lines = [self._file_lines[f] for f in order]
+        self._label_ids = {label: i for i, label in enumerate(self._labels)}
+        self._problems = {
+            file_of[f]: self._problems[f] for f in order if f in self._problems
+        }
+        # Every cache holds numbers: dropped.
+        self._generation += 1
+        self._by_short = None
+        self._edges.clear()
+        self._reach.clear()
+        self._expanded.clear()
+        self._packed = None
+        self._follow.clear()
+        self._contexts.clear()
+        self._lines_cache.clear()
+        self._in_order = True
 
     def _interned(self, value: Any) -> Any:
         return self._intern.setdefault(value, value)
@@ -887,7 +971,7 @@ class LeanIndex:
         declarations in modules that are never imported together build
         fine apart: they are listed, as parallel declarations of one name.
         """
-        key = len(self._name)
+        key = self._generation
         cached = getattr(self, "_clash_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1]
@@ -931,7 +1015,7 @@ class LeanIndex:
         ``import Lean.Elab.Term`` is not taken for ``Mathlib/Lean/Elab/Term.lean``.
         Of two files giving one module, the first in label order provides it.
         """
-        key = len(self._labels)
+        key = self._generation
         cached = getattr(self, "_module_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1]
@@ -1063,7 +1147,7 @@ class LeanIndex:
         added (the index was built from a subfolder: ``Mathlib/`` provides
         ``Algebra.X``, the files import ``Mathlib.Algebra.X``).
         """
-        key = len(self._labels)
+        key = self._generation
         cached = getattr(self, "_import_files_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1], cached[2]
@@ -1175,7 +1259,7 @@ class LeanIndex:
         declaration is so flagged; otherwise one search back from the
         flagged ones, so the cost does not grow with the invocations.
         """
-        key = len(self._name)
+        key = self._generation
         cached = getattr(self, "_generator_cache", None)
         if cached is not None and cached[0] == key:
             return cached[1]
@@ -1455,6 +1539,7 @@ class LeanIndex:
         list of dict
             Their locations, in reading order.
         """
+        self._canonical()
         return [self._location(node) for node in self._nodes(name)]
 
     def summary(self, *, max_items: int = 50) -> dict[str, Any]:  # noqa: PLR0912
@@ -1472,6 +1557,7 @@ class LeanIndex:
         dict
             JSON-ready; ``report`` is ``"summary"``.
         """
+        self._canonical()
         _positive(max_items, "max_items")
         flagged: dict[str, list[int]] = {}
         for node in sorted(self._flags):
@@ -1522,7 +1608,8 @@ class LeanIndex:
             },
             "generators": _listing(self._generators(), max_items),
             "skipped_files": [
-                {"file": label, "reason": reason} for label, reason in self._skipped
+                {"file": label, "reason": reason}
+                for label, reason in sorted(self._skipped)
             ],
             "source_problems": _listing(self._problem_items(self._problems), max_items),
         }
@@ -1566,6 +1653,7 @@ class LeanIndex:
             When *target* names no declaration, or several, ``matches``
             lists them and nothing else is filled in.
         """
+        self._canonical()
         _positive(max_items, "max_items")
         nodes = self._nodes(target)
         report: dict[str, Any] = {
@@ -1855,7 +1943,7 @@ class LeanIndex:
         module and a file that sees everything always come together); any
         other is a dependency's, counted by its first component.
         """
-        key = len(self._labels)
+        key = self._generation
         cached = getattr(self, "_gaps", None)
         if cached is not None and cached[0] == key:
             return cached[1], cached[2]
@@ -1947,6 +2035,7 @@ class LeanIndex:
         except to quote the statements of the items it lists; a file gone
         since indexing leaves its items listed without a quote.
         """
+        self._canonical()
         from ._discovery import discover  # noqa: PLC0415  (imports this module)
 
         return discover(self, top=top, min_instances=min_instances, patterns=patterns)
@@ -1999,6 +2088,7 @@ class LeanIndex:
         --------
         discover, dossier, summary
         """
+        self._canonical()
         from ._discovery import export  # noqa: PLC0415  (imports this module)
 
         return export(self, folder, targets=targets, top=top, patterns=patterns)
