@@ -451,6 +451,30 @@ def _token_pattern(tokens: Collection[str]) -> re.Pattern[str] | None:
     return re.compile(rf"(?<![\w'!?])(?:{alternatives})(?![\w'!?])")
 
 
+_QUOTED = re.compile(r"«[^«»]*»")
+
+
+def _code_matches(pattern: re.Pattern[str], masked: str) -> list[re.Match[str]]:
+    """
+    Return *pattern*'s matches in *masked*, leaving out text inside a «name».
+
+    ``theorem «a sorry b»`` names a declaration; the ``sorry`` in it is part
+    of the name, not code. A match spanning a whole «name» (a watched
+    ``«a b»``) is kept; one inside or overlapping it is not, so the escaped
+    identifier ``«sorry»`` raises no flag either.
+    """
+    if "«" not in masked:
+        return list(pattern.finditer(masked))
+    spans = [(m.start(), m.end()) for m in _QUOTED.finditer(masked)]
+    kept = []
+    for found in pattern.finditer(masked):
+        start, end = found.span()
+        if any(a < end and start < b and (a, b) != (start, end) for a, b in spans):
+            continue
+        kept.append(found)
+    return kept
+
+
 def _components(name: str) -> list[str]:
     """Split a dotted name into its components (``«a.b».c`` is two)."""
     return _COMPONENT.findall(name) if "«" in name else name.split(".")
@@ -922,12 +946,18 @@ class _Splitter:
         self._mutual_col: int | None = None
         self._mutuals = 0  # mutual blocks open
         self._anomalies = 0
+        #: ``(line, problem)`` for text Lean refuses to read: an ``end`` that
+        #: closes no scope or names another one, a file ending inside a
+        #: comment, string or «name».
+        self.problems: list[tuple[int, str]] = []
+        self._last = 0
         self._out: list[dict[str, Any]] = []
 
     # -- feeding ------------------------------------------------------------
 
     def feed(self, number: int, line: str) -> list[dict[str, Any]]:  # noqa: PLR0912
         """Read one line; return the chunks it completes."""
+        self._last = number
         starts_in_code = self._lexer.in_code()
         masked = self._lexer.mask(line)
         stripped = line.strip()
@@ -999,6 +1029,7 @@ class _Splitter:
             self._cur = None
         construct = self._lexer.open_construct()
         if construct is not None:
+            self.problems.append((self._last, f"the file ends inside a {construct}"))
             logger.warning(
                 "Lean: %s ends inside a %s; its lines are kept in the last chunk.",
                 self._file_name,
@@ -1196,7 +1227,7 @@ class _Splitter:
                 self._add(cur, held.number, held.text, held.masked)
             self._held = []
             cur.imports.extend(head.imports)
-            self._apply_scope(head)
+            self._apply_scope(head, number)
             self._apply_opens(cur, head, masked)
             self._add(cur, number, line, masked)
             return
@@ -1250,7 +1281,7 @@ class _Splitter:
             cur.statement = _Statement(
                 number, head.body_col, ":=" if self._lean3 else "=>"
             )
-        self._apply_scope(head)
+        self._apply_scope(head, number)
         if head.kind == "#exit":
             self._exited = True
 
@@ -1305,11 +1336,11 @@ class _Splitter:
             cur.last = number  # the last line with content
         if masked.strip():
             if self._flags is not None:
-                for found in self._flags.finditer(masked):
+                for found in _code_matches(self._flags, masked):
                     cur.hit_lines.append(number)
                     cur.hit_flags.append(self._flag_of[found.group()])
             if self._watch is not None:
-                for found in self._watch.finditer(masked):
+                for found in _code_matches(self._watch, masked):
                     cur.watch_lines.append(number)
                     cur.watch_names.append(found.group())
             if self._references:
@@ -1432,26 +1463,20 @@ class _Splitter:
 
     # -- scopes ---------------------------------------------------------------
 
-    def _apply_scope(self, head: _Head) -> None:
+    def _apply_scope(self, head: _Head, number: int) -> None:
         if head.scope is None:
             return
         keyword, name = head.scope
         scopes = self._scopes
-        if keyword == "namespace":
-            if name:
-                parts = _components(name)
-                scopes.extend(("namespace", part) for part in parts)
-                self._scope_opens.extend([] for _part in parts)
-        elif keyword == "end":
-            count = len(_components(name)) if name else 1
-            if count > len(scopes):
-                self._anomalies += 1
-                count = len(scopes)
-            if count:
-                self._mutuals -= sum(kind == "mutual" for kind, _n in scopes[-count:])
-                del scopes[-count:]
-                del self._scope_opens[-count:]
-        else:  # section, mutual
+        if keyword == "end":
+            self._close_scopes(name, number)
+        elif name and keyword in ("namespace", "section"):
+            # `namespace A.B` and `section A.B` open a scope per component,
+            # and `end A.B` closes both; only a namespace names declarations.
+            parts = _components(name)
+            scopes.extend((keyword, part) for part in parts)
+            self._scope_opens.extend([] for _part in parts)
+        elif keyword != "namespace":  # an anonymous section, mutual
             scopes.append((keyword, name))
             self._scope_opens.append([])
             if keyword == "mutual":
@@ -1466,6 +1491,27 @@ class _Splitter:
         if keyword == "end" and not self._mutuals:
             self._mutual_col = None
         self._namespace_cache = None  # rebuilt when a command needs it
+
+    def _close_scopes(self, name: str | None, number: int) -> None:
+        """Close the scopes ``end [name]`` closes; record an ``end`` Lean refuses."""
+        scopes = self._scopes
+        parts = _components(name) if name else []
+        count = len(parts) or 1
+        written = f"`end {name}`" if name else "`end`"
+        if count > len(scopes):
+            self._anomalies += 1
+            self.problems.append((number, f"{written} closes no open scope"))
+            count = len(scopes)
+        elif not self._lean3 and [n for _k, n in scopes[-count:]] != (parts or [None]):
+            opened = " ".join(
+                f"`{kind}{' ' + scope if scope else ''}`"
+                for kind, scope in scopes[-count:]
+            )
+            self.problems.append((number, f"{written} does not match {opened}"))
+        if count:
+            self._mutuals -= sum(kind == "mutual" for kind, _n in scopes[-count:])
+            del scopes[-count:]
+            del self._scope_opens[-count:]
 
     @property
     def _namespace(self) -> str:

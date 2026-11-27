@@ -114,6 +114,7 @@ def test_a_clean_proof_still_reports_what_it_cannot_see(index):
         "implicit_dependencies": "review",
         "duplicate_names": "pass",
         "imported_modules_present": "pass",
+        "source_text": "pass",
         "kernel": "not_checked",
     }
     assert report["kernel_steps"][1].startswith("#print axioms main")
