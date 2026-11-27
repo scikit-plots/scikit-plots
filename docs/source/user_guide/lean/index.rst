@@ -120,6 +120,39 @@ resolved lexically, as Lean looks them up (namespaces, ``open``,
 ``_root_``, derived names), keeping every candidate: a dossier may hold
 more than the proof uses, never less of what its text names.
 
+Saving an index
+---------------
+
+Reading a large project takes minutes; loading its saved index takes
+seconds and gives the same reports::
+
+    index = LeanIndex.from_folder("path/to/project", workers=2)
+    index.save("project.leanidx")
+    index = LeanIndex.load("project.leanidx", root="path/to/project")
+
+From the shell, ``--save FILE`` after indexing, and ``--load FILE`` instead
+of indexing (``FOLDER`` is then where the files are)::
+
+    python -m scikitplot.lean path/to/project --save project.leanidx
+    python -m scikitplot.lean path/to/project --load project.leanidx --target main_theorem
+
+A snapshot (format ``lean.index.snapshot/1``) holds numbers and text only:
+nothing in it runs when it is loaded. It carries a checksum, and a
+damaged or altered file is refused with :class:`ValueError`, also when its
+checksum was made to match: every number is checked against what it
+refers to. The same files give the same bytes, whatever order they were
+added in. Files are named by label, never by path: without ``root`` no
+file is read and reports give each item's file and lines; with ``root``,
+statements are quoted only from files inside it.
+
+==============  =============  =========  =========  ==========
+\                build          save       load       file
+==============  =============  =========  =========  ==========
+mathlib4        30 s           1.4 s      1.4 s      54 MB
+175,187 files   245 s (two     10 s       13 s       404 MB
+                workers)
+==============  =============  =========  =========  ==========
+
 Scale
 -----
 
