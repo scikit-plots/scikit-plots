@@ -290,3 +290,40 @@ def test_the_command_line_reports_and_fails_on_one_layer(tmp_path):
         assert json.loads(out.getvalue())["layer"] == layer
     with contextlib.redirect_stdout(io.StringIO()):
         assert main([*common, "--discover", "--layer", "proj"]) == 0
+
+
+def test_each_layer_is_read_with_its_own_and_lower_commands(tmp_path):
+    from .._index import defined_commands
+
+    index = _layered(tmp_path)
+    tool = _write(tmp_path / "tool", {"Tool/Cmd.lean": 'elab "audit_now" : command => pure ()\n'})
+    index.add_folder(tool, name="tool")
+    assert "audit_now" in index.commands("tool")
+    assert "audit_now" not in index.commands("") | index.commands("p")
+    with pytest.raises(ValueError, match="layer must be None or one of"):
+        index.commands("nope")
+    assert defined_commands('@[inline] macro "go" : command => `(#eval 1)') == {"go": 1}
+    with pytest.raises(TypeError, match="text must be a str"):
+        defined_commands(b"bytes")
+
+
+@pytest.mark.parametrize(
+    ("defined", "label", "error", "message"),
+    [
+        ({"go": 1}, 3, TypeError, "label must be a str"),
+        ([("go", 1)], "A.lean", TypeError, "defined must be a dict"),
+        ({"#go": 1}, "A.lean", ValueError, "is not a command keyword"),
+        ({"go": 0}, "A.lean", ValueError, "must be an int >= 1"),
+    ],
+)
+def test_learned_commands_are_checked(defined, label, error, message):
+    with pytest.raises(error, match=message):
+        LeanIndex().learn_commands(defined, label=label)
+
+
+def test_the_first_definition_learned_is_kept(tmp_path):
+    index = LeanIndex()
+    index.learn_commands({"go": 3}, label="A.lean")
+    index.learn_commands({"go": 1, "stop": 2}, label="B.lean")
+    assert index._learned == {"go": ("A.lean", 3), "stop": ("B.lean", 2)}
+    assert index.commands() == frozenset({"go", "stop"})

@@ -3259,6 +3259,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Reading files one at a time",
+                "autosummary": [
+                    "defined_commands",
+                ],
+            },
+            {
                 "title": "Audit flags",
                 "autosummary": [
                     "AUDIT_FLAGS",

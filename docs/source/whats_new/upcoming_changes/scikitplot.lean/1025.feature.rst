@@ -1,0 +1,7 @@
+- :func:`~scikitplot.lean.defined_commands`,
+  :meth:`~scikitplot.lean.LeanIndex.learn_commands` and
+  :meth:`~scikitplot.lean.LeanIndex.commands` let files read one at a time
+  with :class:`~scikitplot.corpus.LeanReader` (an archive's members, say)
+  be indexed as :meth:`~scikitplot.lean.LeanIndex.from_folder` indexes a
+  folder, commands a project defines included: on mathlib4, batteries and
+  aesop the summary is the same, learned commands and generators included.

@@ -144,7 +144,9 @@ show(read(refs, "Refs.lean", references=True), "references", "opens")
 # With ``statements=True`` (whole commands: ``lines_per_chunk=None``) each
 # theorem also carries its statement. Chunks read with both are what
 # :meth:`scikitplot.lean.LeanIndex.add_chunks` indexes, for a file inside an
-# archive, say: the same index as reading the file.
+# archive, say: the same index as reading the file. A project that defines
+# commands gives them first (``learn_commands``, ``defined_commands``) and
+# reads each file with ``commands=index.commands()``.
 
 from scikitplot.lean import LeanIndex  # noqa: E402
 

@@ -935,3 +935,41 @@ def test_an_index_of_chunks_is_the_index_of_the_files(tmp_path):
     shapes = chunked.discover()["patterns"]["statement_shapes"]
     assert shapes["count"] == read.discover()["patterns"]["statement_shapes"]["count"] == 1
     assert chunked._shape_of == read._shape_of
+
+
+def test_an_index_of_chunks_read_with_its_commands_is_the_index_of_the_files(tmp_path):
+    from ....lean import LeanIndex, defined_commands  # noqa: PLC0415
+
+    root = tmp_path / "proj"
+    files = {
+        "P/Cmd.lean": 'syntax "audit_now" : command\nmacro_rules | `(audit_now) => `(#eval 1)\n',
+        "P/Use.lean": "import P.Cmd\ntheorem t : 1 = 1 := rfl\naudit_now\ntheorem u : 2 = 2 := t ▸ rfl\n",
+    }
+    for name, source in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(source, encoding="utf-8")
+    read = LeanIndex.from_folder(root)
+    assert read.commands() == frozenset({"audit_now"})
+    chunked = LeanIndex()
+    for name in sorted(files):  # learned first, as from_folder learns
+        chunked.learn_commands(
+            defined_commands((root / name).read_text(encoding="utf-8")), label=name
+        )
+    assert chunked.commands() == read.commands()
+    for name in sorted(files):
+        reader = LeanReader(
+            input_path=root / name,
+            references=True,
+            statements=True,
+            lines_per_chunk=None,
+            commands=chunked.commands(),
+        )
+        chunked.add_chunks(reader.get_raw_chunks(), label=name)
+    assert chunked.summary() == read.summary()  # learned_commands included
+    unaware = LeanIndex()
+    for name in sorted(files):
+        reader = LeanReader(
+            input_path=root / name, references=True, statements=True, lines_per_chunk=None
+        )
+        unaware.add_chunks(reader.get_raw_chunks(), label=name)
+    assert unaware.summary()["kinds"] != read.summary()["kinds"]  # audit_now not split
