@@ -47,15 +47,18 @@ The reports
     names declared more than once; imported project modules no file
     provides; syntax extensions; commands the project defines; code that
     adds declarations no source line spells; files that were skipped, with
-    the reason.
+    the reason; text Lean refuses to read (an ``end`` that names another
+    scope or closes none, a file ending inside a comment or string), by
+    file and line.
 
 ``dossier(name)``
     The theorem's statement and the project definitions it unfolds to
     (quoted); every declaration its proof names, directly or through
     others, with the path to each flagged one; what it could use without
     naming it (flagged instances, tagged lemmas, syntax extensions, and
-    generated declarations, in its environment only); checks with a status
-    each, a verdict, and the kernel steps that settle it.
+    generated declarations, in its environment only); text Lean refuses to
+    read in the files it depends on; checks with a status each, a verdict,
+    and the kernel steps that settle it.
 
 ``discover()`` and ``export(folder)``
     Candidates, each chosen by a stated rule: theorems and definitions

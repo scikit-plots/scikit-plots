@@ -311,8 +311,9 @@ def _read_file(
     """
     Read one ``.lean`` file into records; the work a worker process does.
 
-    Returns ``("ok", records, lines)`` (records from :func:`_compact`) or
-    ``("skip", reason)``: larger than ``max_file_bytes``, unreadable, or
+    Returns ``("ok", records, lines, problems)`` (records from
+    :func:`_compact`; problems as ``(line, text)`` for text Lean refuses to
+    read, such as an unmatched ``end``) or ``("skip", reason)``: larger than ``max_file_bytes``, unreadable, or
     nesting deeper than ``max_scope_depth``. A file is read whole before
     any of it is added, so a skipped file adds nothing.
     """
@@ -353,7 +354,7 @@ def _read_file(
         return ("skip", f"unreadable: {exc.strerror or exc}")
     except ValueError as exc:  # nesting past max_scope_depth
         return ("skip", str(exc))
-    return ("ok", records, number)
+    return ("ok", records, number, tuple(splitter.problems))
 
 
 def _workers(value: Any) -> int:
@@ -564,6 +565,8 @@ class LeanIndex:
         self._file_lines: list[int] = []
         self._imports: list[tuple[str, ...]] = []
         self._skipped: list[tuple[str, str]] = []
+        # file id -> ((line, problem), ...): text Lean refuses to read.
+        self._problems: dict[int, tuple[tuple[int, str], ...]] = {}
         # declarations (one entry per node, in reading order)
         self._name: list[str | None] = []
         self._kind: list[str] = []
@@ -717,10 +720,12 @@ class LeanIndex:
         if outcome[0] == "skip":
             self._skipped.append((label, outcome[1]))
             return
-        _, records, lines = outcome
+        _, records, lines, problems = outcome
         for record in records:
             self._add_record(record, file_id)
         self._file_lines[file_id] = lines
+        if problems:
+            self._problems[file_id] = problems
 
     def add_chunks(self, chunks: Iterable[dict[str, Any]], *, label: str) -> None:
         """
@@ -1454,7 +1459,7 @@ class LeanIndex:
 
     def summary(self, *, max_items: int = 50) -> dict[str, Any]:  # noqa: PLR0912
         """
-        Describe the project: sizes, kinds, flags, duplicates, imports, extensions.
+        Describe the project: sizes, kinds, flags, duplicates, imports, extensions, problems.
 
         Parameters
         ----------
@@ -1519,7 +1524,17 @@ class LeanIndex:
             "skipped_files": [
                 {"file": label, "reason": reason} for label, reason in self._skipped
             ],
+            "source_problems": _listing(self._problem_items(self._problems), max_items),
         }
+
+    def _problem_items(self, file_ids: Iterable[int]) -> list[dict[str, Any]]:
+        """Return the source problems of *file_ids*, by file and line."""
+        return [
+            {"file": self._labels[file_id], "line": line, "problem": problem}
+            for file_id in sorted(file_ids)
+            if file_id in self._problems
+            for line, problem in self._problems[file_id]
+        ]
 
     def dossier(  # noqa: PLR0912, PLR0915
         self,
@@ -1708,6 +1723,16 @@ class LeanIndex:
         else:
             imports_status = "pass"
             on_imports = "every imported project module is present"
+        problems = self._problem_items({home} | {self._file[n] for n in reached})
+        report["source_problems"] = _listing(problems, max_items)
+        if problems:
+            on_source = (
+                f"{len(problems)} place(s) Lean refuses to read in the files the"
+                " proof depends on (see source_problems): names after them may be"
+                " placed in the wrong scope"
+            )
+        else:
+            on_source = "the files the proof depends on read as Lean reads them"
         checks = [
             _check(
                 "statement_definitions",
@@ -1720,6 +1745,7 @@ class LeanIndex:
                 "duplicate_names", "review" if duplicates else "pass", on_duplicates
             ),
             _check("imported_modules_present", imports_status, on_imports),
+            _check("source_text", "review" if problems else "pass", on_source),
             _check(
                 "kernel",
                 "not_checked",
@@ -2077,6 +2103,14 @@ def _render_summary(report: dict[str, Any]) -> str:
             f" Skipped files: {len(report['skipped_files'])}."
         ),
     ]
+    problems = report["source_problems"]
+    if problems["count"]:
+        out += ["", f"## Text Lean refuses to read: {problems['count']}"]
+        out.extend(
+            f"- {p['file']}:{p['line']}: {p['problem']}" for p in problems["items"]
+        )
+        if problems["cut"]:
+            out.append("  - (list cut)")
     return "\n".join(out) + "\n"
 
 
