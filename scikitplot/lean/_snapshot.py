@@ -57,6 +57,7 @@ SAVED = frozenset(
         "_ctx_of", "_flags", "_attributes", "_shape_of", "_private", "_claims",
         "_vacuous", "_ref_names", "_ctx_keys", "_labels", "_imports",
         "_file_lines", "_problems", "_kinds", "_learned", "_skipped",
+        "_layers", "_layer_of",
         "_dialect", "_commands", "_max_depth", "_max_bytes", "_suffix",
         "_visibility", "_source_root",
     }
@@ -134,6 +135,8 @@ def dumps(index: Any) -> bytes:
             "source_root": index._source_root,
         },
         "labels": list(index._labels),
+        "layers": [list(layer) for layer in index._layers],
+        "layer_of": list(index._layer_of),
         "imports": [list(found) for found in index._imports],
         "file_lines": list(index._file_lines),
         "problems": [
@@ -323,9 +326,7 @@ def _build(
         raise _fail("the metadata is not valid.") from exc
     cols = _columns(parts, n)
     _check(cols, meta, n, files)
-    base = None if root is None else Path(root).resolve()
-    if base is not None and not base.is_dir():
-        raise _fail(f"root {root!s} is not a folder.")
+    base = _roots(root)
     index = index_class(
         dialect=saved["dialect"],
         commands=saved["commands"],
@@ -379,6 +380,17 @@ def _check(cols: dict[str, Any], meta: dict[str, Any], n: int, files: int) -> No
         raise _fail("the file sections do not have one entry each.")
     if len(set(labels)) != files:
         raise _fail("two files have the same label.")
+    layers = meta.get("layers", [["", None]])
+    names = [layer[0] for layer in layers]
+    if not layers or names[0] != "" or len(set(names)) != len(names):
+        raise _fail("the layers are not valid.")
+    layer_of = meta.get("layer_of", [0] * files)
+    if len(layer_of) != files:
+        raise _fail("the file sections do not have one entry each.")
+    _in_range(layer_of, len(layers), "layer")
+    for label, layer in zip(labels, layer_of):
+        if layer and not label.startswith(f"{names[layer]}:"):
+            raise _fail("a file's label does not name its layer.")
     ptr, data = cols["ref_ptr"], cols["ref_data"]
     if len(ptr) != n + 1 or ptr[0] != 0 or ptr[-1] != len(data):
         raise _fail("the reference offsets do not match the declarations.")
@@ -404,10 +416,15 @@ def _fill_files(
     index: Any, cols: dict[str, Any], meta: dict[str, Any], n: int, base: Path | None
 ) -> None:
     """Add the files: labels, paths (inside *base* only), imports, problems."""
+    layers = [(str(name), root) for name, root in meta.get("layers", [["", None]])]
+    index._layers = layers
+    index._layer_of = [int(x) for x in meta.get("layer_of", [0] * len(meta["labels"]))]
     for file_id, label in enumerate(meta["labels"]):
         index._label_ids[label] = file_id
         index._labels.append(label)
-        index._paths.append(_inside(base, label))
+        name = layers[index._layer_of[file_id]][0]
+        within = label[len(name) + 1 :] if name else label
+        index._paths.append(_inside(base.get(name) if base else None, within))
         index._imports.append(tuple(meta["imports"][file_id]))
         index._file_lines.append(int(meta["file_lines"][file_id]))
     firsts = [n] * len(index._labels)
@@ -422,6 +439,8 @@ def _fill_files(
     index._learned = {k: (str(v[0]), int(v[1])) for k, v in meta["learned"]}
     index._skipped = [(str(a), str(b)) for a, b in meta["skipped"]]
     index._kinds.update(dict(meta["kinds_counted"]))
+    if index._layers[0][1] is None and index._source_root is not None:
+        index._layers[0] = ("", index._source_root)
 
 
 def _fill_declarations(
@@ -466,6 +485,20 @@ def _fill_declarations(
         node: shapes[_DIGEST * i : _DIGEST * (i + 1)]
         for i, node in enumerate(cols["shape_of"])
     }
+
+
+def _roots(root: Any) -> dict[str, Path] | None:
+    """Return the folder of each layer name (``""``: the first), checked, or ``None``."""
+    if root is None:
+        return None
+    pairs = root.items() if isinstance(root, dict) else [("", root)]
+    folders = {}
+    for name, folder in pairs:
+        path = Path(folder).resolve()
+        if not path.is_dir():
+            raise _fail(f"root {folder!s} is not a folder.")
+        folders[str(name)] = path
+    return folders
 
 
 def _inside(base: Path | None, label: str) -> Path | None:

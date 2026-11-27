@@ -153,6 +153,39 @@ mathlib4        30 s           1.4 s      1.4 s      54 MB
                 workers)
 ==============  =============  =========  =========  ==========
 
+A project over its dependencies
+-------------------------------
+
+A project that depends on mathlib need not read mathlib each time: load
+the saved dependency and add the project over it as a *layer*::
+
+    index = LeanIndex.load("mathlib.leanidx", root="path/to/mathlib")
+    index.add_folder("path/to/project", name="project")
+    index.dossier("main_theorem")
+
+From the shell, ``--base FILE`` loads the dependency (``--base-root`` is
+where its files are, to quote them) and ``FOLDER`` is added over it,
+named ``--name`` or the folder's own name::
+
+    python -m scikitplot.lean path/to/project --base mathlib.leanidx \
+        --base-root path/to/mathlib --target main_theorem
+
+The reports are those of one index of both folders: names in the project
+resolve into the layer below, and dossiers follow proofs through both. A
+layer's files are labelled ``name:path`` (``project:Project/Main.lean``),
+so the same path in two folders stays two files. Each layer finds its own
+source root, from the imports of that layer and the ones above it that no
+lower layer provides. A module two layers provide is listed under
+``imports`` / ``module_clashes``: the lower layer's file is used, as Lean
+refuses both in one build. A layer learns the commands its own files
+define (``learn_commands``). Saving a layered index keeps its layers;
+``load(root={"": "path/to/mathlib", "project": "path/to/project"})``
+quotes each from its own folder.
+
+On mathlib4 with the PFR project over it, loading mathlib4 and adding PFR
+takes 1.4 s against 24 s to read both folders, and the dossiers of PFR's
+theorems are the same, labels aside.
+
 Scale
 -----
 
