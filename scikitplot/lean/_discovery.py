@@ -114,6 +114,21 @@ class _Discovery:
         top-level ``s`` in a file nothing imports.
         """
         index = self.index
+        if index._graph != "python":  # numpy or scipy: packed edges
+            import numpy as np  # noqa: PLC0415
+
+            from ._graph_numpy import use_counts  # noqa: PLC0415
+
+            indptr, codes = index._pack()
+            file_of = np.zeros(0, dtype=np.int64)
+            if len(index._file):
+                file_of = np.frombuffer(index._file, dtype=index._file.typecode)
+            in_degree, in_files = use_counts(
+                indptr, codes, file_of.astype(np.int64), len(index._name)
+            )
+            self.in_degree = array("q", in_degree.tolist())
+            self.in_files = array("q", in_files.tolist())
+            return
         last_file = array("q", [-1]) * len(index._name)
         for node in range(len(index._name)):
             file_id = index._file[node]

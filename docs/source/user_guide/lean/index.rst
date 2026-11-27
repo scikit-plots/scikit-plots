@@ -116,6 +116,30 @@ Scale
 -----
 
 Indexing is linear in the text and keeps a few integers and the used
-names per declaration. On mathlib4 (9,351 files, 288,006 declarations) on
-one core: indexing about 35 s, a summary about 10 s, discovery about
-35 s, a dossier in milliseconds, peak memory about 400 MB.
+names per declaration. On mathlib4 (9,351 files, 288,006 declarations)
+with two workers: indexing about 21 s, a summary about 8 s, discovery
+about 1.5 s, a dossier in milliseconds, peak memory about 400 MB.
+
+Two options change how the work is done, never what is reported:
+
+- ``workers=`` (``--workers``) reads files in that many processes;
+  ``None`` (``--workers 0``) uses every CPU. Results are taken in file
+  order, so the index is the same for any number of workers.
+- ``graph=`` (``--graph``) chooses the graph backend: ``"python"`` (the
+  default, standard library only), ``"numpy"`` (edges packed into
+  arrays, use counts and searches vectorised) or ``"scipy"`` (packed as
+  for ``"numpy"``, searches in :mod:`scipy.sparse.csgraph`). A missing
+  optional dependency raises :class:`ImportError` when the index is made.
+
+Each file keeps the set of project files it sees, one bit per file, so
+these sets grow with the square of the file count. Past 20,000 files they
+are stored compressed and expanded on use: on a 175,187-file project the
+sets took 18 times less memory, and peak memory fell from 5.5 GB to
+2.1 GB.
+
+To compare the backends on a project of your own, run the benchmark
+helper from a source checkout; it runs each backend in its own process,
+times every stage, and exits 1 if two backends' reports differ::
+
+    python maintenances/corpus/_maintenance/tools/lean_index_benchmark.py \
+        FOLDER --compare --workers 2
