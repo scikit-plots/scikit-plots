@@ -129,6 +129,7 @@ class _Discovery:
             self.in_degree = array("q", in_degree.tolist())
             self.in_files = array("q", in_files.tolist())
             return
+        index._resolve_all()
         last_file = array("q", [-1]) * len(index._name)
         for node in range(len(index._name)):
             file_id = index._file[node]

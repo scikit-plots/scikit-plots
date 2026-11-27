@@ -47,6 +47,7 @@ from collections import Counter, OrderedDict, deque
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from . import _parallel
 from ._shapes import _bound_names, fingerprint, states_a_claim, vacuity
 from ._syntax import (
     _MODIFIERS,
@@ -459,6 +460,14 @@ class LeanIndex:
         hundreds of thousands of declarations). Reports are identical for
         all three; name resolution, most of the time on real projects, is
         the same in all of them.
+    workers : int or None, optional
+        Processes that resolve names when a step needs every edge
+        (``summary``, ``discover``, ``export``): ``1`` (default) resolves
+        them here, ``None`` uses every CPU. Used on Linux, where forked
+        workers share the index without copying it, for projects of 20,000
+        declarations or more; elsewhere names are resolved here. Every
+        report is the same for any number of workers.
+        :meth:`from_folder` also reads files with its ``workers``.
 
     See Also
     --------
@@ -525,6 +534,7 @@ class LeanIndex:
         visibility: str = "imports",
         source_root: str | None = None,
         graph: str = "python",
+        workers: int | None = 1,
     ) -> None:
         if dialect not in ("lean4", "lean3"):
             raise ValueError(
@@ -587,6 +597,7 @@ class LeanIndex:
                     f"LeanIndex(graph={graph!r}) needs {needs}; graph='python' needs nothing."
                 ) from exc
         self._graph = graph
+        self._workers = _workers(workers)
         self._packed: tuple[Any, Any] | None = None
         # Per expanded-kind set, the mask of nodes whose edges a packed
         # closure follows; dropped with the packed edges.
@@ -715,7 +726,7 @@ class LeanIndex:
                 options["commands"] = sorted(
                     set(options.get("commands", ())) | set(learned)
                 )
-            index = cls(**options)
+            index = cls(workers=workers, **options)
             index._learned = learned
             index._skipped.extend(refused)
             settings = index._settings()
@@ -1246,6 +1257,7 @@ class LeanIndex:
                 rev_indptr, rev_codes, targets, len(self._name)
             )
         n = len(self._name)
+        self._resolve_all()
         offsets = array("q", bytes(8 * (n + 1)))
         for node in range(n):
             for code in self._edges_of(node):
@@ -1446,6 +1458,24 @@ class LeanIndex:
                     best[target] = how
         return array("l", sorted(target * 4 + how for target, how in best.items()))
 
+    def _resolve_all(self) -> None:
+        """
+        Resolve every edge not resolved yet, in worker processes when they help.
+
+        Called by each step that needs every edge. With ``workers`` of 1, or
+        where :func:`._parallel.usable` says no, this does nothing and the
+        step resolves edges as it reads them; the edges are the same.
+        """
+        if self._packed is not None:
+            return
+        missing = [n for n in range(len(self._name)) if n not in self._edges]
+        if not _parallel.usable(self._workers, len(missing)):
+            return
+        for file_id in range(len(self._labels)):  # what every worker reads,
+            self._sees(file_id)  # built once here, not once per worker
+        self._short()
+        self._edges.update(_parallel.resolve(self, missing, self._workers))
+
     def _pack(self) -> tuple[Any, Any]:
         """
         Resolve every edge and pack them into CSR arrays (``graph="numpy"``).
@@ -1456,6 +1486,7 @@ class LeanIndex:
         if self._packed is None:
             from ._graph_numpy import pack  # noqa: PLC0415
 
+            self._resolve_all()
             # Edges already resolved are reused; the rest go straight into
             # the packed arrays without being kept one array per node, so
             # the peak holds the packed edges, not both copies.
@@ -2474,7 +2505,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=int,
         default=1,
         metavar="N",
-        help="processes reading the files (0: every CPU); the reports are the same",
+        help=(
+            "processes reading the files and, on Linux, resolving names"
+            " (0: every CPU); the reports are the same"
+        ),
     )
     parser.add_argument(
         "--graph",

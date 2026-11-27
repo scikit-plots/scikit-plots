@@ -152,7 +152,7 @@ _CACHES = {
     "_import_files_cache", "_generator_cache", "_gaps", "_generation",
 }  # fmt: skip
 _ORDER_FREE = {
-    "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands",
+    "_kinds", "_intern", "_learned", "_skipped", "_in_order", "_commands", "_workers",
     "_dialect", "_graph", "_max_bytes", "_max_depth", "_source_root",
     "_suffix", "_visibility",
 }  # fmt: skip

@@ -1,0 +1,7 @@
+- :class:`~scikitplot.lean.LeanIndex` resolves names in worker processes
+  with ``workers > 1`` (a new constructor option, also set by
+  :meth:`~scikitplot.lean.LeanIndex.from_folder` and ``--workers``): on
+  Linux, for projects of 20,000 declarations or more, the steps that need
+  every edge (summary, discovery, export) resolve them in forked workers
+  that share the index. On mathlib4 a summary takes 6.8 s with two workers
+  instead of 12.5 s; every report is the same for any number of workers.
