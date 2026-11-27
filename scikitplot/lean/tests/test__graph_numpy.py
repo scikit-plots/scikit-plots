@@ -144,11 +144,16 @@ def test_packing_frees_the_per_declaration_arrays_and_a_new_file_unpacks(tmp_pat
     assert index._packed is None
     index.discover()  # counting uses needs every edge: packed
     assert index._packed is not None and index._edges == {}
+    first = index.dossier("main2")  # the packed closure caches its follow mask
+    assert index._follow and index.dossier("main2") == first
     extra = tmp_path / "Extra.lean"
     extra.write_text("theorem extra : True := trivial\n", encoding="utf-8")
     index.add_file(extra, label="Extra.lean")
-    assert index._packed is None
+    assert index._packed is None and index._follow == {}  # both dropped together
     assert index.dossier("main2")["flags_found"] == ["sorry"]
+    index.discover()  # packed again, with a mask over the new declarations
+    plain = LeanIndex.from_folder(root, graph="python")
+    assert index.dossier("main2") == plain.dossier("main2")
 
 
 def test_an_empty_project(tmp_path):

@@ -14,18 +14,20 @@ are the NumPy backend's.
 Kept chiefly to benchmark and to cross-check the other backends: every
 search gives exactly what the standard-library FIFO search gives (the same
 nodes, order and parents), which the tests check on random graphs. SciPy
-visits each row's neighbours in stored order; rows are sorted by target,
-as the FIFO search reads them. Several roots are joined to one extra source
-node (ascending, as LeanIndex passes them; another order takes the
-NumPy search, which keeps it); a node whose edges are not followed has its row
-emptied; how each edge was found is looked up in the packed edges.
+visits a row's neighbours in ascending order, which is the order the FIFO
+search reads a packed row in (rows are sorted by target). Several roots
+are joined to one extra source node; SciPy visits those ascending too, so
+roots in another order take the NumPy search, which keeps their order
+(LeanIndex passes them ascending). A node whose edges are not followed
+has its row emptied; how each edge was found is looked up in the packed
+edges.
 
 Notes
 -----
-**User.** Measured on mathlib4, a call costs a few milliseconds whatever
-the closure's size (arrays of the project's size are allocated per call),
-so the standard library or NumPy is faster for ordinary dossiers; SciPy
-pays off only for closures of hundreds of thousands of declarations.
+**User.** Every call builds a matrix of the whole project's edges, so a
+call costs a few milliseconds whatever the closure's size (about 3.5 ms
+on mathlib4); for ordinary dossiers the standard library or NumPy is
+faster. Its value is an independent implementation to compare against.
 """
 
 from __future__ import annotations
@@ -40,6 +42,9 @@ from . import _graph_numpy
 from ._graph_numpy import reverse, use_counts
 
 __all__: list[str] = []
+
+#: SciPy takes 32-bit sparse indices below this size, 64-bit from it.
+_INDEX_LIMIT = 2**31
 
 # Re-exported so the backends answer to one interface.
 _ = (reverse, use_counts)
@@ -81,8 +86,13 @@ def breadth_first(
     row_ptr = np.zeros(n + 2, dtype=np.int64)
     np.cumsum(counts, out=row_ptr[1:])
     columns = np.concatenate([targets, np.asarray(roots, dtype=np.int64)])
+    index_type = np.int32 if max(n + 1, len(columns)) < _INDEX_LIMIT else np.int64
     graph = csr_matrix(
-        (np.ones(len(columns), dtype=np.int8), columns.astype(np.int32), row_ptr),
+        (
+            np.ones(len(columns), dtype=np.int8),
+            columns.astype(index_type),
+            row_ptr.astype(index_type),
+        ),
         shape=(n + 1, n + 1),
     )
     order, predecessors = breadth_first_order(

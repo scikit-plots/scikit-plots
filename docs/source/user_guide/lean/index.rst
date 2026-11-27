@@ -131,8 +131,11 @@ Two options change how the work is done, never what is reported:
   for ``"numpy"``, searches in :mod:`scipy.sparse.csgraph`). A missing
   optional dependency raises :class:`ImportError` when the index is made.
 
-Past 20,000 files the import sets are stored compressed, which keeps
-memory linear in the files on very large projects.
+Each file keeps the set of project files it sees, one bit per file, so
+these sets grow with the square of the file count. Past 20,000 files they
+are stored compressed and expanded on use: on a 175,187-file project the
+sets took 18 times less memory, and peak memory fell from 5.5 GB to
+2.1 GB.
 
 To compare the backends on a project of your own, run the benchmark
 helper from a source checkout; it runs each backend in its own process,

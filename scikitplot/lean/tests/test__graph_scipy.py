@@ -24,6 +24,7 @@ import pytest
 np = pytest.importorskip("numpy")
 pytest.importorskip("scipy.sparse.csgraph")
 
+from .. import _graph_scipy  # noqa: E402
 from .._graph_scipy import breadth_first  # noqa: E402
 from .._index import LeanIndex  # noqa: E402
 from .test__discovery import GENERATORS  # noqa: E402
@@ -73,6 +74,18 @@ def test_breadth_first_is_the_fifo_search(seed):
             got = breadth_first(indptr, codes, order, n, follow=mask)
             want = _fifo(indptr, codes, order, mask)
             assert list(got.items()) == list(want.items())  # nodes, order, parents, how
+
+
+def test_64_bit_indices_give_the_same_search(monkeypatch):
+    rng = random.Random(7)
+    n = 200
+    rows = [sorted({rng.randrange(n) * 4 for _ in range(4)}) for _ in range(n)]
+    indptr = np.zeros(n + 1, dtype=np.int64)
+    np.cumsum([len(r) for r in rows], out=indptr[1:])
+    codes = np.array([c for r in rows for c in r], dtype=np.int32)
+    want = _fifo(indptr, codes, [0, 5, 9])
+    monkeypatch.setattr(_graph_scipy, "_INDEX_LIMIT", 0)  # as past 2**31 nodes
+    assert list(breadth_first(indptr, codes, [0, 5, 9], n).items()) == list(want.items())
 
 
 def test_no_roots_and_no_edges():

@@ -550,6 +550,9 @@ class LeanIndex:
                 ) from exc
         self._graph = graph
         self._packed: tuple[Any, Any] | None = None
+        # Per expanded-kind set, the mask of nodes whose edges a packed
+        # closure follows; dropped with the packed edges.
+        self._follow: dict[frozenset[str], Any] = {}
         self._reach: dict[int, int | bytes] = {}
         self._expanded: OrderedDict[int, int] = OrderedDict()
         # files
@@ -778,6 +781,7 @@ class LeanIndex:
         self._reach.clear()
         self._expanded.clear()
         self._packed = None
+        self._follow.clear()
         self._contexts.clear()
         return file_id
 
@@ -1353,11 +1357,14 @@ class LeanIndex:
             breadth_first = self._backend().breadth_first
             follow = None
             if expand is not None:
-                follow = np.fromiter(
-                    (kind in expand for kind in self._kind),
-                    dtype=bool,
-                    count=len(self._kind),
-                )
+                follow = self._follow.get(expand)
+                if follow is None:  # one pass over the kinds per kind set
+                    follow = np.fromiter(
+                        (kind in expand for kind in self._kind),
+                        dtype=bool,
+                        count=len(self._kind),
+                    )
+                    self._follow[expand] = follow
             indptr, codes = self._packed
             return breadth_first(indptr, codes, roots, len(self._name), follow=follow)
         reached: dict[int, tuple[int, int]] = dict.fromkeys(roots, (-1, -1))

@@ -19,8 +19,10 @@ Usage
 ``--compare`` runs every graph backend (``python``, ``numpy``, ``scipy``)
 in a process of its own, so each peak memory is its own, and checks that
 their reports are identical (``report_sha``: the digest of the summary,
-discovery and dossier JSON). Exit status 1 when two backends disagree; a
-backend whose optional dependency is missing is listed as unavailable.
+discovery and dossier JSON). Exit status 1 when two backends disagree,
+when a backend fails, or when none could run; a backend whose optional
+dependency is missing (exit status 3 when run alone) is listed as
+unavailable and does not fail the comparison.
 
 Index the project's root (the folder holding the top-level ``Mathlib.lean``
 for mathlib4), not a subfolder: imports are matched against paths from the
@@ -48,13 +50,30 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
-def _peak_mb() -> int | None:
+#: Exit status of a single run whose graph backend's dependency is missing.
+UNAVAILABLE = 3
+
+
+def _peak_mb(who: str = "RUSAGE_SELF") -> int | None:
+    """Peak resident memory of this process, or of its largest finished child."""
     try:
         import resource  # noqa: PLC0415  (POSIX only)
     except ImportError:
         return None
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak = resource.getrusage(getattr(resource, who)).ru_maxrss
     return int(peak // (1024 * 1024 if sys.platform == "darwin" else 1024))
+
+
+def _digest(*reports: Any) -> str:
+    """First 16 hex digits of the SHA-256 of *reports* as canonical JSON."""
+
+    def plain(value: Any) -> Any:
+        if isinstance(value, (set, frozenset)):  # no hash-seed-dependent order
+            return sorted(value, key=repr)
+        return str(value)
+
+    text = json.dumps(list(reports), sort_keys=True, default=plain)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 def measure(
@@ -85,7 +104,8 @@ def measure(
     Returns
     -------
     dict
-        ``seconds`` per stage, ``peak_mb``, ``nodes``, ``files``,
+        ``seconds`` per stage, ``peak_mb`` (this process), ``workers_peak_mb``
+        (the largest worker process, when ``workers`` > 1), ``nodes``, ``files``,
         ``skipped``, ``sections`` (count per discovery section),
         ``files_written``, ``options`` and ``report_sha``.
     """
@@ -107,9 +127,7 @@ def measure(
         dossier = timed(
             "dossier", lambda: index.dossier(headline[0]["declaration"], max_items=top)
         )
-    digest = hashlib.sha256(
-        json.dumps([summary, report, dossier], sort_keys=True, default=str).encode("utf-8")
-    ).hexdigest()[:16]
+    digest = _digest(summary, report, dossier)
     written = timed("export", lambda: index.export(out, top=top))
     sections: dict[str, int] = {}
     for group in ("rules", "patterns", "claims", "anomalies"):
@@ -120,6 +138,7 @@ def measure(
         "folder": Path(folder).name,
         "seconds": seconds,
         "peak_mb": _peak_mb(),
+        "workers_peak_mb": _peak_mb("RUSAGE_CHILDREN"),
         "nodes": len(index._name),
         "files": len(index._labels),
         "skipped": len(index._skipped),
@@ -138,9 +157,10 @@ def compare(run: Any, graphs: Sequence[str] = GRAPHS) -> tuple[int, list[dict[st
     """
     Run *run(graph)* for each backend; return the exit status and the results.
 
-    *run* returns :func:`measure`'s dict, or ``{"unavailable": reason}``.
-    The status is 1 when two available backends give different
-    ``report_sha``, 0 otherwise (also when only one is available).
+    *run* returns :func:`measure`'s dict, ``{"unavailable": reason}`` (an
+    optional dependency is missing) or ``{"error": reason}``. The status is
+    1 when a backend failed, when none was measured, or when two measured
+    backends give different ``report_sha``; 0 otherwise.
     """
     results = []
     for graph in graphs:
@@ -148,7 +168,8 @@ def compare(run: Any, graphs: Sequence[str] = GRAPHS) -> tuple[int, list[dict[st
         result["graph"] = graph
         results.append(result)
     digests = {r["report_sha"] for r in results if "report_sha" in r}
-    return (1 if len(digests) > 1 else 0), results
+    failed = any("error" in r for r in results)
+    return (1 if failed or len(digests) != 1 else 0), results
 
 
 def _run_subprocess(folder: Path, graph: str, workers: int, top: int) -> dict[str, Any]:
@@ -160,22 +181,30 @@ def _run_subprocess(folder: Path, graph: str, workers: int, top: int) -> dict[st
     done = subprocess.run(command, capture_output=True, text=True, check=False)  # noqa: S603
     if done.returncode != 0:
         lines = (done.stderr or done.stdout).strip().splitlines()
-        return {"unavailable": lines[-1][-200:] if lines else f"exit {done.returncode}"}
+        reason = lines[-1][-200:] if lines else f"exit {done.returncode}"
+        key = "unavailable" if done.returncode == UNAVAILABLE else "error"
+        return {key: reason}
     return json.loads(done.stdout)
 
 
 def _compare_text(status: int, results: list[dict[str, Any]]) -> str:
     lines = [f"{'graph':<7} {'index':>8} {'summary':>8} {'discover':>9} {'dossier':>8} {'peak MB':>8}  report"]
     for r in results:
-        if "unavailable" in r:
-            lines.append(f"{r['graph']:<7} unavailable: {r['unavailable']}")
+        if "unavailable" in r or "error" in r:
+            key = "unavailable" if "unavailable" in r else "error"
+            lines.append(f"{r['graph']:<7} {key}: {r[key]}")
             continue
         s = r["seconds"]
         lines.append(
             f"{r['graph']:<7} {s.get('index', 0):>8} {s.get('summary', 0):>8}"
             f" {s.get('discover', 0):>9} {s.get('dossier', 0):>8} {r['peak_mb']!s:>8}  {r['report_sha']}"
         )
-    lines.append("reports identical" if status == 0 else "REPORTS DIFFER between backends")
+    if any("error" in r for r in results):
+        lines.append("A BACKEND FAILED")
+    elif not any("report_sha" in r for r in results):
+        lines.append("NO BACKEND COULD RUN")
+    else:
+        lines.append("reports identical" if status == 0 else "REPORTS DIFFER between backends")
     return "\n".join(lines)
 
 
@@ -199,7 +228,9 @@ def main(argv: Sequence[str] | None = None, *, index_class: Any = None) -> int:
     parser.add_argument("--graph", default="python", choices=GRAPHS)
     parser.add_argument("--workers", type=int, default=1, help="0: every CPU")
     parser.add_argument(
-        "--compare", action="store_true", help="run every backend; exit 1 if reports differ"
+        "--compare",
+        action="store_true",
+        help="run every backend (ignores --graph and --out); exit 1 if reports differ",
     )
     args = parser.parse_args(argv)
     if not args.folder.is_dir():
@@ -218,9 +249,13 @@ def main(argv: Sequence[str] | None = None, *, index_class: Any = None) -> int:
         from scikitplot.lean import LeanIndex as index_class  # noqa: PLC0415, N813
     with tempfile.TemporaryDirectory() as scratch:
         options = {"graph": args.graph, "workers": None if args.workers == 0 else args.workers}
-        result = measure(
-            index_class, args.folder, out=args.out or scratch, top=args.top, options=options
-        )
+        try:
+            result = measure(
+                index_class, args.folder, out=args.out or scratch, top=args.top, options=options
+            )
+        except ImportError as exc:  # the backend's optional dependency
+            print(f"unavailable: {exc}", file=sys.stderr)  # noqa: T201
+            return UNAVAILABLE
     print(json.dumps(result, indent=1, sort_keys=True) if args.json else _text(result))
     return 0
 
