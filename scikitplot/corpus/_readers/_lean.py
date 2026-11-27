@@ -24,6 +24,7 @@ answers.
 
 from __future__ import annotations
 
+import codecs
 from collections.abc import Collection as _Collection
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -63,6 +64,42 @@ __all__ = ["LEAN_FLAGS", "LeanReader"]
 # ---------------------------------------------------------------------------
 # Reader
 # ---------------------------------------------------------------------------
+
+
+#: Codecs (as :func:`codecs.lookup` names them) whose text is UTF-8.
+_UTF8_FAMILY = frozenset({"utf-8", "utf-8-sig", "ascii"})
+
+
+class _Problems:
+    """
+    Put each source problem on the chunk that holds its line, as chunks are yielded.
+
+    A problem is found while its line is read, before the chunk holding it
+    is complete, so every problem waits until that chunk is yielded.
+    """
+
+    def __init__(self, splitter: Any) -> None:
+        self._splitter = splitter
+        self._seen = 0
+        self.pending: list[tuple[int, str]] = []
+
+    def placed(self, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Return *chunks*, each with the problems on its lines."""
+        found = self._splitter.problems
+        if len(found) > self._seen:
+            self.pending.extend(found[self._seen :])
+            self._seen = len(found)
+        if not self.pending:
+            return chunks
+        for chunk in chunks:
+            start, end = chunk["line_start"], chunk["line_end"]
+            mine = [p for p in self.pending if start <= p[0] <= end]
+            if mine:
+                chunk["source_problems"] = [
+                    {"line": line, "problem": problem} for line, problem in sorted(mine)
+                ]
+                self.pending = [p for p in self.pending if not start <= p[0] <= end]
+        return chunks
 
 
 def _strings(value: Any, option: str, *, words: bool = False) -> tuple[str, ...]:
@@ -119,6 +156,12 @@ class LeanReader(CodeReader):
         (``references``) and the namespaces open for it (``opens``): what
         :class:`~scikitplot.lean.LeanIndex` resolves into a dependency
         graph. Default: ``False``.
+    statements : bool, optional
+        Also record, on each ``theorem`` and ``lemma`` chunk, its statement
+        (its text before the proof) in ``statement``, every line still
+        kept: what :class:`~scikitplot.lean.LeanIndex` groups by shape.
+        Needs ``proofs="keep"`` and ``lines_per_chunk=None`` (a part could
+        cut a statement short). Default: ``False``.
     dialect : {"lean4", "lean3"}, optional
         ``"lean3"`` also reads Lean 3's ``begin ... end`` and
         ``match ... end`` blocks, whose ``end`` closes no namespace, and
@@ -143,10 +186,11 @@ class LeanReader(CodeReader):
     ------
     TypeError
         If ``kinds``, ``watch`` or ``commands`` is not a collection of str,
-        or ``references`` is not a bool.
+        or ``references`` or ``statements`` is not a bool.
     ValueError
-        If an option's value is invalid, the file is too large or binary,
-        or it nests more than ``max_scope_depth`` scopes.
+        If an option's value is invalid, ``statements=True`` is given with
+        ``proofs="drop"`` or ``lines_per_chunk``, the file is too large or
+        binary, or it nests more than ``max_scope_depth`` scopes.
 
     See Also
     --------
@@ -174,8 +218,15 @@ class LeanReader(CodeReader):
     - ``flags``: audit marks found in the chunk's code (see
       :data:`LEAN_FLAGS`); with ``proofs="drop"`` the dropped proof's
       marks are on its statement.
-    - ``watched``, ``part``, ``proof_line_start``, ``proof_line_end``:
-      see the options.
+    - ``watched``, ``part``, ``proof_line_start``, ``proof_line_end``,
+      ``statement``: see the options.
+    - ``source_problems``: text Lean refuses to read, on the chunk holding
+      its line, as ``{"line", "problem"}`` items: an ``end`` that closes no
+      scope or names another, a file ending inside a comment, string or
+      «name», and bytes that are not UTF-8 (Lean reads UTF-8 only; the
+      text is decoded with the codec chosen for the file, named in the
+      problem). With ``kinds`` set, a problem on a chunk left out is not
+      yielded.
     - With ``references=True``: ``references``, the identifiers the
       chunk's code uses, sorted, without Lean's own words and the chunk's
       own name (with ``proofs="drop"``, the dropped proof's too); and
@@ -212,6 +263,12 @@ class LeanReader(CodeReader):
     holds ``=>`` (``:=`` in Lean 3): the equations of a proof by pattern
     matching. Definitions keep their bodies; their values are their
     meaning.
+
+    **Indexing.** :meth:`scikitplot.lean.LeanIndex.add_chunks` indexes a
+    file read with ``references=True, statements=True,
+    lines_per_chunk=None``, for example from an archive: the same
+    declarations, references, flags, statement shapes and source problems
+    as :meth:`~scikitplot.lean.LeanIndex.add_file` reads from a UTF-8 file.
 
     **Developer note.** The file is decoded as
     :class:`~scikitplot.corpus._readers.TextReader` decodes it, then read
@@ -268,6 +325,9 @@ class LeanReader(CodeReader):
     references: bool = field(default=False)
     """Record the identifiers each chunk uses and the namespaces open for it."""
 
+    statements: bool = field(default=False)
+    """Record each theorem's and lemma's statement in ``statement``."""
+
     def __post_init__(self) -> None:
         """Validate the options."""
         if _LEAN_MISSING is not None:
@@ -289,9 +349,18 @@ class LeanReader(CodeReader):
             raise ValueError(
                 f"LeanReader: max_scope_depth must be an int > 0; got {depth!r}."
             )
-        if not isinstance(self.references, bool):
-            raise TypeError(
-                f"LeanReader: references must be a bool; got {self.references!r}."
+        for option in ("references", "statements"):
+            if not isinstance(getattr(self, option), bool):
+                raise TypeError(
+                    f"LeanReader: {option} must be a bool;"
+                    f" got {getattr(self, option)!r}."
+                )
+        if self.statements and (
+            self.proofs != "keep" or self.lines_per_chunk is not None
+        ):
+            raise ValueError(
+                "LeanReader: statements=True needs proofs='keep' and"
+                " lines_per_chunk=None (a part could cut a statement short)."
             )
         if self.kinds is not None:
             self.kinds = frozenset(_strings(self.kinds, "kinds"))
@@ -315,7 +384,8 @@ class LeanReader(CodeReader):
             ``encoding``, ``line_start``, ``line_end``, ``lean_kind`` and,
             when they apply, ``declaration``, ``namespace``, ``modifiers``,
             ``attributes``, ``imports``, ``flags``, ``watched``, ``part``,
-            ``proof_line_start`` and ``proof_line_end``.
+            ``proof_line_start``, ``proof_line_end``, ``statement`` and
+            ``source_problems``.
 
         Raises
         ------
@@ -323,7 +393,7 @@ class LeanReader(CodeReader):
             If the file is too large or binary, or nests more than
             ``max_scope_depth`` scopes.
         """
-        codec = self._codec_of_file()
+        codec, invalid = self._codec_and_invalid_line()
         if codec is None:
             return
         splitter = _Splitter(
@@ -339,7 +409,15 @@ class LeanReader(CodeReader):
             max_scope_depth=self.max_scope_depth,
             flag_tokens=self.flag_tokens,
             references=self.references,
+            statements=self.statements,
         )
+        problems = _Problems(splitter)
+        if invalid is not None:
+            problem = (
+                "not valid UTF-8: the first invalid byte is on this line"
+                f" (read as {codec}; Lean reads UTF-8 only)"
+            )
+            problems.pending.append((invalid, problem))
         # Universal newlines, as CodeReader reads: line numbers match an
         # editor's, and a "\r\n" file reads as Lean reads it.
         with open(self.input_path, encoding=codec, newline=None) as stream:
@@ -349,5 +427,34 @@ class LeanReader(CodeReader):
                     line = line[1:]
                 chunks = splitter.feed(number, line)
                 if chunks:
-                    yield from chunks
-        yield from splitter.finish()
+                    yield from problems.placed(chunks)
+        yield from problems.placed(splitter.finish())
+
+    def _codec_and_invalid_line(self) -> tuple[str | None, int | None]:
+        """
+        Return the file's codec, and the line of its first byte that is not UTF-8.
+
+        As :meth:`_codec_of_file` (the bytes held only meanwhile), and the
+        line counted as the index counts it (``None`` for a UTF-8 file). A
+        file read as UTF-8 or ASCII is not decoded here; one read with
+        another codec is decoded once as UTF-8, to find the line.
+        """
+        size = self.input_path.stat().st_size
+        if size > self.max_file_bytes:
+            raise ValueError(
+                f"{type(self).__name__}: {self.file_name} is {size:,} bytes,"
+                f" which exceeds max_file_bytes={self.max_file_bytes:,}."
+            )
+        raw = self.input_path.read_bytes()
+        if not raw or raw.isspace():  # no copy, unlike raw.strip()
+            return None, None
+        codec = self._choose_encoding(raw)
+        if codecs.lookup(codec).name in _UTF8_FAMILY:
+            return codec, None  # it decodes the file, so the file is UTF-8
+        try:
+            raw.decode("utf-8")  # only a file read with another codec is decoded
+        except UnicodeDecodeError as exc:
+            head = raw[: exc.start]
+            line = head.count(b"\n") + head.count(b"\r") - head.count(b"\r\n") + 1
+            return codec, line
+        return codec, None

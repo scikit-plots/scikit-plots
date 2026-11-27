@@ -850,3 +850,88 @@ def test_corpus_without_scikitplot_lean_says_what_to_install(tmp_path):
     )
     assert done.returncode == 0, done.stderr[-2000:]
     assert done.stdout.strip().endswith("ok")
+
+
+# -- what an index needs: statements and source problems ---------------------
+
+PROJECT = """
+import Mathlib
+/-- doc -/
+theorem le_sum (a b c : Nat) (h : a ≤ b) (k : b ≤ c) : a + b ≤ c + c := by omega
+theorem same (x y z : Nat) (h : x ≤ y) (k : y ≤ z) : x + y ≤ z + z := by
+  omega
+def Good (n : Nat) : Prop := True
+end Foo
+"""
+
+
+def test_statements_are_recorded_on_results_with_every_line_kept(tmp_path):
+    chunks = _read(tmp_path, PROJECT, statements=True, lines_per_chunk=None)
+    by_name = {c.get("declaration"): c for c in chunks}
+    assert by_name["same"]["statement"].endswith(": x + y ≤ z + z")
+    assert by_name["same"]["text"].rstrip().endswith("omega")  # proof kept
+    assert "statement" not in by_name["Good"]
+    _assert_partition(tmp_path / "A.lean", chunks)
+
+
+@pytest.mark.parametrize(
+    "options",
+    [{"statements": True}, {"statements": True, "lines_per_chunk": None, "proofs": "drop"}],
+)
+def test_statements_need_whole_commands_and_proofs(tmp_path, options):
+    with pytest.raises(ValueError, match="statements=True needs proofs='keep'"):
+        LeanReader(input_path=_write(tmp_path, PROJECT), **options)
+
+
+def test_statements_is_a_bool(tmp_path):
+    with pytest.raises(TypeError, match="statements must be a bool"):
+        LeanReader(input_path=_write(tmp_path, PROJECT), statements=1, lines_per_chunk=None)
+
+
+def test_source_problems_are_on_the_chunk_holding_their_line(tmp_path):
+    chunks = _read(tmp_path, PROJECT + "/- never closed\n")
+    found = {
+        (c["lean_kind"], p["line"], p["problem"])
+        for c in chunks
+        for p in c.get("source_problems", ())
+    }
+    assert found == {
+        ("context", 7, "`end Foo` closes no open scope"),
+        ("context", 8, "the file ends inside a comment"),  # the comment's first line
+    }
+    for chunk in chunks:
+        for problem in chunk.get("source_problems", ()):
+            assert chunk["line_start"] <= problem["line"] <= chunk["line_end"]
+
+
+def test_bytes_that_are_not_utf8_are_a_source_problem(tmp_path):
+    path = tmp_path / "A.lean"
+    path.write_bytes(b"theorem ok : 1 = 1 := rfl\ntheorem caf\xe9 : 1 = 1 := rfl\n")
+    chunks = list(LeanReader(input_path=path).get_raw_chunks())
+    [problem] = [p for c in chunks for p in c.get("source_problems", ())]
+    assert problem["line"] == 2
+    assert problem["problem"].startswith("not valid UTF-8") and "Lean reads UTF-8 only" in problem["problem"]
+
+
+def test_an_index_of_chunks_is_the_index_of_the_files(tmp_path):
+    from ....lean import LeanIndex  # noqa: PLC0415
+
+    root = tmp_path / "proj"
+    files = {
+        "P/A.lean": PROJECT,
+        "P/B.lean": "import P.A\ntheorem uses : Good 1 := trivial\ntheorem le_sum' (a b c : Nat) (h : a ≤ b) : a + b ≤ c + c := sorry\n",
+    }
+    for name, source in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(textwrap.dedent(source).lstrip("\n"), encoding="utf-8")
+    read = LeanIndex.from_folder(root)
+    chunked = LeanIndex()
+    for name in sorted(files):
+        reader = LeanReader(
+            input_path=root / name, references=True, statements=True, lines_per_chunk=None
+        )
+        chunked.add_chunks(reader.get_raw_chunks(), label=name)
+    assert chunked.summary() == read.summary()  # source problems included
+    shapes = chunked.discover()["patterns"]["statement_shapes"]
+    assert shapes["count"] == read.discover()["patterns"]["statement_shapes"]["count"] == 1
+    assert chunked._shape_of == read._shape_of

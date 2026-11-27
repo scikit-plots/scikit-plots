@@ -1,0 +1,8 @@
+- :class:`~scikitplot.corpus.LeanReader` takes ``statements=True`` to
+  record each theorem's statement, and puts on each chunk the
+  ``source_problems`` Lean refuses to read (an ``end`` that closes nothing,
+  a file ending inside a comment, bytes that are not UTF-8). Chunks read
+  with ``references=True, statements=True, lines_per_chunk=None`` now give
+  :meth:`~scikitplot.lean.LeanIndex.add_chunks` the index reading the
+  file gives, statement shapes and source problems included, which it
+  lost before: checked on mathlib4, pfr, batteries and aesop.

@@ -14,10 +14,12 @@ raises. This example goes from the simplest case to the hard ones:
 2. statements without proofs (``proofs="drop"``), for reading claims;
 3. audit flags: ``sorry``, ``native_decide``, ``axiom``, code after ``#exit``;
 4. choosing what to read: ``kinds``, ``watch``, ``commands``;
-5. what a declaration refers to (``references=True``);
+5. what a declaration refers to (``references=True``), and chunks an index
+   reads (``statements=True``);
 6. very long proofs read in parts (``lines_per_chunk``);
 7. Lean 3 sources (``dialect="lean3"``);
-8. hostile input: unclosed comments, too-deep scopes;
+8. hostile input: unclosed comments, too-deep scopes, and the source
+   problems Lean would refuse;
 9. a generated project of thousands of declarations, with a check that
    every line lands in exactly one chunk.
 
@@ -139,6 +141,20 @@ theorem uses : next = 2 := by simp [next, base]
 show(read(refs, "Refs.lean", references=True), "references", "opens")
 
 # %%
+# With ``statements=True`` (whole commands: ``lines_per_chunk=None``) each
+# theorem also carries its statement. Chunks read with both are what
+# :meth:`scikitplot.lean.LeanIndex.add_chunks` indexes, for a file inside an
+# archive, say: the same index as reading the file.
+
+from scikitplot.lean import LeanIndex  # noqa: E402
+
+chunks = read(refs, "Refs.lean", references=True, statements=True, lines_per_chunk=None)
+print([c["statement"] for c in chunks if "statement" in c])
+index = LeanIndex()
+index.add_chunks(chunks, label="Refs.lean")
+print(index.dossier("uses")["dependencies"]["declarations"], "declarations reached by uses")
+
+# %%
 # 6. Very long proofs
 # -------------------
 # A proof of thousands of lines is read in parts of ``lines_per_chunk``
@@ -172,6 +188,14 @@ show(read(lean3, "Old.lean", dialect="lean3"))
 # a clear error instead of using unbounded memory.
 
 print([c["section_type"] for c in read("/- never closed\ntheorem x : True := trivial\n", "Open.lean")])
+
+# %%
+# What Lean refuses to read is on the chunk holding its line, in
+# ``source_problems``: an ``end`` that closes nothing, a file ending inside a
+# comment, bytes that are not UTF-8.
+
+problems = read("namespace A\nend B\n/- never closed\n", "Bad.lean")
+print([p for c in problems for p in c.get("source_problems", ())])
 try:
     read("namespace N\n" * 1_000, "Deep.lean", max_scope_depth=256)
 except ValueError as exc:
