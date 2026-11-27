@@ -403,32 +403,58 @@ _KNOWN = _DECLARATIONS | _SCOPES | _CONTEXT | _IMPORTS | _OTHER | {"deriving"}
 # Lexical patterns (each linear: no pattern scans to a closer past an opener)
 # ---------------------------------------------------------------------------
 
-_CODE_SPECIAL = re.compile(r'--|/-|"|\'|«|(?<![\w\'!?.])r#*"')
-_CODE_SPECIAL_INTERP = re.compile(r'--|/-|"|\'|«|(?<![\w\'!?.])r#*"|\{|\}')
+# Identifier characters exactly as Lean's lexer has them (Init/Meta/Defs:
+# isIdFirst, isIdRest, isLetterLike, isSubScriptAlnum). Char.isAlpha and
+# isAlphanum are ASCII only there; Python's \w is far wider (it takes the
+# postfix ᶜ of `sᶜ` and the ᵀ of `Aᵀ`, which Lean reads as notation).
+_LETTER_LIKE = (
+    "\u03b1-\u03ba\u03bc-\u03c9"  # lower Greek, but lambda
+    "\u0391-\u039f\u03a1-\u03a2\u03a4-\u03a9"  # upper Greek, but Pi and Sigma
+    "\u03ca-\u03fb"  # Coptic letters
+    "\u1f00-\u1ffe"  # polytonic Greek extended
+    "\u2100-\u214f"  # letter-like block
+    "\U0001d49c-\U0001d59f"  # script, double-struck, Fraktur
+    "\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u00ff"  # Latin-1 letters, but U+00D7 and U+00F7 (times, divide)
+    "\u0100-\u017f"  # Latin Extended-A
+)
+_SUBSCRIPT = "\u2080-\u2089\u2090-\u209c\u1d62-\u1d6a\u2c7c"
+_ID_FIRST = f"A-Za-z_{_LETTER_LIKE}"
+_ID_REST = f"A-Za-z0-9_'!?{_LETTER_LIKE}{_SUBSCRIPT}"
+#: One identifier component, as Lean lexes it.
+_IDENT = f"[{_ID_FIRST}][{_ID_REST}]*"
+_ID_CHAR = re.compile(f"[{_ID_REST}]")
+
+_CODE_SPECIAL = re.compile(rf'--|/-|"|\'|«|(?<![{_ID_REST}.])r#*"')
+_CODE_SPECIAL_INTERP = re.compile(rf'--|/-|"|\'|«|(?<![{_ID_REST}.])r#*"|\{{|\}}')
 _COMMENT_TOKEN = re.compile(r"/-|-/")
 _STRING_TOKEN = re.compile(r'\\.?|"')
 _STRING_TOKEN_INTERP = re.compile(r'\\.?|"|\{')
 _CHAR_LITERAL = re.compile(r"'(?:\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|.)|[^\\'])'")
 
-_NAME = r"(?:«[^«»]*»|[^\W\d][\w'!?]*)(?:\.(?:«[^«»]*»|[^\W\d][\w'!?]*|\d+))*"
-_HEAD_TOKEN = re.compile(rf"@\[|#[^\W\d][\w'!?]*|{_NAME}%?|:=|\S")
+_NAME = rf"(?:«[^«»]*»|{_IDENT})(?:\.(?:«[^«»]*»|{_IDENT}|[0-9]+))*"
+_HEAD_TOKEN = re.compile(rf"@\[|#{_IDENT}|{_NAME}%?|:=|\S")
 _FULL_NAME = re.compile(rf"{_NAME}\Z")
-_REFERENCE = re.compile(rf"(?<![\w'!?.#]){_NAME}")
+#: A name the code uses. A ``.name`` after something that is not part of a
+#: name is kept with its dot: field notation on an expression (``(e).card``,
+#: ``s⁻¹.card``) or Lean 4's leading-dot identifier (``.inl h``). Its head is
+#: unknown, so the index links it by its components' short names, as it
+#: links ``h.card`` when ``h`` is bound.
+_REFERENCE = re.compile(rf"(?<![{_ID_REST}.#])\.?{_NAME}")
 _COMPONENT = re.compile(r"«[^«»]*»|[^.«»]+")
 
 _OPENERS = "([{⟨⦃⟦⟪⁅"
 _OPEN_BRACKET = re.compile(r"[(\[{⟨⦃⟦⟪⁅]")
 _CLOSE_BRACKET = re.compile(r"[)\]}⟩⦄⟧⟫⁆]")
 _STATEMENT_TOKEN = re.compile(
-    r"[(\[{⟨⦃⟦⟪⁅]|[)\]}⟩⦄⟧⟫⁆]|:=|(?<![\w'!?.])(?:let|have|where)(?![\w'!?])"
+    rf"[(\[{{⟨⦃⟦⟪⁅]|[)\]}}⟩⦄⟧⟫⁆]|:=|(?<![{_ID_REST}.])(?:let|have|where)(?![{_ID_REST}])"
 )
-_ENDS_IN = re.compile(r"(?<![\w'!?.])in\s*\Z")
-_LEAN3_BLOCK = re.compile(r"(?<![\w'!?.])(?:begin|match|end)(?![\w'!?])")
+_ENDS_IN = re.compile(rf"(?<![{_ID_REST}.])in\s*\Z")
+_LEAN3_BLOCK = re.compile(rf"(?<![{_ID_REST}.])(?:begin|match|end)(?![{_ID_REST}])")
 
 
 def _is_ident_char(ch: str) -> bool:
     """Return ``True`` for a character that continues a Lean identifier."""
-    return ch.isalnum() or ch in "_'!?"
+    return _ID_CHAR.match(ch) is not None
 
 
 def _is_name(lexeme: str) -> bool:
@@ -436,7 +462,7 @@ def _is_name(lexeme: str) -> bool:
     return (
         lexeme not in _RESERVED
         and lexeme != "_"
-        and (lexeme[0] == "«" or lexeme[0] == "_" or lexeme[0].isalpha())
+        and (lexeme[0] == "«" or re.match(f"[{_ID_FIRST}]", lexeme) is not None)
         and _FULL_NAME.match(lexeme) is not None
     )
 
@@ -448,7 +474,7 @@ def _token_pattern(tokens: Collection[str]) -> re.Pattern[str] | None:
     alternatives = "|".join(
         re.escape(lexeme) for lexeme in sorted(tokens, key=len, reverse=True)
     )
-    return re.compile(rf"(?<![\w'!?])(?:{alternatives})(?![\w'!?])")
+    return re.compile(rf"(?<![{_ID_REST}])(?:{alternatives})(?![{_ID_REST}])")
 
 
 _QUOTED = re.compile(r"«[^«»]*»")
