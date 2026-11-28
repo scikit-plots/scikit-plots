@@ -1,6 +1,6 @@
 ---
 name: scikitplot-rank-bm25
-description: "Use scikitplot.rank_bm25 (scikit-plots) in any Python project. BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots. Use when code imports scikitplot.rank_bm25 or needs CALIBRATION_METHODS, ScoreCalibrator, RECIPES, Analyzer, Recipe, lexical_identity, BM25, BM25Okapi."
+description: "Use scikitplot.rank_bm25 (scikit-plots) in any Python project. BM25 ranking algorithms (Okapi BM25, BM25L, BM25+, BM25-Adpt, BM25T) from scikit-plots. Use when code imports scikitplot.rank_bm25 or needs CALIBRATION_METHODS, ScoreCalibrator, RECIPES, Analyzer, Recipe, lexical_identity, BM25, BM25Okapi."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot.rank_bm25"
@@ -61,10 +61,12 @@ Declared in `scikitplot.rank_bm25.__all__`, in that order.
 | `Analyzer` | class | How text becomes tokens, declared so a build can record it. |
 | `Recipe` | class | A named, versioned scoring formula. |
 | `lexical_identity` | function | Return the identity of a lexical build. |
-| `BM25` | class |  |
+| `BM25` | class | Base class of the BM25 scorers: indexing, scoring paths and persistence. |
 | `BM25Okapi` | class | Okapi BM25 with an epsilon floor on negative IDFs (ATIRE-style IDF). |
-| `BM25L` | class |  |
-| `BM25Plus` | class |  |
+| `BM25L` | class | BM25L: a ``delta`` added to the length-normalised term frequency. |
+| `BM25Plus` | class | BM25+: a ``delta`` lower bound on every term's contribution. |
+| `BM25Adpt` | class | BM25-Adpt: ``k1`` and term weight estimated per term by information gain. |
+| `BM25T` | class | BM25T: ``k1`` estimated per term from a log-logistic model of its counts. |
 | `require_count` | function | Return ``value`` as a non-negative count within its declared maximum. |
 | `require_index` | function | Return ``value`` as a position valid in ``[0, count)``. |
 
@@ -99,4 +101,11 @@ bm25 = BM25Okapi(tokenized_corpus, doc_ids=["greeting", "weather", "question"])
 
 bm25.recipe.identifier
 # 'okapi-epsilon-floor/2'
+
+from scikitplot.rank_bm25 import BM25T
+adaptive = BM25T(tokenized_corpus, doc_ids=["greeting", "weather", "question"])
+[doc_id for doc_id, _score in adaptive.get_top_ids(tokenized_query, n=1)]
+# ['weather']
+sorted(adaptive.parameters)
+# ['b']
 ```

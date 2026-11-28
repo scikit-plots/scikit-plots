@@ -16,7 +16,7 @@ scikitplot.rank_bm25._identity.Recipe
 import pytest
 
 from .._identity import RECIPES, Analyzer, Recipe, lexical_identity
-from .._rank_bm25 import BM25L, BM25Okapi, BM25Plus
+from .._rank_bm25 import BM25Adpt, BM25L, BM25Okapi, BM25Plus, BM25T
 
 CORPUS = [["a", "b"], ["b"], ["c"]]
 
@@ -92,7 +92,7 @@ def test_an_analyzer_is_stable_across_processes():
 # -- S-16: the recipe is named --------------------------------------------
 
 
-@pytest.mark.parametrize("scorer", [BM25Okapi, BM25L, BM25Plus])
+@pytest.mark.parametrize("scorer", [BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T])
 def test_every_scorer_names_its_recipe(scorer):
     """A class name is not a recipe; the formula is identified explicitly."""
     recipe = scorer(CORPUS).recipe
@@ -102,10 +102,10 @@ def test_every_scorer_names_its_recipe(scorer):
 
 
 def test_recipes_are_distinct():
-    """Three formulas, three identities."""
-    identifiers = {scorer(CORPUS).recipe.identifier
-                   for scorer in (BM25Okapi, BM25L, BM25Plus)}
-    assert len(identifiers) == 3
+    """Five formulas, five identities."""
+    scorers = (BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T)
+    identifiers = {scorer(CORPUS).recipe.identifier for scorer in scorers}
+    assert len(identifiers) == len(scorers)
 
 
 def test_the_okapi_recipe_records_its_specific_choices():

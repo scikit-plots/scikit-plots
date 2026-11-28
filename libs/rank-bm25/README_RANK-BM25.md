@@ -2,7 +2,7 @@
 
 # scikit-plots-rank-bm25
 
-BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots.
+BM25 ranking algorithms (Okapi BM25, BM25L, BM25+, BM25-Adpt, BM25T) from scikit-plots.
 
 This is a **partial distribution** of [`scikit-plots`](https://github.com/scikit-plots/scikit-plots): it ships `scikitplot.rank_bm25` and nothing else, built from the same source tree and with the same version as `scikit-plots`.
 

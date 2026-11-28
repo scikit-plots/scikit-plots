@@ -9,13 +9,13 @@ Various BM25 algorithms for document ranking.
 A collection of algorithms for querying a set of documents and returning the ones most relevant to the query.
 The most common use case for these algorithms is, as you might have guessed, to create search engines.
 
-So far the algorithms that have been implemented are:
+The algorithms implemented are:
 
-* ▣ Okapi BM25
-* ▣ BM25L
-* ▣ BM25+
-* ▢ BM25-Adpt
-* ▢ BM25T
+* Okapi BM25 (:class:`BM25Okapi`)
+* BM25L (:class:`BM25L`)
+* BM25+ (:class:`BM25Plus`)
+* BM25-Adpt (:class:`BM25Adpt`), ``k1`` estimated per term by information gain
+* BM25T (:class:`BM25T`), ``k1`` estimated per term by a log-logistic model
 
 .. seealso::
   * https://github.com/dorianbrown/rank_bm25
@@ -59,6 +59,16 @@ The scoring formula is named and versioned rather than implied by the class:
 
 >>> bm25.recipe.identifier
 'okapi-epsilon-floor/2'
+
+BM25-Adpt and BM25T have no ``k1`` to tune; each term's ``k1`` is estimated
+from the collection:
+
+>>> from scikitplot.rank_bm25 import BM25T
+>>> adaptive = BM25T(tokenized_corpus, doc_ids=["greeting", "weather", "question"])
+>>> [doc_id for doc_id, _score in adaptive.get_top_ids(tokenized_query, n=1)]
+['weather']
+>>> sorted(adaptive.parameters)
+['b']
 
 """
 

@@ -14,11 +14,11 @@ scikitplot.rank_bm25._rank_bm25.BM25.get_top_ids
 
 import pytest
 
-from .._rank_bm25 import BM25L, BM25Okapi, BM25Plus
+from .._rank_bm25 import BM25Adpt, BM25L, BM25Okapi, BM25Plus, BM25T
 
 CORPUS = [["alpha", "beta"], ["beta"], ["gamma"]]
 IDS = ["doc-a", "doc-b", "doc-c"]
-CLASSES = (BM25Okapi, BM25L, BM25Plus)
+CLASSES = (BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T)
 
 
 @pytest.mark.parametrize("scorer", CLASSES)
@@ -27,7 +27,12 @@ def test_results_bind_to_identities_supplied_at_build_time(scorer):
     index = scorer(CORPUS, doc_ids=IDS)
     hits = index.get_top_ids(["alpha"], n=1)
     assert hits[0][0] == "doc-a"
-    assert hits[0][1] > 0
+    assert hits[0][1] == index.get_scores(["alpha"])[0]
+    if scorer is not BM25Adpt:
+        # BM25-Adpt weights a term by its information gain G_1, which is
+        # negative for a never-repeated term in a corpus this small
+        # (0.5 * (N + 1) < (df + 1) * (df + 0.5)); the binding still holds.
+        assert hits[0][1] > 0
 
 
 @pytest.mark.parametrize("scorer", CLASSES)

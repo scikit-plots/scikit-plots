@@ -3807,7 +3807,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.rank_bm25": {
-        "short_summary": "Lexical document ranking with three BM25 recipes.",
+        "short_summary": "Lexical document ranking with five BM25 recipes.",
         "description": _get_guide("rank_bm25-index"),
         "sections": [
             {
@@ -3828,8 +3828,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "BM25Okapi",
                     "BM25L",
                     "BM25Plus",
-                    # "BM25Adpt",
-                    # "BM25T",
+                    "BM25Adpt",
+                    "BM25T",
                 ],
             },
             {

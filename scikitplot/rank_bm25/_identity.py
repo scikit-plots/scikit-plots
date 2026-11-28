@@ -259,6 +259,24 @@ RECIPES: dict[str, Recipe] = {
                 "document containing the term always outscores one that does not."
             ),
         ),
+        Recipe(
+            name="bm25adpt-information-gain",
+            version="1",
+            notes=(
+                "BM25-Adpt: k1 is fitted per term to the information gain of "
+                "repeated occurrences, and the gain of the first occurrence "
+                "replaces the idf; terms with nothing to fit take k1_fallback."
+            ),
+        ),
+        Recipe(
+            name="bm25t-log-logistic",
+            version="1",
+            notes=(
+                "BM25T: k1 is the unique root, per term, of a log-logistic "
+                "moment equation over the documents holding the term; the idf "
+                "is log(N / df)."
+            ),
+        ),
     )
 }
 
