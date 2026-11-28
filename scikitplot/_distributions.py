@@ -248,7 +248,7 @@ DISTRIBUTIONS: tuple[Distribution, ...] = (
         name="scikit-plots-rank-bm25",
         trees=("rank_bm25",),
         files=(),
-        summary="BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots.",
+        summary="BM25 ranking algorithms (Okapi BM25, BM25L, BM25+, BM25-Adpt, BM25T) from scikit-plots.",
     ),
     Distribution(
         name="scikit-plots-corpus",

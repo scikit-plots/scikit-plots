@@ -2,7 +2,7 @@
 
 # scikit-plots-rank-bm25
 
-BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots.
+BM25 ranking algorithms (Okapi BM25, BM25L, BM25+, BM25-Adpt, BM25T) from scikit-plots.
 
 ## Files in this directory
 

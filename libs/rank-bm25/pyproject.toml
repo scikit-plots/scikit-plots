@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "scikit-plots-rank-bm25"
 version = "0.5.dev0"
-description = "BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots."
+description = "BM25 ranking algorithms (Okapi BM25, BM25L, BM25+, BM25-Adpt, BM25T) from scikit-plots."
 readme = {file = "README_RANK-BM25.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
 dynamic = ["license"]
