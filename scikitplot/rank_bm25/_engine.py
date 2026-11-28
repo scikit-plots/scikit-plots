@@ -61,6 +61,7 @@ __all__: list[str] = [
     "BACKENDS",
     "SparseScoreEngine",
     "accumulate",
+    "build_postings",
     "numba_available",
     "resolve_backend",
     "top_positions",
@@ -310,50 +311,14 @@ class SparseScoreEngine:
     def __init__(self, index: Any) -> None:
         self._index = index
         doc_freqs = index.doc_freqs
-        n_rows = len(doc_freqs)
-        self.n_rows = n_rows
+        self.n_rows = len(doc_freqs)
         terms = list(index.idf)
         self.vocabulary = {term: column for column, term in enumerate(terms)}
-        vocabulary = self.vocabulary
-
-        # One flat pass over the per-document dicts (row-major), then a stable
-        # sort by column: rows are already ascending, and a stable sort keeps
-        # them so within every column.
-        # map/chain iterate in C; a generator expression here costs a Python
-        # frame per stored pair and dominated the build.
-        flat_columns = np.fromiter(
-            map(vocabulary.__getitem__, chain.from_iterable(doc_freqs)),
-            dtype=np.int64,
-        )
-        flat_tfs = np.fromiter(
-            chain.from_iterable(map(dict.values, doc_freqs)),
-            dtype=np.int64,
-            count=flat_columns.size,
-        )
-        flat_rows = np.repeat(
-            np.arange(n_rows, dtype=np.int64),
-            np.fromiter((len(f) for f in doc_freqs), dtype=np.int64, count=n_rows),
-        )
-        order = np.argsort(flat_columns, kind="stable")
-        rows = flat_rows[order]
-        tfs = flat_tfs[order]
-        indptr = np.zeros(len(terms) + 1, dtype=np.int64)
-        np.cumsum(np.bincount(flat_columns, minlength=len(terms)), out=indptr[1:])
-
-        idf = np.array([index.idf[term] or 0 for term in terms], dtype=np.float64)
-        doc_len = np.asarray(index.doc_len, dtype=np.int64)
-        columns = np.repeat(np.arange(len(terms), dtype=np.int64), np.diff(indptr))
-        # The recipe's own vectorised method computes every stored value, so a
-        # stored contribution is the very value the reference adds.
-        data = np.asarray(
-            index._term_contribution(idf[columns], tfs, doc_len[rows]),
-            dtype=np.float64,
-        )
-        _require_length_independent_absent(index, doc_len)
+        indptr, rows, tfs = build_postings(doc_freqs, terms)
         self.indptr = indptr
         self.rows = rows
         self.tfs = tfs
-        self.data = data
+        self.data = _stored_contributions(index, terms, indptr, rows, tfs)
 
     @classmethod
     def from_arrays(
@@ -382,17 +347,9 @@ class SparseScoreEngine:
         engine.indptr = np.asarray(indptr, dtype=np.int64)
         engine.rows = np.asarray(rows, dtype=np.int64)
         engine.tfs = np.asarray(tfs, dtype=np.int64)
-        doc_len = np.asarray(index.doc_len, dtype=np.int64)
-        idf = np.array([index.idf[term] or 0 for term in vocabulary], dtype=np.float64)
-        columns = np.repeat(
-            np.arange(len(vocabulary), dtype=np.int64),
-            np.diff(engine.indptr),
+        engine.data = _stored_contributions(
+            index, list(vocabulary), engine.indptr, engine.rows, engine.tfs
         )
-        engine.data = np.asarray(
-            index._term_contribution(idf[columns], engine.tfs, doc_len[engine.rows]),
-            dtype=np.float64,
-        )
-        _require_length_independent_absent(index, doc_len)
         return engine
 
     def doc_freqs(self) -> list[dict[str, int]]:
@@ -411,9 +368,9 @@ class SparseScoreEngine:
             self.indptr.nbytes + self.rows.nbytes + self.tfs.nbytes + self.data.nbytes
         )
 
-    def _absent(self, idf: float) -> float:
+    def _absent(self, idf: float, k1: float | None = None) -> float:
         """Absent-term contribution of a term, by the recipe's formula."""
-        return float(self._index._term_contribution(idf, 0, self._index.avgdl))
+        return float(self._index._contribution(idf, 0, self._index.avgdl, k1))
 
     def scores(self, query: list[str], backend: str) -> np.ndarray:
         """
@@ -436,7 +393,10 @@ class SparseScoreEngine:
         term_ids = np.array(
             [self.vocabulary.get(term, -1) for term in query], dtype=np.int64
         )
-        absent = np.array([self._absent(idf) for idf in idfs], dtype=np.float64)
+        absent = np.array(
+            [self._absent(idf, index._k1_for(term)) for term, idf in zip(query, idfs)],
+            dtype=np.float64,
+        )
         return accumulate(
             term_ids, absent, self.indptr, self.rows, self.data, self.n_rows, backend
         )
@@ -449,6 +409,82 @@ class SparseScoreEngine:
             if column is not None:
                 mask[self.rows[self.indptr[column] : self.indptr[column + 1]]] = True
         return mask
+
+
+def build_postings(doc_freqs, terms):
+    """
+    Invert per-document term counts into term-major postings.
+
+    Parameters
+    ----------
+    doc_freqs : list of dict of str to int
+        Each document's term counts, in row order.
+    terms : list of str
+        The vocabulary in column order; every term of ``doc_freqs`` must be
+        present.
+
+    Returns
+    -------
+    indptr : numpy.ndarray of int64
+        Column offsets, length ``len(terms) + 1``.
+    rows : numpy.ndarray of int64
+        Row of each stored pair, ascending within a column.
+    tfs : numpy.ndarray of int64
+        Term frequency of each stored pair.
+
+    Notes
+    -----
+    **Developer.** A pure function of its inputs, so the engine and a recipe
+    that needs collection statistics before it can compute its idf (the
+    adaptive-k1 recipes) derive the same arrays. One flat row-major pass, then
+    a stable sort by column, which keeps rows ascending within a column;
+    ``map``/``chain`` iterate in C because a generator expression here costs a
+    Python frame per stored pair.
+    """
+    vocabulary = {term: column for column, term in enumerate(terms)}
+    n_rows = len(doc_freqs)
+    flat_columns = np.fromiter(
+        map(vocabulary.__getitem__, chain.from_iterable(doc_freqs)),
+        dtype=np.int64,
+    )
+    flat_tfs = np.fromiter(
+        chain.from_iterable(map(dict.values, doc_freqs)),
+        dtype=np.int64,
+        count=flat_columns.size,
+    )
+    flat_rows = np.repeat(
+        np.arange(n_rows, dtype=np.int64),
+        np.fromiter((len(f) for f in doc_freqs), dtype=np.int64, count=n_rows),
+    )
+    order = np.argsort(flat_columns, kind="stable")
+    indptr = np.zeros(len(terms) + 1, dtype=np.int64)
+    np.cumsum(np.bincount(flat_columns, minlength=len(terms)), out=indptr[1:])
+    return indptr, flat_rows[order], flat_tfs[order]
+
+
+def _stored_contributions(index, terms, indptr, rows, tfs):
+    """
+    Evaluate the recipe's formula for every stored (row, term) pair.
+
+    Notes
+    -----
+    **Developer.** The recipe's own vectorised method computes every stored
+    value, so a stored contribution is the very value the reference adds. A
+    recipe with a term-specific ``k1`` receives it per stored pair, gathered
+    by column exactly as ``idf`` is.
+    """
+    idf = np.array([index.idf[term] or 0 for term in terms], dtype=np.float64)
+    doc_len = np.asarray(index.doc_len, dtype=np.int64)
+    columns = np.repeat(np.arange(len(terms), dtype=np.int64), np.diff(indptr))
+    k1 = index._k1_columns(terms)
+    data = np.asarray(
+        index._contribution(
+            idf[columns], tfs, doc_len[rows], None if k1 is None else k1[columns]
+        ),
+        dtype=np.float64,
+    )
+    _require_length_independent_absent(index, doc_len)
+    return data
 
 
 def _require_length_independent_absent(index: Any, doc_len: np.ndarray) -> None:
@@ -476,11 +512,12 @@ def _require_length_independent_absent(index: Any, doc_len: np.ndarray) -> None:
     formula is ``idf`` times a length term, so a length dependence shows at
     any non-zero ``idf``. The check is one vectorised evaluation per build.
     """
+    k1 = index._k1_for(None)
     probe = np.asarray(
-        index._term_contribution(1.0, np.zeros(doc_len.size, dtype=np.int64), doc_len),
+        index._contribution(1.0, np.zeros(doc_len.size, dtype=np.int64), doc_len, k1),
         dtype=np.float64,
     )
-    generic = float(index._term_contribution(1.0, 0, index.avgdl))
+    generic = float(index._contribution(1.0, 0, index.avgdl, k1))
     irregular = np.flatnonzero(~(np.isfinite(probe) & (probe == generic)))
     if irregular.size:
         raise RuntimeError(

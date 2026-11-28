@@ -1,0 +1,9 @@
+- :class:`~scikitplot.rank_bm25.BM25Adpt` and :class:`~scikitplot.rank_bm25.BM25T`
+  rank with a ``k1`` estimated per term from the collection, so ``b`` is the
+  only parameter to tune: BM25-Adpt fits ``k1`` to the information gain of
+  repeated occurrences and uses the first occurrence's gain as the term weight,
+  and BM25T solves a log-logistic moment equation whose root is unique. Both
+  score bit for bit alike on every backend, save and reload with their
+  estimates (``term_k1``) exactly, and are refused on load if those estimates
+  are missing or malformed. ``BM25``, ``BM25L`` and ``BM25Plus`` now have
+  docstrings.

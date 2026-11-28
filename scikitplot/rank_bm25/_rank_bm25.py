@@ -10,9 +10,11 @@
 
 """
 All of these algorithms have been taken from the paper:
-Trotmam et al, Improvements to BM25 and Language Models Examined.
+Trotman et al, Improvements to BM25 and Language Models Examined.
 
-Here we implement all the BM25 variations mentioned.
+Here we implement all the BM25 variations mentioned: Okapi BM25, BM25L, BM25+,
+and the two variants that estimate ``k1`` per term from the collection,
+BM25-Adpt and BM25T.
 
 .. seealso::
   * https://github.com/dorianbrown/rank_bm25
@@ -34,7 +36,18 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from ._engine import BACKENDS, SparseScoreEngine, numba_available, top_positions
+from ._adaptive import (
+    estimate_information_gain_k1,
+    estimate_log_logistic_k1,
+    normalised_counts,
+)
+from ._engine import (
+    BACKENDS,
+    SparseScoreEngine,
+    build_postings,
+    numba_available,
+    top_positions,
+)
 from ._identity import RECIPES, Analyzer, Recipe, lexical_identity
 from ._validation import require_count, require_index
 
@@ -43,8 +56,8 @@ __all__ = [  # ruff: ignore[unsorted-dunder-all]
     "BM25Okapi",
     "BM25L",
     "BM25Plus",
-    # "BM25Adpt",
-    # "BM25T",
+    "BM25Adpt",
+    "BM25T",
 ]
 
 
@@ -324,6 +337,56 @@ _RETAINED_GENERATIONS = 2
 
 
 class BM25:
+    """
+    Base class of the BM25 scorers: indexing, scoring paths and persistence.
+
+    Not instantiated directly: it has no scoring formula. Use one of
+    :class:`BM25Okapi`, :class:`BM25L`, :class:`BM25Plus`, :class:`BM25Adpt`
+    or :class:`BM25T`, which share this constructor.
+
+    Parameters
+    ----------
+    corpus : iterable of sequence of str
+        Documents as token sequences, or raw texts when ``tokenizer`` is set.
+    tokenizer : Analyzer, callable or None, optional
+        A declared :class:`~scikitplot.rank_bm25.Analyzer` (saveable), a bare
+        callable (in memory only), or ``None`` when ``corpus`` is tokenised.
+    doc_ids : sequence of str or None, optional
+        One unique identity per document, in row order; enables
+        :meth:`get_top_ids`.
+    workers : int or None, optional
+        Processes for tokenisation; ``None`` tokenises in this process.
+    backend : {"auto", "numpy", "numba", "reference"}, optional
+        How queries are scored. Every backend returns the same values bit for
+        bit; only the time differs.
+
+    Attributes
+    ----------
+    corpus_size : int
+        Number of documents.
+    avgdl : float
+        Average document length, in tokens.
+    idf : dict of str to float
+        Per-term weight of the recipe (the idf, or the information gain for
+        :class:`BM25Adpt`).
+    doc_len : list of int
+        Every document's length, in row order.
+
+    See Also
+    --------
+    BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T
+
+    Notes
+    -----
+    **User.** Pick a subclass by its recipe (:attr:`recipe`); the class name
+    alone does not say which choices a variant makes.
+
+    **Developer.** Every recipe writes its formula once, in
+    ``_term_contribution``; every scoring path reaches it through
+    ``_contribution``, which is what keeps the dense, sparse and engine paths
+    bit-identical.
+    """
+
     #: The scoring formula this class implements. Subclasses override it; the
     #: class name is not the recipe, because "BM25Okapi" implies a standard the
     #: implementation makes specific choices within.
@@ -534,7 +597,9 @@ class BM25:
         doc_len = np.array(self.doc_len)
         for q in query:
             q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-            score += self._term_contribution(self.idf.get(q) or 0, q_freq, doc_len)
+            score += self._contribution(
+                self.idf.get(q) or 0, q_freq, doc_len, self._k1_for(q)
+            )
         return score
 
     def get_batch_scores(self, query, doc_ids):
@@ -570,7 +635,9 @@ class BM25:
         doc_len = np.array(self.doc_len)[positions]
         for q in query:
             q_freq = np.array([(self.doc_freqs[di].get(q) or 0) for di in positions])
-            score += self._term_contribution(self.idf.get(q) or 0, q_freq, doc_len)
+            score += self._contribution(
+                self.idf.get(q) or 0, q_freq, doc_len, self._k1_for(q)
+            )
         return score.tolist()
 
     @property
@@ -586,11 +653,7 @@ class BM25:
     @property
     def parameters(self) -> dict:
         """The scoring parameters that belong to this index's identity."""
-        return {
-            name: getattr(self, name)
-            for name in ("k1", "b", "epsilon", "delta")
-            if hasattr(self, name)
-        }
+        return {name: getattr(self, name) for name in type(self)._PARAMETER_DOMAINS}
 
     @property
     def identity(self) -> str:
@@ -850,20 +913,21 @@ class BM25:
         hit. Okapi's epsilon floor is negative when the corpus-average IDF is
         negative (tiny corpora where most terms occur in over half the
         documents); a matching document can then score below a non-matching
-        one, and ``get_top_ids`` still returns matching documents only.
+        one, and ``get_top_ids`` still returns matching documents only. The
+        same holds for BM25-Adpt wherever its information-gain weight is
+        negative; BM25T's ``log(N / df)`` is never negative.
         """
         doc_len = self.doc_len
         doc_freqs = self.doc_freqs
         idfs = [self.idf.get(term) or 0 for term in query]
+        k1s = [self._k1_for(term) for term in query]
         scores: dict[int, float] = {}
         for row in self._candidate_rows(query):
             frequencies = doc_freqs[row]
             length = doc_len[row]
             score = 0.0
-            for term, idf in zip(query, idfs):
-                score += self._term_contribution(
-                    idf, frequencies.get(term) or 0, length
-                )
+            for term, idf, k1 in zip(query, idfs, k1s):
+                score += self._contribution(idf, frequencies.get(term) or 0, length, k1)
             scores[row] = score
         return scores
 
@@ -892,6 +956,59 @@ class BM25:
         sparse paths agree to the last bit rather than within a tolerance.
         """
         raise NotImplementedError
+
+    def _k1_for(self, term):
+        """
+        Return the term-specific ``k1`` of ``term``, or ``None``.
+
+        Notes
+        -----
+        **Developer.** ``None`` means the recipe has one ``k1`` for every term
+        (or none at all) and :meth:`_term_contribution` takes three arguments.
+        A recipe that estimates ``k1`` per term overrides this, and
+        :meth:`_k1_columns`, and then receives ``k1`` as a fourth argument.
+        ``term`` may be ``None`` (the engine's length probe) or a term the
+        index has never seen; both have idf 0.
+        """
+        return
+
+    def _k1_columns(self, terms):
+        """Return ``k1`` per vocabulary column as an array, or ``None``."""
+        return
+
+    def _contribution(self, idf, frequency, length, k1=None):
+        """
+        Evaluate :meth:`_term_contribution`, passing ``k1`` only when it is set.
+
+        Notes
+        -----
+        **Developer.** The single dispatch point every scoring path and the
+        engine call, so the constant-``k1`` recipes keep their three-argument
+        formula, and therefore their expression trees, untouched.
+        """
+        if k1 is None:
+            return self._term_contribution(idf, frequency, length)
+        return self._term_contribution(idf, frequency, length, k1)
+
+    def _recipe_state(self):
+        """Return recipe-specific persisted state; ``{}`` unless overridden."""
+        return {}
+
+    def _restore_term_statistics(self, root, state, terms):
+        """
+        Restore and validate recipe-specific per-term statistics, at load.
+
+        Notes
+        -----
+        **Developer.** A no-op for recipes whose only per-term statistic is the
+        idf. The adaptive recipes read their per-term ``k1`` here; it is
+        persisted, not recomputed, for the same reason the idf is: its
+        estimate uses ``log``/``exp``, whose last bit can differ between NumPy
+        builds, and a reload must score exactly as the build did.
+        """
+
+    def _check_parameter_relations(self):
+        """Check constraints between parameters; a no-op unless overridden."""
 
     def _length_norm(self, length):
         """
@@ -960,6 +1077,7 @@ class BM25:
             )
         for name in domains:
             setattr(self, name, _check_parameter(name, values[name], **domains[name]))
+        self._check_parameter_relations()
 
     # -- persistence -------------------------------------------------------
 
@@ -991,6 +1109,7 @@ class BM25:
             "idf": dict(self.idf),
             "average_idf": getattr(self, "average_idf", None),
             "doc_ids": None if self.doc_ids is None else list(self.doc_ids),
+            **self._recipe_state(),
         }
 
     def _persisted(self):
@@ -1143,8 +1262,9 @@ class BM25:
         """
         if cls._term_contribution is BM25._term_contribution:
             raise TypeError(
-                "BM25.load: load an index with the scorer class that built it "
-                "(BM25Okapi, BM25L or BM25Plus); BM25 has no scoring formula."
+                f"{cls.__name__}.load: load an index with the scorer class that "
+                f"built it (one of {', '.join(c.__name__ for c in _SCORERS)}); "
+                f"{cls.__name__} has no scoring formula."
             )
         root = pathlib.Path(os.fspath(directory))
         if not (root / _INDEX_NAME).is_file():
@@ -1220,6 +1340,7 @@ class BM25:
                 "recipe, analyzer and parameters it declares; the metadata was "
                 "edited or written by an incompatible writer."
             )
+        obj._restore_term_statistics(root, state, terms)
         # Last: the recipe's parameters must be set before its formula runs.
         obj._engine_cache = SparseScoreEngine.from_arrays(
             obj, terms, arrays["indptr"], arrays["rows"], arrays["tfs"]
@@ -1227,7 +1348,41 @@ class BM25:
         return obj
 
     def get_top_n(self, query, documents, n=5):
+        """
+        Return the ``n`` best entries of ``documents``, by row position.
 
+        Parameters
+        ----------
+        query : sequence of str
+            Query tokens.
+        documents : sequence
+            One entry per indexed document, in corpus order.
+        n : int, optional
+            Maximum number of entries.
+
+        Returns
+        -------
+        list
+            Entries of ``documents``, best first, ties in row order.
+
+        Raises
+        ------
+        ValueError
+            If ``documents`` does not have one entry per indexed document, or
+            ``n`` is not a valid count.
+        TypeError
+            If ``query`` is a string or holds a non-string token.
+
+        See Also
+        --------
+        get_top_ids : Bind hits to the identities the index holds instead.
+
+        Notes
+        -----
+        **User.** Correct only while ``documents`` is in the order of the corpus
+        the index was built from; the length is checked, the order cannot be.
+        Prefer :meth:`get_top_ids`.
+        """
         _require_matching_documents(self.corpus_size, documents)
         n = require_count(n, name="n")
 
@@ -1303,6 +1458,35 @@ class BM25Okapi(BM25):
 
 
 class BM25L(BM25):
+    """
+    BM25L: a ``delta`` added to the length-normalised term frequency.
+
+    Parameters
+    ----------
+    corpus, tokenizer, doc_ids, workers, backend
+        As for :class:`BM25`.
+    k1 : float, optional
+        Term-frequency saturation, ``> 0``.
+    b : float, optional
+        Length-normalisation strength, in ``[0, 1]``.
+    delta : float, optional
+        Shift of the normalised term frequency, ``>= 0``.
+
+    See Also
+    --------
+    BM25Plus : Shifts the whole term contribution instead.
+
+    Notes
+    -----
+    **User.** The shift lifts long documents relative to Okapi BM25. The idf is
+    ``log((N + 1) / (df + 0.5))``, positive for every term.
+
+    References
+    ----------
+    .. [1] Lv, Y. and Zhai, C. "When documents are very long, BM25 fails!",
+       SIGIR 2011.
+    """
+
     RECIPE_ID: str = "bm25l-delta/2"
 
     _PARAMETER_DOMAINS = MappingProxyType(
@@ -1342,6 +1526,35 @@ class BM25L(BM25):
 
 
 class BM25Plus(BM25):
+    """
+    BM25+: a ``delta`` lower bound on every term's contribution.
+
+    Parameters
+    ----------
+    corpus, tokenizer, doc_ids, workers, backend
+        As for :class:`BM25`.
+    k1 : float, optional
+        Term-frequency saturation, ``> 0``.
+    b : float, optional
+        Length-normalisation strength, in ``[0, 1]``.
+    delta : float, optional
+        Lower bound added to each term's frequency part, ``>= 0``.
+
+    See Also
+    --------
+    BM25L : Shifts the normalised term frequency instead.
+
+    Notes
+    -----
+    **User.** A document holding a query term always outscores one that does
+    not. The idf is ``log((N + 1) / df)``, positive for every term.
+
+    References
+    ----------
+    .. [1] Lv, Y. and Zhai, C. "Lower-bounding term frequency normalization",
+       CIKM 2011.
+    """
+
     RECIPE_ID: str = "bm25plus-delta/2"
 
     _PARAMETER_DOMAINS = MappingProxyType(
@@ -1383,63 +1596,325 @@ class BM25Plus(BM25):
             self.idf[word] = idf
 
 
+class _AdaptiveK1(BM25):
+    """
+    Shared machinery of the recipes that estimate ``k1`` per term.
+
+    Notes
+    -----
+    **Developer.** The per-term ``k1`` and the per-term weight are pure
+    functions of the postings, the document lengths and ``b``
+    (:mod:`scikitplot.rank_bm25._adaptive`). They are computed once when the
+    index is built and persisted with it (the weight as ``idf``, ``k1`` as
+    ``term_k1``), so a reload scores bit for bit as the build did in any
+    environment. A rebuild under another NumPy build can differ in the last
+    bit of an estimate, because the estimators use ``log`` and ``exp``. The
+    absent-term contribution is 0 for every length, so the precomputed engine
+    applies unchanged.
+    """
+
+    #: ``k1`` used for a term the index has never seen. Its idf is 0, so the
+    #: contribution is 0 for any positive value; 1.0 is used.
+    _UNSEEN_K1 = 1.0
+
+    @property
+    def term_k1(self):
+        """Mapping of str to float: The estimated ``k1`` of every term (read-only)."""
+        return MappingProxyType(self._term_k1)
+
+    def _k1_for(self, term):
+        return self._term_k1.get(term, self._UNSEEN_K1)
+
+    def _k1_columns(self, terms):
+        return np.array([self._term_k1[term] for term in terms], dtype=np.float64)
+
+    def _term_contribution(self, idf, frequency, length, k1):
+        """Okapi's expression tree with a per-term ``k1``; 0 where absent."""
+        return idf * (
+            frequency * (k1 + 1) / (frequency + k1 * self._length_norm(length))
+        )
+
+    def _k1_in_domain(self, value):
+        """Whether the estimator could have produced ``value``; any positive."""
+        return True
+
+    def _estimate(self, indptr, c):
+        """Return ``(k1, weight)`` arrays, one entry per term column."""
+        raise NotImplementedError
+
+    def _fit(self, terms, indptr, rows, tfs):
+        """Estimate per-term ``k1`` and weight from the postings."""
+        c = normalised_counts(rows, tfs, self.doc_len, self.avgdl, self.b)
+        k1, weight = self._estimate(indptr, c)
+        return dict(zip(terms, k1.tolist())), dict(zip(terms, weight.tolist()))
+
+    def _calc_idf(self, nd):
+        terms = list(nd)
+        indptr, rows, tfs = build_postings(self.doc_freqs, terms)
+        self._term_k1, self.idf = self._fit(terms, indptr, rows, tfs)
+
+    def _recipe_state(self):
+        return {"term_k1": dict(self._term_k1)}
+
+    def _restore_term_statistics(self, root, state, terms):
+        term_k1 = state.get("term_k1")
+        if not isinstance(term_k1, dict) or set(term_k1) != set(terms):
+            raise ValueError(
+                f"index at {root}: term_k1 is missing or does not cover exactly "
+                "the vocabulary; the generation was edited or written by an "
+                "incompatible writer. Rebuild it from its corpus."
+            )
+        for term, value in term_k1.items():
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not (math.isfinite(value) and value > 0)
+            ):
+                raise ValueError(
+                    f"index at {root}: term_k1[{term!r}] is {value!r}; every "
+                    "k1 must be a positive finite number."
+                )
+            if not self._k1_in_domain(float(value)):
+                raise ValueError(
+                    f"index at {root}: term_k1[{term!r}] is {value!r}, which "
+                    f"this recipe's parameters ({self.parameters}) cannot "
+                    "produce; the generation was edited or written by an "
+                    "incompatible writer."
+                )
+        self._term_k1 = {term: float(term_k1[term]) for term in terms}
+
+
+class BM25Adpt(_AdaptiveK1):
+    """
+    BM25-Adpt: ``k1`` and term weight estimated per term by information gain.
+
+    Parameters
+    ----------
+    corpus, tokenizer, doc_ids, workers, backend
+        As for :class:`BM25`.
+    b : float, optional
+        Length-normalisation strength, in ``[0, 1]``. The default is the
+        value the variant was evaluated with.
+    k1_min, k1_max : float, optional
+        Interval the per-term fit searches, ``0 < k1_min < k1_max``.
+    k1_fallback : float, optional
+        ``k1`` of a term whose fit is undefined, ``> 0``.
+
+    Attributes
+    ----------
+    term_k1 : mapping of str to float
+        The estimated ``k1`` of every term.
+    idf : dict of str to float
+        The information gain ``G_1`` of every term, used in place of an idf.
+
+    See Also
+    --------
+    BM25T : Estimates ``k1`` with a log-logistic model instead.
+
+    Notes
+    -----
+    **User.** There is no ``k1`` to tune: each term gets the ``k1`` whose
+    saturation curve best matches how much information its repeated
+    occurrences carry in this collection. A term that no document holds at
+    ``c' >= 1.5`` has nothing to fit and takes ``k1_fallback``; in a natural
+    vocabulary that is most terms. ``G_1`` is negative where
+    ``(df_2 + 0.5) (N + 1) < (df + 1) (df + 0.5)``: for a never-repeated term
+    in a very small corpus, or one held by nearly every document. It is used
+    as defined, not floored, so such a match lowers a score:
+    :meth:`get_top_ids` still returns only documents holding a query term,
+    while :meth:`get_top_n`, which ranks every document, then places those
+    matches below documents that hold no query term.
+
+    **Developer.** The estimator, the points the definition leaves open and how
+    they are settled are in :mod:`scikitplot.rank_bm25._adaptive`. Changing
+    any of them changes scores, so it bumps :attr:`RECIPE_ID`.
+
+    References
+    ----------
+    .. [1] Lv, Y. and Zhai, C. "Adaptive term frequency normalization for
+       BM25", CIKM 2011.
+    .. [2] Trotman, A., Puurula, A. and Burgess, B. "Improvements to BM25 and
+       language models examined", ADCS 2014.
+
+    Examples
+    --------
+    >>> from scikitplot.rank_bm25 import BM25Adpt
+    >>> corpus = [
+    ...     ["wind", "wind", "wind", "rain"],
+    ...     ["wind", "sun"],
+    ...     ["snow"],
+    ...     ["sun", "sun"],
+    ...     ["rain"],
+    ...     ["fog"],
+    ...     ["hail"],
+    ...     ["frost"],
+    ... ]
+    >>> index = BM25Adpt(corpus, doc_ids=list("abcdefgh"))
+    >>> [doc_id for doc_id, _ in index.get_top_ids(["wind"], n=2)]
+    ['a', 'b']
+    >>> round(index.idf["wind"], 4)  # G_1, the information gain
+    0.848
+
+    In a corpus of a handful of documents ``G_1`` is negative for a term that
+    never repeats, so a match lowers the score:
+
+    >>> BM25Adpt([["x"], ["y"], ["z"]]).idf["x"] < 0
+    True
+    >>> index.recipe.identifier
+    'bm25adpt-information-gain/1'
+    """
+
+    RECIPE_ID: str = "bm25adpt-information-gain/1"
+
+    _PARAMETER_DOMAINS = MappingProxyType(
+        {
+            "b": {"minimum": 0, "maximum": 1},
+            "k1_min": {"minimum": 0, "exclusive_minimum": True},
+            "k1_max": {"minimum": 0, "exclusive_minimum": True},
+            "k1_fallback": {"minimum": 0, "exclusive_minimum": True},
+        }
+    )
+
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        corpus,
+        tokenizer=None,
+        b=0.3,
+        k1_min=0.001,
+        k1_max=10.0,
+        k1_fallback=0.001,
+        doc_ids=None,
+        workers=None,
+        backend="auto",
+    ):
+        self._set_parameters(
+            {"b": b, "k1_min": k1_min, "k1_max": k1_max, "k1_fallback": k1_fallback}
+        )
+        super().__init__(
+            corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
+        )
+
+    def _k1_in_domain(self, value):
+        return value == self.k1_fallback or self.k1_min <= value <= self.k1_max
+
+    def _check_parameter_relations(self):
+        if not self.k1_min < self.k1_max:
+            raise ValueError(
+                f"k1_min must be less than k1_max, got k1_min={self.k1_min!r} "
+                f"and k1_max={self.k1_max!r}."
+            )
+
+    def _estimate(self, indptr, c):
+        return estimate_information_gain_k1(
+            indptr,
+            c,
+            self.corpus_size,
+            k1_min=self.k1_min,
+            k1_max=self.k1_max,
+            k1_fallback=self.k1_fallback,
+        )
+
+
+class BM25T(_AdaptiveK1):
+    """
+    BM25T: ``k1`` estimated per term from a log-logistic model of its counts.
+
+    Parameters
+    ----------
+    corpus, tokenizer, doc_ids, workers, backend
+        As for :class:`BM25`.
+    b : float, optional
+        Length-normalisation strength, in ``[0, 1]``. The default is the
+        value the variant was evaluated with.
+
+    Attributes
+    ----------
+    term_k1 : mapping of str to float
+        The estimated ``k1`` of every term.
+    idf : dict of str to float
+        ``log(N / df)`` of every term; 0 for a term in every document.
+
+    See Also
+    --------
+    BM25Adpt : Estimates ``k1`` by information gain instead.
+
+    Notes
+    -----
+    **User.** There is no ``k1`` to tune. Each term's ``k1`` is the unique
+    solution of a moment equation over the documents that hold it, so it
+    always exists; it is less stable for a term held by very few documents,
+    because the moment is then taken over few values.
+
+    **Developer.** The equation, the proof that its root is unique and the
+    solver are in :mod:`scikitplot.rank_bm25._adaptive`.
+
+    References
+    ----------
+    .. [1] Lv, Y. and Zhai, C. "A log-logistic model-based interpretation of
+       TF normalization of BM25", ECIR 2012.
+    .. [2] Trotman, A., Puurula, A. and Burgess, B. "Improvements to BM25 and
+       language models examined", ADCS 2014.
+
+    Examples
+    --------
+    >>> from scikitplot.rank_bm25 import BM25T
+    >>> corpus = [
+    ...     ["wind", "wind", "wind", "rain"],
+    ...     ["wind", "sun"],
+    ...     ["snow"],
+    ...     ["sun", "sun"],
+    ...     ["rain"],
+    ...     ["fog"],
+    ...     ["hail"],
+    ...     ["frost"],
+    ... ]
+    >>> index = BM25T(corpus, doc_ids=list("abcdefgh"))
+    >>> [doc_id for doc_id, _ in index.get_top_ids(["wind"], n=2)]
+    ['a', 'b']
+    >>> round(index.idf["wind"], 4)  # log(N / df) = log(8 / 2)
+    1.3863
+    >>> index.recipe.identifier
+    'bm25t-log-logistic/1'
+    """
+
+    RECIPE_ID: str = "bm25t-log-logistic/1"
+
+    _PARAMETER_DOMAINS = MappingProxyType({"b": {"minimum": 0, "maximum": 1}})
+
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        corpus,
+        tokenizer=None,
+        b=0.2,
+        doc_ids=None,
+        workers=None,
+        backend="auto",
+    ):
+        self._set_parameters({"b": b})
+        super().__init__(
+            corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
+        )
+
+    def _estimate(self, indptr, c):
+        k1 = estimate_log_logistic_k1(indptr, c)
+        df = np.diff(np.asarray(indptr, dtype=np.int64)).tolist()
+        # math.log, as the other recipes' idf, so the weight is the same double
+        # whatever NumPy build computed the postings.
+        weight = np.array([math.log(self.corpus_size / d) for d in df])
+        return k1, weight
+
+
+#: Every scorer class this module ships, in documentation order.
+_SCORERS = (BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T)
+
+
 def _scorer_for_recipe(recipe):
     """Return the name of the built-in scorer class of ``recipe``, or ``None``."""
-    for scorer in (BM25Okapi, BM25L, BM25Plus):
+    for scorer in _SCORERS:
         if recipe == scorer.RECIPE_ID:
             return scorer.__name__
     return None
 
 
 #: Formulas whose engine evaluation is covered by the equivalence tests.
-_AUDITED_FORMULAS = frozenset(
-    cls._term_contribution for cls in (BM25Okapi, BM25L, BM25Plus)
-)
-
-# BM25Adpt and BM25T are a bit more complicated than the previous algorithms here. Here a term-specific k1
-# parameter is calculated before scoring is done
-
-# class BM25Adpt(BM25):
-#     def __init__(self, corpus, k1=1.5, b=0.75, delta=1):
-#         # Algorithm specific parameters
-#         self.k1 = k1
-#         self.b = b
-#         self.delta = delta
-#         super().__init__(corpus)
-#
-#     def _calc_idf(self, nd):
-#         for word, freq in nd.items():
-#             idf = math.log((self.corpus_size + 1) / freq)
-#             self.idf[word] = idf
-#
-#     def get_scores(self, query):
-#         score = np.zeros(self.corpus_size)
-#         doc_len = np.array(self.doc_len)
-#         for q in query:
-#             q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-#             score += (self.idf.get(q) or 0) * (self.delta + (q_freq * (self.k1 + 1)) /
-#                                                (self.k1 * (1 - self.b + self.b * doc_len / self.avgdl) + q_freq))
-#         return score
-#
-#
-# class BM25T(BM25):
-#     def __init__(self, corpus, k1=1.5, b=0.75, delta=1):
-#         # Algorithm specific parameters
-#         self.k1 = k1
-#         self.b = b
-#         self.delta = delta
-#         super().__init__(corpus)
-#
-#     def _calc_idf(self, nd):
-#         for word, freq in nd.items():
-#             idf = math.log((self.corpus_size + 1) / freq)
-#             self.idf[word] = idf
-#
-#     def get_scores(self, query):
-#         score = np.zeros(self.corpus_size)
-#         doc_len = np.array(self.doc_len)
-#         for q in query:
-#             q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-#             score += (self.idf.get(q) or 0) * (self.delta + (q_freq * (self.k1 + 1)) /
-#                                                (self.k1 * (1 - self.b + self.b * doc_len / self.avgdl) + q_freq))
-#         return score
+_AUDITED_FORMULAS = frozenset(cls._term_contribution for cls in _SCORERS)

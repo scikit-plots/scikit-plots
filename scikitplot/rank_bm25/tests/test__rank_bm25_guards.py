@@ -19,10 +19,10 @@ import textwrap
 
 import pytest
 
-from .._rank_bm25 import BM25L, BM25Okapi, BM25Plus
+from .._rank_bm25 import BM25Adpt, BM25L, BM25Okapi, BM25Plus, BM25T
 
 CORPUS = [["hello", "there"], ["quite", "windy"], ["the", "weather"]]
-CLASSES = (BM25Okapi, BM25L, BM25Plus)
+CLASSES = (BM25Okapi, BM25L, BM25Plus, BM25Adpt, BM25T)
 
 
 def _run_child(body, optimised):
